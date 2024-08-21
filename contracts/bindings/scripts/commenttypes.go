@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 func main() {

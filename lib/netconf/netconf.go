@@ -5,7 +5,7 @@ package netconf
 import (
 	"time"
 
-	"github.com/storyprotocol/iliad/lib/evmchain"
+	"github.com/piplabs/story/lib/evmchain"
 )
 
 // Network defines a deployment of the Iliad cross chain protocol.

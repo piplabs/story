@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/app"
-	"github.com/storyprotocol/iliad/e2e/vmcompose"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/e2e/app"
+	"github.com/piplabs/story/e2e/vmcompose"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //go:generate go test . -golden -clean

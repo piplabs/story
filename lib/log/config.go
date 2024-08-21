@@ -7,7 +7,7 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/spf13/pflag"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 const (

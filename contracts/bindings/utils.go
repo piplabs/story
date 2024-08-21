@@ -3,7 +3,7 @@ package bindings
 import (
 	"encoding/json"
 
-	"github.com/storyprotocol/iliad/lib/solc"
+	"github.com/piplabs/story/lib/solc"
 )
 
 func mustGetStorageLayout(data []byte) solc.StorageLayout {

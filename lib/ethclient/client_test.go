@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 func TestGetPayloadV2(t *testing.T) {

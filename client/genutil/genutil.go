@@ -27,12 +27,12 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/ethereum/go-ethereum/common"
 
-	evmenginetypes "github.com/storyprotocol/iliad/client/x/evmengine/types"
-	evmstakingtypes "github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/buildinfo"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
+	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/buildinfo"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // slashingWindows overrides the default slashing signed_blocks_window from 100 to 1000

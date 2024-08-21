@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/lib/k1util"
+	"github.com/piplabs/story/lib/k1util"
 )
 
 //nolint:unused // main for go run

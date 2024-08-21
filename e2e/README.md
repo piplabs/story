@@ -5,7 +5,7 @@ Spins up and tests Iliad devnets in Docker Compose based on a testnet manifest. 
 ```sh
 # In repo root
 # Install the e2e app
-go install github.com/storyprotocol/iliad/e2e
+go install github.com/piplabs/story/e2e
 
 # Build docker image of the code to test.
 make build-docker

@@ -15,10 +15,10 @@ import (
 	"github.com/cometbft/cometbft/test/e2e/pkg/infra"
 	cmtdocker "github.com/cometbft/cometbft/test/e2e/pkg/infra/docker"
 
-	"github.com/storyprotocol/iliad/e2e/app/geth"
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/e2e/app/geth"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 
 	_ "embed"
 )

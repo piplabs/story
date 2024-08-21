@@ -18,8 +18,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 
-	"github.com/storyprotocol/iliad/client/app/keepers"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/app/keepers"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // defaultUpgradeHandler should be used for upgrades that only update the `ConsensusVersion`.

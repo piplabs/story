@@ -8,8 +8,8 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
 )
 
 // loadPrivVal returns a privval.FilePV by loading either a CometBFT priv validator key or an Ethereum keystore file.

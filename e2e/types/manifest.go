@@ -3,8 +3,8 @@ package types
 import (
 	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
 
-	"github.com/storyprotocol/iliad/e2e/app/key"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/e2e/app/key"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // Mode defines the iliad consensus node mode.

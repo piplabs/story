@@ -5,8 +5,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/solc"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/solc"
 )
 
 type StorageValues map[string]any

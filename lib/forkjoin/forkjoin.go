@@ -10,7 +10,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 const (

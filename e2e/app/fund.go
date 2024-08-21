@@ -9,12 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/storyprotocol/iliad/e2e/app/eoa"
-	"github.com/storyprotocol/iliad/lib/anvil"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/txmgr"
+	"github.com/piplabs/story/e2e/app/eoa"
+	"github.com/piplabs/story/lib/anvil"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/txmgr"
 )
 
 const saneMaxEther = 20 // Maximum amount to fund in ether. // TODO(corver): Increase this.

@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/storyprotocol/iliad
+name: buf.build/piplabs/story
 deps:
   - buf.build/protocolbuffers/wellknowntypes
   - buf.build/cosmos/cosmos-sdk

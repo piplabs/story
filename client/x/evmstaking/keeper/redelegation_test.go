@@ -11,8 +11,8 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/lib/k1util"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/k1util"
 
 	"go.uber.org/mock/gomock"
 )

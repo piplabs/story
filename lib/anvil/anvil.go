@@ -10,10 +10,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/storyprotocol/iliad/e2e/app/static"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/e2e/app/static"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/log"
 
 	_ "embed"
 )

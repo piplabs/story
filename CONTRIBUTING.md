@@ -56,7 +56,7 @@ We are always in need of help, be it fixing documentation, reporting bugs or wri
 Look at places where you feel best coding practices aren't followed, code refactoring is needed or tests are missing.
 
 If you have questions about the development process,
-feel free to [file an issue](https://github.com/storyprotocol/iliad/issues/new).
+feel free to [file an issue](https://github.com/piplabs/story/issues/new).
 
 ## Code Review
 
@@ -66,7 +66,7 @@ To make it easier for your PR to receive reviews, consider the reviewers will ne
 * write [good commit messages](https://chris.beams.io/posts/git-commit/).
 * break large changes into a logical series of smaller patches which individually make easily understandable changes, and in aggregate solve a broader issue.
 
-[1]: https://github.com/storyprotocol/iliad/issues
+[1]: https://github.com/piplabs/story/issues
 [2]: https://chris.beams.io/posts/git-commit/#seven-rules
 [3]: https://www.conventionalcommits.org/en/v1.0.0
 [4]: https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional#type-enum

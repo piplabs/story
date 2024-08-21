@@ -7,7 +7,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/merkle"
+	"github.com/piplabs/story/lib/merkle"
 )
 
 // TestLeaveProvable tests that a leaf can be proven.

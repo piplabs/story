@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/client/genutil/evm"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tutil"
 
-	_ "github.com/storyprotocol/iliad/client/app" // To init SDK config.
+	_ "github.com/piplabs/story/client/app" // To init SDK config.
 )
 
 //go:generate go test . -golden -clean

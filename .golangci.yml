@@ -16,7 +16,7 @@ linters-settings:
       - prefix(cosmossdk.io)                   # Cosmos SDK import
       - prefix(github.com)                     # Catch-all Github direct imports
       - prefix(github.com/storyprotocol)       # Story
-      - prefix(github.com/storyprotocol/iliad) # Iliad
+      - prefix(github.com/piplabs/story) # Iliad
       - default                                # All other imports not matched to another section type.
       - blank                                  # Blank imports
     custom-order: true
@@ -80,7 +80,7 @@ linters-settings:
     skip-regexp: internal_test\.go # Allow internal tests
   wrapcheck:
     ignoreSigs:
-      - github.com/storyprotocol/iliad/
+      - github.com/piplabs/story/
       - google.golang.org/grpc/status # No point wrapping gRPC/network errors.
       - github.com/ethereum/go-ethereum # We wrap these automatically in lib/ethclient
       - "Errorf"

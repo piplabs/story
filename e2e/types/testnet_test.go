@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/types"
+	"github.com/piplabs/story/e2e/types"
 )
 
 func TestNextRPCAddress(t *testing.T) {

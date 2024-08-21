@@ -8,8 +8,8 @@ import (
 
 	"github.com/cometbft/cometbft/test/e2e/pkg/exec"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 const (
@@ -75,7 +75,7 @@ func Test(ctx context.Context, def Definition, verbose bool) error {
 	if verbose {
 		args = append(args, "-v")
 	}
-	args = append(args, "github.com/storyprotocol/iliad/e2e/test")
+	args = append(args, "github.com/piplabs/story/e2e/test")
 	log.Debug(ctx, "Test command", "args", args)
 
 	err = exec.CommandVerbose(ctx, args...)

@@ -9,9 +9,9 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //go:generate go test . -golden -clean

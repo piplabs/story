@@ -29,7 +29,7 @@ jobs:
 
       - name: Run devnet1 e2e test
         run: |
-          go install github.com/storyprotocol/iliad/e2e
+          go install github.com/piplabs/story/e2e
           cd e2e && ./run-multiple.sh manifests/devnet1.toml
 
       - name: Upload failed logs

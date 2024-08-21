@@ -6,8 +6,8 @@ import (
 
 	cmtlog "github.com/cometbft/cometbft/libs/log"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 var _ cmtlog.Logger = (*cmtLogger)(nil)

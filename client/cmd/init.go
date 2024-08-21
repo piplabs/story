@@ -20,12 +20,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 
-	iliadcfg "github.com/storyprotocol/iliad/client/config"
-	"github.com/storyprotocol/iliad/client/genutil"
-	libcmd "github.com/storyprotocol/iliad/lib/cmd"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	iliadcfg "github.com/piplabs/story/client/config"
+	"github.com/piplabs/story/client/genutil"
+	libcmd "github.com/piplabs/story/lib/cmd"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // InitConfig is the config for the init command.

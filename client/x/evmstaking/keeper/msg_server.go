@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
+	"github.com/piplabs/story/client/x/evmstaking/types"
 )
 
 type msgServer struct {

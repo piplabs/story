@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 var (

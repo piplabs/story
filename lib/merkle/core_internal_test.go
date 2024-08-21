@@ -1,6 +1,6 @@
 package merkle
 
-import "github.com/storyprotocol/iliad/lib/errors"
+import "github.com/piplabs/story/lib/errors"
 
 // These functions are also ported from OpenZeppelin's library, but they
 // are not used by iliad's production code, so they are part of the

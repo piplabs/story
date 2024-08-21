@@ -20,10 +20,10 @@ import (
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
-	"github.com/storyprotocol/iliad/client/app/keepers"
-	"github.com/storyprotocol/iliad/client/comet"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/client/app/keepers"
+	"github.com/piplabs/story/client/comet"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
 
 	_ "cosmossdk.io/api/cosmos/tx/config/v1"          // import for side-effects
 	_ "cosmossdk.io/x/upgrade"                        // import for side-effects

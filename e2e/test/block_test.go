@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // Tests that block headers are identical across nodes where present.

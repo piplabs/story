@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/txmgr"
+	"github.com/piplabs/story/lib/txmgr"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/storyprotocol/iliad/client/app/keepers"
+	"github.com/piplabs/story/client/app/keepers"
 )
 
 // Upgrade defines a struct containing necessary fields that a MsgSoftwareUpgrade

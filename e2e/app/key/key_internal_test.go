@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func DeleteSecretForT(ctx context.Context, t *testing.T, network netconf.ID, name string, typ Type, addr string) {

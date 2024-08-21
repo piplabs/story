@@ -19,9 +19,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/fireblocks"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/lib/fireblocks"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tutil"
 
 	_ "embed"
 )

@@ -9,7 +9,7 @@ import (
 	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // Tests that the app hash (as reported by the app) matches the last

@@ -8,8 +8,8 @@ import (
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/spf13/viper"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 //nolint:gochecknoglobals // Overrides cometbft default moniker for testing.

@@ -8,7 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/contracts/bindings"
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 type AccountKeeper interface {

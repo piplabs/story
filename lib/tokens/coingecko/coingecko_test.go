@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/tokens"
-	"github.com/storyprotocol/iliad/lib/tokens/coingecko"
+	"github.com/piplabs/story/lib/tokens"
+	"github.com/piplabs/story/lib/tokens/coingecko"
 
 	"gotest.tools/v3/assert"
 )

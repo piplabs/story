@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/forkjoin"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/forkjoin"
 
 	"go.uber.org/goleak"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // GetSupportedAssets returns all asset types supported by Fireblocks.

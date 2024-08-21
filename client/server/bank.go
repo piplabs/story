@@ -8,7 +8,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/gorilla/mux"
 
-	"github.com/storyprotocol/iliad/client/server/utils"
+	"github.com/piplabs/story/client/server/utils"
 )
 
 func (s *Server) initBankRoute() {

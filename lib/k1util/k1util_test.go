@@ -17,8 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //nolint:lll // No wrap

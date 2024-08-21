@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 func (k *Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {

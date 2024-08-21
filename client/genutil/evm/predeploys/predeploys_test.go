@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm/predeploys"
-	"github.com/storyprotocol/iliad/contracts/bindings"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 var (

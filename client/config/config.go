@@ -14,11 +14,11 @@ import (
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	db "github.com/cosmos/cosmos-db"
 
-	"github.com/storyprotocol/iliad/lib/buildinfo"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tracer"
+	"github.com/piplabs/story/lib/buildinfo"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tracer"
 
 	_ "embed"
 )

@@ -14,15 +14,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm/predeploys"
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/e2e/app/eoa"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/ethclient/ethbackend"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/txmgr"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/e2e/app/eoa"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/ethclient/ethbackend"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/txmgr"
 )
 
 // FundValidatorsForTesting funds validators in ephemeral networks: devnet and staging.
