@@ -3,9 +3,9 @@ package evmchain
 
 import (
 	"time"
-
-	"github.com/piplabs/story/lib/tokens"
 )
+
+type Token string
 
 const (
 	// Mainnets.
@@ -30,15 +30,18 @@ const (
 	IDMockOp         uint64 = 1655
 	IDMockArb        uint64 = 1656
 
-	iliadEVMName        = "iliad_evm"
+	iliadEVMName        = "story_evm"
 	iliadEVMBlockPeriod = time.Second * 2
+
+	IP  Token = "IP"
+	ETH Token = "ETH"
 )
 
 type Metadata struct {
 	ChainID     uint64
 	Name        string
 	BlockPeriod time.Duration
-	NativeToken tokens.Token
+	NativeToken Token
 }
 
 func MetadataByID(chainID uint64) (Metadata, bool) {
@@ -61,78 +64,78 @@ var static = map[uint64]Metadata{
 		ChainID:     IDEthereum,
 		Name:        "ethereum",
 		BlockPeriod: 12 * time.Second,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDIliadMainnet: {
 		ChainID:     IDIliadMainnet,
 		Name:        iliadEVMName,
 		BlockPeriod: iliadEVMBlockPeriod,
-		NativeToken: tokens.ILIAD,
+		NativeToken: IP,
 	},
 	IDIliadTestnet: {
 		ChainID:     IDIliadTestnet,
 		Name:        iliadEVMName,
 		BlockPeriod: iliadEVMBlockPeriod,
-		NativeToken: tokens.ILIAD,
+		NativeToken: IP,
 	},
 	IDIliad: {
 		ChainID:     IDIliad,
 		Name:        iliadEVMName,
 		BlockPeriod: iliadEVMBlockPeriod,
-		NativeToken: tokens.ILIAD,
+		NativeToken: IP,
 	},
 	IDHolesky: {
 		ChainID:     IDHolesky,
 		Name:        "holesky",
 		BlockPeriod: 12 * time.Second,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDArbSepolia: {
 		ChainID:     IDArbSepolia,
 		Name:        "arb_sepolia",
 		BlockPeriod: 300 * time.Millisecond,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDOpSepolia: {
 		ChainID:     IDOpSepolia,
 		Name:        "op_sepolia",
 		BlockPeriod: 2 * time.Second,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDIliadEphemeral: {
 		ChainID:     IDIliadEphemeral,
 		Name:        iliadEVMName,
 		BlockPeriod: iliadEVMBlockPeriod,
-		NativeToken: tokens.ILIAD,
+		NativeToken: IP,
 	},
 	IDMockL1Fast: {
 		ChainID:     IDMockL1Fast,
 		Name:        "mock_l1",
 		BlockPeriod: time.Second,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDMockL1Slow: {
 		ChainID:     IDMockL1Slow,
 		Name:        "slow_l1",
 		BlockPeriod: time.Second * 12,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDMockL2: {
 		ChainID:     IDMockL2,
 		Name:        "mock_l2",
 		BlockPeriod: time.Second,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDMockOp: {
 		ChainID:     IDMockOp,
 		Name:        "mock_op",
 		BlockPeriod: time.Second * 2,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 	IDMockArb: {
 		ChainID:     IDMockArb,
 		Name:        "mock_arb",
 		BlockPeriod: time.Second / 4,
-		NativeToken: tokens.ETH,
+		NativeToken: ETH,
 	},
 }
