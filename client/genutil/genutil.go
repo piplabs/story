@@ -60,7 +60,7 @@ func MakeGenesis(
 		AppName:       "iliad",
 		AppVersion:    buildinfo.Version(),
 		GenesisTime:   genesisTime.UTC(),
-		ChainID:       network.Static().IliadConsensusChainIDStr(),
+		ChainID:       network.Static().StoryConsensusChainIDStr(),
 		InitialHeight: 1,
 		Consensus:     defaultConsensusGenesis(),
 		AppState:      appState1Bz,

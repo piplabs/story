@@ -31,7 +31,7 @@ func (n Network) Validate() error {
 func (n Network) EVMChains() []Chain {
 	resp := make([]Chain, 0, len(n.Chains))
 	for _, chain := range n.Chains {
-		if IsIliadConsensus(n.ID, chain.ID) {
+		if IsStoryConsensus(n.ID, chain.ID) {
 			continue
 		}
 
@@ -66,7 +66,7 @@ func (n Network) ChainNamesByIDs() map[uint64]string {
 // IliadEVMChain returns the Iliad execution chain config or false if it does not exist.
 func (n Network) IliadEVMChain() (Chain, bool) {
 	for _, chain := range n.Chains {
-		if IsIliadExecution(n.ID, chain.ID) {
+		if IsStoryExecution(n.ID, chain.ID) {
 			return chain, true
 		}
 	}
@@ -75,9 +75,9 @@ func (n Network) IliadEVMChain() (Chain, bool) {
 }
 
 // IliadConsensusChain returns the Iliad consensus chain config or false if it does not exist.
-func (n Network) IliadConsensusChain() (Chain, bool) {
+func (n Network) StoryConsensusChain() (Chain, bool) {
 	for _, chain := range n.Chains {
-		if IsIliadConsensus(n.ID, chain.ID) {
+		if IsStoryConsensus(n.ID, chain.ID) {
 			return chain, true
 		}
 	}

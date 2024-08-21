@@ -53,7 +53,7 @@ func MakeGenesis(network netconf.ID) (core.Genesis, error) {
 // See geth reference: https://github.com/ethereum/go-ethereum/blob/master/params/config.go#L65
 func defaultChainConfig(network netconf.ID) *params.ChainConfig {
 	return &params.ChainConfig{
-		ChainID:                       big.NewInt(int64(network.Static().IliadExecutionChainID)),
+		ChainID:                       big.NewInt(int64(network.Static().StoryExecutionChainID)),
 		HomesteadBlock:                big.NewInt(0),
 		EIP150Block:                   big.NewInt(0),
 		EIP155Block:                   big.NewInt(0),

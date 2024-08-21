@@ -115,7 +115,7 @@ func newApp(
 	}
 
 	// Set "OrderEndBlockers" directly instead of using "SetOrderEndBlockers," which will panic since the staking module
-	// is missing in the "endBlockers", which is an intended behavior in Iliad. The panic message is:
+	// is missing in the "endBlockers", which is an intended behavior in Story. The panic message is:
 	// `panic: all modules must be defined when setting SetOrderEndBlockers, missing: [staking]`
 	{
 		app.ModuleManager.OrderEndBlockers = endBlockers

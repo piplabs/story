@@ -15,14 +15,14 @@ import (
 	_ "embed"
 )
 
-const consensusIDPrefix = "iliad-"
+const consensusIDPrefix = "story-"
 const consensusIDOffset = 1_000_000
 const maxValidators = 10
 
 // Static defines static config and data for a network.
 type Static struct {
 	Version               string
-	IliadExecutionChainID uint64
+	StoryExecutionChainID uint64
 	MaxValidators         uint32
 	ConsensusGenesisJSON  []byte
 	ConsensusSeedTXT      []byte
@@ -37,20 +37,20 @@ type Deployment struct {
 
 // IliadConsensusChainIDStr returns the chain ID string for the Iliad consensus chain.
 // It is calculated as "iliad-<IliadConsensusChainIDUint64>".
-func (s Static) IliadConsensusChainIDStr() string {
-	return fmt.Sprintf("%s%d", consensusIDPrefix, s.IliadConsensusChainIDUint64())
+func (s Static) StoryConsensusChainIDStr() string {
+	return fmt.Sprintf("%s%d", consensusIDPrefix, s.StoryConsensusChainIDUint64())
 }
 
 // IliadConsensusChainIDUint64 returns the chain ID uint64 for the Iliad consensus chain.
 // It is calculated as 1_000_000 + IliadExecutionChainID.
-func (s Static) IliadConsensusChainIDUint64() uint64 {
-	return consensusIDOffset + s.IliadExecutionChainID
+func (s Static) StoryConsensusChainIDUint64() uint64 {
+	return consensusIDOffset + s.StoryExecutionChainID
 }
 
 // IliadConsensusChain returns the story consensus Chain struct.
 func (s Static) IliadConsensusChain() Chain {
 	return Chain{
-		ID:          s.IliadConsensusChainIDUint64(),
+		ID:          s.StoryConsensusChainIDUint64(),
 		Name:        "iliad_consensus",
 		BlockPeriod: time.Second * 2,
 	}
@@ -120,22 +120,22 @@ var (
 var statics = map[ID]Static{
 	Simnet: {
 		Version:               runid,
-		IliadExecutionChainID: evmchain.IDIliadEphemeral,
+		StoryExecutionChainID: evmchain.IDIliadEphemeral,
 		MaxValidators:         maxValidators,
 	},
 	Devnet: {
 		Version:               runid,
-		IliadExecutionChainID: evmchain.IDIliadEphemeral,
+		StoryExecutionChainID: evmchain.IDIliadEphemeral,
 		MaxValidators:         maxValidators,
 	},
 	Staging: {
 		Version:               runid,
-		IliadExecutionChainID: evmchain.IDIliadEphemeral,
+		StoryExecutionChainID: evmchain.IDIliadEphemeral,
 		MaxValidators:         maxValidators,
 	},
 	Testnet: {
 		Version:               "v0.0.1",
-		IliadExecutionChainID: evmchain.IDIliadTestnet,
+		StoryExecutionChainID: evmchain.IDIliadTestnet,
 		MaxValidators:         maxValidators,
 		ConsensusGenesisJSON:  testnetConsensusGenesisJSON,
 		ConsensusSeedTXT:      testnetConsensusSeedsTXT,
@@ -144,13 +144,13 @@ var statics = map[ID]Static{
 	},
 	Iliad: {
 		Version:               "v0.0.1",
-		IliadExecutionChainID: evmchain.IDIliadTestnet,
+		StoryExecutionChainID: evmchain.IDIliadTestnet,
 		ConsensusGenesisJSON:  iliadConsensusGenesisJSON,
 		ConsensusSeedTXT:      iliadConsensusSeedsTXT,
 	},
 	Local: {
 		Version:               "v0.0.1",
-		IliadExecutionChainID: evmchain.IDLocal,
+		StoryExecutionChainID: evmchain.IDLocal,
 		ConsensusGenesisJSON:  localConsensusGenesisJSON,
 		ConsensusSeedTXT:      localConsensusSeedsTXT,
 	},
@@ -177,11 +177,11 @@ func ConsensusChainIDStr2Uint64(id string) (uint64, error) {
 }
 
 // IsIliadConsensus returns true if provided chainID is the iliad consensus chain for the network.
-func IsIliadConsensus(network ID, chainID uint64) bool {
-	return network.Static().IliadConsensusChainIDUint64() == chainID
+func IsStoryConsensus(network ID, chainID uint64) bool {
+	return network.Static().StoryConsensusChainIDUint64() == chainID
 }
 
 // IsIliadExecution returns true if provided chainID is the iliad execution chain for the network.
-func IsIliadExecution(network ID, chainID uint64) bool {
-	return network.Static().IliadExecutionChainID == chainID
+func IsStoryExecution(network ID, chainID uint64) bool {
+	return network.Static().StoryExecutionChainID == chainID
 }
