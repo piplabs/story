@@ -39,7 +39,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.27.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.27.0
-	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/tools v0.21.0
@@ -244,7 +243,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240520151616-dc85e6b867a5
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gotest.tools/v3 v3.5.1
+	gotest.tools/v3 v3.5.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 	pgregory.net/rapid v1.1.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
