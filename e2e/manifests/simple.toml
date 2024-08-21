@@ -1,7 +1,0 @@
-network = "devnet"
-anvil_chains = ["mock_l2", "mock_l1"]
-
-[node.validator01]
-[node.validator02]
-[node.validator03]
-[node.validator04]
