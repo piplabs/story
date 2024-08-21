@@ -23,8 +23,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
-	"github.com/storyprotocol/iliad/client/config"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/config"
+	"github.com/piplabs/story/lib/errors"
 
 	_ "embed"
 )

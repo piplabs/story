@@ -7,9 +7,9 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/tracer"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/tracer"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

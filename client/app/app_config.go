@@ -30,10 +30,10 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	evmenginemodule "github.com/storyprotocol/iliad/client/x/evmengine/module"
-	evmenginetypes "github.com/storyprotocol/iliad/client/x/evmengine/types"
-	evmstakingmodule "github.com/storyprotocol/iliad/client/x/evmstaking/module"
-	evmstakingtypes "github.com/storyprotocol/iliad/client/x/evmstaking/types"
+	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
+	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
+	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
+	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
 )
 
 // Bech32HRP is the human-readable-part of the Bech32 address format.

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/storyprotocol/iliad/contracts/bindings"
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 var (

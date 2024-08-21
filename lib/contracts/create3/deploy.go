@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/e2e/app/eoa"
-	"github.com/storyprotocol/iliad/lib/contracts"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient/ethbackend"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/e2e/app/eoa"
+	"github.com/piplabs/story/lib/contracts"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient/ethbackend"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 type DeploymentConfig struct {

@@ -4,7 +4,7 @@ package evmchain
 import (
 	"time"
 
-	"github.com/storyprotocol/iliad/lib/tokens"
+	"github.com/piplabs/story/lib/tokens"
 )
 
 const (

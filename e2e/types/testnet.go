@@ -13,8 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 
-	"github.com/storyprotocol/iliad/lib/evmchain"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/evmchain"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // Testnet wraps e2e.Testnet with additional iliad-specific fields.

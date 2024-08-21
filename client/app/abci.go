@@ -11,7 +11,7 @@ import (
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/log"
 )
 
 type postFinalizeCallback func(sdk.Context) error

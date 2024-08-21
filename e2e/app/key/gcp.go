@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"os/exec"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // createGCPSecret creates a new GCP Secret Manager secret.

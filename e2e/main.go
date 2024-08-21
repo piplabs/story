@@ -1,8 +1,8 @@
 package main
 
 import (
-	e2ecmd "github.com/storyprotocol/iliad/e2e/cmd"
-	libcmd "github.com/storyprotocol/iliad/lib/cmd"
+	e2ecmd "github.com/piplabs/story/e2e/cmd"
+	libcmd "github.com/piplabs/story/lib/cmd"
 )
 
 func main() {

@@ -8,10 +8,10 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/log"
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {

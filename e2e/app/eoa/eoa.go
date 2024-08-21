@@ -7,9 +7,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/storyprotocol/iliad/e2e/app/key"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/e2e/app/key"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 type Role string

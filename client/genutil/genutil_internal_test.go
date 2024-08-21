@@ -9,7 +9,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/stretchr/testify/require"
 
-	etypes "github.com/storyprotocol/iliad/client/x/evmengine/types"
+	etypes "github.com/piplabs/story/client/x/evmengine/types"
 )
 
 func TestDefaultConsensusParams(t *testing.T) {

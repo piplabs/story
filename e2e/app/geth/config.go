@@ -11,8 +11,8 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // WriteAllConfig writes all the geth config files for all iliadEVMs.

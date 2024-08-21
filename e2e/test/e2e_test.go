@@ -14,13 +14,13 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/app"
-	"github.com/storyprotocol/iliad/e2e/docker"
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/e2e/vmcompose"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/e2e/app"
+	"github.com/piplabs/story/e2e/docker"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/e2e/vmcompose"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 //nolint:gochecknoglobals // This was copied from cometbft/test/e2e/test/e2e_test.go

@@ -6,10 +6,10 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/log"
 )
 
 func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {

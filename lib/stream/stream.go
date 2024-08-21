@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 
 	"go.opentelemetry.io/otel/trace"
 )

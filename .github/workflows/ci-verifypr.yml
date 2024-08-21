@@ -14,4 +14,4 @@ jobs:
         with:
           go-version: 'stable'
       - name: "Verify PR"
-        run: go run github.com/storyprotocol/iliad/scripts/verifypr
+        run: go run github.com/piplabs/story/scripts/verifypr

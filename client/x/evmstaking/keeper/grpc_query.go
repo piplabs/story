@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/types/query"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
+	"github.com/piplabs/story/client/x/evmstaking/types"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -6,7 +6,7 @@ import (
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
-	"github.com/storyprotocol/iliad/client/server/utils"
+	"github.com/piplabs/story/client/server/utils"
 )
 
 func (s *Server) initUpgradeRoute() {

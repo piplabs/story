@@ -6,7 +6,7 @@ import (
 
 	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
 
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/log"
 )
 
 // Wait waits for a number of blocks to be produced, and for all nodes to catch

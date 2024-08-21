@@ -14,12 +14,12 @@ import (
 
 	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
 
-	"github.com/storyprotocol/iliad/e2e/app/agent"
-	"github.com/storyprotocol/iliad/e2e/docker"
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/evmchain"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/e2e/app/agent"
+	"github.com/piplabs/story/e2e/docker"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/evmchain"
+	"github.com/piplabs/story/lib/log"
 )
 
 const ProviderName = "vmcompose"

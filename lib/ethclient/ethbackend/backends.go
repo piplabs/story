@@ -9,12 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/fireblocks"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/txmgr"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/fireblocks"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/txmgr"
 )
 
 const (

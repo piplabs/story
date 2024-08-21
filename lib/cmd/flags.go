@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/log"
 )
 
 const homeFlag = "home"

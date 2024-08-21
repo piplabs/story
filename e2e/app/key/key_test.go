@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/app/key"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/e2e/app/key"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 func TestKeys(t *testing.T) {

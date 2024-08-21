@@ -6,8 +6,8 @@ import (
 	cmttime "github.com/cometbft/cometbft/types/time"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/client/genutil"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/client/genutil"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func MakeGenesis(network netconf.ID, valPubKeys ...crypto.PubKey) (*types.GenesisDoc, error) {

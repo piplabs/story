@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/evmchain"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/evmchain"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 //nolint:gochecknoglobals // Static mappings

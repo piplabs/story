@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/evmchain"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/evmchain"
 
 	_ "embed"
 )

@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/expbackoff"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/expbackoff"
 )
 
 // backoffFunc aliased for testing.

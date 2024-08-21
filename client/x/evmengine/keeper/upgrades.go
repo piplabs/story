@@ -5,10 +5,10 @@ import (
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/lib/errors"
-	clog "github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+	clog "github.com/piplabs/story/lib/log"
 )
 
 func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {

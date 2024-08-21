@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 type DefaultFlagValues struct {

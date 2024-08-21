@@ -7,9 +7,9 @@ import (
 	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //go:generate go test . -golden -clean

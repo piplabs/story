@@ -12,10 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/docker"
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/evmchain"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/e2e/docker"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/evmchain"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 //go:generate go test . -golden -clean

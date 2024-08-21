@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/tokens"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/tokens"
 )
 
 const (

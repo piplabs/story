@@ -11,10 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm/predeploys"
-	"github.com/storyprotocol/iliad/lib/anvil"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	"github.com/piplabs/story/lib/anvil"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 //nolint:unused // added for potential future usage

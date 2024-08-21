@@ -13,9 +13,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
-	"github.com/storyprotocol/iliad/client/x/evmengine/keeper"
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/x/evmengine/keeper"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 var (

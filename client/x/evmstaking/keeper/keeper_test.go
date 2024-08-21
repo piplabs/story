@@ -24,11 +24,11 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/keeper"
-	"github.com/storyprotocol/iliad/client/x/evmstaking/module"
-	estestutil "github.com/storyprotocol/iliad/client/x/evmstaking/testutil"
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
+	"github.com/piplabs/story/client/x/evmstaking/module"
+	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/ethclient"
 
 	"go.uber.org/mock/gomock"
 )

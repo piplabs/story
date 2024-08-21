@@ -1,8 +1,8 @@
 {
-  "name": "@storyprotocol/iliad-contracts",
+  "name": "@piplabs/story-contracts",
   "version": "0.1.0-alpha.0",
   "license": "GPL-3.0-only",
-  "repository": "https://github.com/storyprotocol/iliad/contracts",
+  "repository": "https://github.com/piplabs/story/contracts",
   "packageManager": "pnpm@9.1.0",
   "files": [
     "src/**/*.sol",
