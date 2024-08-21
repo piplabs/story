@@ -1,0 +1,23 @@
+network = "devnet"
+anvil_chains = ["mock_l2", "mock_l1"]
+
+multi_iliad_evms = true
+
+[node.validator01]
+[node.validator02]
+[node.validator03]
+[node.validator04]
+start_at = 20
+state_sync = true
+
+[node.full01]
+mode = "full"
+perturb = ["restart"]
+
+# Trigger validator updates at height 10
+[validator_update.10]
+full01 = 2 # Add full01 as validator by depositing 2 ether $ILIAD
+
+# Additional perturbations.
+[perturb]
+validator02_evm = ["stopstart"]

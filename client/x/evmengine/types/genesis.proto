@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package client.x.evmengine.types;
+
+import "gogoproto/gogo.proto";
+import "client/x/evmengine/types/params.proto";
+
+option go_package = "client/x/evmengine/types";
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+}

@@ -1,0 +1,27 @@
+{
+  "storage": [
+    {
+      "astId": 8,
+      "contract": "src/protocol/UpgradeEntrypoint.sol:UpgradeEntrypoint",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_address"
+    },
+    {
+      "astId": 156,
+      "contract": "src/protocol/UpgradeEntrypoint.sol:UpgradeEntrypoint",
+      "label": "_pendingOwner",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    }
+  }
+}

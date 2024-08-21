@@ -1,0 +1,161 @@
+run:
+  timeout: 5m
+  go: "1.22"
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true
+  forbidigo:
+    forbid:
+      - 'fmt\.Print.*(# Avoid debug logging)?'
+      - 'fmt\.Errorf.*(# Prefer lib/errors.Wrap)?'
+      - 'prometheus\.New.*(# Prefer promauto)?'
+  gci: # Auto-format imports
+    sections:
+      - standard                               # Go stdlib
+      - prefix(golang.org)                     # Golang pkg import
+      - prefix(cosmossdk.io)                   # Cosmos SDK import
+      - prefix(github.com)                     # Catch-all Github direct imports
+      - prefix(github.com/storyprotocol)       # Story
+      - prefix(github.com/storyprotocol/iliad) # Iliad
+      - default                                # All other imports not matched to another section type.
+      - blank                                  # Blank imports
+    custom-order: true
+  govet:
+    enable-all: true
+  importas:
+    no-unaliased: true
+    alias:
+      - pkg: github.com/cometbft/cometbft/crypto/secp256k1
+        alias: k1
+    # TODO: Add our own import aliases here
+  misspell:
+    locale: US
+  nlreturn:
+    block-size: 2
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  revive:
+    enable-all-rules: true
+    severity: warning
+    ignore-generated-header: true
+    rules:
+      # Disabled revive rules
+      - name: file-header # Doesn't support auto fix
+        disabled: true
+      - name: max-public-structs # Too strict
+        disabled: true
+      - name: banned-characters # Not applicable
+        disabled: true
+      - name: cognitive-complexity # False positives, address in code reviews
+        disabled: true
+      - name: function-length # False positives, address in code reviews
+        disabled: true
+      - name: function-result-limit # False positives, address in code reviews
+        disabled: true
+      - name: cyclomatic # False positives, address in code reviews
+        disabled: true
+      - name: argument-limit # False positives, address in code reviews
+        disabled: true
+      - name: line-length-limit # Requires us to cause indentation confusion: https://google.github.io/styleguide/go/decisions#indentation-confusion
+        disabled: true
+      - name: comment-spacings # Relax revive rules for prefix comment spacing
+        disabled: true
+      # Some configured revive rules
+      - name: imports-blocklist
+        arguments:
+          - "log"                                # Prefer ./lib/log
+          - "github.com/gogo/protobuf/proto"     # Prefer google.golang.org/protobuf
+          - "github.com/stretchr/testify/assert" # Prefer github.com/stretchr/testify/require
+          - "golang.org/x/exp/slices"            # Prefer slices
+      - name: unhandled-error
+        arguments:
+         - 'fmt.Printf'
+         - 'fmt.Println'
+  staticcheck:
+    checks:
+     - "all"
+     - "-SA1019"
+  testpackage:
+    skip-regexp: internal_test\.go # Allow internal tests
+  wrapcheck:
+    ignoreSigs:
+      - github.com/storyprotocol/iliad/
+      - google.golang.org/grpc/status # No point wrapping gRPC/network errors.
+      - github.com/ethereum/go-ethereum # We wrap these automatically in lib/ethclient
+      - "Errorf"
+      - ".Errorf("
+      - "errors.New("
+      - "errors.Unwrap("
+      - ".Wrap("
+      - ".Wrapf("
+      - ".WithMessage("
+      - ".WithMessagef("
+      - ".WithStack("
+
+issues:
+  fix: true
+  exclude-files:
+    - ".*\\.pb\\.go$" # Ignore generated protobuf files
+    - "contracts/bindings/*" # Ignore generated contract bindings
+  exclude-rules:
+    - path: '(.*)(_test|tutil|scripts)(.*)'
+      linters:         # Relax linters for both tests/scripts (non-production code)
+        - gosec        # Security not required
+        - revive       # Relax revive rules
+        - wrapcheck    # Wrapping not required
+        - perfsprint   # Performance not an issue here
+        - contextcheck # Context not an issue here
+        - maintidx     # Relax linter for table driven tests
+        - dupl         # Many tests share similar testing logic but call different methods with different args
+    - path: '(.*)(e2e)(.*)'
+      linters:         # Relax linters for both e2e (performance not required)
+        - perfsprint   # Performance not an issue here
+    - path: '(.*)(scripts|cli)(.*)'
+      linters:        # Relax linters for scripts and clis
+        - forbidigo   # Allow debug printing
+  exclude:
+    - add-constant         # Ignore "add-constant: avoid magic numbers like" since it is too strict
+    - fieldalignment # Ignore "fieldalignment: struct with XXX pointer bytes could be YYY"
+    - "shadow: declaration of" # Relax govet
+    - "shadows an import name" # Relax revive
+    - "ifElseChain: rewrite if-else to switch statement"   # IfElseChain actually preferred to switches
+    - "nested-structs: no nested structs are allowed"      # Relax revive
+    - "confusing-naming" #  Relax revive, we often use Foo and foo function names.
+    - "flag-parameter" # Relax revive, flag parameters are ok if used sparingly.
+    - "G306: Expect WriteFile permissions to be 0600 or less" # We write a lot of files that need to be editable.
+    - "exported: type name will be used as module.Module" # Cosmos style
+    - "defer: prefer not to defer chains of function calls" # We use this for defer latency()()
+
+    # Loop variable issues have been fixed in Go 1.22, so can be ignored
+    - "G601: Implicit memory aliasing in for loop"
+    - "loopclosure: loop variable"
+    - "Range statement for test"
+    - "range-val-address: suspicious assignment of"
+    - "exporting a pointer for the loop variable snapshot"
+
+linters:
+  enable-all: true
+  disable:
+    # Disable some linters (alphabetical order)
+    - cyclop               # False positives, address in code reviews
+    - depguard             # Dependency guard is for enterprise users
+    - err113               # Too strict (goerr113)
+    - exhaustruct          # Exhaustive structs results in super verbose go code
+    - funlen               # Some functions will be long
+    - gocognit             # We tend to write long multi-step functions
+    - gochecknoglobals     # We use globals in many places
+    - godox                # Allow TODOs
+    - goimports            # Handled by gci
+    - gofumpt              # Not compatible with gci, see https://github.com/golangci/golangci-lint/issues/1490.
+    - gomnd
+    - gomoddirectives      # We have a replace directive
+    - interfacebloat       # For pragmatic expected_keepers
+    - ireturn              # Too many false positives
+    - mnd                  # Magic numbers
+    - nonamedreturns       # Allow named returns
+    - prealloc             # Too many false positives
+    - tagliatelle          # Too strict
+    - varnamelen           # False positives
+    - wsl                  # Way to strict and opinionated
+    - lll                  # Disable rigid line length limit

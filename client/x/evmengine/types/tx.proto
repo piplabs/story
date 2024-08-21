@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package client.x.evmengine.types;
+
+import "cosmos/msg/v1/msg.proto";
+
+option go_package = "client/x/evmengine/types";
+
+// MsgService defines all the gRPC methods exposed by the evmengine module.
+service MsgService {
+  option (cosmos.msg.v1.service) = true;
+
+  // ExecutionPayload submits a new execution payload from consensus to the IliadEVM.
+  rpc ExecutionPayload (MsgExecutionPayload) returns (ExecutionPayloadResponse);
+}
+
+// MsgExecutionPayload defines the  next EVM execution payload and the
+// logs from previous execution payload.
+message MsgExecutionPayload {
+  option (cosmos.msg.v1.signer) = "authority";
+  string            authority           = 1;
+  bytes             execution_payload   = 2;
+  repeated EVMEvent prev_payload_events = 3;
+}
+
+message ExecutionPayloadResponse {}
+
+// EVMEvent represents a contract log event.
+// Derived fields are not included in the protobuf.
+message EVMEvent {
+  bytes          address = 1; // Address of the contract that emitted the log event (20 bytes).
+  repeated bytes topics  = 2; // List of topics provided by the contract (N * 32 bytes).
+  bytes          data    = 3; // Data supplied by the contract, usually ABI-encoded.
+}
