@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
-	"github.com/piplabs/story/lib/anvil"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -94,18 +93,6 @@ func precompilesAlloc() types.GenesisAlloc {
 // devPrefundAlloc returns allocs for pre-funded geth dev accounts.
 func stagingPrefundAlloc() types.GenesisAlloc {
 	return types.GenesisAlloc{
-		// anvil pre-funded accounts
-		anvil.DevAccount0(): {Balance: eth1m},
-		anvil.DevAccount1(): {Balance: eth1m},
-		anvil.DevAccount2(): {Balance: eth1m},
-		anvil.DevAccount3(): {Balance: eth1m},
-		anvil.DevAccount4(): {Balance: eth1m},
-		anvil.DevAccount5(): {Balance: eth1m},
-		anvil.DevAccount6(): {Balance: eth1m},
-		anvil.DevAccount7(): {Balance: eth1m},
-		anvil.DevAccount8(): {Balance: eth1m},
-		anvil.DevAccount9(): {Balance: eth1m},
-
 		// TODO: team accounts
 		common.HexToAddress("0x0000000000000000000000000000000000000000"): {Balance: eth1m},
 	}

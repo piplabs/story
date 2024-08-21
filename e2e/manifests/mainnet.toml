@@ -1,4 +1,0 @@
-network = "mainnet"
-public_chains = ["ethereum"]
-
-prometheus   = true
