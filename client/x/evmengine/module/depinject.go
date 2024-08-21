@@ -9,9 +9,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmengine/keeper"
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/client/x/evmengine/keeper"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 //nolint:gochecknoinits // Cosmos-style

@@ -14,14 +14,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 
-	addcollections "github.com/storyprotocol/iliad/client/collections"
-	"github.com/storyprotocol/iliad/client/genutil/evm/predeploys"
-	evmenginetypes "github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	clog "github.com/storyprotocol/iliad/lib/log"
+	addcollections "github.com/piplabs/story/client/collections"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
+	clog "github.com/piplabs/story/lib/log"
 )
 
 // Keeper of the x/evmstaking store.

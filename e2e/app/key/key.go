@@ -8,9 +8,9 @@ import (
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // Type represents the type of cryptographic key.

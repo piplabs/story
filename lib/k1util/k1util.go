@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // privKeyLen is the length of a secp256k1 private key.

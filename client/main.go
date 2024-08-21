@@ -2,8 +2,8 @@
 package main
 
 import (
-	iliadcmd "github.com/storyprotocol/iliad/client/cmd"
-	libcmd "github.com/storyprotocol/iliad/lib/cmd"
+	iliadcmd "github.com/piplabs/story/client/cmd"
+	libcmd "github.com/piplabs/story/lib/cmd"
 )
 
 func main() {

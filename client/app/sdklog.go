@@ -5,7 +5,7 @@ import (
 
 	sdklog "cosmossdk.io/log"
 
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/log"
 )
 
 var _ sdklog.Logger = sdkLogger{}

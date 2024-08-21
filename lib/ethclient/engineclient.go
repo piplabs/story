@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 const (

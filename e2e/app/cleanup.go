@@ -9,8 +9,8 @@ import (
 
 	"github.com/cometbft/cometbft/test/e2e/pkg/infra/docker"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 // CleanInfra stops and removes the infra containers.

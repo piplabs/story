@@ -16,7 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 const (

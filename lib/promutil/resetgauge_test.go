@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/promutil"
+	"github.com/piplabs/story/lib/promutil"
 )
 
 //nolint:paralleltest // This test uses global prometheus registry so concurrent tests are not safe.

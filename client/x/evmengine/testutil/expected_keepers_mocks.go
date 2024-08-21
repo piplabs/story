@@ -16,8 +16,8 @@ import (
 	types "cosmossdk.io/x/upgrade/types"
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/ethereum/go-ethereum/core/types"
-	types2 "github.com/storyprotocol/iliad/client/x/evmengine/types"
-	bindings "github.com/storyprotocol/iliad/contracts/bindings"
+	types2 "github.com/piplabs/story/client/x/evmengine/types"
+	bindings "github.com/piplabs/story/contracts/bindings"
 	gomock "go.uber.org/mock/gomock"
 )
 

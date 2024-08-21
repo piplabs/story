@@ -15,8 +15,8 @@ import (
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
-	evmengkeeper "github.com/storyprotocol/iliad/client/x/evmengine/keeper"
-	evmstakingkeeper "github.com/storyprotocol/iliad/client/x/evmstaking/keeper"
+	evmengkeeper "github.com/piplabs/story/client/x/evmengine/keeper"
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 )
 
 // Keepers includes all possible keepers. We separated it into a separate struct to make it easier to scaffold upgrades.

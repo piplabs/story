@@ -10,9 +10,9 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/keeper"
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 //nolint:gochecknoinits // depinject

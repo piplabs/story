@@ -6,7 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // Modified from https://github.com/cosmos/cosmos-sdk/blob/v0.50.7/x/staking/keeper/delegation.go#L521

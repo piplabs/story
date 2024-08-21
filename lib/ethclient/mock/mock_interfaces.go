@@ -17,7 +17,7 @@ import (
 	ethereum "github.com/ethereum/go-ethereum"
 	common "github.com/ethereum/go-ethereum/common"
 	types "github.com/ethereum/go-ethereum/core/types"
-	ethclient "github.com/storyprotocol/iliad/lib/ethclient"
+	ethclient "github.com/piplabs/story/lib/ethclient"
 	gomock "go.uber.org/mock/gomock"
 )
 

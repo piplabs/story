@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // LoadKey loads and returns the RSA256 from disk.

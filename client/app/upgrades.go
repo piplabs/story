@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/client/app/upgrades"
+	"github.com/piplabs/story/client/app/upgrades"
 )
 
 var (

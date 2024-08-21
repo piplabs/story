@@ -10,7 +10,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gorilla/mux"
 
-	"github.com/storyprotocol/iliad/client/server/utils"
+	"github.com/piplabs/story/client/server/utils"
 )
 
 func (s *Server) initAuthRoute() {

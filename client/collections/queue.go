@@ -7,7 +7,7 @@ import (
 	"cosmossdk.io/collections"
 	"cosmossdk.io/collections/codec"
 
-	ierrors "github.com/storyprotocol/iliad/lib/errors"
+	ierrors "github.com/piplabs/story/lib/errors"
 )
 
 var (

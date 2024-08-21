@@ -8,7 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/log"
 )
 
 var _ types.StakingHooks = Hooks{}

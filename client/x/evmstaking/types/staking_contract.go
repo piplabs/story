@@ -4,7 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
-	"github.com/storyprotocol/iliad/contracts/bindings"
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 var (

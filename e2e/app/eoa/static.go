@@ -1,8 +1,8 @@
 package eoa
 
 import (
-	"github.com/storyprotocol/iliad/lib/anvil"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/anvil"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 const (

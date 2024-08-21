@@ -6,9 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/lib/contracts/create3"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/contracts/create3"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 type Create3DeployConfig struct {

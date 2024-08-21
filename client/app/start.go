@@ -23,16 +23,16 @@ import (
 	sdktelemetry "github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 
-	"github.com/storyprotocol/iliad/client/comet"
-	iliadcfg "github.com/storyprotocol/iliad/client/config"
-	apisvr "github.com/storyprotocol/iliad/client/server"
-	"github.com/storyprotocol/iliad/lib/buildinfo"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/log"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tracer"
+	"github.com/piplabs/story/client/comet"
+	iliadcfg "github.com/piplabs/story/client/config"
+	apisvr "github.com/piplabs/story/client/server"
+	"github.com/piplabs/story/lib/buildinfo"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tracer"
 )
 
 // Config wraps the iliad (app) and comet (client) configurations.

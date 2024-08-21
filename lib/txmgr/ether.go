@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // GweiToWei converts a float64 GWei value into a big.Int Wei value.

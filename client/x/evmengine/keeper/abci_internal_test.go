@@ -38,10 +38,10 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 
-	moduletestutil "github.com/storyprotocol/iliad/client/x/evmengine/testutil"
-	etypes "github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/ethclient"
-	"github.com/storyprotocol/iliad/lib/ethclient/mock"
+	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
+	etypes "github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/ethclient/mock"
 
 	"go.uber.org/mock/gomock"
 )

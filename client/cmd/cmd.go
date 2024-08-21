@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/storyprotocol/iliad/client/app"
-	iliadcfg "github.com/storyprotocol/iliad/client/config"
-	"github.com/storyprotocol/iliad/lib/buildinfo"
-	libcmd "github.com/storyprotocol/iliad/lib/cmd"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/client/app"
+	iliadcfg "github.com/piplabs/story/client/config"
+	"github.com/piplabs/story/lib/buildinfo"
+	libcmd "github.com/piplabs/story/lib/cmd"
+	"github.com/piplabs/story/lib/log"
 )
 
 // New returns a new root cobra command that handles our command line tool.

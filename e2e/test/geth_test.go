@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/app/geth"
-	"github.com/storyprotocol/iliad/lib/ethclient"
+	"github.com/piplabs/story/e2e/app/geth"
+	"github.com/piplabs/story/lib/ethclient"
 )
 
 // TestGethConfig ensure that the geth config is setup correctly.

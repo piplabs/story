@@ -15,9 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 // PrepareProposal returns a proposal for the next block.

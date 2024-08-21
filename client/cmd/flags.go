@@ -4,10 +4,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	iliadcfg "github.com/storyprotocol/iliad/client/config"
-	libcmd "github.com/storyprotocol/iliad/lib/cmd"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tracer"
+	iliadcfg "github.com/piplabs/story/client/config"
+	libcmd "github.com/piplabs/story/lib/cmd"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tracer"
 )
 
 func bindRunFlags(cmd *cobra.Command, cfg *iliadcfg.Config) {

@@ -1,6 +1,6 @@
 package netconf
 
-import "github.com/storyprotocol/iliad/lib/errors"
+import "github.com/piplabs/story/lib/errors"
 
 // ID is a network identifier.
 type ID string

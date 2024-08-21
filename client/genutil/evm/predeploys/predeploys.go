@@ -9,11 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm/state"
-	"github.com/storyprotocol/iliad/contracts/bindings"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/solc"
+	"github.com/piplabs/story/client/genutil/evm/state"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/solc"
 )
 
 const (

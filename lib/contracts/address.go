@@ -4,9 +4,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/storyprotocol/iliad/e2e/app/eoa"
-	"github.com/storyprotocol/iliad/lib/create3"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/e2e/app/eoa"
+	"github.com/piplabs/story/lib/create3"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 //

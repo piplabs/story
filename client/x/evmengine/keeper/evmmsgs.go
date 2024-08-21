@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/storyprotocol/iliad/client/genutil/evm/predeploys"
-	"github.com/storyprotocol/iliad/client/x/evmengine/types"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // evmEvents returns selected EVM log events from the provided block hash.

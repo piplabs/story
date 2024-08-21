@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
-	addcollections "github.com/storyprotocol/iliad/client/collections"
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/log"
+	addcollections "github.com/piplabs/story/client/collections"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/log"
 )
 
 // AddWithdrawalToQueue inserts a withdrawal into the queue.

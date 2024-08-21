@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/tracer"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/tracer"
 )
 
 // Client defines all ethereum interfaces used in iliad.

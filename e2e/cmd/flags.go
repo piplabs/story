@@ -5,10 +5,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/storyprotocol/iliad/e2e/app"
-	"github.com/storyprotocol/iliad/e2e/app/agent"
-	"github.com/storyprotocol/iliad/e2e/app/key"
-	"github.com/storyprotocol/iliad/e2e/types"
+	"github.com/piplabs/story/e2e/app"
+	"github.com/piplabs/story/e2e/app/agent"
+	"github.com/piplabs/story/e2e/app/key"
+	"github.com/piplabs/story/e2e/types"
 )
 
 func bindDefFlags(flags *pflag.FlagSet, cfg *app.DefinitionConfig) {

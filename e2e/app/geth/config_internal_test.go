@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //go:generate go test . -golden -clean

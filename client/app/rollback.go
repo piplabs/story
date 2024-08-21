@@ -12,8 +12,8 @@ import (
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/log"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 func Rollback(ctx context.Context, cfg Config, removeBlock bool) error {

@@ -9,7 +9,7 @@ option go_package = "client/x/evmengine/module";
 // Module is the config object for the module.
 message Module {
   option (cosmos.app.v1alpha1.module) = {
-    go_import: "github.com/storyprotocol/iliad/client/x/evmengine"
+    go_import: "github.com/piplabs/story/client/x/evmengine"
   };
 
   // authority defines the custom module authority. If not set, defaults to the governance module.

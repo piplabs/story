@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/lib/expbackoff"
+	"github.com/piplabs/story/lib/expbackoff"
 )
 
 func TestConfigs(t *testing.T) {

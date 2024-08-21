@@ -6,8 +6,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/storyprotocol/iliad/lib/errors"
-	"github.com/storyprotocol/iliad/lib/netconf"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/netconf"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

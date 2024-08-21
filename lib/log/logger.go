@@ -10,7 +10,7 @@ import (
 	charm "github.com/charmbracelet/log"
 	"github.com/muesli/termenv"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 //nolint:gochecknoglobals // Global logger is our approach.

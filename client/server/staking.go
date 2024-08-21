@@ -9,7 +9,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/gorilla/mux"
 
-	"github.com/storyprotocol/iliad/client/server/utils"
+	"github.com/piplabs/story/client/server/utils"
 )
 
 func (s *Server) initStakingRoute() {

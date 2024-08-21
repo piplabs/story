@@ -7,8 +7,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/storyprotocol/iliad/client/x/evmstaking/types"
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 func (k Keeper) MaxWithdrawalPerBlock(ctx context.Context) (uint32, error) {

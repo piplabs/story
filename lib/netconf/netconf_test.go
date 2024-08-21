@@ -13,12 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/stretchr/testify/require"
 
-	"github.com/storyprotocol/iliad/e2e/app/key"
-	"github.com/storyprotocol/iliad/e2e/manifests"
-	"github.com/storyprotocol/iliad/e2e/types"
-	"github.com/storyprotocol/iliad/lib/k1util"
-	"github.com/storyprotocol/iliad/lib/netconf"
-	"github.com/storyprotocol/iliad/lib/tutil"
+	"github.com/piplabs/story/e2e/app/key"
+	"github.com/piplabs/story/e2e/manifests"
+	"github.com/piplabs/story/e2e/types"
+	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
+	"github.com/piplabs/story/lib/tutil"
 )
 
 //go:generate go test -golden -run=TestGenConsSeeds

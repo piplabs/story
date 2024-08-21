@@ -7,8 +7,8 @@ import (
 
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 
-	"github.com/storyprotocol/iliad/client/server/utils"
-	liberrors "github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/client/server/utils"
+	liberrors "github.com/piplabs/story/lib/errors"
 )
 
 func (s *Server) initComeBFTRoute() {

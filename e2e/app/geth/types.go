@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/naoina/toml"
 
-	"github.com/storyprotocol/iliad/lib/errors"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // Version defines the geth version deployed to all networks.
