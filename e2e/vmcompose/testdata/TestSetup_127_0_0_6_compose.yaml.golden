@@ -1,0 +1,9 @@
+version: '2.4'
+networks:
+  test:
+    labels:
+      e2e: true
+    driver: bridge
+
+services:
+

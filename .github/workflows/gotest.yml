@@ -1,0 +1,18 @@
+name: go tests
+# Run this separately from pre-commit for nice visual coverage.
+
+on:
+  workflow_call:
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.0'
+      # TODO: add coverage
+      - run: go test -timeout=5m -race -tags=verify_logs ./...

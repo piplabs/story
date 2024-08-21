@@ -1,0 +1,12 @@
+syntax = "proto3";
+package client.x.evmstaking.types;
+
+import "gogoproto/gogo.proto";
+import "client/x/evmstaking/types/params.proto";
+
+option go_package = "client/x/evmstaking/types";
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  // TODO: Add withdrawals collections field as ORM if needed
+}

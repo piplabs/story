@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 30s # Set the scrape interval to every 30 seconds.
+  evaluation_interval: 30s # Evaluate rules every 30 seconds.
+
+scrape_configs:
+  - job_name: "iliad"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [validator01:26660,validator02:26660] # iliad targets
+        labels:
+          network: 'manifest1-localhost'
+          host: 'localhost'
+
+  - job_name: "geth"
+    metrics_path: "/debug/metrics/prometheus"
+    static_configs:
+      - targets: [iliad_evm:6060] # geth targets
+        labels:
+          network: 'manifest1-localhost'
+          host: 'localhost'
+

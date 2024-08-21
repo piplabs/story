@@ -1,0 +1,9 @@
+# Devnet1 is the simple multi-validator devnet. It contains 2 validators.
+network = "devnet"
+anvil_chains = ["mock_l1", "mock_l2"]
+
+multi_iliad_evms = true
+prometheus = true
+
+[node.validator01]
+[node.validator02]

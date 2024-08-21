@@ -1,0 +1,44 @@
+syntax = "proto3";
+package client.x.evmstaking.types;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "client/x/evmstaking/types/params.proto";
+import "client/x/evmstaking/types/evmstaking.proto";
+
+option go_package = "client/x/evmstaking/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Params queries the parameters of the module.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/params";
+  }
+
+  // GetWithdrawalQueue queries the withdrawal queue of the module.
+  rpc GetWithdrawalQueue(QueryGetWithdrawalQueueRequest) returns (QueryGetWithdrawalQueueResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/withdrawal_queue";
+  }
+}
+
+// QueryParamsRequest is the request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  Params params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryGetWithdrawalQueueRequest is the request type for the Query/WithdrawalQueue RPC method.
+message QueryGetWithdrawalQueueRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryGetWithdrawalQueueResponse is the response type for the Query/WithdrawalQueue RPC method.
+message QueryGetWithdrawalQueueResponse {
+  repeated Withdrawal withdrawals = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}

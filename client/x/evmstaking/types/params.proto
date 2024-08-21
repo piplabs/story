@@ -1,0 +1,19 @@
+syntax = "proto3";
+package client.x.evmstaking.types;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "client/x/evmstaking/types";
+
+// Params defines the parameters for the module.
+message Params {
+  uint32 max_withdrawal_per_block = 1 [
+    (gogoproto.moretags) = "yaml:\"max_withdrawal_per_block\""
+  ];
+  uint32 max_sweep_per_block = 2 [
+    (gogoproto.moretags) = "yaml:\"max_sweep_per_block\""
+  ];
+  uint64 min_partial_withdrawal_amount = 3 [
+    (gogoproto.moretags) = "yaml:\"min_partial_withdrawal_amount\""
+  ];
+}

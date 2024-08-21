@@ -1,0 +1,440 @@
+[
+  {
+    "type": "function",
+    "name": "addOperator",
+    "inputs": [
+      {
+        "name": "uncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createValidator",
+    "inputs": [
+      {
+        "name": "validatorUncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "moniker",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "commissionRate",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "maxCommissionRate",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "maxCommissionChangeRate",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "createValidatorOnBehalf",
+    "inputs": [
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getOperators",
+    "inputs": [
+      {
+        "name": "pubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "redelegate",
+    "inputs": [
+      {
+        "name": "p",
+        "type": "tuple",
+        "internalType": "struct IIPTokenStaking.RedelegateParams",
+        "components": [
+          {
+            "name": "delegatorUncmpPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "validatorSrcPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "validatorDstPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redelegateOnBehalf",
+    "inputs": [
+      {
+        "name": "p",
+        "type": "tuple",
+        "internalType": "struct IIPTokenStaking.RedelegateParams",
+        "components": [
+          {
+            "name": "delegatorUncmpPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "validatorSrcPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "validatorDstPubkey",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeOperator",
+    "inputs": [
+      {
+        "name": "uncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "roundedStakeAmount",
+    "inputs": [
+      {
+        "name": "rawAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remainder",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setWithdrawalAddress",
+    "inputs": [
+      {
+        "name": "delegatorUncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "newWithdrawalAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "stake",
+    "inputs": [
+      {
+        "name": "delegatorUncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "stakeOnBehalf",
+    "inputs": [
+      {
+        "name": "delegatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "unstake",
+    "inputs": [
+      {
+        "name": "delegatorUncmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unstakeOnBehalf",
+    "inputs": [
+      {
+        "name": "delegatorCmpPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "CreateValidator",
+    "inputs": [
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "moniker",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "stakeAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commissionRate",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "maxCommissionRate",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "maxCommissionChangeRate",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Deposit",
+    "inputs": [
+      {
+        "name": "depositorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Redelegate",
+    "inputs": [
+      {
+        "name": "depositorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorSrcPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorDstPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetWithdrawalAddress",
+    "inputs": [
+      {
+        "name": "depositorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "executionAddress",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Withdraw",
+    "inputs": [
+      {
+        "name": "depositorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "validatorPubkey",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  }
+]
