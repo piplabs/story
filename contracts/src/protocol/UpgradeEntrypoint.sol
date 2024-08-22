@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.23;
 
-import { Ownable, Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
 
@@ -9,8 +10,17 @@ import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
  * @title UpgradeEntrypoint
  * @notice Entrypoint contract for submitting x/upgrade module actions.
  */
-contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2Step {
-    constructor(address newOwner) Ownable(newOwner) {}
+contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSUpgradeable {
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract.
+    function initialize(address accessManager) public initializer {
+        require(accessManager != address(0), "UpgradeEntrypoint: accessManager cannot be zero address");
+        __UUPSUpgradeable_init();
+        __Ownable_init(accessManager);
+    }
 
     /// @notice Submits an upgrade plan.
     /// @param name Sets the name for the upgrade. This name will be used by the upgraded version of the software to
@@ -24,4 +34,8 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2Step {
     function planUpgrade(string calldata name, int64 height, string calldata info) external onlyOwner {
         emit SoftwareUpgrade({ name: name, height: height, info: info });
     }
+
+    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
+    /// @param newImplementation The address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
