@@ -5,14 +5,12 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
-import { Test } from "forge-std/Test.sol";
-
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { Secp256k1 } from "../../src/libraries/Secp256k1.sol";
 
-contract IPTokenStakingTest is Test {
-    IPTokenStaking private ipTokenStaking;
+import { Test } from "../utils/Test.sol";
 
+contract IPTokenStakingTest is Test {
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorUncmpPubkey
@@ -27,20 +25,8 @@ contract IPTokenStakingTest is Test {
         emit Received(msg.sender, msg.value);
     }
 
-    function setUp() public {
-        address protocolAccessManagerAddr = address(this);
-
-        ipTokenStaking = new IPTokenStaking(
-            protocolAccessManagerAddr,
-            1 ether, // minStakeAmount
-            1 ether, // minUnstakeAmount
-            1 ether, // minRedelegateAmount
-            1 gwei, // stakingRounding
-            7 days, // withdrawalAddressChangeInterval
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
-        );
+    function setUp() public override {
+        setStaking();
 
         vm.assertEq(delegatorCmpPubkey, Secp256k1.compressPublicKey(delegatorUncmpPubkey));
     }
@@ -48,7 +34,6 @@ contract IPTokenStakingTest is Test {
     function testIPTokenStaking_Constructor() public {
         vm.expectRevert("IPTokenStaking: minStakeAmount cannot be 0");
         new IPTokenStaking(
-            address(this),
             0, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -60,7 +45,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: minUnstakeAmount cannot be 0");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             0, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -72,7 +56,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: minRedelegateAmount cannot be 0");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             0, // minRedelegateAmount
@@ -84,7 +67,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert();
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -96,7 +78,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -108,7 +89,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: Invalid default commission rate");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -120,7 +100,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission rate");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -132,7 +111,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission rate");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount
@@ -144,7 +122,6 @@ contract IPTokenStakingTest is Test {
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission change rate");
         new IPTokenStaking(
-            address(this),
             1 ether, // minStakeAmount
             1 ether, // minUnstakeAmount
             1 ether, // minRedelegateAmount

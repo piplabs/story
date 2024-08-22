@@ -14,8 +14,7 @@ contract UpgradeEntrypointTest is Test {
 
     function setUp() public {
         address protocolAccessManagerAddr = address(this);
-
-        upgradeEntrypoint = new UpgradeEntrypoint(protocolAccessManagerAddr);
+        upgradeEntrypoint = new UpgradeEntrypoint();
     }
 
     function testUpgradeEntrypoint_planUpgrade() public {
