@@ -23,7 +23,7 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           package_json_file: contracts/package.json
-          
+
       - name: Run install
         uses: borales/actions-yarn@v4
         with:
@@ -49,7 +49,7 @@ jobs:
           forge --version
           forge build --force --sizes --skip test --skip script
         working-directory: contracts
-      
+
       # This step requires full build to be run first
       - name: Upgrade Safety test
         run: |
