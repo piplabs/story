@@ -108,7 +108,7 @@ func errAttrs(err error) []any {
 		StackTrace() pkgerrors.StackTrace
 	}
 
-	type iliadErr interface {
+	type storyErr interface {
 		Attrs() []any
 	}
 
@@ -117,9 +117,9 @@ func errAttrs(err error) []any {
 
 	// Go up the cause chain (from the outermost error to the innermost error)
 	for {
-		// Use the first encountered iliadErr's attributes.
+		// Use the first encountered storyErr's attributes.
 		if len(attrs) == 0 {
-			if serr, ok := err.(iliadErr); ok {
+			if serr, ok := err.(storyErr); ok {
 				attrs = serr.Attrs()
 			}
 		}

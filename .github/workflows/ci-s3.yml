@@ -1,4 +1,4 @@
-name: Build and Upload iliad Binary
+name: Build and Upload story Binary
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
   Timestamp:
     uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
-  # Build and upload the iliad binary
+  # Build and upload the story binary
   build_and_push:
     needs: Timestamp
     runs-on: ubuntu-latest
@@ -96,7 +96,7 @@ jobs:
           mkdir $FOLDER_NAME
           mv $BIN_NAME_WITH_PATH $FOLDER_NAME/
 
-          echo "Archiving the iliad binary..."
+          echo "Archiving the story binary..."
           tar -czvf $ARCHIVE_NAME $FOLDER_NAME
 
           if [ $? -ne 0 ]; then

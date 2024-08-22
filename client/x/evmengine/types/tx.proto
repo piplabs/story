@@ -10,7 +10,7 @@ option go_package = "client/x/evmengine/types";
 service MsgService {
   option (cosmos.msg.v1.service) = true;
 
-  // ExecutionPayload submits a new execution payload from consensus to the IliadEVM.
+  // ExecutionPayload submits a new execution payload from consensus to the StoryEVM.
   rpc ExecutionPayload (MsgExecutionPayload) returns (ExecutionPayloadResponse);
 }
 

@@ -1,17 +1,17 @@
-Iliad is a consensus client implementation for the Story L1 blockchain
+Story is a consensus client implementation for the Story L1 blockchain
 
 Usage:
-  iliad [command]
+  story [command]
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
   help        Help about any command
-  init        Initializes required iliad files and directories
-  run         Runs the iliad consensus client
+  init        Initializes required story files and directories
+  run         Runs the story consensus client
   validator   Commands for validator operations
   version     Print the version information of this binary
 
 Flags:
-  -h, --help   help for iliad
+  -h, --help   help for story
 
-Use "iliad [command] --help" for more information about a command.
+Use "story [command] --help" for more information about a command.

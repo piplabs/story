@@ -1,5 +1,5 @@
 // Package cmd provides a common utilities and helper function to standarise
-// the way iliad apps use cobra and viper to produce consistent cli experience
+// the way story apps use cobra and viper to produce consistent cli experience
 // for both users and devs.
 package cmd
 

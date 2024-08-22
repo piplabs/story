@@ -13,7 +13,7 @@ import (
 	"github.com/piplabs/story/lib/tracer"
 )
 
-// Client defines all ethereum interfaces used in iliad.
+// Client defines all ethereum interfaces used in story.
 type Client interface {
 	ethereum.BlockNumberReader
 	ethereum.ChainIDReader

@@ -23,7 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 
 	"github.com/piplabs/story/client/comet"
-	iliadcfg "github.com/piplabs/story/client/config"
+	storycfg "github.com/piplabs/story/client/config"
 	apisvr "github.com/piplabs/story/client/server"
 	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
@@ -33,13 +33,13 @@ import (
 	"github.com/piplabs/story/lib/tracer"
 )
 
-// Config wraps the iliad (app) and comet (client) configurations.
+// Config wraps the story (app) and comet (client) configurations.
 type Config struct {
-	iliadcfg.Config
+	storycfg.Config
 	Comet cmtcfg.Config
 }
 
-// BackendType returns the iliad config backend type
+// BackendType returns the story config backend type
 // or the comet backend type otherwise.
 func (c Config) BackendType() dbm.BackendType {
 	if c.Config.BackendType == "" {
@@ -49,7 +49,7 @@ func (c Config) BackendType() dbm.BackendType {
 	return dbm.BackendType(c.Config.BackendType)
 }
 
-// Run runs the iliad client until the context is canceled.
+// Run runs the story client until the context is canceled.
 //
 //nolint:contextcheck // Explicit new stop context.
 func Run(ctx context.Context, cfg Config) error {
@@ -68,20 +68,20 @@ func Run(ctx context.Context, cfg Config) error {
 	return stopFunc(stopCtx)
 }
 
-// Start starts the iliad client returning a stop function or an error.
+// Start starts the story client returning a stop function or an error.
 //
 // Note that the original context used to start the app must be canceled first
 // before calling the stop function and a fresh context should be passed into the stop function.
 func Start(ctx context.Context, cfg Config) (func(context.Context) error, error) {
-	log.Info(ctx, "Starting iliad consensus client")
+	log.Info(ctx, "Starting story consensus client")
 
 	if err := cfg.Verify(); err != nil {
-		return nil, errors.Wrap(err, "verify iliad config")
+		return nil, errors.Wrap(err, "verify story config")
 	}
 
 	buildinfo.Instrument(ctx)
 
-	tracerIDs := tracer.Identifiers{Network: cfg.Network, Service: "iliad", Instance: cfg.Comet.Moniker}
+	tracerIDs := tracer.Identifiers{Network: cfg.Network, Service: "story", Instance: cfg.Comet.Moniker}
 	stopTracer, err := tracer.Init(ctx, tracerIDs, cfg.Tracer)
 	if err != nil {
 		return nil, err

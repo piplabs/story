@@ -20,10 +20,10 @@ var dropCosmosDebugs = map[string]bool{
 	"SAVE TREE":       true,
 }
 
-// sdkLogger implements sdklog.Logger by using the iliad logging pattern.
+// sdkLogger implements sdklog.Logger by using the story logging pattern.
 // Comet log level is controlled separately in config.toml, since comet logs are very noisy.
 type sdkLogger struct {
-	ctx context.Context //nolint:containedctx // This is a wrapper around the iliad logger which is context based.
+	ctx context.Context //nolint:containedctx // This is a wrapper around the story logger which is context based.
 }
 
 func newSDKLogger(ctx context.Context) sdkLogger {

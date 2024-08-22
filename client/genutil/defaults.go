@@ -2,7 +2,7 @@ package genutil
 
 import "github.com/cometbft/cometbft/types"
 
-// DefaultConsensusParams returns the default cometBFT consensus params for iliad protocol.
+// DefaultConsensusParams returns the default cometBFT consensus params for story protocol.
 func DefaultConsensusParams() *types.ConsensusParams {
 	resp := types.DefaultConsensusParams()
 	resp.ABCI.VoteExtensionsEnableHeight = 1                             // Enable vote extensions from the start.

@@ -50,9 +50,9 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
 	log.Info(ctx, "EVM staking relegation detected",
-		"del_iliad", depositorAddr.String(),
-		"val_src_iliad", validatorSrcAddr.String(),
-		"val_dst_iliad", validatorDstAddr.String(),
+		"del_story", depositorAddr.String(),
+		"val_src_story", validatorSrcAddr.String(),
+		"val_dst_story", validatorDstAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
 		"val_src_evm_addr", valSrcEvmAddr.String(),
 		"val_dst_evm_addr", valDstEvmAddr.String(),

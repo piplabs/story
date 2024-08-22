@@ -36,7 +36,7 @@ import (
 )
 
 // slashingWindows overrides the default slashing signed_blocks_window from 100 to 1000
-// since Iliad block period (+-1s) is very fast, roughly 10x normal period of 10s.
+// since Story block period (+-1s) is very fast, roughly 10x normal period of 10s.
 const slashingBlocksWindow = 1000
 
 func MakeGenesis(
@@ -57,7 +57,7 @@ func MakeGenesis(
 
 	// Step 2: Create the app genesis object and store it to disk.
 	appGen := &gtypes.AppGenesis{
-		AppName:       "iliad",
+		AppName:       "story",
 		AppVersion:    buildinfo.Version(),
 		GenesisTime:   genesisTime.UTC(),
 		ChainID:       network.Static().StoryConsensusChainIDStr(),

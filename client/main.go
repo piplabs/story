@@ -1,11 +1,11 @@
-// Command iliad is the main entry point for the iliad consensus client.
+// Command story is the main entry point for the story consensus client.
 package main
 
 import (
-	iliadcmd "github.com/piplabs/story/client/cmd"
+	storycmd "github.com/piplabs/story/client/cmd"
 	libcmd "github.com/piplabs/story/lib/cmd"
 )
 
 func main() {
-	libcmd.Main(iliadcmd.New())
+	libcmd.Main(storycmd.New())
 }

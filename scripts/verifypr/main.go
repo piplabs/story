@@ -1,6 +1,6 @@
 // Copyright © 2022-2023 Obol Labs Inc. Licensed under the terms of a Business Source License 1.1
 
-// Command verifypr provides a tool to verify iliad PRs against our specific conventional commit template.
+// Command verifypr provides a tool to verify story PRs against our specific conventional commit template.
 package main
 
 import (

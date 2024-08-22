@@ -4,13 +4,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	iliadcfg "github.com/piplabs/story/client/config"
+	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
 )
 
-func bindRunFlags(cmd *cobra.Command, cfg *iliadcfg.Config) {
+func bindRunFlags(cmd *cobra.Command, cfg *storycfg.Config) {
 	flags := cmd.Flags()
 
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
@@ -33,7 +33,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *iliadcfg.Config) {
 func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 	netconf.BindFlag(flags, &cfg.Network)
-	flags.BoolVar(&cfg.TrustedSync, "trusted-sync", cfg.TrustedSync, "Initialize trusted state-sync height and hash by querying the Iliad RPC")
+	flags.BoolVar(&cfg.TrustedSync, "trusted-sync", cfg.TrustedSync, "Initialize trusted state-sync height and hash by querying the Story RPC")
 	flags.BoolVar(&cfg.Force, "force", cfg.Force, "Force initialization (overwrite existing files)")
 	flags.BoolVar(&cfg.Clean, "clean", cfg.Clean, "Delete home directory before initialization")
 }

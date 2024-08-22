@@ -257,8 +257,8 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
 	log.Debug(ctx, "Processing EVM staking withdraw",
-		"del_iliad", depositorAddr.String(),
-		"val_iliad", validatorAddr.String(),
+		"del_story", depositorAddr.String(),
+		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
 		"val_evm_addr", valEvmAddr.String(),
 		"amount", ev.Amount.String(),

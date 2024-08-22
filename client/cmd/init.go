@@ -17,7 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 
-	iliadcfg "github.com/piplabs/story/client/config"
+	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -35,25 +35,25 @@ type InitConfig struct {
 	ExecutionHash common.Hash
 }
 
-// newInitCmd returns a new cobra command that initializes the files and folders required by iliad.
+// newInitCmd returns a new cobra command that initializes the files and folders required by story.
 func newInitCmd() *cobra.Command {
 	// Default config flags
 	cfg := InitConfig{
-		HomeDir: iliadcfg.DefaultHomeDir(),
+		HomeDir: storycfg.DefaultHomeDir(),
 		Force:   false,
 	}
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initializes required iliad files and directories",
-		Long: `Initializes required iliad files and directories.
+		Short: "Initializes required story files and directories",
+		Long: `Initializes required story files and directories.
 
 Ensures all the following files and directories exist:
-  <home>/                            # Iliad home directory
+  <home>/                            # Story home directory
   ├── config                         # Config directory
   │   ├── config.toml                # CometBFT configuration
-  │   ├── genesis.json               # Iliad chain genesis file
-  │   ├── iliad.toml                  # Iliad configuration
+  │   ├── genesis.json               # Story chain genesis file
+  │   ├── story.toml                  # Story configuration
   │   ├── node_key.json              # Node P2P identity key
   │   └── priv_validator_key.json    # CometBFT private validator key (back this up and keep it safe)
   ├── data                           # Data directory
@@ -78,7 +78,7 @@ The home directory should only contain subdirectories, no files, use --force to 
 	return cmd
 }
 
-// InitFiles initializes the files and folders required by iliad.
+// InitFiles initializes the files and folders required by story.
 // It ensures a network and genesis file is generated/downloaded for the provided network.
 //
 //nolint:gocognit,nestif // This is just many sequential steps.
@@ -87,7 +87,7 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		return errors.New("required flag --network empty")
 	}
 
-	log.Info(ctx, "Initializing iliad files and directories")
+	log.Info(ctx, "Initializing story files and directories")
 	homeDir := initCfg.HomeDir
 	network := initCfg.Network
 
@@ -98,15 +98,15 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	// Initialize default configs.
 	comet := DefaultCometConfig(homeDir)
 
-	var cfg iliadcfg.Config
+	var cfg storycfg.Config
 
 	switch {
 	case network == netconf.Iliad:
-		cfg = iliadcfg.IliadConfig
+		cfg = storycfg.IliadConfig
 	case network == netconf.Local:
-		cfg = iliadcfg.LocalConfig
+		cfg = storycfg.LocalConfig
 	default:
-		cfg = iliadcfg.DefaultConfig()
+		cfg = storycfg.DefaultConfig()
 		cfg.HomeDir = homeDir
 		cfg.Network = network
 	}
@@ -147,14 +147,14 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		log.Info(ctx, "Generated default comet config file", "path", cmtConfigFile)
 	}
 
-	// Setup iliad config
-	iliadConfigFile := cfg.ConfigFile()
-	if cmtos.FileExists(iliadConfigFile) {
-		log.Info(ctx, "Found iliad config file", "path", iliadConfigFile)
-	} else if err := iliadcfg.WriteConfigTOML(cfg, log.DefaultConfig()); err != nil {
+	// Setup story config
+	storyConfigFile := cfg.ConfigFile()
+	if cmtos.FileExists(storyConfigFile) {
+		log.Info(ctx, "Found story config file", "path", storyConfigFile)
+	} else if err := storycfg.WriteConfigTOML(cfg, log.DefaultConfig()); err != nil {
 		return err
 	} else {
-		log.Info(ctx, "Generated default iliad config file", "path", iliadConfigFile)
+		log.Info(ctx, "Generated default story config file", "path", storyConfigFile)
 	}
 
 	// Setup comet private validator

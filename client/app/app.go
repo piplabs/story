@@ -39,7 +39,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/staking"        // import for side-effects
 )
 
-const Name = "iliad"
+const Name = "story"
 
 var (
 	_ runtime.AppI            = (*App)(nil)
