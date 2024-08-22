@@ -14,7 +14,7 @@
     "test": "pnpm test:gen && forge test",
     "lint-full": "prettier --log-level warn --ignore-path .gitignore '{contracts,test}/**/*.sol' --check && solhint '{contracts,test}/**/*.sol'",
     "lint-fix": "prettier --log-level warn --ignore-path .gitignore '{contracts,test}/**/*.sol' --write",
-    "lint-check": "solhint '{contracts,test}/**/*.sol'"
+    "lint-check": "solhint '{contracts,script,test}/**/*.sol'"
   },
   "devDependencies": {
     "@openzeppelin/merkle-tree": "^1.0.5",
