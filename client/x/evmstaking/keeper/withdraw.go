@@ -69,7 +69,8 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			break
 		}
 		if validatorSet[nextValIndex].IsJailed() {
-			continue
+			// NOTE: always remember to update the `nextValIndex` when you skip for some reasons.
+			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
 		}
 		// Get validator's address.
 		valBz, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(validatorSet[nextValIndex].GetOperator())
