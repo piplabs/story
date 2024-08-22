@@ -11,7 +11,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	cmtcfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/proxy"
@@ -31,7 +30,6 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
-	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
 )
 
@@ -108,7 +106,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		return nil, errors.Wrap(err, "make base app opts")
 	}
 
-	engineCl, err := newEngineClient(ctx, cfg, cfg.Network, privVal.Key.PubKey)
+	engineCl, err := newEngineClient(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -277,11 +275,7 @@ func chainIDFromGenesis(cfg Config) (string, error) {
 }
 
 // newEngineClient returns a new engine API client.
-func newEngineClient(ctx context.Context, cfg Config, network netconf.ID, pubkey crypto.PubKey) (ethclient.EngineClient, error) {
-	if network == netconf.Simnet {
-		return ethclient.NewEngineMock(ethclient.WithMockSelfDelegation(pubkey, 1))
-	}
-
+func newEngineClient(ctx context.Context, cfg Config) (ethclient.EngineClient, error) {
 	jwtBytes, err := ethclient.LoadJWTHexFile(cfg.EngineJWTFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "load engine JWT file")

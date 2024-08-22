@@ -20,7 +20,7 @@ func TestInitFiles(t *testing.T) {
 	dir := t.TempDir()
 	cfg := InitConfig{
 		HomeDir: dir,
-		Network: netconf.Simnet,
+		Network: netconf.Local,
 	}
 	err := InitFiles(context.Background(), cfg)
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestInitForce(t *testing.T) {
 
 	cfg := InitConfig{
 		HomeDir: dir,
-		Network: netconf.Simnet,
+		Network: netconf.Local,
 	}
 
 	err = InitFiles(context.Background(), cfg)

@@ -1,23 +1,16 @@
 package netconf
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/google/uuid"
 
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/evmchain"
 
 	_ "embed"
 )
 
-const consensusIDPrefix = "story-"
-const consensusIDOffset = 1_000_000
-const maxValidators = 10
+const consensusID = "story-1"
 
 // Static defines static config and data for a network.
 type Static struct {
@@ -35,25 +28,9 @@ type Deployment struct {
 	Address common.Address
 }
 
-// IliadConsensusChainIDStr returns the chain ID string for the Iliad consensus chain.
-// It is calculated as "iliad-<IliadConsensusChainIDUint64>".
-func (s Static) StoryConsensusChainIDStr() string {
-	return fmt.Sprintf("%s%d", consensusIDPrefix, s.StoryConsensusChainIDUint64())
-}
-
-// IliadConsensusChainIDUint64 returns the chain ID uint64 for the Iliad consensus chain.
-// It is calculated as 1_000_000 + IliadExecutionChainID.
-func (s Static) StoryConsensusChainIDUint64() uint64 {
-	return consensusIDOffset + s.StoryExecutionChainID
-}
-
-// IliadConsensusChain returns the story consensus Chain struct.
-func (s Static) IliadConsensusChain() Chain {
-	return Chain{
-		ID:          s.StoryConsensusChainIDUint64(),
-		Name:        "iliad_consensus",
-		BlockPeriod: time.Second * 2,
-	}
+// StoryConsensusChainIDStr returns the chain ID string for the Story consensus client.
+func (Static) StoryConsensusChainIDStr() string {
+	return consensusID
 }
 
 func (s Static) ConsensusSeeds() []string {
@@ -66,37 +43,6 @@ func (s Static) ConsensusSeeds() []string {
 
 	return resp
 }
-
-func (s Static) ExecutionSeeds() []string {
-	var resp []string
-	for _, seed := range strings.Split(string(s.ExecutionSeedTXT), "\n") {
-		if seed = strings.TrimSpace(seed); seed != "" {
-			resp = append(resp, seed)
-		}
-	}
-
-	return resp
-}
-
-// Use random runid for version in ephemeral networks.
-//
-//nolint:gochecknoglobals // Static ID
-var runid = uuid.New().String()
-
-//nolint:gochecknoglobals // Static addresses
-var (
-	//go:embed testnet/consensus-genesis.json
-	testnetConsensusGenesisJSON []byte
-
-	//go:embed testnet/consensus-seeds.txt
-	testnetConsensusSeedsTXT []byte
-
-	//go:embed testnet/execution-genesis.json
-	testnetExecutionGenesisJSON []byte
-
-	//go:embed testnet/execution-seeds.txt
-	testnetExecutionSeedsTXT []byte
-)
 
 //nolint:gochecknoglobals // Static addresses
 var (
@@ -118,30 +64,6 @@ var (
 
 //nolint:gochecknoglobals // Static mappings.
 var statics = map[ID]Static{
-	Simnet: {
-		Version:               runid,
-		StoryExecutionChainID: evmchain.IDIliadEphemeral,
-		MaxValidators:         maxValidators,
-	},
-	Devnet: {
-		Version:               runid,
-		StoryExecutionChainID: evmchain.IDIliadEphemeral,
-		MaxValidators:         maxValidators,
-	},
-	Staging: {
-		Version:               runid,
-		StoryExecutionChainID: evmchain.IDIliadEphemeral,
-		MaxValidators:         maxValidators,
-	},
-	Testnet: {
-		Version:               "v0.0.1",
-		StoryExecutionChainID: evmchain.IDIliadTestnet,
-		MaxValidators:         maxValidators,
-		ConsensusGenesisJSON:  testnetConsensusGenesisJSON,
-		ConsensusSeedTXT:      testnetConsensusSeedsTXT,
-		ExecutionGenesisJSON:  testnetExecutionGenesisJSON,
-		ExecutionSeedTXT:      testnetExecutionSeedsTXT,
-	},
 	Iliad: {
 		Version:               "v0.0.1",
 		StoryExecutionChainID: evmchain.IDIliadTestnet,
@@ -154,34 +76,4 @@ var statics = map[ID]Static{
 		ConsensusGenesisJSON:  localConsensusGenesisJSON,
 		ConsensusSeedTXT:      localConsensusSeedsTXT,
 	},
-	Mainnet: {
-		Version:       "v0.0.1",
-		MaxValidators: maxValidators,
-	},
-}
-
-// ConsensusChainIDStr2Uint64 parses the uint suffix from the provided a consensus chain ID string.
-func ConsensusChainIDStr2Uint64(id string) (uint64, error) {
-	if !strings.HasPrefix(id, consensusIDPrefix) {
-		return 0, errors.New("invalid consensus chain ID", "id", id)
-	}
-
-	suffix := strings.TrimPrefix(id, consensusIDPrefix)
-
-	resp, err := strconv.ParseUint(suffix, 10, 64)
-	if err != nil {
-		return 0, errors.Wrap(err, "parse consensus chain ID", "id", id)
-	}
-
-	return resp, nil
-}
-
-// IsIliadConsensus returns true if provided chainID is the iliad consensus chain for the network.
-func IsStoryConsensus(network ID, chainID uint64) bool {
-	return network.Static().StoryConsensusChainIDUint64() == chainID
-}
-
-// IsIliadExecution returns true if provided chainID is the iliad execution chain for the network.
-func IsStoryExecution(network ID, chainID uint64) bool {
-	return network.Static().StoryExecutionChainID == chainID
 }
