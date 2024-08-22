@@ -66,7 +66,7 @@ var (
 var statics = map[ID]Static{
 	Iliad: {
 		Version:               "v0.0.1",
-		StoryExecutionChainID: evmchain.IDIliadTestnet,
+		StoryExecutionChainID: evmchain.IDIliad,
 		ConsensusGenesisJSON:  iliadConsensusGenesisJSON,
 		ConsensusSeedTXT:      iliadConsensusSeedsTXT,
 	},
