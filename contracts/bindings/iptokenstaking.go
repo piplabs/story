@@ -31,10 +31,10 @@ var (
 
 // IIPTokenStakingRedelegateParams is an auto generated low-level Go binding around an user-defined struct.
 type IIPTokenStakingRedelegateParams struct {
-	DelegatorUncmpPubkey []byte
-	ValidatorSrcPubkey   []byte
-	ValidatorDstPubkey   []byte
-	Amount               *big.Int
+	DelegatorUncmpPubkey  []byte
+	ValidatorCmpSrcPubkey []byte
+	ValidatorCmpDstPubkey []byte
+	Amount                *big.Int
 }
 
 // IPTokenStakingMetaData contains all meta data concerning the IPTokenStaking contract.
@@ -881,23 +881,23 @@ func (_IPTokenStaking *IPTokenStakingTransactorSession) CreateValidator(validato
 
 // CreateValidatorOnBehalf is a paid mutator transaction binding the contract method 0x48903e38.
 //
-// Solidity: function createValidatorOnBehalf(bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactor) CreateValidatorOnBehalf(opts *bind.TransactOpts, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.contract.Transact(opts, "createValidatorOnBehalf", validatorPubkey)
+// Solidity: function createValidatorOnBehalf(bytes validatorUncmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactor) CreateValidatorOnBehalf(opts *bind.TransactOpts, validatorUncmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.contract.Transact(opts, "createValidatorOnBehalf", validatorUncmpPubkey)
 }
 
 // CreateValidatorOnBehalf is a paid mutator transaction binding the contract method 0x48903e38.
 //
-// Solidity: function createValidatorOnBehalf(bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingSession) CreateValidatorOnBehalf(validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.CreateValidatorOnBehalf(&_IPTokenStaking.TransactOpts, validatorPubkey)
+// Solidity: function createValidatorOnBehalf(bytes validatorUncmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingSession) CreateValidatorOnBehalf(validatorUncmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.CreateValidatorOnBehalf(&_IPTokenStaking.TransactOpts, validatorUncmpPubkey)
 }
 
 // CreateValidatorOnBehalf is a paid mutator transaction binding the contract method 0x48903e38.
 //
-// Solidity: function createValidatorOnBehalf(bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactorSession) CreateValidatorOnBehalf(validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.CreateValidatorOnBehalf(&_IPTokenStaking.TransactOpts, validatorPubkey)
+// Solidity: function createValidatorOnBehalf(bytes validatorUncmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactorSession) CreateValidatorOnBehalf(validatorUncmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.CreateValidatorOnBehalf(&_IPTokenStaking.TransactOpts, validatorUncmpPubkey)
 }
 
 // Initialize is a paid mutator transaction binding the contract method 0xc4d66de8.
@@ -1112,44 +1112,44 @@ func (_IPTokenStaking *IPTokenStakingTransactorSession) SetWithdrawalAddressChan
 
 // Stake is a paid mutator transaction binding the contract method 0x86eec4a1.
 //
-// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactor) Stake(opts *bind.TransactOpts, delegatorUncmpPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.contract.Transact(opts, "stake", delegatorUncmpPubkey, validatorPubkey)
+// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactor) Stake(opts *bind.TransactOpts, delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.contract.Transact(opts, "stake", delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // Stake is a paid mutator transaction binding the contract method 0x86eec4a1.
 //
-// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingSession) Stake(delegatorUncmpPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.Stake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorPubkey)
+// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingSession) Stake(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.Stake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // Stake is a paid mutator transaction binding the contract method 0x86eec4a1.
 //
-// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactorSession) Stake(delegatorUncmpPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.Stake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorPubkey)
+// Solidity: function stake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactorSession) Stake(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.Stake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // StakeOnBehalf is a paid mutator transaction binding the contract method 0x8f37ec19.
 //
-// Solidity: function stakeOnBehalf(bytes delegatorPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactor) StakeOnBehalf(opts *bind.TransactOpts, delegatorPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.contract.Transact(opts, "stakeOnBehalf", delegatorPubkey, validatorPubkey)
+// Solidity: function stakeOnBehalf(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactor) StakeOnBehalf(opts *bind.TransactOpts, delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.contract.Transact(opts, "stakeOnBehalf", delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // StakeOnBehalf is a paid mutator transaction binding the contract method 0x8f37ec19.
 //
-// Solidity: function stakeOnBehalf(bytes delegatorPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingSession) StakeOnBehalf(delegatorPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.StakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorPubkey, validatorPubkey)
+// Solidity: function stakeOnBehalf(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingSession) StakeOnBehalf(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.StakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // StakeOnBehalf is a paid mutator transaction binding the contract method 0x8f37ec19.
 //
-// Solidity: function stakeOnBehalf(bytes delegatorPubkey, bytes validatorPubkey) payable returns()
-func (_IPTokenStaking *IPTokenStakingTransactorSession) StakeOnBehalf(delegatorPubkey []byte, validatorPubkey []byte) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.StakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorPubkey, validatorPubkey)
+// Solidity: function stakeOnBehalf(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey) payable returns()
+func (_IPTokenStaking *IPTokenStakingTransactorSession) StakeOnBehalf(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.StakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -1175,44 +1175,44 @@ func (_IPTokenStaking *IPTokenStakingTransactorSession) TransferOwnership(newOwn
 
 // Unstake is a paid mutator transaction binding the contract method 0x5d5ab968.
 //
-// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingTransactor) Unstake(opts *bind.TransactOpts, delegatorUncmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.contract.Transact(opts, "unstake", delegatorUncmpPubkey, validatorPubkey, amount)
+// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingTransactor) Unstake(opts *bind.TransactOpts, delegatorUncmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.contract.Transact(opts, "unstake", delegatorUncmpPubkey, validatorCmpPubkey, amount)
 }
 
 // Unstake is a paid mutator transaction binding the contract method 0x5d5ab968.
 //
-// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingSession) Unstake(delegatorUncmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.Unstake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorPubkey, amount)
+// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingSession) Unstake(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.Unstake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey, amount)
 }
 
 // Unstake is a paid mutator transaction binding the contract method 0x5d5ab968.
 //
-// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingTransactorSession) Unstake(delegatorUncmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.Unstake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorPubkey, amount)
+// Solidity: function unstake(bytes delegatorUncmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingTransactorSession) Unstake(delegatorUncmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.Unstake(&_IPTokenStaking.TransactOpts, delegatorUncmpPubkey, validatorCmpPubkey, amount)
 }
 
 // UnstakeOnBehalf is a paid mutator transaction binding the contract method 0xa1cb1846.
 //
-// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingTransactor) UnstakeOnBehalf(opts *bind.TransactOpts, delegatorCmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.contract.Transact(opts, "unstakeOnBehalf", delegatorCmpPubkey, validatorPubkey, amount)
+// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingTransactor) UnstakeOnBehalf(opts *bind.TransactOpts, delegatorCmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.contract.Transact(opts, "unstakeOnBehalf", delegatorCmpPubkey, validatorCmpPubkey, amount)
 }
 
 // UnstakeOnBehalf is a paid mutator transaction binding the contract method 0xa1cb1846.
 //
-// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingSession) UnstakeOnBehalf(delegatorCmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.UnstakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorCmpPubkey, validatorPubkey, amount)
+// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingSession) UnstakeOnBehalf(delegatorCmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.UnstakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorCmpPubkey, validatorCmpPubkey, amount)
 }
 
 // UnstakeOnBehalf is a paid mutator transaction binding the contract method 0xa1cb1846.
 //
-// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorPubkey, uint256 amount) returns()
-func (_IPTokenStaking *IPTokenStakingTransactorSession) UnstakeOnBehalf(delegatorCmpPubkey []byte, validatorPubkey []byte, amount *big.Int) (*types.Transaction, error) {
-	return _IPTokenStaking.Contract.UnstakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorCmpPubkey, validatorPubkey, amount)
+// Solidity: function unstakeOnBehalf(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount) returns()
+func (_IPTokenStaking *IPTokenStakingTransactorSession) UnstakeOnBehalf(delegatorCmpPubkey []byte, validatorCmpPubkey []byte, amount *big.Int) (*types.Transaction, error) {
+	return _IPTokenStaking.Contract.UnstakeOnBehalf(&_IPTokenStaking.TransactOpts, delegatorCmpPubkey, validatorCmpPubkey, amount)
 }
 
 // UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
@@ -1305,7 +1305,8 @@ func (it *IPTokenStakingCreateValidatorIterator) Close() error {
 
 // IPTokenStakingCreateValidator represents a CreateValidator event raised by the IPTokenStaking contract.
 type IPTokenStakingCreateValidator struct {
-	ValidatorPubkey         []byte
+	ValidatorUncmpPubkey    []byte
+	ValidatorCmpPubkey      []byte
 	Moniker                 string
 	StakeAmount             *big.Int
 	CommissionRate          uint32
@@ -1314,9 +1315,9 @@ type IPTokenStakingCreateValidator struct {
 	Raw                     types.Log // Blockchain specific contextual infos
 }
 
-// FilterCreateValidator is a free log retrieval operation binding the contract event 0x5cecf4ee8b0c1d212b07dbc464fc303e4ffc458fd0f61135d4b9bf7f60197a18.
+// FilterCreateValidator is a free log retrieval operation binding the contract event 0x86e28854e4d50fe7db57c8bede0c9deb5abf1e451982b19cc58742edef74459f.
 //
-// Solidity: event CreateValidator(bytes validatorPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
+// Solidity: event CreateValidator(bytes validatorUncmpPubkey, bytes validatorCmpPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
 func (_IPTokenStaking *IPTokenStakingFilterer) FilterCreateValidator(opts *bind.FilterOpts) (*IPTokenStakingCreateValidatorIterator, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.FilterLogs(opts, "CreateValidator")
@@ -1326,9 +1327,9 @@ func (_IPTokenStaking *IPTokenStakingFilterer) FilterCreateValidator(opts *bind.
 	return &IPTokenStakingCreateValidatorIterator{contract: _IPTokenStaking.contract, event: "CreateValidator", logs: logs, sub: sub}, nil
 }
 
-// WatchCreateValidator is a free log subscription operation binding the contract event 0x5cecf4ee8b0c1d212b07dbc464fc303e4ffc458fd0f61135d4b9bf7f60197a18.
+// WatchCreateValidator is a free log subscription operation binding the contract event 0x86e28854e4d50fe7db57c8bede0c9deb5abf1e451982b19cc58742edef74459f.
 //
-// Solidity: event CreateValidator(bytes validatorPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
+// Solidity: event CreateValidator(bytes validatorUncmpPubkey, bytes validatorCmpPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
 func (_IPTokenStaking *IPTokenStakingFilterer) WatchCreateValidator(opts *bind.WatchOpts, sink chan<- *IPTokenStakingCreateValidator) (event.Subscription, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.WatchLogs(opts, "CreateValidator")
@@ -1363,9 +1364,9 @@ func (_IPTokenStaking *IPTokenStakingFilterer) WatchCreateValidator(opts *bind.W
 	}), nil
 }
 
-// ParseCreateValidator is a log parse operation binding the contract event 0x5cecf4ee8b0c1d212b07dbc464fc303e4ffc458fd0f61135d4b9bf7f60197a18.
+// ParseCreateValidator is a log parse operation binding the contract event 0x86e28854e4d50fe7db57c8bede0c9deb5abf1e451982b19cc58742edef74459f.
 //
-// Solidity: event CreateValidator(bytes validatorPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
+// Solidity: event CreateValidator(bytes validatorUncmpPubkey, bytes validatorCmpPubkey, string moniker, uint256 stakeAmount, uint32 commissionRate, uint32 maxCommissionRate, uint32 maxCommissionChangeRate)
 func (_IPTokenStaking *IPTokenStakingFilterer) ParseCreateValidator(log types.Log) (*IPTokenStakingCreateValidator, error) {
 	event := new(IPTokenStakingCreateValidator)
 	if err := _IPTokenStaking.contract.UnpackLog(event, "CreateValidator", log); err != nil {
@@ -1444,15 +1445,16 @@ func (it *IPTokenStakingDepositIterator) Close() error {
 
 // IPTokenStakingDeposit represents a Deposit event raised by the IPTokenStaking contract.
 type IPTokenStakingDeposit struct {
-	DepositorPubkey []byte
-	ValidatorPubkey []byte
-	Amount          *big.Int
-	Raw             types.Log // Blockchain specific contextual infos
+	DelegatorUncmpPubkey []byte
+	DelegatorCmpPubkey   []byte
+	ValidatorCmpPubkey   []byte
+	Amount               *big.Int
+	Raw                  types.Log // Blockchain specific contextual infos
 }
 
-// FilterDeposit is a free log retrieval operation binding the contract event 0xe77f103965e0ff8836ce54ba9bac869f217cd5da27d6bdefd090282c397211c0.
+// FilterDeposit is a free log retrieval operation binding the contract event 0x6f0ca1c9f1795cb6a6ba44d788bc09dfb45b3a223470ae03e049ee954f0829ed.
 //
-// Solidity: event Deposit(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Deposit(bytes delegatorUncmpPubkey, bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) FilterDeposit(opts *bind.FilterOpts) (*IPTokenStakingDepositIterator, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.FilterLogs(opts, "Deposit")
@@ -1462,9 +1464,9 @@ func (_IPTokenStaking *IPTokenStakingFilterer) FilterDeposit(opts *bind.FilterOp
 	return &IPTokenStakingDepositIterator{contract: _IPTokenStaking.contract, event: "Deposit", logs: logs, sub: sub}, nil
 }
 
-// WatchDeposit is a free log subscription operation binding the contract event 0xe77f103965e0ff8836ce54ba9bac869f217cd5da27d6bdefd090282c397211c0.
+// WatchDeposit is a free log subscription operation binding the contract event 0x6f0ca1c9f1795cb6a6ba44d788bc09dfb45b3a223470ae03e049ee954f0829ed.
 //
-// Solidity: event Deposit(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Deposit(bytes delegatorUncmpPubkey, bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *IPTokenStakingDeposit) (event.Subscription, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.WatchLogs(opts, "Deposit")
@@ -1499,9 +1501,9 @@ func (_IPTokenStaking *IPTokenStakingFilterer) WatchDeposit(opts *bind.WatchOpts
 	}), nil
 }
 
-// ParseDeposit is a log parse operation binding the contract event 0xe77f103965e0ff8836ce54ba9bac869f217cd5da27d6bdefd090282c397211c0.
+// ParseDeposit is a log parse operation binding the contract event 0x6f0ca1c9f1795cb6a6ba44d788bc09dfb45b3a223470ae03e049ee954f0829ed.
 //
-// Solidity: event Deposit(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Deposit(bytes delegatorUncmpPubkey, bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) ParseDeposit(log types.Log) (*IPTokenStakingDeposit, error) {
 	event := new(IPTokenStakingDeposit)
 	if err := _IPTokenStaking.contract.UnpackLog(event, "Deposit", log); err != nil {
@@ -2422,7 +2424,7 @@ func (it *IPTokenStakingRedelegateIterator) Close() error {
 
 // IPTokenStakingRedelegate represents a Redelegate event raised by the IPTokenStaking contract.
 type IPTokenStakingRedelegate struct {
-	DepositorPubkey    []byte
+	DelegatorCmpPubkey []byte
 	ValidatorSrcPubkey []byte
 	ValidatorDstPubkey []byte
 	Amount             *big.Int
@@ -2431,7 +2433,7 @@ type IPTokenStakingRedelegate struct {
 
 // FilterRedelegate is a free log retrieval operation binding the contract event 0xb025fa2a574dd306182c6ac63bf7b05482b99680c1b38a42d8401a0adfd3775a.
 //
-// Solidity: event Redelegate(bytes depositorPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
+// Solidity: event Redelegate(bytes delegatorCmpPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) FilterRedelegate(opts *bind.FilterOpts) (*IPTokenStakingRedelegateIterator, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.FilterLogs(opts, "Redelegate")
@@ -2443,7 +2445,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) FilterRedelegate(opts *bind.Filte
 
 // WatchRedelegate is a free log subscription operation binding the contract event 0xb025fa2a574dd306182c6ac63bf7b05482b99680c1b38a42d8401a0adfd3775a.
 //
-// Solidity: event Redelegate(bytes depositorPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
+// Solidity: event Redelegate(bytes delegatorCmpPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) WatchRedelegate(opts *bind.WatchOpts, sink chan<- *IPTokenStakingRedelegate) (event.Subscription, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.WatchLogs(opts, "Redelegate")
@@ -2480,7 +2482,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) WatchRedelegate(opts *bind.WatchO
 
 // ParseRedelegate is a log parse operation binding the contract event 0xb025fa2a574dd306182c6ac63bf7b05482b99680c1b38a42d8401a0adfd3775a.
 //
-// Solidity: event Redelegate(bytes depositorPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
+// Solidity: event Redelegate(bytes delegatorCmpPubkey, bytes validatorSrcPubkey, bytes validatorDstPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) ParseRedelegate(log types.Log) (*IPTokenStakingRedelegate, error) {
 	event := new(IPTokenStakingRedelegate)
 	if err := _IPTokenStaking.contract.UnpackLog(event, "Redelegate", log); err != nil {
@@ -2559,14 +2561,14 @@ func (it *IPTokenStakingSetWithdrawalAddressIterator) Close() error {
 
 // IPTokenStakingSetWithdrawalAddress represents a SetWithdrawalAddress event raised by the IPTokenStaking contract.
 type IPTokenStakingSetWithdrawalAddress struct {
-	DepositorPubkey  []byte
-	ExecutionAddress [32]byte
-	Raw              types.Log // Blockchain specific contextual infos
+	DelegatorCmpPubkey []byte
+	ExecutionAddress   [32]byte
+	Raw                types.Log // Blockchain specific contextual infos
 }
 
 // FilterSetWithdrawalAddress is a free log retrieval operation binding the contract event 0x9f7f04f688298f474ed4c786abb29e0ca0173d70516d55d9eac515609b45fbca.
 //
-// Solidity: event SetWithdrawalAddress(bytes depositorPubkey, bytes32 executionAddress)
+// Solidity: event SetWithdrawalAddress(bytes delegatorCmpPubkey, bytes32 executionAddress)
 func (_IPTokenStaking *IPTokenStakingFilterer) FilterSetWithdrawalAddress(opts *bind.FilterOpts) (*IPTokenStakingSetWithdrawalAddressIterator, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.FilterLogs(opts, "SetWithdrawalAddress")
@@ -2578,7 +2580,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) FilterSetWithdrawalAddress(opts *
 
 // WatchSetWithdrawalAddress is a free log subscription operation binding the contract event 0x9f7f04f688298f474ed4c786abb29e0ca0173d70516d55d9eac515609b45fbca.
 //
-// Solidity: event SetWithdrawalAddress(bytes depositorPubkey, bytes32 executionAddress)
+// Solidity: event SetWithdrawalAddress(bytes delegatorCmpPubkey, bytes32 executionAddress)
 func (_IPTokenStaking *IPTokenStakingFilterer) WatchSetWithdrawalAddress(opts *bind.WatchOpts, sink chan<- *IPTokenStakingSetWithdrawalAddress) (event.Subscription, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.WatchLogs(opts, "SetWithdrawalAddress")
@@ -2615,7 +2617,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) WatchSetWithdrawalAddress(opts *b
 
 // ParseSetWithdrawalAddress is a log parse operation binding the contract event 0x9f7f04f688298f474ed4c786abb29e0ca0173d70516d55d9eac515609b45fbca.
 //
-// Solidity: event SetWithdrawalAddress(bytes depositorPubkey, bytes32 executionAddress)
+// Solidity: event SetWithdrawalAddress(bytes delegatorCmpPubkey, bytes32 executionAddress)
 func (_IPTokenStaking *IPTokenStakingFilterer) ParseSetWithdrawalAddress(log types.Log) (*IPTokenStakingSetWithdrawalAddress, error) {
 	event := new(IPTokenStakingSetWithdrawalAddress)
 	if err := _IPTokenStaking.contract.UnpackLog(event, "SetWithdrawalAddress", log); err != nil {
@@ -2838,15 +2840,15 @@ func (it *IPTokenStakingWithdrawIterator) Close() error {
 
 // IPTokenStakingWithdraw represents a Withdraw event raised by the IPTokenStaking contract.
 type IPTokenStakingWithdraw struct {
-	DepositorPubkey []byte
-	ValidatorPubkey []byte
-	Amount          *big.Int
-	Raw             types.Log // Blockchain specific contextual infos
+	DelegatorCmpPubkey []byte
+	ValidatorCmpPubkey []byte
+	Amount             *big.Int
+	Raw                types.Log // Blockchain specific contextual infos
 }
 
 // FilterWithdraw is a free log retrieval operation binding the contract event 0x0526a04a9b113a046b17e2350e42123a2515b5558b3aea91576ccdb1270c1b59.
 //
-// Solidity: event Withdraw(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Withdraw(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) FilterWithdraw(opts *bind.FilterOpts) (*IPTokenStakingWithdrawIterator, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.FilterLogs(opts, "Withdraw")
@@ -2858,7 +2860,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) FilterWithdraw(opts *bind.FilterO
 
 // WatchWithdraw is a free log subscription operation binding the contract event 0x0526a04a9b113a046b17e2350e42123a2515b5558b3aea91576ccdb1270c1b59.
 //
-// Solidity: event Withdraw(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Withdraw(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *IPTokenStakingWithdraw) (event.Subscription, error) {
 
 	logs, sub, err := _IPTokenStaking.contract.WatchLogs(opts, "Withdraw")
@@ -2895,7 +2897,7 @@ func (_IPTokenStaking *IPTokenStakingFilterer) WatchWithdraw(opts *bind.WatchOpt
 
 // ParseWithdraw is a log parse operation binding the contract event 0x0526a04a9b113a046b17e2350e42123a2515b5558b3aea91576ccdb1270c1b59.
 //
-// Solidity: event Withdraw(bytes depositorPubkey, bytes validatorPubkey, uint256 amount)
+// Solidity: event Withdraw(bytes delegatorCmpPubkey, bytes validatorCmpPubkey, uint256 amount)
 func (_IPTokenStaking *IPTokenStakingFilterer) ParseWithdraw(log types.Log) (*IPTokenStakingWithdraw, error) {
 	event := new(IPTokenStakingWithdraw)
 	if err := _IPTokenStaking.contract.UnpackLog(event, "Withdraw", log); err != nil {

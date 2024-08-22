@@ -3,7 +3,7 @@
     {
       "astId": 2581,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "minStakeAmount",
+      "label": "_status",
       "offset": 0,
       "slot": "0",
       "type": "t_uint256"
