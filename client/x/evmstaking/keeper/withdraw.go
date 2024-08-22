@@ -236,12 +236,12 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 }
 
 func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DepositorPubkey)
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
