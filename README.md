@@ -1,85 +1,175 @@
-## Installation
+## Story Consesus Layer
 
-Building the node requires a working Go (version 1.22 or higher, see `go.mod`) and `goreleaser` ([see installation guide here](https://goreleaser.com/install/) or install with `make ensure-go-releaser`). You can install them using your favorite package manager. Once the dependencies are installed, run:
+Golang consensus layer implementation and staking contracts for the Story L1 blockchain.
 
-```bash
-make build-docker
-```
+[![Website](https://img.shields.io/badge/Website-Story-brightgreen)](https://story.foundation)
+[![Twitter Follow](https://img.shields.io/twitter/follow/storyprotocol?style=social)](https://twitter.com/storyprotocol)
+[![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/storyprotocol)
 
-## Usage
+You may find pre-built binaries for our latest stable release in our [release page](https://github.com/storyprotocol/iliad/releases#latest).
 
-### Testing
+## Architecture
 
-To run the end-to-end tests, run:
+Story draws inspiration from ETH PoS in decoupling execution and consensus clients. The execution client relays EVM blocks into the `story` consesus client via Engine ABI, using an ABCI++ adapter to make EVM state compatible with that of CometBFT. With this architecture, consensus efficiency is no longer bottlenecked by execution transaction throughput.
 
-```bash
-MANIFEST=simple make e2e-run
-```
+![Node Architecture](assets/diagram.png)
 
-### Starting a devnet
+## Building from source
 
-To start a devnet, run:
+Building the `story` client requires Go version 1.22 or higher (see `go.mod`), which can be [installed on almost any OS](https://go.dev/doc/install). Once installed, build the binary by running
 
 ```bash
-make devnet-deploy
+go build -o story ./client
 ```
 
-To stop it, run:
+## Running `story`
+
+### System Requirements
+
+| Component    | Details    |
+| ------------- | ---------- |
+| CPU           | 4 Cores    |
+| RAM           | 32 GB      |
+| Disk          | 200 GB     |
+| Bandwidth     | 10 MBit/s  |
+
+### Directory Root
+
+The default `story` root folder used for configuring consensus network setup can be found in the following paths:
+
+- **OS X**: `~/Library/Story/story`
+- **Linux**: `~/.story/story`
+- **Windows**: `%USERPROFILE%\AppData\Roaming\Story\story`
+
+*Note: This directory is located in the same parent directory as the Story execution client directory root.*
+
+### Quick Start
+
+#### Running a node on the Iliad test network
+
+To connect to Iliad, initialize `story` with the `--network iliad` flag, which will generate the genesis file for the Iliad test network:
 
 ```bash
-make devnet-clean
+./story init --network iliad
 ```
 
-### Setup
+Afterwards, run the [`story-geth`](https://github.com/storyprotocol/story-geth) execution client with `iliad` network flag:
 
-To setup the environment for development, run:
 ```bash
-go mod download
-make ensure-go-releaser
-make install-go-tools
-make build-docker
-make build-iliad
-make contracts-bindings
+./geth --iliad
 ```
 
-## Directory Structure
+Now you should be able to sync to the Iliad network with the following:
 
-<pre>
-├── <a href="./contracts/">contracts</a>: Solidity contracts, bindings, and testing for the Iliad protocol.
-│ ├── <a href="./contracts/bindings/">bindings</a>: Go bindings for smart contracts.
-│ ├── <a href="./contracts/src/">src</a>: Solidity source files for the protocol's smart contracts.
-│ └── <a href="./contracts/test/">test</a>: Tests for smart contracts.
-├── <a href="./docs/">docs</a>: Documentation resources, including images and diagrams.
-├── <a href="./client/">iliad</a>: The Iliad instance, including application logic mechanisms.
-│ ├── <a href="./client/app/">app</a>: Application logic for Iliad.
-│ └── <a href="./client/cmd/">cmd</a>: Command-line tools and utilities.
-├── <a href="./lib/">lib</a>: Core libraries for various protocol functionalities.
-├── <a href="./scripts/">scripts</a>: Utility scripts for development and operational tasks.
-└── <a href="./test/">test</a>: Testing suite for end-to-end, smoke, and utility testing.
-</pre>
+```bash
+./story run
+```
 
-## Contributing
+#### Running a local network
 
-For detailed instructions on how to contribute, including our coding standards, testing practices, and how to submit pull requests, please see [the contribution guidelines](./docs/contributing.md).
-
-## Acknowledgements
-
-The development of Iliad has been a journey of learning, adaptation, and innovation. As we built Iliad, we drew inspiration and knowledge from the work of several remarkable teams within the blockchain and Ethereum ecosystem.
-
-We extend our gratitude to the following teams for their pioneering work and the open-source resources they've provided, which have significantly influenced our development process:
-
-- [**CometBFT**](https://github.com/cometbft/cometbft): Our heartfelt thanks go to the CometBFT team for their groundbreaking work in consensus algorithms.
-
-- [**Geth**](https://github.com/ethereum/go-ethereum): The go-ethereum team's relentless dedication to the Ethereum ecosystem has been nothing short of inspiring. Their comprehensive and robust implementation of the Ethereum protocol has provided us with a solid foundation to build upon.
-
-- [**Erigon**](https://github.com/ledgerwatch/erigon): We are grateful to Erigon for their novel work in maximizing EVM performance.
-
-- [**Optimism**](https://github.com/ethereum-optimism/optimism): We thank the Optimism team for their dedication to open source work within the Ethereum ecosystem.
-
-Acknowledging these teams is not only a gesture of gratitude but also a reflection of our commitment to collaborative progress and the open-source ethos. The path they've paved has enabled us to contribute our innovations back to the community, and we look forward to continuing this tradition of mutual growth and support.
-
-## Security
+For quickly spinning up a local network, we recommend initializing `story` with the `--network local` setting, which will define the genesis state of a private local network with a single validator:
 
 
+```bash
+./story init --network local
+```
 
-Please refer to [SECURITY.md](./SECURITY.md).
+Once done, run the execution client with the `local` network flag:
+
+```bash
+./geth --local
+```
+
+Now you can sync to your local network running the following:
+```bash
+./story run
+```
+
+### Configuration
+
+By default, network configurations and data are stored relative to the `story` root data folder:
+
+```markdown
+story/
+├── config/
+│ ├── config.toml                  # networking & consesus settings
+│ ├── genesis.json                 # blockchain genesis state
+│ ├── iliad.toml                   # client configs
+│ ├── node_key.json                # p2p node key  [SENSITIVE]
+│ ├── priv_validator_key.json      # validator key [SENSITIVE]
+├── data/
+│ ├── snapshots/
+│ └── priv_validator_state.json    # tracks validator state
+```
+
+
+To use your own custom root directory, you can pass the `--home` flag when initializing and running the node:
+
+- `./story init --home ${YOUR_DATA_DIR}`
+   - This will initialize `story` data files in the passed in folder - in case files already exist and you wish to overwrite them, you can add the `--force` suffix
+-  `./story run --home ${YOUR_DATA_DIR}`
+   - This will spin up the consensus node according to the passed in network and validator configurations
+
+For ensuring synchronization with the execution client, two settings are particularly important:
+
+**__`engine-jwt-endpoint:`__**
+This configures the JSON-RPC engine API endpoint, which facilitates commuication between the consensus and execution layer. By default, it is set to `http://localhost:8551`, but may be changed by overriding the value in `iliad.toml` or through the `--engine-endpoint` CLI flag.
+
+**__`engine-jwt-file:`__**
+To authenticate the engine API, a JWT must be passed which is created on execution client initialization. By default, this points to the default execution client JWT file path. For example, if initializing a local network via `story init --local` on Linux, this will default to `~/.story/geth/local/geth/jwtsecret`. To override, either change the value in `iliad.toml` or by specifying the `--engine-jwt-file` CLI flag.
+
+### Creating a private network
+
+Operating your own private network involves 4 key components:
+1. Defining the network genesis state
+2. Defining the seed nodes
+3. Running the nodes
+4. Running validators
+
+*Below, we'll go over each section briefly.*
+
+#### 1. Defining Network Genesis State
+
+By default the consensus genesis state is saved under `story/config/genesis.json`. All nodes MUST share this same state file to be able to communicate with one another. For creating a private network, here are the attributes you will want to consider for modification (referenced using JSON key paths):
+- `.chain_id`:
+   - uniquely identifies your blockchain
+- `.app_state.auth.accounts`:
+   - all the staking accounts you wish to provision
+- `.app_state.bank.balances`:
+   - amount of tokens to prefund for the different staking accounts
+- `.app_state.bank.supply`:
+   - total supply of tokens to stake - *ensure it's equal to the sum of balances*
+- `.app_state.genutil.gentxs`:
+   - the validators that should be created on genesis time - for each validator you should make sure to assign an intuitive `moniker` and correct `delegator_address`, `validator_address`, and `pubkey.key`
+- `execution_block_hash`:
+   - the base64-encoded execution genesis blockhash, whose hex-encoded value can be found by attaching to your execution console via `geth attach $GETH_IPC_PATH` and running `eth.getBlock(0).hash` - *ALWAYS DOUBLE-CHECK THIS VALUE*
+
+#### 2. Defining Seed Nodes
+
+You will need a set of seed nodes for connecting new nodes to the network. Any node can be a seed node, as long as it is discoverable. By default the `story/config/config.toml` file has a set of default seed nodes configured for you to manually override. When running networks locally, these may be set to `${SEED_NODE_ID}@127.0.0.1:${SEED_NODE_PORT}`.
+
+To find your node ID, you can [install cometBFT](https://docs.cometbft.com/v0.37/guides/install) and run `show_node_id --home ${STORY_ROOT_DATA_DIR}`. It is important to note that seed nodes themselves require no seed nodes to be configured.
+
+#### 3. Running Story Nodes
+
+Once your genesis state, network configs, and seed nodes are defined, you can start the network.
+
+First, run your execution client, making sure the path to the engine-API JWT file as well as the genesis state itself is correctly setup on the consesus side. Similar to `story`, you may override the default execution client configs by passing a `--config` flag to your alternate `story-geth` data folder:
+
+```bash
+./geth --config ${GETH_ROOT_DATA_DIR}
+```
+
+Once done, you should be able to run each of your consensus nodes with the same logic, making sure to pass in the `--home` flag if you used an alternate `story` data folder:
+
+```bash
+./story run --home ${STORY_ROOT_DATA_DIR}
+```
+
+#### 4. Running Validators
+
+Once the network is setup, you will be able to run validator operations using the validator key generated in `story/data/priv_validator_key.json`. In fact, `story` comes with a `validator` subcommand that allows you to streamline this process. For more information on running validators, read our [official docs](https://docs.story.foundation/docs/what-is-story).
+
+### License
+
+The `story` consensus implementation is licensed under the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html).
