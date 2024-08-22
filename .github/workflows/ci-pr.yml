@@ -18,4 +18,4 @@ jobs:
   go-lint:
     uses: ./.github/workflows/golangci-lint.yml
   sol-tests:
-    uses: ./.github/workflows/soltest.yml
+    uses: ./.github/workflows/ci-foundry.yml
