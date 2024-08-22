@@ -53,9 +53,9 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	}
 
 	log.Info(ctx, "EVM staking create validator detected",
-		"val_iliad", validatorAddr.String(),
+		"val_story", validatorAddr.String(),
 		"val_pubkey", validatorPubkey.String(),
-		"del_iliad", delegatorAddr.String(),
+		"del_story", delegatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
 		"amount_coin", amountCoin.String(),
 	)

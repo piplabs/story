@@ -62,23 +62,23 @@ func TestAlloc(t *testing.T) {
 	//
 	//// check IPTokenStaking proxy
 	// ipTokenStakingAlloc, ok := predeps[ipTokenStaking]
-	// require.True(t, ok, "iliad stake not found")
+	// require.True(t, ok, "story stake not found")
 	// require.Equal(t,
 	//	proxyCode,
 	//	ipTokenStakingAlloc.Code,
-	//	"iliad stake code mismatch")
+	//	"story stake code mismatch")
 	//
 	//// check IPTokenStaking implementation
 	// ipTokenStakingImpl, ok := ipTokenStakingAlloc.Storage[common.HexToHash(predeploys.ProxyImplementationSlot)]
-	// require.True(t, ok, "iliad stake implementation not found")
+	// require.True(t, ok, "story stake implementation not found")
 	//
 	// ipTokenStakingImplAlloc, ok := predeps[common.BytesToAddress(ipTokenStakingImpl.Bytes())]
-	// require.True(t, ok, "iliad stake implementation not found")
+	// require.True(t, ok, "story stake implementation not found")
 	//
 	// require.Equal(t,
 	//	ipTokenStakingCode,
 	//	ipTokenStakingImplAlloc.Code,
-	//	"iliad stake implementation mismatch")
+	//	"story stake implementation mismatch")
 }
 
 // namespaceAddr returns the address at the given index in the namespace.

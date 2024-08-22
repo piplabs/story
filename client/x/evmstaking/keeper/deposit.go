@@ -59,8 +59,8 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 
 	log.Info(ctx, "EVM staking deposit detected, delegating to validator",
-		"del_iliad", depositorAddr.String(),
-		"val_iliad", validatorAddr.String(),
+		"del_story", depositorAddr.String(),
+		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
 		"val_evm_addr", valEvmAddr.String(),
 		"amount_coin", amountCoin.String(),

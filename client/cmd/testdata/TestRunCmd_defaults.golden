@@ -1,5 +1,5 @@
 {
- "HomeDir": "./iliad",
+ "HomeDir": "./story",
  "Network": "",
  "EthKeyPassword": "",
  "EngineJWTFile": "",
@@ -20,7 +20,7 @@
  },
  "Comet": {
   "Version": "0.38.9",
-  "RootDir": "./iliad",
+  "RootDir": "./story",
   "ProxyApp": "tcp://127.0.0.1:26658",
   "Moniker": "testmoniker",
   "DBBackend": "goleveldb",
@@ -35,7 +35,7 @@
   "ABCI": "socket",
   "FilterPeers": false,
   "RPC": {
-   "RootDir": "./iliad",
+   "RootDir": "./story",
    "ListenAddress": "tcp://127.0.0.1:26657",
    "CORSAllowedOrigins": [],
    "CORSAllowedMethods": [
@@ -68,7 +68,7 @@
    "PprofListenAddress": ""
   },
   "P2P": {
-   "RootDir": "./iliad",
+   "RootDir": "./story",
    "ListenAddress": "tcp://0.0.0.0:26656",
    "ExternalAddress": "",
    "Seeds": "",
@@ -101,7 +101,7 @@
   },
   "Mempool": {
    "Type": "nop",
-   "RootDir": "./iliad",
+   "RootDir": "./story",
    "Recheck": true,
    "RecheckTimeout": 1000000000,
    "Broadcast": true,
@@ -130,7 +130,7 @@
    "Version": "v0"
   },
   "Consensus": {
-   "RootDir": "./iliad",
+   "RootDir": "./story",
    "WalPath": "data/cs.wal/wal",
    "TimeoutPropose": 3000000000,
    "TimeoutProposeDelta": 500000000,

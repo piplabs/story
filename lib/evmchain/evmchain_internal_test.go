@@ -16,7 +16,7 @@ func TestVerify(t *testing.T) {
 		require.Equal(t, chainID, metadata.ChainID)
 		require.NotEmpty(t, metadata.BlockPeriod)
 
-		if metadata.Name != iliadEVMName {
+		if metadata.Name != storyEVMName {
 			require.False(t, uniqNames[metadata.Name])
 		}
 		require.False(t, uniqChainIDs[metadata.ChainID])

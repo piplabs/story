@@ -42,7 +42,7 @@ func TestSimpleLogs(t *testing.T) {
 		}
 		{ // Test cometBFT wrapping our errors in pkg errors
 			err := errors.New("new", "new", "new")
-			err = errors.Wrap(err, "iliad wrap", "wrap", "wrap")
+			err = errors.Wrap(err, "story wrap", "wrap", "wrap")
 			err = pkgerrors.Wrap(err, "pkg wrap")
 			log.Warn(ctx, "Pkg wrapped error", err)
 		}

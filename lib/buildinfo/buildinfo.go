@@ -19,7 +19,7 @@ const (
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 )
 
-// Version returns the version of the whole iliad-monorepo and all binaries built from this git commit.
+// Version returns the version of the whole story-monorepo and all binaries built from this git commit.
 func Version() string {
 	return fmt.Sprintf("v%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
 }

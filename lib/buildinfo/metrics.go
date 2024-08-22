@@ -24,6 +24,6 @@ var (
 		Namespace: "lib",
 		Subsystem: "buildinfo",
 		Name:      "version",
-		Help:      "Constant gauge with label 'version' set to the build info iliad version",
+		Help:      "Constant gauge with label 'version' set to the build info story version",
 	}, []string{"version"})
 )

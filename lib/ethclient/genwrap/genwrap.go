@@ -11,17 +11,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/piplabs/story/lib/errors"
-	"github.com/piplabs/story/lib/log"
 	"go/ast"
 	"go/printer"
 	"go/token"
-	"golang.org/x/tools/imports"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+	"golang.org/x/tools/imports"
 
 	_ "github.com/ethereum/go-ethereum"
 	"golang.org/x/tools/go/packages"
@@ -40,7 +41,7 @@ import (
 {{- end}}
 )
 
-// Client defines all ethereum interfaces used in iliad.
+// Client defines all ethereum interfaces used in story.
 type Client interface {
     {{range .Providers}} ethereum.{{.}}
     {{end -}}

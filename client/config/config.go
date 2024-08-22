@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	configFile      = "iliad.toml"
+	configFile      = "story.toml"
 	dataDir         = "data"
 	configDir       = "config"
 	snapshotDataDir = "snapshots"
@@ -78,7 +78,7 @@ var (
 	}
 )
 
-// DefaultConfig returns the default iliad config.
+// DefaultConfig returns the default story config.
 func DefaultConfig() Config {
 	return Config{
 		HomeDir:            DefaultHomeDir(),
@@ -126,7 +126,7 @@ func baseDir() string {
 	return ""
 }
 
-// Config defines all iliad specific config.
+// Config defines all story specific config.
 type Config struct {
 	HomeDir            string
 	Network            netconf.ID
@@ -146,7 +146,7 @@ type Config struct {
 	Tracer             tracer.Config
 }
 
-// ConfigFile returns the default path to the toml iliad config file.
+// ConfigFile returns the default path to the toml story config file.
 func (c Config) ConfigFile() string {
 	return filepath.Join(c.HomeDir, configDir, configFile)
 }
@@ -180,7 +180,7 @@ func (c Config) Verify() error {
 //go:embed config.toml.tmpl
 var tomlTemplate []byte
 
-// WriteConfigTOML writes the toml iliad config to disk.
+// WriteConfigTOML writes the toml story config to disk.
 func WriteConfigTOML(cfg Config, logCfg log.Config) error {
 	var buffer bytes.Buffer
 

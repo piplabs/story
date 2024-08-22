@@ -22,7 +22,7 @@ var (
 	privValStateJSON []byte
 )
 
-// PrepRPCTestConfig creates the require cometbft config on disk for rpctest package to work with iliad app.
+// PrepRPCTestConfig creates the require cometbft config on disk for rpctest package to work with story app.
 func PrepRPCTestConfig(t *testing.T) *config.Config {
 	t.Helper()
 

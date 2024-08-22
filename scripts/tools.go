@@ -1,4 +1,4 @@
-// This file contains build time developer tools used in the iliad repo.
+// This file contains build time developer tools used in the story repo.
 // We use go.mod to control the versions of these tools and dependabot to keep them up to date.
 // To install all the tools run: go generate tools.go
 // For more info on this pattern, see https://www.jvt.me/posts/2022/06/15/go-tools-dependency-management/.

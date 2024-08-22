@@ -4,13 +4,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	iliadcfg "github.com/piplabs/story/client/config"
+	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
 )
 
-func bindRunFlags(cmd *cobra.Command, cfg *iliadcfg.Config) {
+func bindRunFlags(cmd *cobra.Command, cfg *storycfg.Config) {
 	flags := cmd.Flags()
 
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)

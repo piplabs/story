@@ -57,7 +57,7 @@ func MakeGenesis(
 
 	// Step 2: Create the app genesis object and store it to disk.
 	appGen := &gtypes.AppGenesis{
-		AppName:       "iliad",
+		AppName:       "story",
 		AppVersion:    buildinfo.Version(),
 		GenesisTime:   genesisTime.UTC(),
 		ChainID:       network.Static().StoryConsensusChainIDStr(),

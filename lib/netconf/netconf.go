@@ -7,7 +7,7 @@ import (
 )
 
 // Network defines a deployment of the Story cross chain protocol.
-// It spans an iliad chain (both execution and consensus) and a set of
+// It spans an story chain (both execution and consensus) and a set of
 // supported EVMs.
 type Network struct {
 	ID     ID      `json:"name"`   // ID of the network. e.g. "simnet", "testnet", "staging", "mainnet"

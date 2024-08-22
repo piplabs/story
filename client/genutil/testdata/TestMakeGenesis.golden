@@ -1,8 +1,8 @@
 {
- "app_name": "iliad",
+ "app_name": "story",
  "app_version": "v0.1.5",
  "genesis_time": "1970-01-01T00:00:01Z",
- "chain_id": "iliad-1001651",
+ "chain_id": "story-1001651",
  "initial_height": 1,
  "app_hash": null,
  "app_state": {

@@ -6,7 +6,7 @@
 version = "v0.1.5"
 
 # Story network to participate in: mainnet, testnet, or devnet.
-network = "iliad"
+network = "story"
 
 #######################################################################
 ###                          Story Options                          ###
@@ -18,7 +18,7 @@ engine-endpoint = "http://localhost:8551"
 # Story execution client JWT file used for authentication.
 engine-jwt-file = ""
 
-# SnapshotInterval specifies the height interval at which iliad
+# SnapshotInterval specifies the height interval at which story
 # will take state sync snapshots. Defaults to 1000 (roughly once an hour), setting this to
 # 0 disables state snapshots.
 snapshot-interval = 1000

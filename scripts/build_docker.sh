@@ -16,6 +16,6 @@ GITREF=$(git rev-parse --short=7 HEAD)
 
 cd dist/${APP}* || exit 1
 
-docker build -f "../../${APP}/Dockerfile" . -t "iliadops/${APP}:${GITREF}"
+docker build -f "../../${APP}/Dockerfile" . -t "storyops/${APP}:${GITREF}"
 
-echo "Built docker image: iliadops/${APP}:${GITREF}"
+echo "Built docker image: storyops/${APP}:${GITREF}"

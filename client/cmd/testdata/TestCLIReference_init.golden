@@ -1,11 +1,11 @@
-Initializes required iliad files and directories.
+Initializes required story files and directories.
 
 Ensures all the following files and directories exist:
   <home>/                            # Story home directory
   ├── config                         # Config directory
   │   ├── config.toml                # CometBFT configuration
   │   ├── genesis.json               # Story chain genesis file
-  │   ├── iliad.toml                  # Story configuration
+  │   ├── story.toml                  # Story configuration
   │   ├── node_key.json              # Node P2P identity key
   │   └── priv_validator_key.json    # CometBFT private validator key (back this up and keep it safe)
   ├── data                           # Data directory
@@ -16,12 +16,12 @@ Existing files are not overwritten, unless --clean is specified.
 The home directory should only contain subdirectories, no files, use --force to ignore this check.
 
 Usage:
-  iliad init [flags]
+  story init [flags]
 
 Flags:
       --clean            Delete home directory before initialization
       --force            Force initialization (overwrite existing files)
   -h, --help             help for init
-      --home string      The application home directory containing config and data (default "./iliad")
+      --home string      The application home directory containing config and data (default "./story")
       --network string   Story network to participate in: mainnet, testnet, devnet
       --trusted-sync     Initialize trusted state-sync height and hash by querying the Story RPC

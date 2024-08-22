@@ -1,4 +1,4 @@
-// Command verifypr provides a tool to verify iliad PRs against the conventional commit template.
+// Command verifypr provides a tool to verify story PRs against the conventional commit template.
 package main
 
 import (
@@ -34,7 +34,7 @@ func run() error {
 		return nil
 	}
 
-	log.Printf("Verifying iliad PR against template\n")
+	log.Printf("Verifying story PR against template\n")
 	log.Printf("PR Title: %s\n", pr.Title)
 	log.Printf("## PR Body:\n%s\n####\n", pr.Body)
 
@@ -70,7 +70,7 @@ func prFromEnv() (PR, error) {
 	return pr, nil
 }
 
-// verify returns an error if the commit message doesn't correspond to the iliad conventional commit template.
+// verify returns an error if the commit message doesn't correspond to the story conventional commit template.
 func verify(commitMsg string) error {
 	// Fix line endings, since conventional commit parser doesn't support CRLF.
 	commitMsg = strings.ReplaceAll(commitMsg, "\r\n", "\n")
