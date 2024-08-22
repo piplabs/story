@@ -1,12 +1,12 @@
-// Package netconf provides the configuration of an Iliad network, an instance
-// of the Iliad cross chain protocol.
+// Package netconf provides the configuration of an Story network, an instance
+// of the Story cross chain protocol.
 package netconf
 
 import (
 	"time"
 )
 
-// Network defines a deployment of the Iliad cross chain protocol.
+// Network defines a deployment of the Story cross chain protocol.
 // It spans an iliad chain (both execution and consensus) and a set of
 // supported EVMs.
 type Network struct {
@@ -37,8 +37,8 @@ func (n Network) Chain(id uint64) (Chain, bool) {
 }
 
 // Chain defines the configuration of an execution chain that supports
-// the Iliad cross chain protocol. This is most supported EVMs, but
-// also the Iliad EVM, and the Iliad Consensus chain.
+// the Story cross chain protocol. This is most supported EVMs, but
+// also the Story EVM, and the Story Consensus chain.
 type Chain struct {
 	ID   uint64 // Chain ID asa per https://chainlist.org
 	Name string // Chain name as per https://chainlist.org

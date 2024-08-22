@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// IliadNamespace is namespace of for iliad specific predeploys.
-	IliadNamespace = "0x121E240000000000000000000000000000000000"
+	// StoryNamespace is namespace of for iliad specific predeploys.
+	StoryNamespace = "0x121E240000000000000000000000000000000000"
 
 	// IPTokenNamespace is namespace of for IP Token specific predeploys.
 	IPTokenNamespace = "0xcccccc0000000000000000000000000000000000"
@@ -40,7 +40,7 @@ const (
 
 var (
 	// Namespace big.Ints.
-	iliadNamespace   = common.HexToAddress(IliadNamespace).Big()
+	iliadNamespace   = common.HexToAddress(StoryNamespace).Big()
 	ipTokenNamespace = common.HexToAddress(IPTokenNamespace).Big()
 
 	// Predeploy addresses.

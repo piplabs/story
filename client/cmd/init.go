@@ -49,11 +49,11 @@ func newInitCmd() *cobra.Command {
 		Long: `Initializes required iliad files and directories.
 
 Ensures all the following files and directories exist:
-  <home>/                            # Iliad home directory
+  <home>/                            # Story home directory
   ├── config                         # Config directory
   │   ├── config.toml                # CometBFT configuration
-  │   ├── genesis.json               # Iliad chain genesis file
-  │   ├── iliad.toml                  # Iliad configuration
+  │   ├── genesis.json               # Story chain genesis file
+  │   ├── iliad.toml                  # Story configuration
   │   ├── node_key.json              # Node P2P identity key
   │   └── priv_validator_key.json    # CometBFT private validator key (back this up and keep it safe)
   ├── data                           # Data directory

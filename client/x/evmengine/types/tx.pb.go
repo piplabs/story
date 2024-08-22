@@ -235,7 +235,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgServiceClient interface {
-	// ExecutionPayload submits a new execution payload from consensus to the IliadEVM.
+	// ExecutionPayload submits a new execution payload from consensus to the StoryEVM.
 	ExecutionPayload(ctx context.Context, in *MsgExecutionPayload, opts ...grpc.CallOption) (*ExecutionPayloadResponse, error)
 }
 
@@ -258,7 +258,7 @@ func (c *msgServiceClient) ExecutionPayload(ctx context.Context, in *MsgExecutio
 
 // MsgServiceServer is the server API for MsgService service.
 type MsgServiceServer interface {
-	// ExecutionPayload submits a new execution payload from consensus to the IliadEVM.
+	// ExecutionPayload submits a new execution payload from consensus to the StoryEVM.
 	ExecutionPayload(context.Context, *MsgExecutionPayload) (*ExecutionPayloadResponse, error)
 }
 

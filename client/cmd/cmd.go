@@ -17,7 +17,7 @@ import (
 func New() *cobra.Command {
 	return libcmd.NewRootCmd(
 		"iliad",
-		"Iliad is a consensus client implementation for the Story L1 blockchain",
+		"Story is a consensus client implementation for the Story L1 blockchain",
 		newRunCmd("run", app.Run),
 		newInitCmd(),
 		buildinfo.NewVersionCmd(),

@@ -36,7 +36,7 @@ import (
 )
 
 // slashingWindows overrides the default slashing signed_blocks_window from 100 to 1000
-// since Iliad block period (+-1s) is very fast, roughly 10x normal period of 10s.
+// since Story block period (+-1s) is very fast, roughly 10x normal period of 10s.
 const slashingBlocksWindow = 1000
 
 func MakeGenesis(

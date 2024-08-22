@@ -9,13 +9,13 @@ type Token string
 
 const (
 	// Mainnets.
-	IDIliadMainnet uint64 = 1514
+	IDStoryMainnet uint64 = 1514
 
 	// Local Testet.
 	IDLocal uint64 = 1511
 
 	// Testnets.
-	IDIliadTestnet uint64 = 1511
+	IDStoryTestnet uint64 = 1511
 	IDIliad        uint64 = 1513
 
 	iliadEVMName        = "story_evm"
@@ -48,8 +48,8 @@ func MetadataByName(name string) (Metadata, bool) {
 }
 
 var static = map[uint64]Metadata{
-	IDIliadTestnet: {
-		ChainID:     IDIliadTestnet,
+	IDStoryTestnet: {
+		ChainID:     IDStoryTestnet,
 		Name:        iliadEVMName,
 		BlockPeriod: iliadEVMBlockPeriod,
 		NativeToken: IP,

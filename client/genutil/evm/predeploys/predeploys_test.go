@@ -14,7 +14,7 @@ import (
 
 var (
 	// Namespace big.Ints.
-	mainNamespace = addrToBig(common.HexToAddress(predeploys.IliadNamespace))
+	mainNamespace = addrToBig(common.HexToAddress(predeploys.StoryNamespace))
 
 	// Predeploy addresses.
 	ipTokenStaking = common.HexToAddress(predeploys.IPTokenStaking)
