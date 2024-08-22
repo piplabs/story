@@ -1,36 +1,15 @@
 {
   "storage": [
     {
-      "astId": 8,
-      "contract": "src/protocol/IPTokenSlashing.sol:IPTokenSlashing",
-      "label": "_owner",
-      "offset": 0,
-      "slot": "0",
-      "type": "t_address"
-    },
-    {
-      "astId": 156,
-      "contract": "src/protocol/IPTokenSlashing.sol:IPTokenSlashing",
-      "label": "_pendingOwner",
-      "offset": 0,
-      "slot": "1",
-      "type": "t_address"
-    },
-    {
-      "astId": 40320,
+      "astId": 2592,
       "contract": "src/protocol/IPTokenSlashing.sol:IPTokenSlashing",
       "label": "unjailFee",
       "offset": 0,
-      "slot": "2",
+      "slot": "0",
       "type": "t_uint256"
     }
   ],
   "types": {
-    "t_address": {
-      "encoding": "inplace",
-      "label": "address",
-      "numberOfBytes": "20"
-    },
     "t_uint256": {
       "encoding": "inplace",
       "label": "uint256",
