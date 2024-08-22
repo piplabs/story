@@ -23,8 +23,3 @@ dist
 
 # Environment vars
 .env
-
-# ignore iliad binary in ./iliad directory
-client/client
-client/build___run_iliad_client
-client/go_build_iliad_client

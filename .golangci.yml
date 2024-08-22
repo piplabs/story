@@ -15,8 +15,8 @@ linters-settings:
       - prefix(golang.org)                     # Golang pkg import
       - prefix(cosmossdk.io)                   # Cosmos SDK import
       - prefix(github.com)                     # Catch-all Github direct imports
-      - prefix(github.com/storyprotocol)       # Story
-      - prefix(github.com/piplabs/story) # Iliad
+      - prefix(github.com/piplabs)       # piplabs
+      - prefix(github.com/piplabs/story) # story
       - default                                # All other imports not matched to another section type.
       - blank                                  # Blank imports
     custom-order: true

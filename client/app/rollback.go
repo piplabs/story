@@ -17,7 +17,7 @@ import (
 )
 
 func Rollback(ctx context.Context, cfg Config, removeBlock bool) error {
-	engineCl, err := newEngineClient(ctx, cfg, cfg.Network, nil)
+	engineCl, err := newEngineClient(ctx, cfg)
 	if err != nil {
 		return err
 	}

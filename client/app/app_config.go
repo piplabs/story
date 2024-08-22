@@ -83,7 +83,7 @@ var (
 		minttypes.ModuleName,
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
-		// Iliad modules
+		// Story modules
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
 	}

@@ -1,4 +1,4 @@
-# Iliad Contracts
+# Story Contracts
 
 ## Install Dependencies
 1. Install `npm` if you haven't.

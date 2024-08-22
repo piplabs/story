@@ -23,7 +23,7 @@ func MakeGenesis(network netconf.ID, valPubKeys ...crypto.PubKey) (*types.Genesi
 	}
 
 	return &types.GenesisDoc{
-		ChainID:         network.Static().IliadConsensusChainIDStr(),
+		ChainID:         network.Static().StoryConsensusChainIDStr(),
 		GenesisTime:     cmttime.Now(),
 		ConsensusParams: genutil.DefaultConsensusParams(),
 		Validators:      cometVals,

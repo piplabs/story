@@ -7,21 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	cmtconfig "github.com/cometbft/cometbft/config"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
-	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
-	"github.com/cometbft/cometbft/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 
 	iliadcfg "github.com/piplabs/story/client/config"
-	"github.com/piplabs/story/client/genutil"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -142,25 +138,6 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		comet.P2P.Seeds = strings.Join(seeds, ",")
 	}
 
-	if initCfg.TrustedSync && network.IsProtected() {
-		rpcServer := fmt.Sprintf("https://rpc.consensus.%s.storyprotocol", network)
-
-		// Trusted state sync only supported for protected networks.
-		height, hash, err := getTrustHeightAndHash(ctx, rpcServer)
-		if err != nil {
-			return errors.Wrap(err, "get trusted height")
-		}
-
-		comet.StateSync.Enable = true
-		comet.StateSync.RPCServers = []string{rpcServer, rpcServer} // CometBFT requires two RPC servers. Duplicate our RPC for now.
-		comet.StateSync.TrustHeight = height
-		comet.StateSync.TrustHash = hash
-
-		log.Info(ctx, "Trusted state-sync enabled", "height", height, "hash", hash, "rpc_endpoint", rpcServer)
-	} else {
-		log.Info(ctx, "Not initializing trusted state sync")
-	}
-
 	// Setup comet config
 	cmtConfigFile := filepath.Join(homeDir, cmtconfig.DefaultConfigDir, cmtconfig.DefaultConfigFileName)
 	if cmtos.FileExists(cmtConfigFile) {
@@ -212,34 +189,6 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	genFile := comet.GenesisFile()
 	if cmtos.FileExists(genFile) {
 		log.Info(ctx, "Found genesis file", "path", genFile)
-	} else if network == netconf.Simnet {
-		pubKey, err := pv.GetPubKey()
-		if err != nil {
-			return errors.Wrap(err, "get public key")
-		}
-
-		var genDoc *types.GenesisDoc
-		if initCfg.Cosmos {
-			cosmosGen, err := genutil.MakeGenesis(network, time.Now(), initCfg.ExecutionHash, pubKey)
-			if err != nil {
-				return err
-			}
-
-			genDoc, err = cosmosGen.ToGenesisDoc()
-			if err != nil {
-				return errors.Wrap(err, "convert to genesis doc")
-			}
-		} else {
-			genDoc, err = MakeGenesis(network, pubKey)
-			if err != nil {
-				return err
-			}
-		}
-
-		if err := genDoc.SaveAs(genFile); err != nil {
-			return errors.Wrap(err, "save genesis file")
-		}
-		log.Info(ctx, "Generated simnet genesis file", "path", genFile)
 	} else if len(network.Static().ConsensusGenesisJSON) > 0 {
 		if err := os.WriteFile(genFile, network.Static().ConsensusGenesisJSON, 0o644); err != nil {
 			return errors.Wrap(err, "failed to write genesis file")
@@ -271,29 +220,6 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	}
 
 	return nil
-}
-
-func getTrustHeightAndHash(ctx context.Context, baseURL string) (int64, string, error) {
-	cl, err := rpchttp.New(baseURL, "/websocket")
-	if err != nil {
-		return 0, "", errors.Wrap(err, "create rpc client")
-	}
-
-	latest, err := cl.Block(ctx, nil)
-	if err != nil {
-		return 0, "", errors.Wrap(err, "get latest block")
-	}
-
-	// Truncate height to last defaultSnapshotPeriod
-	const defaultSnapshotPeriod int64 = 1000
-	snapshotHeight := defaultSnapshotPeriod * (latest.Block.Height / defaultSnapshotPeriod)
-
-	b, err := cl.Block(ctx, &snapshotHeight)
-	if err != nil {
-		return 0, "", errors.Wrap(err, "get snapshot block")
-	}
-
-	return b.Block.Height, b.BlockID.Hash.String(), nil
 }
 
 func checkHomeDir(homeDir string) error {
