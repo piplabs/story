@@ -15,8 +15,7 @@ const (
 	IDLocal uint64 = 1511
 
 	// Testnets.
-	IDStoryTestnet uint64 = 1511
-	IDIliad        uint64 = 1513
+	IDIliad uint64 = 1513
 
 	storyEVMName        = "story_evm"
 	storyEVMBlockPeriod = time.Second * 2
@@ -48,12 +47,6 @@ func MetadataByName(name string) (Metadata, bool) {
 }
 
 var static = map[uint64]Metadata{
-	IDStoryTestnet: {
-		ChainID:     IDStoryTestnet,
-		Name:        storyEVMName,
-		BlockPeriod: storyEVMBlockPeriod,
-		NativeToken: IP,
-	},
 	IDIliad: {
 		ChainID:     IDIliad,
 		Name:        storyEVMName,
