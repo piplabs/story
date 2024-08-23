@@ -122,7 +122,8 @@ contract IPTokenStakingTest is Test {
         assertEq(ipTokenStaking.delegatorValidatorStakes(delegatorCmpPubkey, validatorCmpPubkey), 0 ether);
 
         // Network shall not allow anyone to create a new validator on behalf if the sender account’s balance is 0.
-        bytes memory validator1Pubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
+        bytes
+            memory validator1Pubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
         stakeAmount = 0 ether;
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
@@ -137,7 +138,15 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.CreateValidator(delegatorUncmpPubkey, delegatorCmpPubkey, "delegator's validator", stakeAmount, 1000, 5000, 100);
+        emit IIPTokenStaking.CreateValidator(
+            delegatorUncmpPubkey,
+            delegatorCmpPubkey,
+            "delegator's validator",
+            stakeAmount,
+            1000,
+            5000,
+            100
+        );
         ipTokenStaking.createValidator{ value: stakeAmount }({
             validatorUncmpPubkey: delegatorUncmpPubkey,
             moniker: "delegator's validator",
@@ -164,13 +173,22 @@ contract IPTokenStakingTest is Test {
 
         // Network shall allow anyone to create a new validator on behalf of a validator.
         // Note that the operation stakes sender’s tokens to the validator, and the delegator will still be the validator itself.
-        bytes memory validator2UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
+        bytes
+            memory validator2UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
         bytes memory validator2CmpPubkey = Secp256k1.compressPublicKey(validator2UncmpPubkey);
         stakeAmount = 1000 ether;
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.CreateValidator(validator2UncmpPubkey, validator2CmpPubkey, "validator", stakeAmount, 1000, 5000, 500);
+        emit IIPTokenStaking.CreateValidator(
+            validator2UncmpPubkey,
+            validator2CmpPubkey,
+            "validator",
+            stakeAmount,
+            1000,
+            5000,
+            500
+        );
         ipTokenStaking.createValidatorOnBehalf{ value: stakeAmount }({ validatorUncmpPubkey: validator2UncmpPubkey });
         // Check that stakes are correctly put on the validator
         assertEq(ipTokenStaking.delegatorTotalStakes(validator2CmpPubkey), 1000 ether);
@@ -228,7 +246,15 @@ contract IPTokenStakingTest is Test {
         // Create initially
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.CreateValidator(validatorUncmpPubkey, validatorCmpPubkey, "delegator's validator", stakeAmount, 1000, 5000, 100);
+        emit IIPTokenStaking.CreateValidator(
+            validatorUncmpPubkey,
+            validatorCmpPubkey,
+            "delegator's validator",
+            stakeAmount,
+            1000,
+            5000,
+            100
+        );
         ipTokenStaking.createValidator{ value: stakeAmount }({
             validatorUncmpPubkey: validatorUncmpPubkey,
             moniker: "delegator's validator",
@@ -247,7 +273,15 @@ contract IPTokenStakingTest is Test {
         // Create again
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.CreateValidator(validatorUncmpPubkey, validatorCmpPubkey, "delegator's validator", stakeAmount, 1000, 5000, 100);
+        emit IIPTokenStaking.CreateValidator(
+            validatorUncmpPubkey,
+            validatorCmpPubkey,
+            "delegator's validator",
+            stakeAmount,
+            1000,
+            5000,
+            100
+        );
         ipTokenStaking.createValidator{ value: stakeAmount }({
             validatorUncmpPubkey: validatorUncmpPubkey,
             moniker: "bad name validator",
@@ -311,7 +345,8 @@ contract IPTokenStakingTest is Test {
 
         // Network shall allow anyone to stake on behalf of another delegator.
         validatorPubkey = delegatorCmpPubkey;
-        bytes memory delegator1UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
+        bytes
+            memory delegator1UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         bytes memory delegator1CmpPubkey = Secp256k1.compressPublicKey(delegator1UncmpPubkey);
         stakeAmount = 1000 ether;
         vm.deal(delegatorAddr, stakeAmount);
@@ -353,7 +388,10 @@ contract IPTokenStakingTest is Test {
         vm.expectRevert("IPTokenStaking: Validator does not exist");
         ipTokenStaking.stakeOnBehalf{ value: stakeAmount }(delegator1UncmpPubkey, validatorPubkey);
 
-        assertEq(ipTokenStaking.delegatorValidatorStakes(delegator1CmpPubkey, validatorPubkey), delegatorValidatorBefore);
+        assertEq(
+            ipTokenStaking.delegatorValidatorStakes(delegator1CmpPubkey, validatorPubkey),
+            delegatorValidatorBefore
+        );
         assertEq(ipTokenStaking.delegatorTotalStakes(delegator1CmpPubkey), delegatorTotalBefore);
         (isActive, moniker, totalStake, commissionRate, maxCommissionRate, maxCommissionChangeRate) = ipTokenStaking
             .validatorMetadata(validatorPubkey);
@@ -376,7 +414,10 @@ contract IPTokenStakingTest is Test {
         vm.expectRevert("IPTokenStaking: Stake amount too low");
         ipTokenStaking.stakeOnBehalf{ value: stakeAmount }(delegator1UncmpPubkey, validatorPubkey);
 
-        assertEq(ipTokenStaking.delegatorValidatorStakes(delegator1CmpPubkey, validatorPubkey), delegatorValidatorBefore);
+        assertEq(
+            ipTokenStaking.delegatorValidatorStakes(delegator1CmpPubkey, validatorPubkey),
+            delegatorValidatorBefore
+        );
         assertEq(ipTokenStaking.delegatorTotalStakes(delegator1CmpPubkey), delegatorTotalBefore);
         (isActive, moniker, totalStake, commissionRate, maxCommissionRate, maxCommissionChangeRate) = ipTokenStaking
             .validatorMetadata(validatorPubkey);
