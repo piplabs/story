@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable quotes
 pragma solidity ^0.8.23;
 
 import { Script } from "forge-std/Script.sol";
+// solhint-disable-next-line no-console
 import { console2 } from "forge-std/console2.sol";
 
 /// @title ERC7201 Helper Script
@@ -18,6 +20,7 @@ contract ERC7201HelperScript is Script {
         bytes memory erc7201Key = abi.encodePacked(NAMESPACE, ".", CONTRACT_NAME);
         bytes32 hash = keccak256(abi.encode(uint256(keccak256(erc7201Key)) - 1)) & ~bytes32(uint256(0xff));
 
+        /* solhint-disable no-console */
         // Log natspec and storage structure
         console2.log(string(abi.encodePacked("/// @dev Storage structure for the ", CONTRACT_NAME)));
         console2.log(string(abi.encodePacked("/// @custom:storage-location erc7201:", erc7201Key)));
@@ -68,6 +71,7 @@ contract ERC7201HelperScript is Script {
         console2.log(string(abi.encodePacked("        $.slot := ", CONTRACT_NAME, "StorageLocation")));
         console2.log(string(abi.encodePacked("    }")));
         console2.log(string(abi.encodePacked("}")));
+        /* solhint-enable no-console */
     }
 
     function toHex16(bytes16 data) internal pure returns (bytes32 result) {
