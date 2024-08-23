@@ -107,7 +107,7 @@ func DefaultConfig() Config {
 		RPCLaddr:           "tcp://127.0.0.1:26657",
 		ExternalAddress:    "",
 		Seeds:              "",
-		SeedMode:           true,
+		SeedMode:           false,
 	}
 }
 
