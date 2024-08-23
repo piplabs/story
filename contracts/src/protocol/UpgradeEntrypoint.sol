@@ -5,12 +5,12 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
-
+import { UpgradeabilityFlag } from "./UpradeabilityFlag.sol";
 /**
  * @title UpgradeEntrypoint
  * @notice Entrypoint contract for submitting x/upgrade module actions.
  */
-contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSUpgradeable {
+contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSUpgradeable, UpgradeabilityFlag {
     constructor() {
         _disableInitializers();
     }
@@ -35,7 +35,15 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSU
         emit SoftwareUpgrade({ name: name, height: height, info: info });
     }
 
+    //////////////////////////////// Upgradeability ////////////////////////////////////
+
+    /// @notice Disables the upgradeability of the contract.
+    /// @dev WARNING: This action is irreversible.
+    function disableUpgradeability() external override onlyOwner {
+        _disableUpgradeability();
+    }
+
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner upgradeabilityEnabled {}
 }

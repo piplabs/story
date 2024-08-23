@@ -8,6 +8,8 @@ pragma solidity ^0.8.23;
 import { IIPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 
 import { Test } from "../utils/Test.sol";
+import { MockIPTokenSlashingV2 } from "../utils/Mocks.sol";
+import { EIP1967Helper } from "../../script/utils/EIP1967Helper.sol";
 
 contract IPTokenSlashingTest is Test {
     bytes private delegatorUncmpPubkey =
@@ -158,5 +160,60 @@ contract IPTokenSlashingTest is Test {
         vm.expectRevert();
         ipTokenSlashing.setUnjailFee(1 ether);
         assertEq(ipTokenSlashing.unjailFee(), newUnjailFee);
+    }
+
+    function testIPTokenSlashing_testOwnershipTransfer() public {
+        address newOwner = address(0x444);
+        vm.prank(admin);
+        ipTokenSlashing.transferOwnership(newOwner);
+        assertEq(ipTokenSlashing.pendingOwner(), newOwner);
+
+        // Network shall not allow not new owner to accept the ownership.
+        vm.expectRevert();
+        ipTokenSlashing.acceptOwnership();
+        assertEq(ipTokenSlashing.pendingOwner(), newOwner);
+
+        // Network shall allow the new owner to accept the ownership.
+        vm.prank(newOwner);
+        ipTokenSlashing.acceptOwnership();
+        assertEq(ipTokenSlashing.pendingOwner(), address(0));
+        assertEq(ipTokenSlashing.owner(), newOwner);
+
+        // Network shall not allow non-owner to transfer the ownership.
+        vm.expectRevert();
+        ipTokenSlashing.transferOwnership(newOwner);
+        assertEq(ipTokenSlashing.pendingOwner(), address(0));
+    }
+
+    function testIPTokenSlashing_testUpgradeabilityACL() public {
+        address newImpl = address(new MockIPTokenSlashingV2(address(ipTokenStaking)));
+        // Network shall not allow non-owner to upgrade the contract.
+        vm.expectRevert();
+        ipTokenSlashing.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenSlashing)) != newImpl);
+
+        // Network shall not allow non-owner to disable the upgradeability.
+        vm.expectRevert();
+        ipTokenSlashing.disableUpgradeability();
+        assertFalse(ipTokenSlashing.upgradeabilityDisabled());
+
+        // Network shall allow the owner to disable the upgradeability.
+        vm.prank(admin);
+        ipTokenSlashing.disableUpgradeability();
+        assertTrue(ipTokenSlashing.upgradeabilityDisabled());
+
+        // Network shall not allow owner to upgrade the contract after the upgradeability is disabled.
+        vm.expectRevert();
+        ipTokenSlashing.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenSlashing)) != newImpl);
+    }
+
+    function testIPTokenSlashing_testUpgradeability() public {
+        address newImpl = address(new MockIPTokenSlashingV2(address(ipTokenStaking)));
+        // Network shall allow the owner to upgrade the contract.
+        vm.prank(admin);
+        ipTokenSlashing.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenSlashing)) == newImpl);
+        assertTrue(MockIPTokenSlashingV2(address(ipTokenSlashing)).upgraded());
     }
 }

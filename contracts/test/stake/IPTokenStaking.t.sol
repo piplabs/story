@@ -11,6 +11,8 @@ import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaki
 import { Secp256k1 } from "../../src/libraries/Secp256k1.sol";
 
 import { Test } from "../utils/Test.sol";
+import { MockIPTokenStakingV2 } from "../utils/Mocks.sol";
+import { EIP1967Helper } from "../../script/utils/EIP1967Helper.sol";
 
 contract IPTokenStakingTest is Test {
     bytes private delegatorUncmpPubkey =
@@ -907,5 +909,74 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert();
         ipTokenStaking.setMinRedelegateAmount(1 ether);
+    }
+
+    function testIPTokenStaking_OwnershipTransfer() public {
+        address newOwner = address(0x444);
+        vm.prank(admin);
+        ipTokenStaking.transferOwnership(newOwner);
+        assertEq(ipTokenStaking.pendingOwner(), newOwner);
+
+        // contract shall not allow not new owner to accept the ownership.
+        vm.expectRevert();
+        ipTokenStaking.acceptOwnership();
+        assertEq(ipTokenStaking.pendingOwner(), newOwner);
+
+        // contract shall allow the new owner to accept the ownership.
+        vm.prank(newOwner);
+        ipTokenStaking.acceptOwnership();
+        assertEq(ipTokenStaking.pendingOwner(), address(0));
+        assertEq(ipTokenStaking.owner(), newOwner);
+
+        // contract shall not allow non-owner to transfer the ownership.
+        vm.expectRevert();
+        ipTokenStaking.transferOwnership(newOwner);
+        assertEq(ipTokenStaking.pendingOwner(), address(0));
+    }
+
+    function testIPTokenStaking_testUpgradeabilityACL() public {
+        address newImpl = address(
+            new MockIPTokenStakingV2(
+                1 gwei, // stakingRounding
+                1000, // defaultCommissionRate, 10%
+                5000, // defaultMaxCommissionRate, 50%
+                500 // defaultMaxCommissionChangeRate, 5%
+            )
+        );
+        // Network shall not allow non-owner to upgrade the contract.
+        vm.expectRevert();
+        ipTokenStaking.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenStaking)) != newImpl);
+
+        // Network shall not allow non-owner to disable the upgradeability.
+        vm.expectRevert();
+        ipTokenStaking.disableUpgradeability();
+        assertFalse(ipTokenStaking.upgradeabilityDisabled());
+
+        // Network shall allow the owner to disable the upgradeability.
+        vm.prank(admin);
+        ipTokenStaking.disableUpgradeability();
+        assertTrue(ipTokenStaking.upgradeabilityDisabled());
+
+        // Network shall not allow owner to upgrade the contract after the upgradeability is disabled.
+        vm.expectRevert();
+        ipTokenStaking.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenStaking)) != newImpl);
+    }
+
+    function testIPTokenStaking_testUpgradeability() public {
+        address newImpl = address(
+            new MockIPTokenStakingV2(
+                1 gwei, // stakingRounding
+                1000, // defaultCommissionRate, 10%
+                5000, // defaultMaxCommissionRate, 50%
+                500 // defaultMaxCommissionChangeRate, 5%
+            )
+        );
+        // Network shall allow the owner to upgrade the contract.
+        vm.prank(admin);
+        ipTokenStaking.upgradeToAndCall(newImpl, "");
+        assertTrue(EIP1967Helper.getImplementation(address(ipTokenStaking)) == newImpl);
+        assertTrue(MockIPTokenStakingV2(address(ipTokenStaking)).upgraded());
     }
 }

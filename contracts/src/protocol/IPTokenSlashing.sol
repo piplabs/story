@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 
 import { IIPTokenSlashing } from "../interfaces/IIPTokenSlashing.sol";
 import { IPTokenStaking } from "./IPTokenStaking.sol";
+import { UpgradeabilityFlag } from "./UpradeabilityFlag.sol";
 import { Secp256k1 } from "../libraries/Secp256k1.sol";
 
 /**
@@ -13,7 +14,7 @@ import { Secp256k1 } from "../libraries/Secp256k1.sol";
  * @notice The EVM interface to the consensus chain's x/slashing module. Calls are proxied to the consensus chain, but
  *         not executed synchronously; execution is left to the consensus chain, which may fail.
  */
-contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgradeable {
+contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgradeable, UpgradeabilityFlag {
     /// @notice IPTokenStaking contract address.
     IPTokenStaking public immutable IP_TOKEN_STAKING;
 
@@ -97,7 +98,15 @@ contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgra
         require(validatorExists, "IPTokenSlashing: Validator does not exist");
     }
 
+    //////////////////////////////// Upgradeability ////////////////////////////////////
+    
+    /// @notice Disables the upgradeability of the contract.
+    /// @dev WARNING: This action is irreversible.
+    function disableUpgradeability() external override onlyOwner {
+        _disableUpgradeability();
+    }
+
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner upgradeabilityEnabled {}
 }

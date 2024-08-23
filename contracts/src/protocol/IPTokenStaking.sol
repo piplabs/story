@@ -8,12 +8,19 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Secp256k1 } from "../libraries/Secp256k1.sol";
+import { UpgradeabilityFlag } from "./UpradeabilityFlag.sol";
 
 /**
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
  */
-contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract IPTokenStaking is
+    IIPTokenStaking,
+    Ownable2StepUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    UpgradeabilityFlag
+{
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Default commission rate for a validator. Out of 100%, or 10_000.
@@ -550,7 +557,15 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         require(success, "IPTokenStaking: Failed to refund remainder");
     }
 
+    //////////////////////////////// Upgradeability ////////////////////////////////////
+
+    /// @notice Disables the upgradeability of the contract.
+    /// @dev WARNING: This action is irreversible.
+    function disableUpgradeability() external override onlyOwner {
+        _disableUpgradeability();
+    }
+
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner upgradeabilityEnabled {}
 }
