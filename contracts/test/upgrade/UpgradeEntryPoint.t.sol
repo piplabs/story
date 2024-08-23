@@ -5,16 +5,13 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
-import { Test } from "forge-std/Test.sol";
-
 import { UpgradeEntrypoint, IUpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-contract UpgradeEntrypointTest is Test {
-    UpgradeEntrypoint private upgradeEntrypoint;
-    address admin = address(0x123);
+import { Test } from "../utils/Test.sol";
 
-    function setUp() public {
+contract UpgradeEntrypointTest is Test {
+    function setUp() public override {
         address impl = address(new UpgradeEntrypoint());
         bytes memory initializer = abi.encodeCall(UpgradeEntrypoint.initialize, (admin));
         upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, initializer)));

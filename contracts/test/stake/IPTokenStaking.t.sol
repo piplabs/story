@@ -13,7 +13,6 @@ import { Secp256k1 } from "../../src/libraries/Secp256k1.sol";
 import { Test } from "../utils/Test.sol";
 
 contract IPTokenStakingTest is Test {
-    address private admin = address(0x123);
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorUncmpPubkey
@@ -64,26 +63,28 @@ contract IPTokenStakingTest is Test {
             10_001 // defaultMaxCommissionChangeRate, 5%
         );
 
-        address impl = address(new IPTokenStaking(
-            0, // stakingRounding
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
-        ));
+        address impl = address(
+            new IPTokenStaking(
+                0, // stakingRounding
+                1000, // defaultCommissionRate, 10%
+                5000, // defaultMaxCommissionRate, 50%
+                500 // defaultMaxCommissionChangeRate, 5%
+            )
+        );
         IPTokenStaking staking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
-        
+
         // IPTokenStaking: minStakeAmount cannot be 0
         vm.expectRevert();
         staking.initialize(admin, 0, 1 ether, 1 ether, 7 days);
-        
+
         // IPTokenStaking: minUnstakeAmount cannot be 0
         vm.expectRevert();
         staking.initialize(admin, 1 ether, 0, 1 ether, 7 days);
-        
+
         // IPTokenStaking: minRedelegateAmount cannot be 0
         vm.expectRevert();
         staking.initialize(admin, 1 ether, 1 ether, 0, 7 days);
-        
+
         // IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0
         vm.expectRevert();
         staking.initialize(admin, 1 ether, 1 ether, 1 ether, 0);
