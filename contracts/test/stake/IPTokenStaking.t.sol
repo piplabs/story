@@ -5,13 +5,15 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { Secp256k1 } from "../../src/libraries/Secp256k1.sol";
 
 import { Test } from "../utils/Test.sol";
 
 contract IPTokenStakingTest is Test {
-    address admin = address(0x123);
+    address private admin = address(0x123);
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorUncmpPubkey
@@ -33,57 +35,6 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_Constructor() public {
-        // vm.expectRevert("IPTokenStaking: minStakeAmount cannot be 0");
-        // new IPTokenStaking(
-        //     0, // minStakeAmount
-        //     1 ether, // minUnstakeAmount
-        //     1 ether, // minRedelegateAmount
-        //     1 gwei, // stakingRounding
-        //     7 days, // withdrawalAddressChangeInterval
-        //     1000, // defaultCommissionRate, 10%
-        //     5000, // defaultMaxCommissionRate, 50%
-        //     500 // defaultMaxCommissionChangeRate, 5%
-        // );
-        // vm.expectRevert("IPTokenStaking: minUnstakeAmount cannot be 0");
-        // new IPTokenStaking(
-        //     1 ether, // minStakeAmount
-        //     0, // minUnstakeAmount
-        //     1 ether, // minRedelegateAmount
-        //     1 gwei, // stakingRounding
-        //     7 days, // withdrawalAddressChangeInterval
-        //     1000, // defaultCommissionRate, 10%
-        //     5000, // defaultMaxCommissionRate, 50%
-        //     500 // defaultMaxCommissionChangeRate, 5%
-        // );
-        // vm.expectRevert("IPTokenStaking: minRedelegateAmount cannot be 0");
-        // new IPTokenStaking(
-        //     1 ether, // minStakeAmount
-        //     1 ether, // minUnstakeAmount
-        //     0, // minRedelegateAmount
-        //     1 gwei, // stakingRounding
-        //     7 days, // withdrawalAddressChangeInterval
-        //     1000, // defaultCommissionRate, 10%
-        //     5000, // defaultMaxCommissionRate, 50%
-        //     500 // defaultMaxCommissionChangeRate, 5%
-        // );
-        vm.expectRevert();
-        new IPTokenStaking(
-            0, // stakingRounding
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
-        );
-        // vm.expectRevert("IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0");
-        // new IPTokenStaking(
-        //     1 ether, // minStakeAmount
-        //     1 ether, // minUnstakeAmount
-        //     1 ether, // minRedelegateAmount
-        //     1 gwei, // stakingRounding
-        //     0, // withdrawalAddressChangeInterval
-        //     1000, // defaultCommissionRate, 10%
-        //     5000, // defaultMaxCommissionRate, 50%
-        //     500 // defaultMaxCommissionChangeRate, 5%
-        // );
         vm.expectRevert("IPTokenStaking: Invalid default commission rate");
         new IPTokenStaking(
             1 gwei, // stakingRounding
@@ -112,6 +63,30 @@ contract IPTokenStakingTest is Test {
             5000, // defaultMaxCommissionRate, 50%
             10_001 // defaultMaxCommissionChangeRate, 5%
         );
+
+        address impl = address(new IPTokenStaking(
+            0, // stakingRounding
+            1000, // defaultCommissionRate, 10%
+            5000, // defaultMaxCommissionRate, 50%
+            500 // defaultMaxCommissionChangeRate, 5%
+        ));
+        IPTokenStaking staking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
+        
+        // IPTokenStaking: minStakeAmount cannot be 0
+        vm.expectRevert();
+        staking.initialize(admin, 0, 1 ether, 1 ether, 7 days);
+        
+        // IPTokenStaking: minUnstakeAmount cannot be 0
+        vm.expectRevert();
+        staking.initialize(admin, 1 ether, 0, 1 ether, 7 days);
+        
+        // IPTokenStaking: minRedelegateAmount cannot be 0
+        vm.expectRevert();
+        staking.initialize(admin, 1 ether, 1 ether, 0, 7 days);
+        
+        // IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0
+        vm.expectRevert();
+        staking.initialize(admin, 1 ether, 1 ether, 1 ether, 0);
     }
 
     function testIPTokenStaking_Parameters() public view {
