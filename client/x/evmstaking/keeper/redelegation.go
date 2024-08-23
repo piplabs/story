@@ -15,7 +15,7 @@ import (
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DepositorPubkey)
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}

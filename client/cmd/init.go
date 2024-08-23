@@ -294,5 +294,6 @@ func SplitAndTrim(input string) []string {
 			ret = append(ret, r)
 		}
 	}
+
 	return ret
 }

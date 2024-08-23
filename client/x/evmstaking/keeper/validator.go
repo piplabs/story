@@ -19,7 +19,7 @@ import (
 
 func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) error {
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}

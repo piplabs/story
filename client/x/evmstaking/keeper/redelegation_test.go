@@ -85,7 +85,7 @@ func (s *TestSuite) TestRedelegation() {
 	redelTokens := stakingKeeper.TokensFromConsensusPower(ctx, 5)
 
 	ipTokenRedelegate := &bindings.IPTokenStakingRedelegate{
-		DepositorPubkey:    pubKeys[0].Bytes(),
+		DelegatorCmpPubkey: pubKeys[0].Bytes(),
 		ValidatorSrcPubkey: pubKeys[1].Bytes(),
 		ValidatorDstPubkey: pubKeys[2].Bytes(),
 		Amount:             big.NewInt(redelTokens.Int64()), // multiply power reduction of 1000000
