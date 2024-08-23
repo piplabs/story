@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 
 import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
 import { UpgradeabilityFlag } from "./UpradeabilityFlag.sol";
+
 /**
  * @title UpgradeEntrypoint
  * @notice Entrypoint contract for submitting x/upgrade module actions.

@@ -61,9 +61,7 @@ contract UpgradeEntrypointTest is Test {
     }
 
     function testUpgradeEntrypoint_testUpgradeabilityACL() public {
-        address newImpl = address(
-            new MockUpgradeEntryPointV2()
-        );
+        address newImpl = address(new MockUpgradeEntryPointV2());
         // Network shall not allow non-owner to upgrade the contract.
         vm.expectRevert();
         upgradeEntrypoint.upgradeToAndCall(newImpl, "");
@@ -86,9 +84,7 @@ contract UpgradeEntrypointTest is Test {
     }
 
     function testUpgradeEntrypoint_testUpgradeability() public {
-        address newImpl = address(
-            new MockUpgradeEntryPointV2()
-        );
+        address newImpl = address(new MockUpgradeEntryPointV2());
         // Network shall allow the owner to upgrade the contract.
         vm.prank(admin);
         upgradeEntrypoint.upgradeToAndCall(newImpl, "");

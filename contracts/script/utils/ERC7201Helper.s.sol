@@ -12,7 +12,6 @@ import { console2 } from "forge-std/console2.sol";
 /// Thanks Mikhail Vladimirov for bytes32 to hex string conversion functions.
 /// https://stackoverflow.com/questions/67893318/solidity-how-to-represent-bytes32-as-string
 contract ERC7201HelperScript is Script {
-    
     string constant NAMESPACE = "story";
     string constant CONTRACT_NAME = "UpgradeabilityFlag";
 
