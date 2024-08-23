@@ -36,4 +36,9 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.BoolVar(&cfg.TrustedSync, "trusted-sync", cfg.TrustedSync, "Initialize trusted state-sync height and hash by querying the Story RPC")
 	flags.BoolVar(&cfg.Force, "force", cfg.Force, "Force initialization (overwrite existing files)")
 	flags.BoolVar(&cfg.Clean, "clean", cfg.Clean, "Delete home directory before initialization")
+	flags.StringVar(&cfg.RPCLaddr, "rpc-laddr", "", "Override the RPC listening address")
+	flags.StringVar(&cfg.ExternalAddress, "external-address", "", "Override the P2P external address")
+	flags.StringVar(&cfg.Seeds, "seeds", "", "Override the P2P seeds (comma-separated)")
+	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
+	flags.StringVar(&cfg.Moniker, "moniker", cfg.Moniker, "Custom moniker name for this node")
 }
