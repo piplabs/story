@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 
 import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
 
@@ -23,17 +24,20 @@ contract DeployIPTokenStaking is Script {
         uint256 deployerKey = vm.envUint("IPTOKENSTAKING_DEPLOYER_KEY");
 
         vm.startBroadcast(deployerKey);
-        IPTokenStaking ipTokenStaking = new IPTokenStaking(
-            protocolAccessManagerAddr,
-            1 ether, // minStakeAmount
-            1 ether, // minUnstakeAmount
-            1 ether, // minRedelegateAmount
-            1 gwei, // stakingRounding
-            7 days, // withdrawalAddressChangeInterval
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
+        address impl = address(
+            new IPTokenStaking(
+                1 gwei, // stakingRounding
+                1000, // defaultCommissionRate, 10%
+                5000, // defaultMaxCommissionRate, 50%
+                500 // defaultMaxCommissionChangeRate, 5%
+            )
         );
+        //1 ether, // minStakeAmount
+        //1 ether, // minUnstakeAmount
+        //1 ether, // minRedelegateAmount
+        //7 days, // withdrawalAddressChangeInterval
+
+        IPTokenStaking ipTokenStaking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
         vm.stopBroadcast();
 
         console2.log("IPTokenStaking deployed at:", address(ipTokenStaking));

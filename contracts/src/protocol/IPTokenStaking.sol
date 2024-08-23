@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.23;
 
-import { Ownable, Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
@@ -12,7 +13,7 @@ import { Secp256k1 } from "../libraries/Secp256k1.sol";
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
  */
-contract IPTokenStaking is IIPTokenStaking, Ownable2Step, ReentrancyGuard {
+contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Default commission rate for a validator. Out of 100%, or 10_000.
@@ -61,23 +62,12 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2Step, ReentrancyGuard {
     mapping(bytes delegatorCmpPubkey => uint256 lastChange) public withdrawalAddressChange;
 
     constructor(
-        address newOwner,
-        uint256 _minStakeAmount,
-        uint256 _minUnstakeAmount,
-        uint256 _minRedelegateAmount,
         uint256 stakingRounding,
-        uint256 _withdrawalAddressChangeInterval,
         uint32 defaultCommissionRate,
         uint32 defaultMaxCommissionRate,
         uint32 defaultMaxCommissionChangeRate
-    ) Ownable(newOwner) {
+    ) {
         STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
-
-        _setMinStakeAmount(_minStakeAmount);
-        _setMinUnstakeAmount(_minUnstakeAmount);
-        _setMinRedelegateAmount(_minRedelegateAmount);
-        _setWithdrawalAddressChangeInterval(_withdrawalAddressChangeInterval);
-
         require(defaultCommissionRate <= 10_000, "IPTokenStaking: Invalid default commission rate");
         DEFAULT_COMMISSION_RATE = defaultCommissionRate; // Recommended: 10%, or 1_000 / 10_000
 
@@ -89,6 +79,25 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2Step, ReentrancyGuard {
 
         require(defaultMaxCommissionChangeRate <= 10_000, "IPTokenStaking: Invalid default max commission change rate");
         DEFAULT_MAX_COMMISSION_CHANGE_RATE = defaultMaxCommissionChangeRate; // Recommended: 5%, or 500 / 10_000
+
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract.
+    function initialize(
+        address accessManager,
+        uint256 _minStakeAmount,
+        uint256 _minUnstakeAmount,
+        uint256 _minRedelegateAmount,
+        uint256 _withdrawalAddressChangeInterval
+    ) public initializer {
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+        __Ownable_init(accessManager);
+        _setMinStakeAmount(_minStakeAmount);
+        _setMinUnstakeAmount(_minUnstakeAmount);
+        _setMinRedelegateAmount(_minRedelegateAmount);
+        _setWithdrawalAddressChangeInterval(_withdrawalAddressChangeInterval);
     }
 
     /// @notice Verifies that the syntax of the given public key is a 33 byte compressed secp256k1 public key.
@@ -528,4 +537,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2Step, ReentrancyGuard {
         (bool success, ) = msg.sender.call{ value: remainder }("");
         require(success, "IPTokenStaking: Failed to refund remainder");
     }
+
+    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
+    /// @param newImplementation The address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
