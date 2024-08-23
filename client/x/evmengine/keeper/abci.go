@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -95,7 +96,9 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		var err error
 		payloadResp, err = k.engineCl.GetPayloadV3(ctx, *payloadID)
-		if err != nil {
+		if isUnknownPayload(err) {
+			return false, err
+		} else if err != nil {
 			log.Warn(ctx, "Preparing proposal failed: get evm payload (will retry)", err)
 			return false, nil
 		}
@@ -257,4 +260,21 @@ func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, wi
 	}
 
 	return resp, nil
+}
+
+// isUnknownPayload returns true if the error is due to an unknown payload.
+func isUnknownPayload(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// TODO: Add support for typed errors.
+	if strings.Contains(
+		strings.ToLower(err.Error()),
+		strings.ToLower(engine.UnknownPayload.Error()),
+	) {
+		return true
+	}
+
+	return false
 }
