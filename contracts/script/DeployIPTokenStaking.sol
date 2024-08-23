@@ -26,16 +26,16 @@ contract DeployIPTokenStaking is Script {
         vm.startBroadcast(deployerKey);
         address impl = address(
             new IPTokenStaking(
-                1 ether, // minStakeAmount
-                1 ether, // minUnstakeAmount
-                1 ether, // minRedelegateAmount
                 1 gwei, // stakingRounding
-                7 days, // withdrawalAddressChangeInterval
                 1000, // defaultCommissionRate, 10%
                 5000, // defaultMaxCommissionRate, 50%
                 500 // defaultMaxCommissionChangeRate, 5%
             )
         );
+        //1 ether, // minStakeAmount
+        //1 ether, // minUnstakeAmount
+        //1 ether, // minRedelegateAmount
+        //7 days, // withdrawalAddressChangeInterval
 
         IPTokenStaking ipTokenStaking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
         vm.stopBroadcast();

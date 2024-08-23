@@ -20,21 +20,19 @@ contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgra
     /// @notice The fee paid to unjail a validator.
     uint256 public unjailFee;
 
-    constructor(address ipTokenStaking, uint256 newUnjailFee) {
-        require(newUnjailFee > 0, "IPTokenSlashing: Invalid unjail fee");
+    constructor(address ipTokenStaking) {
         require(ipTokenStaking != address(0), "IPTokenSlashing: Invalid IPTokenStaking address");
         IP_TOKEN_STAKING = IPTokenStaking(ipTokenStaking);
-        unjailFee = newUnjailFee;
-        emit UnjailFeeSet(newUnjailFee);
-
         _disableInitializers();
     }
 
     /// @notice Initializes the contract.
-    function initialize(address accessManager) public initializer {
-        require(accessManager != address(0), "IPTokenSlashing: accessManager cannot be zero address");
+    function initialize(address accessManager, uint256 newUnjailFee) public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init(accessManager);
+        require(newUnjailFee > 0, "IPTokenSlashing: Invalid unjail fee");
+        unjailFee = newUnjailFee;
+        emit UnjailFeeSet(newUnjailFee);
     }
 
     /// @notice Verifies that the given 65 byte uncompressed secp256k1 public key (with 0x04 prefix) is valid and

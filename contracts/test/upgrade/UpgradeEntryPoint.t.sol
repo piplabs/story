@@ -8,13 +8,16 @@ pragma solidity ^0.8.23;
 import { Test } from "forge-std/Test.sol";
 
 import { UpgradeEntrypoint, IUpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract UpgradeEntrypointTest is Test {
     UpgradeEntrypoint private upgradeEntrypoint;
+    address admin = address(0x123);
 
     function setUp() public {
-        address protocolAccessManagerAddr = address(this);
-        upgradeEntrypoint = new UpgradeEntrypoint();
+        address impl = address(new UpgradeEntrypoint());
+        bytes memory initializer = abi.encodeCall(UpgradeEntrypoint.initialize, (admin));
+        upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, initializer)));
     }
 
     function testUpgradeEntrypoint_planUpgrade() public {
@@ -23,9 +26,9 @@ contract UpgradeEntrypointTest is Test {
         int64 height = 1;
         string memory info = "info";
 
-        vm.prank(address(this));
         vm.expectEmit(address(upgradeEntrypoint));
         emit IUpgradeEntrypoint.SoftwareUpgrade(name, height, info);
+        vm.prank(admin);
         upgradeEntrypoint.planUpgrade(name, height, info);
 
         // Network shall not allow non-protocol owner to submit an upgrade plan.

@@ -12,7 +12,7 @@ import { IPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
 
 contract Test is ForgeTest {
-    address private admin = address(this);
+    address private admin = address(0x123);
 
     IPTokenStaking internal ipTokenStaking;
     IPTokenSlashing internal ipTokenSlashing;
@@ -27,19 +27,14 @@ contract Test is ForgeTest {
     function setStaking() internal {
         address impl = address(
             new IPTokenStaking(
-                1 ether, // minStakeAmount
-                1 ether, // minUnstakeAmount
-                1 ether, // minRedelegateAmount
                 1 gwei, // stakingRounding
-                7 days, // withdrawalAddressChangeInterval
                 1000, // defaultCommissionRate, 10%
                 5000, // defaultMaxCommissionRate, 50%
                 500 // defaultMaxCommissionChangeRate, 5%
             )
         );
-
-        ipTokenStaking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
-        ipTokenStaking.initialize(admin);
+        bytes memory initializer = abi.encodeCall(IPTokenStaking.initialize, (admin, 1 ether, 1 ether, 1 ether, 7 days));
+        ipTokenStaking = IPTokenStaking(address(new ERC1967Proxy(impl,initializer )));
     }
 
     function setSlashing() internal {
@@ -47,13 +42,12 @@ contract Test is ForgeTest {
 
         address impl = address(
             new IPTokenSlashing(
-                address(ipTokenStaking),
-                1 ether // unjailFee
+                address(ipTokenStaking)
             )
         );
 
-        ipTokenSlashing = IPTokenSlashing(address(new ERC1967Proxy(impl, "")));
-        ipTokenSlashing.initialize(admin);
+        bytes memory initializer = abi.encodeCall(IPTokenSlashing.initialize, (admin, 1 ether));
+        ipTokenSlashing = IPTokenSlashing(address(new ERC1967Proxy(impl, initializer)));
 
         console2.log("unjailFee:", ipTokenSlashing.unjailFee());
     }
@@ -61,7 +55,7 @@ contract Test is ForgeTest {
     function setUpgrade() internal {
         address impl = address(new UpgradeEntrypoint());
 
-        upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, "")));
-        upgradeEntrypoint.initialize(admin);
+        bytes memory initializer = abi.encodeWithSignature("initialize(address)", admin);
+        upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, initializer)));
     }
 }

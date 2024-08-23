@@ -62,22 +62,12 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     mapping(bytes delegatorCmpPubkey => uint256 lastChange) public withdrawalAddressChange;
 
     constructor(
-        uint256 _minStakeAmount,
-        uint256 _minUnstakeAmount,
-        uint256 _minRedelegateAmount,
         uint256 stakingRounding,
-        uint256 _withdrawalAddressChangeInterval,
         uint32 defaultCommissionRate,
         uint32 defaultMaxCommissionRate,
         uint32 defaultMaxCommissionChangeRate
     ) {
         STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
-
-        _setMinStakeAmount(_minStakeAmount);
-        _setMinUnstakeAmount(_minUnstakeAmount);
-        _setMinRedelegateAmount(_minRedelegateAmount);
-        _setWithdrawalAddressChangeInterval(_withdrawalAddressChangeInterval);
-
         require(defaultCommissionRate <= 10_000, "IPTokenStaking: Invalid default commission rate");
         DEFAULT_COMMISSION_RATE = defaultCommissionRate; // Recommended: 10%, or 1_000 / 10_000
 
@@ -94,11 +84,20 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     }
 
     /// @notice Initializes the contract.
-    function initialize(address accessManager) public initializer {
-        require(accessManager != address(0), "IPTokenStaking: accessManager cannot be zero address");
+    function initialize(
+        address accessManager,
+        uint256 _minStakeAmount,
+        uint256 _minUnstakeAmount,
+        uint256 _minRedelegateAmount,
+        uint256 _withdrawalAddressChangeInterval
+    ) public initializer {
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
         __Ownable_init(accessManager);
+        _setMinStakeAmount(_minStakeAmount);
+        _setMinUnstakeAmount(_minUnstakeAmount);
+        _setMinRedelegateAmount(_minRedelegateAmount);
+        _setWithdrawalAddressChangeInterval(_withdrawalAddressChangeInterval);
     }
 
     /// @notice Verifies that the syntax of the given public key is a 33 byte compressed secp256k1 public key.

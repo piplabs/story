@@ -10,6 +10,7 @@ import { IIPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 import { Test } from "../utils/Test.sol";
 
 contract IPTokenSlashingTest is Test {
+    address admin = address(0x123);
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorUncmpPubkey
@@ -149,7 +150,7 @@ contract IPTokenSlashingTest is Test {
         uint256 newUnjailFee = 2 ether;
         vm.expectEmit(address(ipTokenSlashing));
         emit IIPTokenSlashing.UnjailFeeSet(newUnjailFee);
-        vm.prank(address(this));
+        vm.prank(admin);
         ipTokenSlashing.setUnjailFee(newUnjailFee);
         assertEq(ipTokenSlashing.unjailFee(), newUnjailFee);
 
