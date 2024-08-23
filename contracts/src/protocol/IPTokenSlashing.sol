@@ -25,6 +25,7 @@ contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgra
         require(ipTokenStaking != address(0), "IPTokenSlashing: Invalid IPTokenStaking address");
         IP_TOKEN_STAKING = IPTokenStaking(ipTokenStaking);
         unjailFee = newUnjailFee;
+        emit UnjailFeeSet(newUnjailFee);
 
         _disableInitializers();
     }
