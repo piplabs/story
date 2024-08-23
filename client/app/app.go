@@ -103,7 +103,7 @@ func newApp(
 		bapp.SetPrepareProposal(app.Keepers.EVMEngKeeper.PrepareProposal)
 
 		// Route proposed messages to keepers for verification and external state updates.
-		bapp.SetProcessProposal(makeProcessProposalHandler(app))
+		bapp.SetProcessProposal(makeProcessProposalHandler(makeProcessProposalRouter(app), app.txConfig))
 	})
 
 	app.App = appBuilder.Build(db, nil, baseAppOpts...)
