@@ -6,7 +6,7 @@ Golang consensus layer implementation and staking contracts for the Story L1 blo
 [![Twitter Follow](https://img.shields.io/twitter/follow/storyprotocol?style=social)](https://twitter.com/storyprotocol)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/storyprotocol)
 
-You may find pre-built binaries for our latest stable release in our [release page](https://github.com/storyprotocol/story/releases#latest).
+You may find pre-built binaries for our latest stable release in our [release page](https://github.com/piplabs/story/releases#latest).
 
 ## Architecture
 
@@ -53,7 +53,7 @@ To connect to Iliad, initialize `story` with the `--network iliad` flag, which w
 ./story init --network iliad
 ```
 
-Afterwards, run the [`story-geth`](https://github.com/storyprotocol/story-geth) execution client with `iliad` network flag:
+Afterwards, run the [`story-geth`](https://github.com/piplabs/story-geth) execution client with `iliad` network flag:
 
 ```bash
 ./geth --iliad
@@ -172,17 +172,13 @@ Once the network is setup, you will be able to run validator operations using th
 
 ### Contributions
 
-Contributions to the story repository are always eagerly welcomed. To contribute, please create a fork of this repo, add your changes, and file a PR for us to review. For any questions or more intimate help, feel free to catch us on the [discord developer channel](https://discord.com/channels/1133510822975512708/1209919873266880652).
-
-When making changes, also please make sure to follow these guidelines
-
- * Ensure proper [go formatting](https://golang.org/doc/effective_go.html#formatting) using tools like [gofmt](https://golang.org/cmd/gofmt/)
- * File pull requests to the `main` branch
- * Follow [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) message formatting
+Please see our [contribution guidelines](https://github.com/piplabs/story/blob/ba440c721ec0c187a35a3db370ee494492a4514d/CONTRIBUTING.md).
 
 ### Acknowledgements
 
-We would like to express our deepest gratitude to the [Omni](https://github.com/omni-network) team for their incredible research and contributions to the blockchain space. Story's blockchain began as a fork of omni, largely due to the modular design choice of leveraging engine-API to separate execution and consensus layers. Their work provided a robust foundation for us to continue building our vision of the world's IP blockchain.
+We would like to express our sincere gratitude to the [Omni](https://github.com/omni-network) team for their valuable research and contributions to the blockchain space. The Story blockchain's CECS (Consensus Execution Client Separation) architecture was influenced by the Omni's team pioneering work on the EVM stakig module using the engine API. Their early efforts showcased the potential of this architecture and served as an inspiration to us. Our initial codebase was, in fact, forked from an early version of their work. 
+
+We built the `story` consensus client leveraging the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) using [CometBFT](https://github.com/cometbft/cometbft) as the consensus engine. Thanks to all the open source contributors and their wonderful work.
 
 ### License
 
