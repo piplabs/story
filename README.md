@@ -176,7 +176,7 @@ Please see our [contribution guidelines](https://github.com/piplabs/story/blob/b
 
 ### Acknowledgements
 
-We would like to express our sincere gratitude to the [Omni](https://github.com/omni-network) team for their valuable research and contributions to the blockchain space. The Story blockchain's CECS (Consensus Execution Client Separation) architecture was influenced by the Omni's team pioneering work on the EVM stakig module using the engine API. Their early efforts showcased the potential of this architecture and served as an inspiration to us. Our initial codebase was, in fact, forked from an early version of their work. 
+We would like to express our sincere gratitude to the [Omni](https://github.com/omni-network) team for their valuable research and contributions to the blockchain space. The Story blockchain's CECS (Consensus Execution Client Separation) architecture was influenced by the Omni's team pioneering work on the EVM staking module using the engine API. Their early efforts showcased the potential of this architecture and served as an inspiration to us. Our initial codebase was, in fact, forked from an early version of their work. 
 
 We built the `story` consensus client leveraging the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) using [CometBFT](https://github.com/cometbft/cometbft) as the consensus engine. Thanks to all the open source contributors and their wonderful work.
 
