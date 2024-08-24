@@ -1,4 +1,4 @@
-## Story Consesus Layer
+## Story Consesus Implementation
 
 Golang consensus layer implementation and staking contracts for the Story L1 blockchain.
 
@@ -6,7 +6,7 @@ Golang consensus layer implementation and staking contracts for the Story L1 blo
 [![Twitter Follow](https://img.shields.io/twitter/follow/storyprotocol?style=social)](https://twitter.com/storyprotocol)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/storyprotocol)
 
-You may find pre-built binaries for our latest stable release in our [release page](https://github.com/storyprotocol/iliad/releases#latest).
+You may find pre-built binaries for our latest stable release in our [release page](https://github.com/storyprotocol/story/releases#latest).
 
 ## Architecture
 
@@ -94,7 +94,7 @@ story/
 ├── config/
 │ ├── config.toml                  # networking & consesus settings
 │ ├── genesis.json                 # blockchain genesis state
-│ ├── iliad.toml                   # client configs
+│ ├── story.toml                   # client configs
 │ ├── node_key.json                # p2p node key  [SENSITIVE]
 │ ├── priv_validator_key.json      # validator key [SENSITIVE]
 ├── data/
@@ -113,10 +113,10 @@ To use your own custom root directory, you can pass the `--home` flag when initi
 For ensuring synchronization with the execution client, two settings are particularly important:
 
 **__`engine-jwt-endpoint:`__**
-This configures the JSON-RPC engine API endpoint, which facilitates commuication between the consensus and execution layer. By default, it is set to `http://localhost:8551`, but may be changed by overriding the value in `iliad.toml` or through the `--engine-endpoint` CLI flag.
+This configures the JSON-RPC engine API endpoint, which facilitates commuication between the consensus and execution layer. By default, it is set to `http://localhost:8551`, but may be changed by overriding the value in `story.toml` or through the `--engine-endpoint` CLI flag.
 
 **__`engine-jwt-file:`__**
-To authenticate the engine API, a JWT must be passed which is created on execution client initialization. By default, this points to the default execution client JWT file path. For example, if initializing a local network via `story init --local` on Linux, this will default to `~/.story/geth/local/geth/jwtsecret`. To override, either change the value in `iliad.toml` or by specifying the `--engine-jwt-file` CLI flag.
+To authenticate the engine API, a JWT must be passed which is created on execution client initialization. By default, this points to the default execution client JWT file path. For example, if initializing a local network via `story init --local` on Linux, this will default to `~/.story/geth/local/geth/jwtsecret`. To override, either change the value in `story.toml` or by specifying the `--engine-jwt-file` CLI flag.
 
 ### Creating a private network
 
@@ -169,6 +169,20 @@ Once done, you should be able to run each of your consensus nodes with the same 
 #### 4. Running Validators
 
 Once the network is setup, you will be able to run validator operations using the validator key generated in `story/data/priv_validator_key.json`. In fact, `story` comes with a `validator` subcommand that allows you to streamline this process. For more information on running validators, read our [official docs](https://docs.story.foundation/docs/what-is-story).
+
+### Contributions
+
+Contributions to the story repository are always eagerly welcomed. To contribute, please create a fork of this repo, add your changes, and file a PR for us to review. For any questions or more intimate help, feel free to catch us on the [discord developer channel](https://discord.com/channels/1133510822975512708/1209919873266880652).
+
+When making changes, also please make sure to follow these guidelines
+
+ * Ensure proper [go formatting](https://golang.org/doc/effective_go.html#formatting) using tools like [gofmt](https://golang.org/cmd/gofmt/)
+ * File pull requests to the `main` branch
+ * Follow [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) message formatting
+
+### Acknowledgements
+
+We would like to express our deepest gratitude to the [Omni](https://github.com/omni-network) team for their incredible research and contributions to the blockchain space. Story's blockchain began as a fork of omni, largely due to the modular design choice of leveraging engine-API to separate execution and consensus layers. Their work provided a robust foundation for us to continue building our vision of the world's IP blockchain.
 
 ### License
 
