@@ -53,10 +53,10 @@ To connect to Iliad, initialize `story` with the `--network iliad` flag, which w
 ./story init --network iliad
 ```
 
-Afterwards, run the [`story-geth`](https://github.com/piplabs/story-geth) execution client with `iliad` network flag:
+Afterwards, run the [`story-geth`](https://github.com/piplabs/story-geth) execution client in `full` sync mode with the `iliad` network flag:
 
 ```bash
-./geth --iliad
+./geth --iliad --syncmode full
 ```
 
 Now you should be able to sync to the Iliad network with the following:
