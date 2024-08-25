@@ -96,12 +96,12 @@ contract EtchInitialState is Script {
 
     function setPredeploys() internal {
         setProxy(StakingProxyAddr);
-        //setProxy(SlashingProxyAddr);
-        //setProxy(UpgradeProxyAddr);
+        setProxy(SlashingProxyAddr);
+        setProxy(UpgradeProxyAddr);
 
         setStaking();
-        //setSlashing();
-        //setUpgrade();
+        setSlashing();
+        setUpgrade();
     }
 
     /**
@@ -127,7 +127,8 @@ contract EtchInitialState is Script {
         InitializableHelper.disableInitializers(impl);
         IPTokenStaking(StakingProxyAddr).initialize(protocolAdmin, 1 ether, 1 ether, 1 ether, 7 days);
 
-        console2.log("IPTokenStaking deployed at:", StakingProxyAddr);
+        console2.log("IPTokenStaking proxy deployed at:", StakingProxyAddr);
+        console2.log("IPTokenStaking ProxyAdmin deployed at:", EIP1967Helper.getAdmin(StakingProxyAddr));
         console2.log("IPTokenStaking impl at:", EIP1967Helper.getImplementation(StakingProxyAddr));
     }
 
@@ -147,7 +148,8 @@ contract EtchInitialState is Script {
         InitializableHelper.disableInitializers(impl);
         IPTokenSlashing(SlashingProxyAddr).initialize(protocolAdmin, 1 ether);
 
-        console2.log("IPTokenSlashing deployed at:", SlashingProxyAddr);
+        console2.log("IPTokenSlashing proxy deployed at:", SlashingProxyAddr);
+        console2.log("IPTokenSlashing ProxyAdmin deployed at:", EIP1967Helper.getAdmin(SlashingProxyAddr));
         console2.log("IPTokenSlashing impl at:", EIP1967Helper.getImplementation(SlashingProxyAddr));
     }
 
@@ -163,7 +165,8 @@ contract EtchInitialState is Script {
         InitializableHelper.disableInitializers(impl);
         UpgradeEntrypoint(UpgradeProxyAddr).initialize(protocolAdmin);
 
-        console2.log("UpgradeEntrypoint deployed at:", UpgradeProxyAddr);
+        console2.log("UpgradeEntrypoint proxy deployed at:", UpgradeProxyAddr);
+        console2.log("UpgradeEntrypoint ProxyAdmin deployed at:", EIP1967Helper.getAdmin(UpgradeProxyAddr));
         console2.log("UpgradeEntrypoint impl at:", EIP1967Helper.getImplementation(UpgradeProxyAddr));
     }
 }
