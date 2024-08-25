@@ -24,7 +24,7 @@ contract IPTokenSlashingTest is Test {
         emit Received(msg.sender, msg.value);
     }
 
-    function setUp() public override {
+    function setUp() public {
         setStaking();
         setSlashing();
     }

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
 
@@ -10,7 +9,7 @@ import { IUpgradeEntrypoint } from "../interfaces/IUpgradeEntrypoint.sol";
  * @title UpgradeEntrypoint
  * @notice Entrypoint contract for submitting x/upgrade module actions.
  */
-contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSUpgradeable {
+contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable {
     constructor() {
         _disableInitializers();
     }
@@ -18,7 +17,6 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSU
     /// @notice Initializes the contract.
     function initialize(address accessManager) public initializer {
         require(accessManager != address(0), "UpgradeEntrypoint: accessManager cannot be zero address");
-        __UUPSUpgradeable_init();
         __Ownable_init(accessManager);
     }
 
@@ -34,8 +32,4 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable, UUPSU
     function planUpgrade(string calldata name, int64 height, string calldata info) external onlyOwner {
         emit SoftwareUpgrade({ name: name, height: height, info: info });
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

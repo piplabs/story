@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 
 import { console2 } from "forge-std/console2.sol";
 import { Test as ForgeTest } from "forge-std/Test.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { IPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
@@ -13,16 +13,11 @@ import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
+    address internal upgradeAdmin = address(0x456);
 
     IPTokenStaking internal ipTokenStaking;
     IPTokenSlashing internal ipTokenSlashing;
     UpgradeEntrypoint internal upgradeEntrypoint;
-
-    function setUp() public virtual {
-        setStaking();
-        setSlashing();
-        // setUpgrade();
-    }
 
     function setStaking() internal {
         address impl = address(
@@ -37,7 +32,7 @@ contract Test is ForgeTest {
             IPTokenStaking.initialize,
             (admin, 1 ether, 1 ether, 1 ether, 7 days)
         );
-        ipTokenStaking = IPTokenStaking(address(new ERC1967Proxy(impl, initializer)));
+        ipTokenStaking = IPTokenStaking(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
     }
 
     function setSlashing() internal {
@@ -46,7 +41,7 @@ contract Test is ForgeTest {
         address impl = address(new IPTokenSlashing(address(ipTokenStaking)));
 
         bytes memory initializer = abi.encodeCall(IPTokenSlashing.initialize, (admin, 1 ether));
-        ipTokenSlashing = IPTokenSlashing(address(new ERC1967Proxy(impl, initializer)));
+        ipTokenSlashing = IPTokenSlashing(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
 
         console2.log("unjailFee:", ipTokenSlashing.unjailFee());
     }
@@ -55,6 +50,7 @@ contract Test is ForgeTest {
         address impl = address(new UpgradeEntrypoint());
 
         bytes memory initializer = abi.encodeWithSignature("initialize(address)", admin);
-        upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, initializer)));
+
+        upgradeEntrypoint = UpgradeEntrypoint(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
     }
 }
