@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/piplabs/story/lib/errors"
@@ -30,17 +31,16 @@ func decodeAndUncompressPubKey(compressedPubKeyBase64 string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode base64 public key")
 	}
-	if len(compressedPubKeyBytes) != 33 {
+	if len(compressedPubKeyBytes) != secp256k1.PubKeyBytesLenCompressed {
 		return "", fmt.Errorf("invalid compressed public key length: %d", len(compressedPubKeyBytes))
 	}
 
-	curve := elliptic.P256()
-	x, y := elliptic.UnmarshalCompressed(curve, compressedPubKeyBytes)
-	if x == nil || y == nil {
-		return "", errors.New("failed to unmarshal compressed public key")
+	pubKey, err := secp256k1.ParsePubKey(compressedPubKeyBytes)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse compressed public key")
 	}
 
-	uncompressedPubKeyBytes := elliptic.Marshal(curve, x, y)
+	uncompressedPubKeyBytes := pubKey.SerializeUncompressed()
 	uncompressedPubKeyHex := hex.EncodeToString(uncompressedPubKeyBytes)
 
 	return uncompressedPubKeyHex, nil
