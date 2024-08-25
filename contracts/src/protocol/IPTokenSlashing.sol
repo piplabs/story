@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { IIPTokenSlashing } from "../interfaces/IIPTokenSlashing.sol";
 import { IPTokenStaking } from "./IPTokenStaking.sol";
@@ -13,7 +12,7 @@ import { Secp256k1 } from "../libraries/Secp256k1.sol";
  * @notice The EVM interface to the consensus chain's x/slashing module. Calls are proxied to the consensus chain, but
  *         not executed synchronously; execution is left to the consensus chain, which may fail.
  */
-contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgradeable {
+contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable {
     /// @notice IPTokenStaking contract address.
     IPTokenStaking public immutable IP_TOKEN_STAKING;
 
@@ -28,7 +27,6 @@ contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgra
 
     /// @notice Initializes the contract.
     function initialize(address accessManager, uint256 newUnjailFee) public initializer {
-        __UUPSUpgradeable_init();
         __Ownable_init(accessManager);
         require(newUnjailFee > 0, "IPTokenSlashing: Invalid unjail fee");
         unjailFee = newUnjailFee;
@@ -96,8 +94,4 @@ contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable, UUPSUpgra
         (bool validatorExists, , , , , ) = IP_TOKEN_STAKING.validatorMetadata(validatorCmpPubkey);
         require(validatorExists, "IPTokenSlashing: Validator does not exist");
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

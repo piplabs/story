@@ -6,15 +6,14 @@ pragma solidity ^0.8.23;
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
 import { UpgradeEntrypoint, IUpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { Test } from "../utils/Test.sol";
 
 contract UpgradeEntrypointTest is Test {
-    function setUp() public override {
-        address impl = address(new UpgradeEntrypoint());
-        bytes memory initializer = abi.encodeCall(UpgradeEntrypoint.initialize, (admin));
-        upgradeEntrypoint = UpgradeEntrypoint(address(new ERC1967Proxy(impl, initializer)));
+
+    function setUp() public {
+        setUpgrade();
     }
 
     function testUpgradeEntrypoint_planUpgrade() public {
