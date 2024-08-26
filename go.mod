@@ -252,6 +252,7 @@ require (
 
 require (
 	cosmossdk.io/x/upgrade v0.1.4
+	github.com/decred/dcrd/dcrec/secp256k1 v1.0.4
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/joho/godotenv v1.5.1
 )
@@ -264,6 +265,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.224 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
 	github.com/ethereum/go-verkle v0.1.1-0.20240306133620-7d920df305f0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
