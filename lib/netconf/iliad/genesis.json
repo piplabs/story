@@ -1,6 +1,6 @@
 {
   "genesis_time": "2024-04-16T11:04:40.60280319Z",
-  "chain_id": "iliad-1",
+  "chain_id": "iliad-0",
   "initial_height": "1",
   "consensus_params": {
     "block": {
@@ -200,7 +200,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "9ohUkVHO40twer1JwywBmu+3ZtcBSI3QxmhgGpGmeXg="
+        "execution_block_hash": "9evG8Jgui/f9Uys/lZ+E0Ss97dKCevjTH1OJRHvtr8Y="
       }
     },
     "genutil": {
