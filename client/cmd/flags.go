@@ -1,16 +1,23 @@
 package cmd
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	storycfg "github.com/piplabs/story/client/config"
+	"github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
+
+	// Used for ABI embedding of the staking contract.
+	_ "embed"
 )
 
-func bindRunFlags(cmd *cobra.Command, cfg *storycfg.Config) {
+func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags := cmd.Flags()
 
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
@@ -41,4 +48,136 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.StringVar(&cfg.Seeds, "seeds", "", "Override the P2P seeds (comma-separated)")
 	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
 	flags.StringVar(&cfg.Moniker, "moniker", cfg.Moniker, "Custom moniker name for this node")
+}
+
+func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
+	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://testnet.storyrpc.io", "RPC URL to connect to the testnet")
+	cmd.Flags().StringVar(&cfg.PrivateKey, "private-key", "", "Private key used for the transaction")
+	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://testnet.storyscan.xyz", "URL of the blockchain explorer")
+	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1513, "Chain ID to use for the transaction (default 1513)")
+}
+
+func bindValidatorCreateFlags(cmd *cobra.Command, cfg *createValidatorConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+}
+
+func bindAddOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.Operator, "operator", "", "Adds an operator to your delegator")
+}
+
+func bindRemoveOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.Operator, "operator", "", "Removes an operator from your delegator")
+}
+
+func bindSetWithdrawalAddressFlags(cmd *cobra.Command, cfg *withdrawalConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.WithdrawalAddress, "withdrawal-address", "", "Address to receive staking and reward withdrawals")
+}
+
+func bindValidatorStakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount to stake on behalf of the delegator in wei")
+}
+
+func bindValidatorStakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount to stake on behalf of the delegator in wei")
+}
+
+func bindValidatorUnstakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake on behalf of the delegator in wei")
+}
+
+func bindValidatorUnstakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake on behalf of the delegator in wei")
+}
+
+func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
+	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
+	defaultEVMKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "private_key.txt")
+	cmd.Flags().BoolVar(&cfg.ExportEVMKey, "export-evm-key", false, "Export the EVM private key")
+	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
+}
+
+func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
+	defaultKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "priv_validator_key.json")
+	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
+}
+
+// Flag Validation
+
+func validateFlags(flags map[string]string) error {
+	var missingFlags []string
+
+	for flag, value := range flags {
+		if value == "" {
+			missingFlags = append(missingFlags, flag)
+		}
+	}
+
+	if len(missingFlags) > 0 {
+		return fmt.Errorf("missing required flag(s): %s", strings.Join(missingFlags, ", "))
+	}
+
+	return nil
+}
+
+func validateValidatorCreateFlags(cfg createValidatorConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":     cfg.RPC,
+		"keyfile": cfg.ValidatorKeyFile,
+		"stake":   cfg.StakeAmount,
+	})
+}
+
+func validateOperatorFlags(cfg operatorConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":      cfg.RPC,
+		"operator": cfg.Operator,
+	})
+}
+
+func validateWithdrawalFlags(cfg withdrawalConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":                cfg.RPC,
+		"withdrawal-address": cfg.WithdrawalAddress,
+	})
+}
+
+func validateValidatorStakeFlags(cfg stakeConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":              cfg.RPC,
+		"validator-pubkey": cfg.ValidatorPubKey,
+		"stake":            cfg.StakeAmount,
+	})
+}
+
+func validateValidatorStakeOnBehalfFlags(cfg stakeConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":              cfg.RPC,
+		"validator-pubkey": cfg.ValidatorPubKey,
+		"delegator-pubkey": cfg.DelegatorPubKey,
+		"stake":            cfg.StakeAmount,
+	})
+}
+
+func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":              cfg.RPC,
+		"validator-pubkey": cfg.ValidatorPubKey,
+		"delegator-pubkey": cfg.DelegatorPubKey,
+		"unstake":          cfg.StakeAmount,
+	})
 }

@@ -42,8 +42,8 @@ func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddr
 	if err != nil {
 		return errors.Wrap(err, "failed to suggest gas price")
 	}
-	gasPrice = new(big.Int).Mul(gasPrice, big.NewInt(120))
-	gasPrice = new(big.Int).Div(gasPrice, big.NewInt(100))
+
+	gasPrice.Mul(gasPrice, big.NewInt(120)).Div(gasPrice, big.NewInt(100))
 
 	gasLimit, err := estimateGas(ctx, client, fromAddress, contractAddress, gasPrice, value, data)
 	if err != nil {
