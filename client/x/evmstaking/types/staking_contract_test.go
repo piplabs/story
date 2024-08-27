@@ -23,10 +23,6 @@ func Test_mustGetEvent_NoPanic(t *testing.T) {
 		mustGetEvent(abi, "Redelegate")
 		mustGetEvent(abi, "Withdraw")
 	})
-
-	require.Panics(t, func() {
-		mustGetEvent(abi, "NonExistentEvent")
-	})
 }
 
 func Test_mustGetEvent_PanicsOnInvalidEvent(t *testing.T) {
