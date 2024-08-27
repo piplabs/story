@@ -59,19 +59,19 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 		expected    []types.Withdrawal
 	}{
 		{
-			name:        "Dequeue 1 withdrawal (have: 3, cap: 1)",
+			name:        "Dequeue 1 withdrawal",
 			maxDequeue:  1,
 			expectedLen: 1,
 			expected:    withdrawals[:1],
 		},
 		{
-			name:        "Dequeue 2 withdrawals (have: 3, cap: 2)",
+			name:        "Dequeue 2 withdrawals",
 			maxDequeue:  2,
 			expectedLen: 2,
 			expected:    withdrawals[:2],
 		},
 		{
-			name:        "Dequeue all withdrawals because maxDequeue is more than available",
+			name:        "Dequeue more than available",
 			maxDequeue:  10,
 			expectedLen: len(withdrawals),
 			expected:    withdrawals,
@@ -122,6 +122,7 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 }
 
 func (s *TestSuite) TestPeekEligibleWithdrawals() {
+	require := s.Require()
 	tcs := []struct {
 		name        string
 		maxDequeue  uint32
@@ -163,25 +164,25 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 
 			// Set max dequeue parameter
 			params, err := s.EVMStakingKeeper.GetParams(s.Ctx)
-			s.NoError(err)
+			require.NoError(err)
 			params.MaxWithdrawalPerBlock = tc.maxDequeue
 			err = s.EVMStakingKeeper.SetParams(s.Ctx, params)
-			s.NoError(err)
+			require.NoError(err)
 
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
 			// Peek the withdrawals
 			result, err := s.EVMStakingKeeper.PeekEligibleWithdrawals(s.Ctx)
-			s.NoError(err)
-			s.Equal(tc.expectedLen, len(result))
+			require.NoError(err)
+			require.Equal(tc.expectedLen, len(result))
 
 			// Peek does not change the queue length
-			s.Equal(queueLen, s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
+			require.Equal(queueLen, s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
 
 			// Validate the content of the dequeued withdrawals
 			for i, w := range result {
-				s.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
-				s.Equal(tc.expected[i].Amount, w.Amount)
+				require.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
+				require.Equal(tc.expected[i].Amount, w.Amount)
 			}
 		})
 	}
