@@ -28,8 +28,6 @@ func (suite *WithdrawTestSuite) SetupTest() {
 }
 
 func (suite *WithdrawTestSuite) TestString() {
-	suite.T().Parallel()
-
 	// Define the test cases
 	testCases := []struct {
 		name           string
@@ -68,7 +66,6 @@ func (suite *WithdrawTestSuite) TestString() {
 }
 
 func (suite *WithdrawTestSuite) TestWithdrawalsString() {
-	suite.T().Parallel()
 	ws := Withdrawals{
 		Withdrawals: []Withdrawal{
 			NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
@@ -86,7 +83,6 @@ creation_height:2 delegator_address:"%s" validator_address:"%s" execution_addres
 }
 
 func (suite *WithdrawTestSuite) TestWithdrawalsLen() {
-	suite.T().Parallel()
 	ws := Withdrawals{
 		Withdrawals: []Withdrawal{
 			NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
@@ -98,7 +94,6 @@ func (suite *WithdrawTestSuite) TestWithdrawalsLen() {
 }
 
 func (suite *WithdrawTestSuite) TestNewWithdrawalFromMsg() {
-	suite.T().Parallel()
 	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
 	msgAddwithdrawal := MsgAddWithdrawal{
 		Authority:  "gov",
@@ -109,7 +104,6 @@ func (suite *WithdrawTestSuite) TestNewWithdrawalFromMsg() {
 }
 
 func (suite *WithdrawTestSuite) TestMustMarshalWithdraw() {
-	suite.T().Parallel()
 	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
 	suite.NotPanics(func() {
 		marshaled := MustMarshalWithdrawal(suite.encConf.Codec, &withdrawal)
@@ -118,8 +112,6 @@ func (suite *WithdrawTestSuite) TestMustMarshalWithdraw() {
 }
 
 func (suite *WithdrawTestSuite) TestUnmarshalWithdraw() {
-	suite.T().Parallel()
-
 	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
 
 	testCases := []struct {
@@ -157,8 +149,6 @@ func (suite *WithdrawTestSuite) TestUnmarshalWithdraw() {
 }
 
 func (suite *WithdrawTestSuite) TestMustUnmarshalWithdraw() {
-	suite.T().Parallel()
-
 	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
 
 	testCases := []struct {
