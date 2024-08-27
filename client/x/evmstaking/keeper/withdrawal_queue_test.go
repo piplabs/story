@@ -160,6 +160,7 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 			s.NoError(err)
 			params.MaxWithdrawalPerBlock = tc.maxDequeue
 			err = s.EVMStakingKeeper.SetParams(s.Ctx, params)
+			s.NoError(err)
 
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
@@ -237,7 +238,7 @@ func (s *TestSuite) TestGetWithdrawals() {
 			s.NoError(err)
 			s.Equal(tc.expectedLen, len(result))
 			// check contents
-			for i := 0; i < tc.expectedLen; i++ {
+			for i := range result[:tc.expectedLen] {
 				s.Equal(withdrawals[i], result[i])
 			}
 		})
