@@ -8,7 +8,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -120,24 +119,82 @@ func (suite *WithdrawTestSuite) TestMustMarshalWithdraw() {
 
 func (suite *WithdrawTestSuite) TestUnmarshalWithdraw() {
 	suite.T().Parallel()
-	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
-	marshaled := MustMarshalWithdrawal(suite.encConf.Codec, &withdrawal)
 
-	w, err := UnmarshalWithdrawal(suite.encConf.Codec, marshaled)
-	suite.NoError(err)
-	suite.Equal(withdrawal, w, "UnmarshalWithdrawal should return the same withdrawal")
+	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
+
+	testCases := []struct {
+		name           string
+		input          []byte
+		expectedResult Withdrawal
+		expectError    bool
+	}{
+		{
+			name:           "Unmarshal valid withdrawal bytes",
+			input:          MustMarshalWithdrawal(suite.encConf.Codec, &withdrawal),
+			expectedResult: NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
+			expectError:    false,
+		},
+		{
+			name:           "Unmarshal invalid withdrawal bytes",
+			input:          []byte{1},
+			expectedResult: Withdrawal{}, // Expecting an empty struct since it will fail
+			expectError:    true,
+		},
+	}
+
+	// Iterate over test cases
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			result, err := UnmarshalWithdrawal(suite.encConf.Codec, tc.input)
+			if tc.expectError {
+				suite.Error(err)
+			} else {
+				suite.NoError(err)
+				suite.Equal(tc.expectedResult, result, "UnmarshalWithdrawal should return the correct withdrawal")
+			}
+		})
+	}
 }
 
 func (suite *WithdrawTestSuite) TestMustUnmarshalWithdraw() {
 	suite.T().Parallel()
+
 	withdrawal := NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
-	suite.NotPanics(func() {
-		w := MustUnmarshalWithdrawal(
-			suite.encConf.Codec,
-			MustMarshalWithdrawal(suite.encConf.Codec, &withdrawal),
-		)
-		require.Equal(suite.T(), withdrawal, w)
-	})
+
+	testCases := []struct {
+		name        string
+		input       []byte
+		expected    Withdrawal
+		expectPanic bool
+	}{
+		{
+			name:        "Unmarshal valid withdrawal bytes",
+			input:       MustMarshalWithdrawal(suite.encConf.Codec, &withdrawal),
+			expected:    NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
+			expectPanic: false,
+		},
+		{
+			name:        "Unmarshal invalid withdrawal bytes - panic",
+			input:       []byte{1},
+			expectPanic: true,
+		},
+	}
+
+	// Iterate over test cases
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			if tc.expectPanic {
+				suite.Panics(func() {
+					MustUnmarshalWithdrawal(suite.encConf.Codec, tc.input)
+				})
+			} else {
+				suite.NotPanics(func() {
+					result := MustUnmarshalWithdrawal(suite.encConf.Codec, tc.input)
+					suite.Equal(tc.expected, result, "MustUnmarshalWithdrawal should return the correct withdrawal")
+				})
+			}
+		})
+	}
 }
 
 func TestTestSuite(t *testing.T) {
