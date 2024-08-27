@@ -255,7 +255,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	}
 	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "validator pubkey to evm address")
+		return errors.Wrap(err, "delegator pubkey to evm address")
 	}
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
