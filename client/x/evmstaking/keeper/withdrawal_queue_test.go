@@ -1,6 +1,8 @@
 package keeper_test
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
@@ -182,18 +184,52 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 }
 
 func (s *TestSuite) TestGetAllWithdrawals() {
-	s.initQueue()
+	require := s.Require()
+	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+	tests := []struct {
+		name           string
+		setupQueue     func(c context.Context)
+		expectedLength int
+		expectedResult []types.Withdrawal
+	}{
+		{
+			name:           "Empty queue",
+			setupQueue:     func(_ context.Context) {}, // No setup needed
+			expectedLength: 0,
+			expectedResult: nil,
+		},
+		{
+			name: "Single withdrawal",
+			setupQueue: func(c context.Context) {
+				require.NoError(keeper.AddWithdrawalToQueue(c, withdrawals[0]))
+			},
+			expectedLength: 1,
+			expectedResult: []types.Withdrawal{withdrawals[0]},
+		},
+		{
+			name: "Multiple withdrawals",
+			setupQueue: func(c context.Context) {
+				for _, w := range withdrawals {
+					require.NoError(keeper.AddWithdrawalToQueue(c, w))
+				}
+			},
+			expectedLength: 3,
+			expectedResult: withdrawals,
+		},
+	}
 
-	// Add a withdrawal to the queue
-	withdrawal := types.NewWithdrawal(1, delAddr, valAddr, evmAddr.String(), 100)
-	err := s.EVMStakingKeeper.AddWithdrawalToQueue(s.Ctx, withdrawal)
-	s.NoError(err)
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.initQueue()
+			cachedCtx, _ := ctx.CacheContext()
+			tt.setupQueue(cachedCtx)
 
-	// Get all withdrawals
-	result, err := s.EVMStakingKeeper.GetAllWithdrawals(s.Ctx)
-	s.NoError(err)
-	s.Equal(1, len(result))
-	s.Equal(withdrawal, result[0])
+			result, err := s.EVMStakingKeeper.GetAllWithdrawals(cachedCtx)
+			require.NoError(err)
+			require.Equal(tt.expectedLength, len(result))
+			require.Equal(tt.expectedResult, result)
+		})
+	}
 }
 
 func (s *TestSuite) TestGetWithdrawals() {
