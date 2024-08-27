@@ -9,32 +9,89 @@ import (
 	"github.com/piplabs/story/contracts/bindings"
 )
 
-func Test_mustGetABI_NoPanic(t *testing.T) {
-	require.NotPanics(t, func() {
-		mustGetABI(bindings.IPTokenStakingMetaData)
-	})
+func Test_mustGetABI(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       *bind.MetaData
+		expectPanic bool
+	}{
+		{
+			name:        "No Panic with valid metadata",
+			input:       bindings.IPTokenStakingMetaData,
+			expectPanic: false,
+		},
+		{
+			name:        "Panics with invalid metadata",
+			input:       &bind.MetaData{ABI: "invalid ABI"},
+			expectPanic: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.expectPanic {
+				require.Panics(t, func() {
+					mustGetABI(tc.input)
+				})
+			} else {
+				require.NotPanics(t, func() {
+					mustGetABI(tc.input)
+				})
+			}
+		})
+	}
 }
 
-func Test_mustGetABI_PanicsOnInvalidMetadata(t *testing.T) {
-	require.Panics(t, func() {
-		mustGetABI(&bind.MetaData{ABI: "invalid ABI"})
-	})
-}
-
-func Test_mustGetEvent_NoPanic(t *testing.T) {
+func Test_mustGetEvent(t *testing.T) {
 	abi := mustGetABI(bindings.IPTokenStakingMetaData)
-	require.NotPanics(t, func() {
-		mustGetEvent(abi, "SetWithdrawalAddress")
-		mustGetEvent(abi, "CreateValidator")
-		mustGetEvent(abi, "Deposit")
-		mustGetEvent(abi, "Redelegate")
-		mustGetEvent(abi, "Withdraw")
-	})
-}
+	testCases := []struct {
+		name        string
+		eventName   string
+		expectPanic bool
+	}{
+		{
+			name:        "No Panic for valid event SetWithdrawalAddress",
+			eventName:   "SetWithdrawalAddress",
+			expectPanic: false,
+		},
+		{
+			name:        "No Panic for valid event CreateValidator",
+			eventName:   "CreateValidator",
+			expectPanic: false,
+		},
+		{
+			name:        "No Panic for valid event Deposit",
+			eventName:   "Deposit",
+			expectPanic: false,
+		},
+		{
+			name:        "No Panic for valid event Redelegate",
+			eventName:   "Redelegate",
+			expectPanic: false,
+		},
+		{
+			name:        "No Panic for valid event Withdraw",
+			eventName:   "Withdraw",
+			expectPanic: false,
+		},
+		{
+			name:        "Panics for non-existent event",
+			eventName:   "NonExistentEvent",
+			expectPanic: true,
+		},
+	}
 
-func Test_mustGetEvent_PanicsOnInvalidEvent(t *testing.T) {
-	abi := mustGetABI(bindings.IPTokenStakingMetaData)
-	require.Panics(t, func() {
-		mustGetEvent(abi, "NonExistentEvent")
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.expectPanic {
+				require.Panics(t, func() {
+					mustGetEvent(abi, tc.eventName)
+				})
+			} else {
+				require.NotPanics(t, func() {
+					mustGetEvent(abi, tc.eventName)
+				})
+			}
+		})
+	}
 }
