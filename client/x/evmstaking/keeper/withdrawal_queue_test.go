@@ -59,25 +59,25 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 		expected    []types.Withdrawal
 	}{
 		{
-			name:        "Dequeue 1 withdrawal",
+			name:        "Dequeue 1 withdrawal (have: 3, cap: 1)",
 			maxDequeue:  1,
 			expectedLen: 1,
 			expected:    withdrawals[:1],
 		},
 		{
-			name:        "Dequeue 2 withdrawals",
+			name:        "Dequeue 2 withdrawals (have: 3, cap: 2)",
 			maxDequeue:  2,
 			expectedLen: 2,
 			expected:    withdrawals[:2],
 		},
 		{
-			name:        "Dequeue more than available",
+			name:        "Dequeue all withdrawals (have: 3, cap: 10)",
 			maxDequeue:  10,
 			expectedLen: len(withdrawals),
 			expected:    withdrawals,
 		},
 		{
-			name:        "Dequeue with empty queue",
+			name:        "Dequeue with empty queue (have: 0, cap: 3)",
 			maxDequeue:  3,
 			expectedLen: 0,
 			expected:    []types.Withdrawal{},
