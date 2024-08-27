@@ -78,8 +78,8 @@ func (suite *WithdrawTestSuite) TestWithdrawalsString() {
 	}
 
 	expectedString := fmt.Sprintf(
-		`creation_height:1 delegator_address:"%s" validator_address:"%s" execution_address:"%s" amount:1 
-creation_height:2 delegator_address:"%s" validator_address:"%s" execution_address:"%s" amount:2`,
+		"creation_height:1 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:1 \n"+
+			"creation_height:2 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:2",
 		suite.delAddr, suite.valAddr, suite.evmAddr.String(),
 		suite.delAddr, suite.valAddr, suite.evmAddr.String(),
 	)
