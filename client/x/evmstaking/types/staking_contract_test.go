@@ -3,14 +3,21 @@ package types
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/contracts/bindings"
 )
 
-func Test_mustGetABI_Nopanic(t *testing.T) {
+func Test_mustGetABI_NoPanic(t *testing.T) {
 	require.NotPanics(t, func() {
 		mustGetABI(bindings.IPTokenStakingMetaData)
+	})
+}
+
+func Test_mustGetABI_PanicsOnInvalidMetadata(t *testing.T) {
+	require.Panics(t, func() {
+		mustGetABI(&bind.MetaData{ABI: "invalid ABI"})
 	})
 }
 
