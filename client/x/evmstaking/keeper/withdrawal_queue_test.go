@@ -20,34 +20,38 @@ var (
 )
 
 func (s *TestSuite) initQueue() {
+	require := s.Require()
 	err := s.EVMStakingKeeper.WithdrawalQueue.Initialize(s.Ctx)
-	s.NoError(err)
-	s.Equal(uint64(0), s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
+	require.NoError(err)
+	require.Equal(uint64(0), s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
 }
 
 func (s *TestSuite) addWithdrawals(withdrawals []types.Withdrawal) {
+	require := s.Require()
 	for _, w := range withdrawals {
 		err := s.EVMStakingKeeper.AddWithdrawalToQueue(s.Ctx, w)
-		s.NoError(err)
+		require.NoError(err)
 	}
 }
 
 func (s *TestSuite) TestAddWithdrawalToQueue() {
+	require := s.Require()
 	s.initQueue()
 
 	// Add a withdrawal to the queue
 	withdrawal := types.NewWithdrawal(1, delAddr, valAddr, evmAddr.String(), 100)
 	err := s.EVMStakingKeeper.AddWithdrawalToQueue(s.Ctx, withdrawal)
-	s.NoError(err)
+	require.NoError(err)
 
 	// Check the withdrawal is in the queue
-	s.Equal(uint64(1), s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
+	require.Equal(uint64(1), s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
 	elem, err := s.EVMStakingKeeper.WithdrawalQueue.Get(s.Ctx, 0)
-	s.NoError(err)
-	s.Equal(withdrawal, elem)
+	require.NoError(err)
+	require.Equal(withdrawal, elem)
 }
 
 func (s *TestSuite) TestDequeueEligibleWithdrawals() {
+	require := s.Require()
 	tcs := []struct {
 		name        string
 		maxDequeue  uint32
@@ -90,34 +94,35 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 
 			// Set max dequeue parameter
 			params, err := s.EVMStakingKeeper.GetParams(s.Ctx)
-			s.NoError(err)
+			require.NoError(err)
 			params.MaxWithdrawalPerBlock = tc.maxDequeue
 			err = s.EVMStakingKeeper.SetParams(s.Ctx, params)
-			s.NoError(err)
+			require.NoError(err)
 
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
 			// Dequeue the withdrawals
 			result, err := s.EVMStakingKeeper.DequeueEligibleWithdrawals(s.Ctx)
-			s.NoError(err)
-			s.Equal(tc.expectedLen, len(result))
+			require.NoError(err)
+			require.Equal(tc.expectedLen, len(result))
 
 			// Check Queue length is decreased by the number of dequeued withdrawals
-			s.Equal(
+			require.Equal(
 				queueLen-uint64(tc.expectedLen),
 				s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx),
 			)
 
 			// Validate the content of the dequeued withdrawals
 			for i, w := range result {
-				s.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
-				s.Equal(tc.expected[i].Amount, w.Amount)
+				require.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
+				require.Equal(tc.expected[i].Amount, w.Amount)
 			}
 		})
 	}
 }
 
 func (s *TestSuite) TestPeekEligibleWithdrawals() {
+	require := s.Require()
 	tcs := []struct {
 		name        string
 		maxDequeue  uint32
@@ -159,25 +164,25 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 
 			// Set max dequeue parameter
 			params, err := s.EVMStakingKeeper.GetParams(s.Ctx)
-			s.NoError(err)
+			require.NoError(err)
 			params.MaxWithdrawalPerBlock = tc.maxDequeue
 			err = s.EVMStakingKeeper.SetParams(s.Ctx, params)
-			s.NoError(err)
+			require.NoError(err)
 
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
 			// Peek the withdrawals
 			result, err := s.EVMStakingKeeper.PeekEligibleWithdrawals(s.Ctx)
-			s.NoError(err)
-			s.Equal(tc.expectedLen, len(result))
+			require.NoError(err)
+			require.Equal(tc.expectedLen, len(result))
 
 			// Peek does not change the queue length
-			s.Equal(queueLen, s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
+			require.Equal(queueLen, s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx))
 
 			// Validate the content of the dequeued withdrawals
 			for i, w := range result {
-				s.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
-				s.Equal(tc.expected[i].Amount, w.Amount)
+				require.Equal(tc.expected[i].ExecutionAddress, w.Address.String())
+				require.Equal(tc.expected[i].Amount, w.Amount)
 			}
 		})
 	}
@@ -233,6 +238,7 @@ func (s *TestSuite) TestGetAllWithdrawals() {
 }
 
 func (s *TestSuite) TestGetWithdrawals() {
+	require := s.Require()
 	s.initQueue()
 	s.addWithdrawals(withdrawals)
 
@@ -271,11 +277,11 @@ func (s *TestSuite) TestGetWithdrawals() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			result, err := s.EVMStakingKeeper.GetWithdrawals(s.Ctx, tc.maxRetrieve)
-			s.NoError(err)
-			s.Equal(tc.expectedLen, len(result))
+			require.NoError(err)
+			require.Equal(tc.expectedLen, len(result))
 			// check contents
 			for i := range result[:tc.expectedLen] {
-				s.Equal(withdrawals[i], result[i])
+				require.Equal(withdrawals[i], result[i])
 			}
 		})
 	}
