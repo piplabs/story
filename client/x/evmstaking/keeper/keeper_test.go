@@ -83,6 +83,8 @@ func (s *TestSuite) SetupTest() {
 	cfg.SetBech32PrefixForAccount("story", "storypub")
 	cfg.SetBech32PrefixForValidator("storyvaloper", "storyvaloperpub")
 	cfg.SetBech32PrefixForConsensusNode("storyvalcons", "storyvalconspub")
+	// it should be called after setting the bech32 prefix correctly
+	s.addrs = simtestutil.CreateIncrementalAccounts(4)
 
 	// gomock initializations
 	ctrl := gomock.NewController(s.T())
