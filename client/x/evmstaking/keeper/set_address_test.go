@@ -29,7 +29,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 		expectedError string
 	}{
 		{
-			name:     "pass: same delegator and execution address",
+			name:     "pass: delegator and execution address are the same",
 			sameAddr: true,
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
@@ -41,7 +41,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			expectedError: "",
 		},
 		{
-			name:     "pass: same delegator and different execution address",
+			name:     "pass: delegator and execution address are different",
 			sameAddr: false,
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
@@ -53,7 +53,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			expectedError: "",
 		},
 		{
-			name:     "fail: delegator key is corrupted",
+			name:     "fail: invalid delegator public key",
 			sameAddr: false,
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
@@ -69,23 +69,26 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 	for _, tc := range tcs {
 		tc := tc
 		s.Run(tc.name, func() {
-			var ev *bindings.IPTokenStakingSetWithdrawalAddress
 			evmAddr := execAddr
-			if !tc.sameAddr {
-			} else {
+			if tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
-			ev = tc.input(evmAddr, pubKeys[0])
+			ev := tc.input(evmAddr, pubKeys[0])
 
-			// Process the event
-			err := keeper.ProcessSetWithdrawalAddress(ctx, ev)
+			cachedCtx, _ := ctx.CacheContext()
+			err := keeper.ProcessSetWithdrawalAddress(cachedCtx, ev)
 			if tc.expectedError != "" {
 				require.Error(err)
 				require.Contains(err.Error(), tc.expectedError)
+
+				// Ensure no state change occurred
+				addr, _ := keeper.DelegatorMap.Get(cachedCtx, delAddr.String())
+				require.Empty(addr)
 			} else {
 				require.NoError(err)
+
 				// check result
-				addr, err := keeper.DelegatorMap.Get(ctx, delAddr.String())
+				addr, err := keeper.DelegatorMap.Get(cachedCtx, delAddr.String())
 				require.NoError(err)
 				require.Equal(evmAddr.String(), addr)
 			}
