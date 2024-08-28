@@ -70,7 +70,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 		tc := tc
 		s.Run(tc.name, func() {
 			evmAddr := execAddr
-			if tc.sameAddr {
+			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
 			ev := tc.input(evmAddr, pubKeys[0])
