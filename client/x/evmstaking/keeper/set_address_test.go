@@ -15,7 +15,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 	pubKeys, accAddrs, _ := createAddresses(2)
 	delAddr := accAddrs[0]
 	delPubKey := pubKeys[0]
-	corruptedPubKey := delPubKey.Bytes()[0:20]
+	invalidPubKey := delPubKey.Bytes()[0:20]
 
 	execAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(err)
@@ -58,7 +58,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorCmpPubkey: corruptedPubKey,
+					DelegatorCmpPubkey: invalidPubKey,
 					ExecutionAddress:   [32]byte(paddedExecAddr),
 				}
 			},
