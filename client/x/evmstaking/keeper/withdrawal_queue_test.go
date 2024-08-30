@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -88,7 +89,7 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 		s.Run(tc.name, func() {
 			s.initQueue()
 
-			if tc.name != "Dequeue with empty queue" {
+			if !strings.Contains(tc.name, "Dequeue with empty queue") {
 				s.addWithdrawals(withdrawals)
 			}
 
@@ -158,7 +159,7 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 	for _, tc := range tcs {
 		s.Run(tc.name, func() {
 			s.initQueue()
-			if tc.name != "Peek with empty queue" {
+			if !strings.Contains(tc.name, "Peek with empty queue") {
 				s.addWithdrawals(withdrawals)
 			}
 
