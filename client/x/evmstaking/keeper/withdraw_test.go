@@ -331,9 +331,6 @@ func (s *TestSuite) TestProcessWithdraw() {
 	// delegator-1
 	delPubKey1 := pubKeys[0]
 	delAddr1 := accAddrs[0]
-	// delegator-2
-	delPubKey2 := pubKeys[1]
-	delAddr2 := accAddrs[1]
 	// validator
 	valPubKey := pubKeys[2]
 	valAddr := valAddrs[2]
@@ -341,7 +338,6 @@ func (s *TestSuite) TestProcessWithdraw() {
 	unknownPubKey := pubKeys[3]
 
 	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey1, valAddr, delAddr1)
-	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey2, valAddr, delAddr2)
 
 	tcs := []struct {
 		name        string
@@ -359,26 +355,23 @@ func (s *TestSuite) TestProcessWithdraw() {
 				DelegatorCmpPubkey: delPubKey1.Bytes(),
 				ValidatorCmpPubkey: valPubKey.Bytes(),
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 		},
 		{
 			name: "fail: invalid delegator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorCmpPubkey: delPubKey2.Bytes()[:16],
+				DelegatorCmpPubkey: delPubKey1.Bytes()[:16],
 				ValidatorCmpPubkey: valPubKey.Bytes(),
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "invalid pubkey length",
 		},
 		{
 			name: "fail: invalid validator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorCmpPubkey: delPubKey2.Bytes(),
+				DelegatorCmpPubkey: delPubKey1.Bytes(),
 				ValidatorCmpPubkey: valPubKey.Bytes()[:16],
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "invalid pubkey length",
 		},
@@ -388,7 +381,6 @@ func (s *TestSuite) TestProcessWithdraw() {
 				DelegatorCmpPubkey: createCorruptedPubKey(delPubKey1.Bytes()),
 				ValidatorCmpPubkey: valPubKey.Bytes(),
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "delegator pubkey to evm address",
 		},
@@ -398,7 +390,6 @@ func (s *TestSuite) TestProcessWithdraw() {
 				DelegatorCmpPubkey: delPubKey1.Bytes(),
 				ValidatorCmpPubkey: createCorruptedPubKey(valPubKey.Bytes()),
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "validator pubkey to evm address",
 		},
@@ -411,20 +402,18 @@ func (s *TestSuite) TestProcessWithdraw() {
 				DelegatorCmpPubkey: unknownPubKey.Bytes(),
 				ValidatorCmpPubkey: valPubKey.Bytes(),
 				Amount:             new(big.Int).SetUint64(1),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "depositor account not found",
 		},
 		{
 			name: "fail: amount to withdraw is greater than the delegation amount",
 			settingMock: func() {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), sdk.AccAddress(delPubKey2.Address().Bytes())).Return(true).Times(1)
+				accountKeeper.EXPECT().HasAccount(gomock.Any(), sdk.AccAddress(delPubKey1.Address().Bytes())).Return(true).Times(1)
 			},
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorCmpPubkey: delPubKey2.Bytes(),
+				DelegatorCmpPubkey: delPubKey1.Bytes(),
 				ValidatorCmpPubkey: valPubKey.Bytes(),
 				Amount:             new(big.Int).SetUint64(math.MaxUint64),
-				Raw:                gethtypes.Log{},
 			},
 			expectedErr: "invalid shares amount",
 		},
@@ -435,11 +424,20 @@ func (s *TestSuite) TestProcessWithdraw() {
 			if tc.settingMock != nil {
 				tc.settingMock()
 			}
-			err := keeper.ProcessWithdraw(ctx, tc.withdraw)
+			cachedCtx, _ := ctx.CacheContext()
+			// check undelegation does not exist
+			_, err := s.StakingKeeper.GetUnbondingDelegation(cachedCtx, delAddr1, valAddr)
+			require.ErrorContains(err, "no unbonding delegation found")
+
+			err = keeper.ProcessWithdraw(cachedCtx, tc.withdraw)
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {
 				require.NoError(err)
+				// check undelegation exists
+				ubd, err := s.StakingKeeper.GetUnbondingDelegation(cachedCtx, delAddr1, valAddr)
+				require.NoError(err)
+				require.NotNil(ubd)
 			}
 		})
 	}
