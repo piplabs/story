@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
@@ -84,6 +85,11 @@ func (suite *WithdrawTestSuite) TestWithdrawalsString() {
 		suite.delAddr, suite.valAddr, suite.evmAddr.String(),
 	)
 	require.Equal(expectedString, ws.String())
+
+	// Test with spaces, it should trim the spaces
+	stringWithSpaces := " " + ws.String() + " " // add leading and trailing spaces
+	trimmedString := strings.TrimSpace(stringWithSpaces)
+	require.Equal(expectedString, trimmedString, "Withdrawals.String() should trim spaces")
 }
 
 func (suite *WithdrawTestSuite) TestWithdrawalsLen() {
