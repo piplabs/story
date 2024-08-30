@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
+
 	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -20,11 +21,10 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
-
 	"github.com/piplabs/story/lib/k1util"
 )
 
-// setupValidatorAndDelegation creates a validator and delegation for testing
+// setupValidatorAndDelegation creates a validator and delegation for testing.
 func (s *TestSuite) setupValidatorAndDelegation(ctx sdk.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
 	require := s.Require()
 	stakingKeeper := s.StakingKeeper
@@ -486,11 +486,13 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey := append([]byte(nil), pubKey...)
 	corruptedPubKey[0] = 0x04
 	corruptedPubKey[1] = 0xFF
+
 	return corruptedPubKey
 }
 
-// isEqualWithdrawals compares two slices of Withdrawal without considering order
+// isEqualWithdrawals compares two slices of Withdrawal without considering order.
 func isEqualWithdrawals(t *testing.T, expected, actual []types.Withdrawal) {
+	t.Helper()
 	require.Len(t, actual, len(expected))
 	// compare it without considering order
 	for _, e := range expected {
