@@ -216,7 +216,7 @@ func (s *TestSuite) TestEnqueueEligiblePartialWithdrawal() {
 	// Test cases for EnqueueEligiblePartialWithdrawal
 	tcs := []struct {
 		name          string
-		settingMock   func()
+		settingMock   func(delRewards sdk.Coins)
 		input         func() []types.Withdrawal
 		expectedError string
 	}{
@@ -227,7 +227,7 @@ func (s *TestSuite) TestEnqueueEligiblePartialWithdrawal() {
 		},
 		{
 			name: "fail: invalid validator address",
-			settingMock: func() {
+			settingMock: func(_ sdk.Coins) {
 				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, dtypes.ErrEmptyDelegationDistInfo)
 			},
 			input: func() []types.Withdrawal {
@@ -238,56 +238,15 @@ func (s *TestSuite) TestEnqueueEligiblePartialWithdrawal() {
 			expectedError: dtypes.ErrEmptyDelegationDistInfo.Error(),
 		},
 		{
-			name: "pass: valid input",
-			settingMock: func() {
-				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-			},
-			input: func() []types.Withdrawal {
-				return []types.Withdrawal{
-					{
-						CreationHeight:   1,
-						DelegatorAddress: delAddr.String(),
-						ValidatorAddress: valAddr.String(),
-						ExecutionAddress: delEvmAddr.String(),
-						Amount:           100,
-					},
-				}
-			},
-			expectedError: "",
-		},
-		{
-			name: "pass: validator and delegator are the same",
-			settingMock: func() {
-				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				distrKeeper.EXPECT().WithdrawValidatorCommission(gomock.Any(), gomock.Any()).Return(sdk.NewCoins(), nil)
-				bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-			},
-			input: func() []types.Withdrawal {
-				return []types.Withdrawal{
-					{
-						CreationHeight:   1,
-						DelegatorAddress: delAddr.String(),
-						ValidatorAddress: delValAddr.String(),
-						ExecutionAddress: delEvmAddr.String(),
-						Amount:           100,
-					},
-				}
-			},
-			expectedError: "",
-		},
-		{
 			name: "fail: validator and delegator are the same, but failed to withdraw commission",
-			settingMock: func() {
-				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+			settingMock: func(delRewards sdk.Coins) {
+				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(delRewards, nil)
 				distrKeeper.EXPECT().WithdrawValidatorCommission(gomock.Any(), gomock.Any()).Return(sdk.NewCoins(), errors.New("failed to withdraw commission"))
 			},
 			input: func() []types.Withdrawal {
 				return []types.Withdrawal{
 					{
-						CreationHeight:   1,
+						CreationHeight:   0,
 						DelegatorAddress: delAddr.String(),
 						ValidatorAddress: delValAddr.String(),
 						ExecutionAddress: delEvmAddr.String(),
@@ -297,18 +256,68 @@ func (s *TestSuite) TestEnqueueEligiblePartialWithdrawal() {
 			},
 			expectedError: "failed to withdraw commission",
 		},
+		{
+			name: "pass: valid input",
+			settingMock: func(delRewards sdk.Coins) {
+				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), delAddr, valAddr).Return(delRewards, nil)
+				bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, delRewards).Return(nil)
+				bankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, delRewards).Return(nil)
+			},
+			input: func() []types.Withdrawal {
+				return []types.Withdrawal{
+					{
+						CreationHeight:   0,
+						DelegatorAddress: delAddr.String(),
+						ValidatorAddress: valAddr.String(),
+						ExecutionAddress: delEvmAddr.String(),
+						Amount:           100,
+					},
+				}
+			},
+		},
+		{
+			name: "pass: validator and delegator are the same",
+			settingMock: func(delRewards sdk.Coins) {
+				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), delAddr, delValAddr).Return(delRewards, nil)
+				distrKeeper.EXPECT().WithdrawValidatorCommission(gomock.Any(), delValAddr).Return(sdk.NewCoins(), nil)
+				bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, delRewards).Return(nil)
+				bankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, delRewards).Return(nil)
+			},
+			input: func() []types.Withdrawal {
+				return []types.Withdrawal{
+					{
+						CreationHeight:   0,
+						DelegatorAddress: delAddr.String(),
+						ValidatorAddress: delValAddr.String(),
+						ExecutionAddress: delEvmAddr.String(),
+						Amount:           100,
+					},
+				}
+			},
+		},
 	}
 
 	for _, tc := range tcs {
 		s.Run(tc.name, func() {
+			input := tc.input()
+			coinsExpectedToWithdraw := sdk.NewCoins(
+				sdk.NewCoin(
+					sdk.DefaultBondDenom,
+					sdkmath.NewInt(int64(input[0].Amount)),
+				),
+			)
 			if tc.settingMock != nil {
-				tc.settingMock()
+				tc.settingMock(coinsExpectedToWithdraw)
 			}
-			err := keeper.EnqueueEligiblePartialWithdrawal(ctx, tc.input())
+			cachedCtx, _ := ctx.CacheContext()
+			err := keeper.EnqueueEligiblePartialWithdrawal(cachedCtx, tc.input())
 			if tc.expectedError != "" {
 				require.ErrorContains(err, tc.expectedError)
 			} else {
 				require.NoError(err)
+				withdrawals, err := keeper.GetAllWithdrawals(cachedCtx)
+				require.NoError(err)
+				isEqualWithdrawals(s.T(), tc.input(), withdrawals)
 			}
 		})
 	}
