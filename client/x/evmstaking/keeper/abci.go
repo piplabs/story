@@ -43,9 +43,6 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, err
 	}
 	log.Debug(ctx, "All delegations", "count", len(delegations))
-	for _, delegation := range delegations {
-		log.Debug(ctx, "Delegation", "delegator", delegation.DelegatorAddress, "validator", delegation.ValidatorAddress, "shares", delegation.Shares.String())
-	}
 
 	// make an array with each entry being the validator address, delegator address, and the amount
 	var unbondedEntries []UnbondedEntry
