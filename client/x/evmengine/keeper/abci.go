@@ -80,7 +80,7 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		}
 		triggeredAt = time.Now()
 	} else {
-		log.Debug(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
+		log.Info(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
 	}
 
 	// Wait the minimum build_delay for the payload to be available.
@@ -183,7 +183,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 
 	nextHeight := height + 1
 	logAttr := slog.Int64("next_height", nextHeight)
-	log.Debug(ctx, "Starting optimistic EVM payload build", logAttr)
+	log.Info(ctx, "Starting optimistic EVM payload build", logAttr)
 
 	// TODO: This will fail because ctx provided in ABCI call in CometBFT 0.37 is context.TODO()
 	// If optimistic block is discarded, we need to restore the dequeued withdrawals back to the queue.
@@ -235,7 +235,7 @@ func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, wi
 		FinalizedBlockHash: head.Hash(),
 	}
 
-	log.Debug(ctx, "Submit new EVM payload",
+	log.Info(ctx, "Submit new EVM payload",
 		"timestamp", timestamp,
 		"withdrawals", len(withdrawals),
 		"app_hash", appHash.String(),
