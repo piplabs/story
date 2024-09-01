@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+
 	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -12,12 +13,13 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
-	"go.uber.org/mock/gomock"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
+
+	"go.uber.org/mock/gomock"
 )
 
 func (s *TestSuite) TestProcessCreateValidator() {
@@ -30,6 +32,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 	corruptedPubKey[1] = 0xFF
 
 	tokens10 := stakingKeeper.TokensFromConsensusPower(ctx, 10)
+
 	// checkDelegatorMapAndValidator checks if the delegator map and validator are created
 	checkDelegatorMapAndValidator := func(c sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, delEvmAddr common.Address, _ math.Int) {
 		val, err := keeper.DelegatorMap.Get(c, delAddr.String())
@@ -151,6 +154,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valPubKey:      pubKeys[1],
 			valTokens:      tokens10,
 			preRun: func(t *testing.T, c sdk.Context, valDelAddr sdk.AccAddress, valPubKey crypto.PubKey, _ math.Int) {
+				t.Helper()
 				// create a validator with valTokens
 				valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 				pubKey, err := k1util.PubKeyToCosmos(valPubKey)
@@ -158,7 +162,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				val := testutil.NewValidator(t, valAddr, pubKey)
 				validator, _ := val.AddTokensFromDel(tokens10)
 				s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
-				_ = skeeper.TestingUpdateValidator(stakingKeeper, ctx, validator, true)
+				_ = skeeper.TestingUpdateValidator(stakingKeeper, c, validator, true)
 
 				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
 				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
@@ -175,6 +179,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valPubKey:      pubKeys[1],
 			valTokens:      tokens10,
 			preRun: func(t *testing.T, c sdk.Context, valDelAddr sdk.AccAddress, valPubKey crypto.PubKey, valTokens math.Int) {
+				t.Helper()
 				// create a validator
 				valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 				pubKey, err := k1util.PubKeyToCosmos(valPubKey)
@@ -182,7 +187,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				val := testutil.NewValidator(t, valAddr, pubKey)
 				validator, _ := val.AddTokensFromDel(valTokens)
 				s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
-				_ = skeeper.TestingUpdateValidator(stakingKeeper, ctx, validator, true)
+				_ = skeeper.TestingUpdateValidator(stakingKeeper, c, validator, true)
 
 				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(false)
 				accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), valDelAddr).Return(nil)
