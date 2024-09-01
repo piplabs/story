@@ -106,3 +106,37 @@ func (k Keeper) GetNextValidatorSweepIndex(ctx context.Context) (nextValIndex sd
 
 	return nextValIndex, nil
 }
+
+func (k Keeper) SetNextValidatorDelegationSweepIndex(ctx context.Context, nextValDelIndex sdk.IntProto) error {
+	store := k.storeService.OpenKVStore(ctx)
+	bz, err := k.cdc.Marshal(&nextValDelIndex)
+	if err != nil {
+		return errors.Wrap(err, "marshal next validator delegation sweep index")
+	}
+
+	err = store.Set(types.NextValidatorDelegationSweepIndexKey, bz)
+	if err != nil {
+		return errors.Wrap(err, "set next validator delegation sweep index")
+	}
+
+	return nil
+}
+
+func (k Keeper) GetNextValidatorDelegationSweepIndex(ctx context.Context) (nextValDelIndex sdk.IntProto, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	bz, err := store.Get(types.NextValidatorDelegationSweepIndexKey)
+	if err != nil {
+		return nextValDelIndex, errors.Wrap(err, "get next validator delegation sweep index")
+	}
+
+	if bz == nil {
+		return sdk.IntProto{Int: math.NewInt(0)}, nil
+	}
+
+	err = k.cdc.Unmarshal(bz, &nextValDelIndex)
+	if err != nil {
+		return nextValDelIndex, errors.Wrap(err, "unmarshal next validator delegation sweep index")
+	}
+
+	return nextValDelIndex, nil
+}
