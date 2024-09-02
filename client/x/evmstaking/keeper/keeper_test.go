@@ -42,7 +42,6 @@ type TestSuite struct {
 
 	Ctx sdk.Context
 
-	addrs            []sdk.AccAddress
 	BankKeeper       *estestutil.MockBankKeeper
 	StakingKeeper    *skeeper.Keeper
 	EVMStakingKeeper *keeper.Keeper
@@ -51,7 +50,6 @@ type TestSuite struct {
 }
 
 func (s *TestSuite) SetupTest() {
-	s.addrs = simtestutil.CreateIncrementalAccounts(4)
 	s.encCfg = moduletestutil.MakeTestEncodingConfig(module.AppModuleBasic{})
 	evmstakingKey := storetypes.NewKVStoreKey(types.StoreKey)
 	stakingKey := storetypes.NewKVStoreKey(stypes.StoreKey)
@@ -84,10 +82,10 @@ func (s *TestSuite) SetupTest() {
 
 	// mock keepers
 	accountKeeper := estestutil.NewMockAccountKeeper(ctrl)
-	accountKeeper.EXPECT().GetModuleAddress(types.ModuleName).Return(s.addrs[0]).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.ModuleName).Return(s.addrs[1]).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.BondedPoolName).Return(s.addrs[2]).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.NotBondedPoolName).Return(s.addrs[3]).AnyTimes()
+	accountKeeper.EXPECT().GetModuleAddress(types.ModuleName).Return(authtypes.NewModuleAddress(types.ModuleName)).AnyTimes()
+	accountKeeper.EXPECT().GetModuleAddress(stypes.ModuleName).Return(authtypes.NewModuleAddress(stypes.ModuleName)).AnyTimes()
+	accountKeeper.EXPECT().GetModuleAddress(stypes.BondedPoolName).Return(authtypes.NewModuleAddress(stypes.BondedPoolName)).AnyTimes()
+	accountKeeper.EXPECT().GetModuleAddress(stypes.NotBondedPoolName).Return(authtypes.NewModuleAddress(stypes.NotBondedPoolName)).AnyTimes()
 	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("story")).AnyTimes()
 	bankKeeper := estestutil.NewMockBankKeeper(ctrl)
 	s.BankKeeper = bankKeeper
@@ -102,7 +100,7 @@ func (s *TestSuite) SetupTest() {
 		bankKeeper,
 		authtypes.NewModuleAddress(stypes.ModuleName).String(),
 		address.NewBech32Codec("storyvaloper"),
-		address.NewBech32Codec("storyvaloper"),
+		address.NewBech32Codec("storyvalcons"),
 	)
 	s.StakingKeeper = stakingKeeper
 	s.Require().NoError(s.StakingKeeper.SetParams(s.Ctx, stypes.DefaultParams()))
