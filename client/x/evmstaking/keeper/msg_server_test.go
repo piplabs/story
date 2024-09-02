@@ -8,13 +8,14 @@ import (
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"go.uber.org/mock/gomock"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/k1util"
+
+	"go.uber.org/mock/gomock"
 )
 
-// setupValidatorAndDelegation creates a validator and delegation for testing
+// setupValidatorAndDelegation creates a validator and delegation for testing.
 func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
