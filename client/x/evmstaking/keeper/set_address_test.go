@@ -67,7 +67,6 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 	}
 
 	for _, tc := range tcs {
-		tc := tc
 		s.Run(tc.name, func() {
 			evmAddr := execAddr
 			if !tc.sameAddr {
