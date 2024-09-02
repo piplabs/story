@@ -42,7 +42,9 @@ type TestSuite struct {
 
 	Ctx sdk.Context
 
+	AccountKeeper    *estestutil.MockAccountKeeper
 	BankKeeper       *estestutil.MockBankKeeper
+	DistrKeeper      *estestutil.MockDistributionKeeper
 	StakingKeeper    *skeeper.Keeper
 	EVMStakingKeeper *keeper.Keeper
 
@@ -87,9 +89,11 @@ func (s *TestSuite) SetupTest() {
 	accountKeeper.EXPECT().GetModuleAddress(stypes.BondedPoolName).Return(authtypes.NewModuleAddress(stypes.BondedPoolName)).AnyTimes()
 	accountKeeper.EXPECT().GetModuleAddress(stypes.NotBondedPoolName).Return(authtypes.NewModuleAddress(stypes.NotBondedPoolName)).AnyTimes()
 	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("story")).AnyTimes()
+	s.AccountKeeper = accountKeeper
 	bankKeeper := estestutil.NewMockBankKeeper(ctrl)
 	s.BankKeeper = bankKeeper
 	distrKeeper := estestutil.NewMockDistributionKeeper(ctrl)
+	s.DistrKeeper = distrKeeper
 	slashingKeeper := estestutil.NewMockSlashingKeeper(ctrl)
 
 	// staking keeper
