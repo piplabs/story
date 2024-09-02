@@ -221,7 +221,7 @@ func (s *TestSuite) TestProcessDeposit() {
 	}
 }
 
-func (s *TestSuite) TestProcessDepositLog() {
+func (s *TestSuite) TestParseDepositLog() {
 	require := s.Require()
 	keeper := s.EVMStakingKeeper
 
