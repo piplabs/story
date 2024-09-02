@@ -1,3 +1,4 @@
+//nolint:testpackage // Ignore this linter rule because we want to test private method, so package name should be same with the target package name.
 package types
 
 import (
@@ -10,6 +11,7 @@ import (
 )
 
 func Test_mustGetABI(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name        string
 		input       *bind.MetaData
@@ -29,6 +31,8 @@ func Test_mustGetABI(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if tc.expectPanic {
 				require.Panics(t, func() {
 					mustGetABI(tc.input)
@@ -43,6 +47,7 @@ func Test_mustGetABI(t *testing.T) {
 }
 
 func Test_mustGetEvent(t *testing.T) {
+	t.Parallel()
 	abi := mustGetABI(bindings.IPTokenStakingMetaData)
 	testCases := []struct {
 		name        string
@@ -83,6 +88,8 @@ func Test_mustGetEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if tc.expectPanic {
 				require.Panics(t, func() {
 					mustGetEvent(abi, tc.eventName)
