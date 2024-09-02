@@ -49,7 +49,7 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx sdk.Context, valPubKey, delP
 	require.Equal(delAmt, delegation.GetShares())
 }
 
-// setupUnbonding creates unbondings for testing
+// setupUnbonding creates unbondings for testing.
 func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
 	require := s.Require()
 	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
@@ -97,7 +97,7 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 				s.setupUnbonding(c, delAddr, valAddr, "100")
 			},
 			expectedResult: []stypes.DVPair{
-				{delAddr.String(), valAddr.String()},
+				{DelegatorAddress: delAddr.String(), ValidatorAddress: valAddr.String()},
 			},
 		},
 		{
@@ -108,8 +108,8 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 				s.setupUnbonding(c, delAddr, valAddr2, "50")
 			},
 			expectedResult: []stypes.DVPair{
-				{delAddr.String(), valAddr.String()},
-				{delAddr.String(), valAddr2.String()},
+				{DelegatorAddress: delAddr.String(), ValidatorAddress: valAddr.String()},
+				{DelegatorAddress: delAddr.String(), ValidatorAddress: valAddr2.String()},
 			},
 		},
 	}
