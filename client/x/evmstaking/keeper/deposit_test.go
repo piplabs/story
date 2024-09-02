@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"cosmossdk.io/math"
+
 	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -12,15 +13,16 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
-	"go.uber.org/mock/gomock"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
+
+	"go.uber.org/mock/gomock"
 )
 
-// createValidator creates a validator
+// createValidator creates a validator.
 func (s *TestSuite) createValidator(ctx context.Context, valPubKey crypto.PubKey, valAddr sdk.ValAddress) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
@@ -260,5 +262,6 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey := append([]byte(nil), pubKey...)
 	corruptedPubKey[0] = 0x04
 	corruptedPubKey[1] = 0xFF
+
 	return corruptedPubKey
 }
