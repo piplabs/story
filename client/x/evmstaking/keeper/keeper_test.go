@@ -206,6 +206,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -217,6 +218,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -228,6 +230,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -239,6 +242,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -250,6 +254,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -261,6 +266,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -281,6 +287,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -302,6 +309,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -320,6 +328,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -338,6 +347,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -355,6 +365,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
@@ -369,6 +380,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				if err != nil {
 					return nil, err
 				}
+
 				return evmEvents, nil
 			},
 		},
