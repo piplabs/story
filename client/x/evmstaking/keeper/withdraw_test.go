@@ -481,14 +481,6 @@ func (s *TestSuite) TestParseWithdraw() {
 	}
 }
 
-func createCorruptedPubKey(pubKey []byte) []byte {
-	corruptedPubKey := append([]byte(nil), pubKey...)
-	corruptedPubKey[0] = 0x04
-	corruptedPubKey[1] = 0xFF
-
-	return corruptedPubKey
-}
-
 // isEqualWithdrawals compares two slices of Withdrawal without considering order.
 func isEqualWithdrawals(t *testing.T, expected, actual []types.Withdrawal) {
 	t.Helper()
