@@ -183,6 +183,20 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		setup         func(c context.Context)
 		expectedError string
 	}{
+		{
+			name: "fail: invalid evm event",
+			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID, dummyHash}}}
+				evmEvents, err := ethLogsToEvmEvents(logs)
+				if err != nil {
+					return nil, err
+				}
+				evmEvents[0].Address = nil
+
+				return evmEvents, nil
+			},
+			expectedError: "verify log [BUG]",
+		},
 		// INVALID LOGS but PASS Cases because currently we are handling it as a continued
 		{
 			name: "pass(continue): invalid SetWithdrawalEvent log",
