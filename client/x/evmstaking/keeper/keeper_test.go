@@ -1,8 +1,6 @@
 package keeper_test
 
 import (
-	"context"
-	"math/big"
 	"testing"
 	"time"
 
@@ -12,7 +10,6 @@ import (
 	"cosmossdk.io/store/metrics"
 	storetypes "cosmossdk.io/store/types"
 
-	"github.com/cometbft/cometbft/crypto"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -25,22 +22,14 @@ import (
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
 
-	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/module"
 	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
-	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
-	"github.com/piplabs/story/lib/k1util"
 
 	"go.uber.org/mock/gomock"
 )
@@ -676,6 +665,16 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey[1] = 0xFF
 
 	return corruptedPubKey
+}
+
+// setupUnbonding creates unbondings for testing.
+func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
+	require := s.Require()
+	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
+
+	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
+	_, _, err := stakingKeeper.Undelegate(ctx, delAddr, valAddr, sdkmath.LegacyMustNewDecFromStr(amount))
+	require.NoError(err)
 }
 
 // ethLogsToEvmEvents converts Ethereum logs to a slice of EVM events.
