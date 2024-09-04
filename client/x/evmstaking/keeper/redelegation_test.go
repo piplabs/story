@@ -153,7 +153,6 @@ func (s *TestSuite) TestRedelegation() {
 				inputCpy.DelegatorCmpPubkey = createCorruptedPubKey(delPubKey.Bytes())
 
 				return inputCpy
-
 			},
 			expectedError: "deledator pubkey to evm address",
 		},
