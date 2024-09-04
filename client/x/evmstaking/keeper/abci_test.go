@@ -58,7 +58,7 @@ func (s *TestSuite) TestEndBlock() {
 	require.NoError(err)
 	require.NoError(stakingKeeper.SetParams(ctx, stakingParams))
 
-	mockEnqueueEligiblePartialWithdrawal := func(c context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, rewardAmt int64) {
+	mockEnqueueEligiblePartialWithdrawal := func(delAddr sdk.AccAddress, valAddr sdk.ValAddress, rewardAmt int64) {
 		rewardsCoins := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, rewardAmt))
 		distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), delAddr, valAddr).Return(rewardsCoins, nil)
 		bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, rewardsCoins).Return(nil)
@@ -82,7 +82,7 @@ func (s *TestSuite) TestEndBlock() {
 
 		if exists {
 			w := types.NewWithdrawal(0, delAddr.String(), valAddr.String(), delEvmAddr.String(), uint64(rewardAmt))
-			mockEnqueueEligiblePartialWithdrawal(c, delAddr, valAddr, rewardAmt)
+			mockEnqueueEligiblePartialWithdrawal(delAddr, valAddr, rewardAmt)
 
 			return &w
 		}
@@ -91,6 +91,7 @@ func (s *TestSuite) TestEndBlock() {
 	}
 
 	postStateCheck := func(t *testing.T, c context.Context, expectedWithdrawals []types.Withdrawal) {
+		t.Helper()
 		withdrawals, err := keeper.GetWithdrawals(c, 100)
 		require.NoError(err)
 
@@ -108,6 +109,7 @@ func (s *TestSuite) TestEndBlock() {
 			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
 				w1 := mockExpectPartialWithdrawals(c, valAddr1, true)
 				w2 := mockExpectPartialWithdrawals(c, valAddr2, true)
+
 				return []types.Withdrawal{*w1, *w2}, nil
 			},
 			postStateCheck: postStateCheck,
@@ -126,8 +128,8 @@ func (s *TestSuite) TestEndBlock() {
 			name: "pass: mature unbonded delegations & no eligible partial withdrawals",
 			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
 				sdkCtx := sdk.UnwrapSDKContext(c)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "10", ubdTime)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr2, "10", ubdTime)
+				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "15", ubdTime)
+				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr2, "15", ubdTime)
 
 				mockExpectPartialWithdrawals(c, valAddr1, false)
 				mockExpectPartialWithdrawals(c, valAddr2, false)
@@ -298,7 +300,7 @@ func (s *TestSuite) TestEndBlock() {
 		{
 			name: "fail: error while processing EnqueueEligiblePartialWithdrawal",
 			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				rewards := sdk.NewDecCoinsFromCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, int64(minPartialAmt)+100))
+				rewards := sdk.NewDecCoinsFromCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, minPartialAmt+100))
 				// Mock successful ExpectedPartialWithdrawals
 				distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), gomock.Any()).Return(dtypes.ValidatorAccumulatedCommission{}, nil).Times(valCnt)
 				distrKeeper.EXPECT().IncrementValidatorPeriod(gomock.Any(), gomock.Any()).Return(uint64(0), nil).Times(valCnt)
@@ -339,6 +341,7 @@ func (s *TestSuite) TestEndBlock() {
 
 // compareValUpdates compares two slices of ValidatorUpdates, ignoring the order.
 func compareValUpdates(t *testing.T, expected, actual abcitypes.ValidatorUpdates) {
+	t.Helper()
 	require.Equal(t, len(expected), len(actual), "the length of expected and actual slices should be equal")
 
 	// Convert both slices to maps for unordered comparison
