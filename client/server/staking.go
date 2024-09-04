@@ -1,4 +1,4 @@
-//nolint:wrapcheck // The api server is our server, so we don't need to wrap it.
+//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it.
 package server
 
 import (

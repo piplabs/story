@@ -44,6 +44,10 @@ type getAccountsRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
+type getAccountAddressByIDRequest struct {
+	AccountID uint64 `mapstructure:"account_id"`
+}
+
 type getSupplyByDenomRequest struct {
 	Denom string `mapstructure:"denom"`
 }
