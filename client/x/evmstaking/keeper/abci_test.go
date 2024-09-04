@@ -135,8 +135,8 @@ func (s *TestSuite) TestEndBlock() {
 				mockExpectPartialWithdrawals(c, valAddr2, false)
 
 				return []types.Withdrawal{
-						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 10),
-						types.NewWithdrawal(0, delAddr.String(), valAddr2.String(), delEvmAddr.String(), 10),
+						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 15),
+						types.NewWithdrawal(0, delAddr.String(), valAddr2.String(), delEvmAddr.String(), 15),
 					}, []abcitypes.ValidatorUpdate{
 						{
 							PubKey: valCosmosPubKey1,
