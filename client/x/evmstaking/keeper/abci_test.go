@@ -22,12 +22,13 @@ func (s *TestSuite) TestEndBlock() {
 	require := s.Require()
 	ctx, keeper, bankKeeper, stakingKeeper, distrKeeper := s.Ctx, s.EVMStakingKeeper, s.BankKeeper, s.StakingKeeper, s.DistrKeeper
 
-	// setup two validators and unbonded delegations
+	// create addresses
 	pubKeys, accAddrs, valAddrs := createAddresses(3)
 	delAddr := accAddrs[0]
 	delPubKey := pubKeys[0]
 	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(err)
+	// setup two validators and delegations
 	valPubKey1 := pubKeys[1]
 	valAddr1 := valAddrs[1]
 	valPubKey2 := pubKeys[2]
@@ -37,7 +38,6 @@ func (s *TestSuite) TestEndBlock() {
 	valCosmosPubKey2, err := k1util.PBPubKeyFromBytes(valPubKey2.Bytes())
 	require.NoError(err)
 	const valCnt = 2
-
 	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	s.setupValidatorAndDelegation(ctx, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
 	s.setupValidatorAndDelegation(ctx, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
