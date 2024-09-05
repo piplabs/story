@@ -20,20 +20,19 @@ var (
 	dummyContractAddress = common.HexToAddress(dummyAddressHex)
 	emptyAddr            = common.Address{}
 	emptyData            = []byte{}
-	upgradeAbi           *abi.ABI
 )
 
-func init() {
-	var err error
-	upgradeAbi, err = bindings.UpgradeEntrypointMetaData.GetAbi()
-	if err != nil {
-		panic("failed to load ABI: " + err.Error())
-	}
+// initializeABI loads the ABI once.
+func initializeABI(t *testing.T) *abi.ABI {
+	t.Helper()
+	upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
+	require.NoError(t, err, "failed to load ABI")
+	return upgradeAbi
 }
 
 func TestEVMEvent_ToEthLog(t *testing.T) {
 	t.Parallel()
-
+	upgradeAbi := initializeABI(t)
 	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
 	require.NoError(t, err)
 
@@ -94,7 +93,7 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 
 func TestEVMEvent_Verify(t *testing.T) {
 	t.Parallel()
-
+	upgradeAbi := initializeABI(t)
 	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
 	require.NoError(t, err)
 
