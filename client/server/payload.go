@@ -22,6 +22,10 @@ type getValidatorDelegationsByValidatorAddressRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
+type getValidatorUnbondingDelegationsRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getDelegationsByDelegatorAddressRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
