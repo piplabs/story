@@ -131,3 +131,11 @@ func TestTestSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(TestSuite))
 }
+
+func createCorruptedPubKey(pubKey []byte) []byte {
+	corruptedPubKey := append([]byte(nil), pubKey...)
+	corruptedPubKey[0] = 0x04
+	corruptedPubKey[1] = 0xFF
+
+	return corruptedPubKey
+}
