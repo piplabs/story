@@ -31,8 +31,8 @@ var (
 
 func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 	t.Parallel()
-	keeper, ctx, ctrl, _, uk := setupTestEnvironment(t)
-	defer ctrl.Finish()
+	keeper, ctx, ctrl, uk := setupTestEnvironment(t)
+	t.Cleanup(ctrl.Finish)
 
 	tcs := []struct {
 		name        string
@@ -43,7 +43,6 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "pass: valid software upgrade event",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
-
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
 					Height: 1,
@@ -60,7 +59,6 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "fail: invalid upgrade event - height is 0",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
-
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test upgrade",
 					Height: 0,
@@ -75,7 +73,6 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "fail: invalid upgrade event - name is empty",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
-
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "",
 					Height: 1,
@@ -106,8 +103,8 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 
 func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 	t.Parallel()
-	keeper, ctx, ctrl, _, uk := setupTestEnvironment(t)
-	defer ctrl.Finish()
+	keeper, ctx, ctrl, uk := setupTestEnvironment(t)
+	t.Cleanup(ctrl.Finish)
 
 	upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
 	require.NoError(t, err, "failed to load ABI")
@@ -131,6 +128,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			evmEvents: func() []*types.EVMEvent {
 				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
 				require.NoError(t, err)
+
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
@@ -150,6 +148,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 				require.NoError(t, err)
 				data2, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade2", int64(3), "test-info")
 				require.NoError(t, err)
+
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
@@ -175,6 +174,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			evmEvents: func() []*types.EVMEvent {
 				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
 				require.NoError(t, err)
+
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
@@ -192,6 +192,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			evmEvents: func() []*types.EVMEvent {
 				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("", int64(5), "test-info")
 				require.NoError(t, err)
+
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
@@ -250,7 +251,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 	}
 }
 
-func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controller, *mock.MockClient, *moduletestutil.MockUpgradeKeeper) {
+func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controller, *moduletestutil.MockUpgradeKeeper) {
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
 	mockEngine, err := newMockEngineAPI(0)
@@ -274,5 +275,5 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	keeper.SetValidatorAddress(nxtAddr)
 	populateGenesisHead(ctx, t, keeper)
 
-	return keeper, ctx, ctrl, mockClient, uk
+	return keeper, ctx, ctrl, uk
 }
