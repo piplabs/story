@@ -1,4 +1,4 @@
-//nolint:wrapcheck // The api server is our server, so we don't need to wrap it
+//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it
 package server
 
 import (
@@ -14,16 +14,19 @@ import (
 )
 
 func (s *Server) initAuthRoute() {
+	s.httpMux.HandleFunc("/auth/params", utils.SimpleWrap(s.aminoCodec, s.GetAuthParams))
+
 	s.httpMux.HandleFunc("/auth/account_info/{address}", utils.SimpleWrap(s.aminoCodec, s.GetAccountInfo))
 	s.httpMux.HandleFunc("/auth/accounts", utils.AutoWrap(s.aminoCodec, s.GetAccounts))
 	s.httpMux.HandleFunc("/auth/accounts/{address}", utils.SimpleWrap(s.aminoCodec, s.GetAccountsByAddress))
 	s.httpMux.HandleFunc("/auth/address_by_id", utils.AutoWrap(s.aminoCodec, s.GetAccountAddressByID))
+
 	s.httpMux.HandleFunc("/auth/bech32", utils.SimpleWrap(s.aminoCodec, s.GetBech32Prefix))
 	s.httpMux.HandleFunc("/auth/bech32/{address_bytes}", utils.SimpleWrap(s.aminoCodec, s.Bech32AddressBytesToString))
 	s.httpMux.HandleFunc("/auth/bech32/{address_string}", utils.SimpleWrap(s.aminoCodec, s.Bech32AddressStringToBytes))
+
 	s.httpMux.HandleFunc("/auth/module_accounts", utils.SimpleWrap(s.aminoCodec, s.GetModuleAccounts))
 	s.httpMux.HandleFunc("/auth/module_accounts/{name}", utils.SimpleWrap(s.aminoCodec, s.GetModuleAccountByName))
-	s.httpMux.HandleFunc("/auth/params", utils.SimpleWrap(s.aminoCodec, s.GetAuthParams))
 }
 
 // GetAccountInfo returns account info which is common to all account types.
