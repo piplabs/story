@@ -243,7 +243,6 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
-				return
 			} else {
 				require.NoError(t, err)
 			}
@@ -252,6 +251,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 }
 
 func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controller, *moduletestutil.MockUpgradeKeeper) {
+	t.Helper()
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
 	mockEngine, err := newMockEngineAPI(0)
