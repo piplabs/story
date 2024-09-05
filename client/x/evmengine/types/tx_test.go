@@ -27,6 +27,7 @@ func initializeABI(t *testing.T) *abi.ABI {
 	t.Helper()
 	upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
 	require.NoError(t, err, "failed to load ABI")
+
 	return upgradeAbi
 }
 
