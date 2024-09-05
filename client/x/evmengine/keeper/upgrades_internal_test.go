@@ -8,7 +8,6 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
@@ -17,6 +16,8 @@ import (
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/tutil"
+
+	"go.uber.org/mock/gomock"
 )
 
 const (
@@ -42,6 +43,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "pass: valid software upgrade event",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
+
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
 					Height: 1,
@@ -58,6 +60,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "fail: invalid upgrade event - height is 0",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
+
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test upgrade",
 					Height: 0,
@@ -72,6 +75,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		{
 			name: "fail: invalid upgrade event - name is empty",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
+
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "",
 					Height: 1,
@@ -87,6 +91,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			tc.setupMock()
 			err := keeper.ProcessSoftwareUpgrade(ctx, tc.ev())
 			if tc.expectedErr != "" {
@@ -228,6 +233,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
