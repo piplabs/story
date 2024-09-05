@@ -7,11 +7,8 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
-	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -24,39 +21,6 @@ import (
 
 	"go.uber.org/mock/gomock"
 )
-
-// setupValidatorAndDelegation creates a validator and delegation for testing.
-func (s *TestSuite) setupValidatorAndDelegation(ctx sdk.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
-	require := s.Require()
-	stakingKeeper := s.StakingKeeper
-	keeper := s.EVMStakingKeeper
-
-	// Convert public key to cosmos format
-	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
-	require.NoError(err)
-
-	// Create and update validator
-	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
-	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
-	validator, _ := val.AddTokensFromDel(valTokens)
-	s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
-	_ = skeeper.TestingUpdateValidator(stakingKeeper, ctx, validator, true)
-
-	// Create and set delegation
-	delAmt := stakingKeeper.TokensFromConsensusPower(ctx, 100).ToLegacyDec()
-	delegation := stypes.NewDelegation(delAddr.String(), valAddr.String(), delAmt)
-	require.NoError(stakingKeeper.SetDelegation(ctx, delegation))
-
-	// Map delegator to EVM address
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
-	require.NoError(err)
-	require.NoError(keeper.DelegatorMap.Set(ctx, delAddr.String(), delEvmAddr.String()))
-
-	// Ensure delegation is set correctly
-	delegation, err = stakingKeeper.GetDelegation(ctx, delAddr, valAddr)
-	require.NoError(err)
-	require.Equal(delAmt, delegation.GetShares())
-}
 
 func (s *TestSuite) TestExpectedPartialWithdrawals() {
 	require := s.Require()
