@@ -26,10 +26,13 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 )
 
 type Store interface {
 	CreateQueryContext(height int64, prove bool) (sdk.Context, error)
+	GetEvmStakingKeeper() *evmstakingkeeper.Keeper
 	GetStakingKeeper() *stakingkeeper.Keeper
 	GetSlashingKeeper() slashingkeeper.Keeper
 	GetAccountKeeper() authkeeper.AccountKeeper
@@ -114,6 +117,7 @@ func (s *Server) registerHandle() {
 	s.initBankRoute()
 	s.initComeBFTRoute()
 	s.initDistributionRoute()
+	s.initEvmStakingRoute()
 	s.initSlashingRoute()
 	s.initStakingRoute()
 	s.initUpgradeRoute()

@@ -23,6 +23,7 @@ import (
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -176,6 +177,10 @@ func (App) SimulationManager() *module.SimulationManager {
 // TODO: Figure out how to use depinject to set this.
 func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
+}
+
+func (a App) GetEvmStakingKeeper() *evmstakingkeeper.Keeper {
+	return a.Keepers.EvmStakingKeeper
 }
 
 func (a App) GetStakingKeeper() *stakingkeeper.Keeper {

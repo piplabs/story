@@ -129,6 +129,10 @@ type getAllValidatorOutstandingRewardsRequestBlockResults struct {
 	Validators map[string]sdk.DecCoins `json:"validators"`
 }
 
+type getWithdrawalQueueRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getModuleVersionsRequest struct {
 	ModuleName string `mapstructure:"module_name"`
 }
