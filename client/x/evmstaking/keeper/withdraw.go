@@ -71,13 +71,11 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 
 	// Sweep and get eligible partial withdrawals.
 	for range validatorSet {
-		if swept > sweepBound {
-			break
-		}
-
 		if validatorSet[nextValIndex].IsJailed() {
 			// nextValIndex should be updated, even if the validator is jailed, to progress to the sweep.
 			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+			nextValDelIndex = 0
+
 			continue
 		}
 
@@ -101,11 +99,22 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			return nil, errors.Wrap(err, "get validator delegations")
 		}
 
+		if nextValDelIndex >= int64(len(delegators)) {
+			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+			nextValDelIndex = 0
+
+			continue
+		}
+
 		nextDelegators := delegators[nextValDelIndex:]
+		var shouldStopPrematurely bool
 
 		// Check if the sweep should stop prematurely as the current delegator loop exceeds the sweep bound while sweeping.
-		shouldStopPrematurely := swept+uint32(len(nextDelegators)) > sweepBound
-		stoppedPrematurely := false
+		remainingSweep := sweepBound - swept
+		if uint32(len(nextDelegators)) > remainingSweep {
+			nextDelegators = nextDelegators[:remainingSweep]
+			shouldStopPrematurely = true
+		}
 
 		// Iterate on the validator's delegator rewards in the range [nextValDelIndex, len(delegators)].
 		for i := range nextDelegators {
@@ -142,17 +151,10 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			}
 
 			nextValDelIndex++
-
-			// Current delegator loop exceeds the sweep bound while sweeping, so we break prematurely from validator delegation sweep.
-			// The current value of `nextValIndex` and `nextValDelIndex` will be used in the next sweep (next block).
-			if shouldStopPrematurely && swept+uint32(i) > sweepBound {
-				stoppedPrematurely = true
-				break
-			}
 		}
 
 		// If the validator's delegation loop was stopped prematurely, we break from the validator sweep loop.
-		if stoppedPrematurely {
+		if shouldStopPrematurely {
 			break
 		}
 
