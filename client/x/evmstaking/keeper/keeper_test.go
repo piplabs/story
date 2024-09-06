@@ -642,8 +642,7 @@ func TestTestSuite(t *testing.T) {
 func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
-	stakingKeeper := s.StakingKeeper
-	keeper := s.EVMStakingKeeper
+	bankKeeper, stakingKeeper, keeper := s.BankKeeper, s.StakingKeeper, s.EVMStakingKeeper
 
 	// Convert public key to cosmos format
 	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
@@ -652,7 +651,7 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 	// Create and update validator
 	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
 	validator, _ := val.AddTokensFromDel(valTokens)
-	s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 
 	// Create and set delegation
