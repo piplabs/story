@@ -77,7 +77,7 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 			expectedResult: nil,
 		},
 		{
-			name: "pass: one mautred and one not matured unbonding",
+			name: "pass: one matured and one not matured unbonding",
 			setUnbondings: func(c context.Context) {
 				s.setupMatureUnbonding(c, delAddr, valAddr1, "100", ubdTime)
 				s.setupUnbonding(c, delAddr, valAddr2, "100")
