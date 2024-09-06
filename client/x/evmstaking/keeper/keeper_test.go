@@ -571,7 +571,6 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
 				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
 				bankKeeper.EXPECT().SendCoinsFromModuleToModule(c, stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
-
 			},
 			stateCheck: func(c context.Context) {
 				_, err = stakingKeeper.GetUnbondingDelegation(c, delAddr, valAddr1)
