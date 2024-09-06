@@ -13,6 +13,10 @@ type pagination struct {
 	Reverse    bool   `mapstructure:"reverse"`
 }
 
+type getSigningInfosRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getValidatorsRequest struct {
 	Status     string     `mapstructure:"status"`
 	Pagination pagination `mapstructure:"pagination"`
