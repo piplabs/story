@@ -18,6 +18,7 @@ func (s *Server) initSlashingRoute() {
 	s.httpMux.HandleFunc("/slashing/signing_infos/{cons_address}", utils.SimpleWrap(s.aminoCodec, s.GetSigningInfo))
 }
 
+// GetSlashingParams queries the parameters of slashing module.
 func (s *Server) GetSlashingParams(r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
@@ -32,6 +33,7 @@ func (s *Server) GetSlashingParams(r *http.Request) (resp any, err error) {
 	return queryResp, nil
 }
 
+// GetSigningInfos queries signing info of all validators.
 func (s *Server) GetSigningInfos(req *getSigningInfosRequest, r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
@@ -54,6 +56,7 @@ func (s *Server) GetSigningInfos(req *getSigningInfosRequest, r *http.Request) (
 	return queryResp, nil
 }
 
+// GetSigningInfo queries the signing info of given cons address.
 func (s *Server) GetSigningInfo(r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
