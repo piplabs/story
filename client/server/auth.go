@@ -29,6 +29,21 @@ func (s *Server) initAuthRoute() {
 	s.httpMux.HandleFunc("/auth/module_accounts/{name}", utils.SimpleWrap(s.aminoCodec, s.GetModuleAccountByName))
 }
 
+// GetAuthParams queries all parameters of auth module.
+func (s *Server) GetAuthParams(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQueryServer(s.store.GetAccountKeeper()).Params(queryContext, &authtypes.QueryParamsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
 // GetAccountInfo returns account info which is common to all account types.
 func (s *Server) GetAccountInfo(r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
@@ -198,21 +213,6 @@ func (s *Server) GetModuleAccountByName(r *http.Request) (resp any, err error) {
 	}
 
 	if err := s.prepareUnpackInterfaces(utils.WrapTypeAny[types.ModuleAccountI](queryResp.Account)); err != nil {
-		return nil, err
-	}
-
-	return queryResp, nil
-}
-
-// GetAuthParams queries all parameters of auth module.
-func (s *Server) GetAuthParams(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	queryResp, err := keeper.NewQueryServer(s.store.GetAccountKeeper()).Params(queryContext, &authtypes.QueryParamsRequest{})
-	if err != nil {
 		return nil, err
 	}
 

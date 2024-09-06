@@ -52,6 +52,10 @@ type getAccountAddressByIDRequest struct {
 	AccountID uint64 `mapstructure:"account_id"`
 }
 
+type getSupplyRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getSupplyByDenomRequest struct {
 	Denom string `mapstructure:"denom"`
 }
@@ -62,8 +66,36 @@ type getBalancesByAddressRequest struct {
 }
 
 type getBalancesByAddressDenomRequest struct {
+	Denom string `mapstructure:"denom"`
+}
+
+type getDenomOwnersRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getDenomOwnersByQueryRequest struct {
 	Denom      string     `mapstructure:"denom"`
 	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getDenomsMetadataRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getDenomMetadataByQueryStringRequest struct {
+	Denom string `mapstructure:"denom"`
+}
+
+type getSendEnabledRequest struct {
+	Denoms     []string   `mapstructure:"denoms"`
+	Pagination pagination `mapstructure:"pagination"`
+}
+type getSpendableBalancesRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getSpendableBalanceByDenomRequest struct {
+	Denom string `mapstructure:"denom"`
 }
 
 type getValidatorSlashesByValidatorAddressRequest struct {
