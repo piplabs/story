@@ -197,6 +197,8 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
 	delAmtGwei := new(big.Int).Mul(gwei, new(big.Int).SetUint64(delCoin.Amount.Uint64()))
+	// self delegation amount
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 
 	tcs := []struct {
 		name           string
@@ -495,7 +497,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
 				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
 				bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
 				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
@@ -534,8 +536,8 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
+				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 			},
 			stateCheck: func(c context.Context) {
 				_, err = stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
@@ -568,7 +570,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
 				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
 				bankKeeper.EXPECT().SendCoinsFromModuleToModule(c, stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
 			},
@@ -637,7 +639,8 @@ func TestTestSuite(t *testing.T) {
 }
 
 // setupValidatorAndDelegation creates a validator and delegation for testing.
-func (s *TestSuite) setupValidatorAndDelegation(ctx sdk.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
+func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
 	stakingKeeper := s.StakingKeeper
 	keeper := s.EVMStakingKeeper
@@ -650,7 +653,7 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx sdk.Context, valPubKey, delP
 	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
 	validator, _ := val.AddTokensFromDel(valTokens)
 	s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
-	_ = skeeper.TestingUpdateValidator(stakingKeeper, ctx, validator, true)
+	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 
 	// Create and set delegation
 	delAmt := stakingKeeper.TokensFromConsensusPower(ctx, 100).ToLegacyDec()
