@@ -82,6 +82,10 @@ func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error
 		return nil, err
 	}
 
+	if err := s.prepareUnpackInterfaces(queryResp.Hist); err != nil {
+		return nil, err
+	}
+
 	return queryResp, nil
 }
 
@@ -108,8 +112,7 @@ func (s *Server) GetValidators(req *getValidatorsRequest, r *http.Request) (resp
 	}
 
 	for _, validator := range queryResp.Validators {
-		err = s.prepareUnpackInterfaces(validator)
-		if err != nil {
+		if err := s.prepareUnpackInterfaces(validator); err != nil {
 			return nil, err
 		}
 	}
@@ -132,8 +135,7 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 		return nil, err
 	}
 
-	err = s.prepareUnpackInterfaces(queryResp.Validator)
-	if err != nil {
+	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
 	}
 
@@ -327,8 +329,7 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 	}
 
 	for _, validator := range queryResp.Validators {
-		err = s.prepareUnpackInterfaces(validator)
-		if err != nil {
+		if err = s.prepareUnpackInterfaces(validator); err != nil {
 			return nil, err
 		}
 	}
@@ -353,8 +354,7 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 		return nil, err
 	}
 
-	err = s.prepareUnpackInterfaces(queryResp.Validator)
-	if err != nil {
+	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
 	}
 
