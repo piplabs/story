@@ -14,9 +14,9 @@ import (
 )
 
 func (s *Server) initStakingRoute() {
+	s.httpMux.HandleFunc("/staking/params", utils.SimpleWrap(s.aminoCodec, s.GetStakingParams))
 	s.httpMux.HandleFunc("/staking/pool", utils.SimpleWrap(s.aminoCodec, s.GetStakingPool))
 	s.httpMux.HandleFunc("/staking/historical_info/{height}", utils.SimpleWrap(s.aminoCodec, s.GetHistoricalInfoByHeight))
-	s.httpMux.HandleFunc("/staking/params", utils.SimpleWrap(s.aminoCodec, s.GetStakingParams))
 
 	s.httpMux.HandleFunc("/staking/validators", utils.AutoWrap(s.aminoCodec, s.GetValidators))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
@@ -30,6 +30,21 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+}
+
+// GetStakingParams queries the staking parameters.
+func (s *Server) GetStakingParams(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Params(queryContext, &stakingtypes.QueryParamsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
 }
 
 // GetStakingPool queries the staking pool info.
@@ -63,21 +78,6 @@ func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).HistoricalInfo(queryContext, &stakingtypes.QueryHistoricalInfoRequest{
 		Height: height,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return queryResp, nil
-}
-
-// GetStakingParams queries the staking parameters.
-func (s *Server) GetStakingParams(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Params(queryContext, &stakingtypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}
