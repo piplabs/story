@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-  # TESTING ONLY
+  # # TESTING ONLY
   # pull_request:
   #   branches:
   #     - main
@@ -144,7 +144,7 @@ jobs:
             if [ -n "$BINARIES_TO_DELETE" ]; then
               # Delete old binaries
               for key in $BINARIES_TO_DELETE; do
-                aws s3 rm s3://$S3_BUCKET/$key --quiet1
+                aws s3 rm s3://$S3_BUCKET/$key --quiet
               done
               echo "Deleted old binaries: $BINARIES_TO_DELETE"
             else
