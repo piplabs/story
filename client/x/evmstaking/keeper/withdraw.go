@@ -159,7 +159,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 		nextValDelIndex = 0
 
 		// Increase the total swept amount.
-		swept += uint32(len(delegators))
+		swept += uint32(len(nextDelegators))
 	}
 
 	// Update the validator sweep index.
