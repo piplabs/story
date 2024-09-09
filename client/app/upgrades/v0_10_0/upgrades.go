@@ -33,9 +33,16 @@ func CreateUpgradeHandler(
 		}
 
 		clog.Info(ctx, "Setting NextValidatorDelegationSweepIndex parameter...")
-		if err := keepers.EvmStakingKeeper.SetNextValidatorDelegationSweepIndex(
+		nextValIndex, err := keepers.EvmStakingKeeper.GetOldValidatorSweepIndex(ctx)
+		if err != nil {
+			return vm, errors.Wrap(err, "get old validator sweep index")
+		}
+
+		nextValDelIndex := sdk.IntProto{Int: math.NewInt(0)}
+		if err := keepers.EvmStakingKeeper.SetValidatorSweepIndex(
 			ctx,
-			sdk.IntProto{Int: math.NewInt(0)},
+			nextValIndex,
+			nextValDelIndex,
 		); err != nil {
 			return vm, errors.Wrap(err, "set evmstaking NextValidatorDelegationSweepIndex")
 		}
