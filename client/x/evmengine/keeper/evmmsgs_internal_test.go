@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
@@ -26,16 +25,18 @@ import (
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/tutil"
+
+	"go.uber.org/mock/gomock"
 )
 
 var (
-	// dummy block hashes for testing
+	// dummy block hashes for testing.
 	unstakeBlkHash = common.HexToHash("0x1398C32A45Bc409b6C652E25bb0a3e702492A4ab")
 	unjailBlkHash  = common.HexToHash("0x1398C32A45Bc409b6C652E25bb0a3e702492A4ac")
 	mixedBlkHash   = common.HexToHash("0x1398C32A45Bc409b6C652E25bb0a3e702492A4ad")
 	failedBlock    = common.HexToHash("0x1398C32A45Bc409b6C652E25bb0a3e702492A4ae")
 
-	// pre-deploy contract addresses
+	// pre-deploy contract addresses.
 	stakingAddr  = common.HexToAddress(predeploys.IPTokenStaking)
 	slashingAddr = common.HexToAddress(predeploys.IPTokenSlashing)
 )
@@ -113,6 +114,7 @@ func TestKeeper_evmEvents(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			events, err := keeper.evmEvents(ctx, tc.blkHash)
 			if tc.expectedError != "" {
 				require.EqualError(t, err, tc.expectedError)
@@ -143,6 +145,7 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	unstakeData, err = stakingAbi.Events["Withdraw"].Inputs.NonIndexed().Pack(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).Mul(big.NewInt(amt), big.NewInt(params.Ether)))
 	require.NoError(t, err)
 	unjailData, err = slashingAbi.Events["Unjail"].Inputs.NonIndexed().Pack(valPubKey.Bytes())
+	require.NoError(t, err)
 	mockEngine, err := ethclient.NewEngineMock(
 		ethclient.WithMockUnstake(
 			unstakeBlkHash, stakingAddr, delPubKey.Bytes(), valPubKey.Bytes(), amt,
@@ -219,5 +222,6 @@ func isSorted(events []*types.EVMEvent) bool {
 			}
 		}
 	}
+
 	return true
 }

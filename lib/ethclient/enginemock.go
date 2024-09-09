@@ -108,7 +108,6 @@ func WithMockUnstake(blkHash common.Hash, contractAddr common.Address, delPubKey
 		}
 
 		mock.logs[blkHash] = []types.Log{eventLog}
-
 	}
 }
 
@@ -132,11 +131,10 @@ func WithMockUnjail(blkHash common.Hash, contractAddr, valEvmAddr common.Address
 		}
 
 		mock.logs[blkHash] = []types.Log{eventLog}
-
 	}
 }
 
-// TODO: consider making this mocking function more generic for other events also
+// TODO: consider making this mocking function more generic for other events also.
 func WithMockUnstakeAndUnjail(
 	blkHash common.Hash, stakingContractAddr, slashingContractAddr, valEvmAddr common.Address,
 	delPubKeyBytes, valPubKeyBytes []byte, ether int64) func(mock *engineMock,

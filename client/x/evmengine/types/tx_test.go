@@ -267,11 +267,11 @@ func TestSortEVMEvents(t *testing.T) {
 	slashingAbi, err := bindings.IPTokenSlashingMetaData.GetAbi()
 	require.NoError(t, err, "failed to load ABI")
 	slashingAddr := common.HexToAddress(predeploys.IPTokenSlashing)
-	require.True(t, bytes.Compare(stakingAddr.Bytes(), slashingAddr.Bytes()) < 0, "stakingAddr should be less than slashingAddr")
+	require.Negative(t, bytes.Compare(stakingAddr.Bytes(), slashingAddr.Bytes()), "stakingAddr should be less than slashingAddr")
 
 	withdrawEv := stakingAbi.Events["Withdraw"].ID.Bytes()
 	depositEv := stakingAbi.Events["Deposit"].ID.Bytes()
-	require.True(t, bytes.Compare(withdrawEv, depositEv) < 0, "withdrawEv should be less than depositEv")
+	require.Negative(t, bytes.Compare(withdrawEv, depositEv), "withdrawEv should be less than depositEv")
 	unjailEv := slashingAbi.Events["Unjail"].ID.Bytes()
 
 	// prepare data
@@ -294,13 +294,13 @@ func TestSortEVMEvents(t *testing.T) {
 		uncompressedDelPubKeyBytes, delPubKey.Bytes(), valPubKey.Bytes(), delAmtGwei,
 	)
 	require.NoError(t, err)
-	require.True(t, bytes.Compare(withdrawData, depositData) < 0, "withdrawData should be less than depositData")
+	require.Negative(t, bytes.Compare(withdrawData, depositData), "withdrawData should be less than depositData")
 	cpyDelPubKey := delPubKey.Bytes()
 	cpyDelPubKey[0] += 1 // add 1 to the first byte so it should be greater than delPubKey
 	depositData2, err := stakingAbi.Events["Deposit"].Inputs.NonIndexed().Pack(
 		uncompressedDelPubKeyBytes, delPubKey.Bytes(), valPubKey.Bytes(), delAmtGwei,
 	)
-	require.True(t, bytes.Compare(depositData, depositData2) < 0, "depositData should be less than depositData2")
+	require.Negative(t, bytes.Compare(depositData, depositData2), "depositData should be less than depositData2")
 	// slashing contract events
 	unjailData, err := slashingAbi.Events["Unjail"].Inputs.NonIndexed().Pack(valPubKey.Bytes())
 	require.NoError(t, err)
