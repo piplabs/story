@@ -1,6 +1,10 @@
 package types
 
 import (
+	"bytes"
+	"slices"
+	"sort"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -46,4 +50,39 @@ func (l *EVMEvent) Verify() error {
 	}
 
 	return nil
+}
+
+// EthLogToEVMEvent converts an Ethereum Log to an EVMEvent.
+func EthLogToEVMEvent(l ethtypes.Log) (*EVMEvent, error) {
+	topics := make([][]byte, 0, len(l.Topics))
+	for _, t := range l.Topics {
+		topics = append(topics, t.Bytes())
+	}
+
+	evmEvent := &EVMEvent{
+		Address: l.Address.Bytes(),
+		Topics:  topics,
+		Data:    l.Data,
+	}
+	if err := evmEvent.Verify(); err != nil {
+		return nil, errors.Wrap(err, "verify log")
+	}
+	return evmEvent, nil
+}
+
+// SortEVMEvents sorts EVM events by Address > Topics > Data.
+func SortEVMEvents(events []*EVMEvent) {
+	sort.Slice(events, func(i, j int) bool {
+		if cmp := bytes.Compare(events[i].Address, events[j].Address); cmp != 0 {
+			return cmp < 0
+		}
+
+		topicI := slices.Concat(events[i].Topics...)
+		topicJ := slices.Concat(events[j].Topics...)
+		if cmp := bytes.Compare(topicI, topicJ); cmp != 0 {
+			return cmp < 0
+		}
+
+		return bytes.Compare(events[i].Data, events[j].Data) < 0
+	})
 }
