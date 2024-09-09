@@ -11,6 +11,11 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
+type ValidatorSweepIndex struct {
+	nextValIndex    sdk.IntProto
+	nextValDelIndex sdk.IntProto
+}
+
 func (k Keeper) MaxWithdrawalPerBlock(ctx context.Context) (uint32, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -73,24 +78,47 @@ func (k Keeper) GetParams(ctx context.Context) (params types.Params, err error) 
 	return params, nil
 }
 
-func (k Keeper) SetNextValidatorSweepIndex(ctx context.Context, nextValIndex sdk.IntProto) error {
+func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex sdk.IntProto, nextValDelIndex sdk.IntProto) error {
 	store := k.storeService.OpenKVStore(ctx)
-	bz, err := k.cdc.Marshal(&nextValIndex)
+	bz, err := k.cdc.Marshal(&types.ValidatorSweepIndex{
+		NextValIndex:    nextValIndex.Int.Uint64(),
+		NextValDelIndex: nextValDelIndex.Int.Uint64(),
+	})
 	if err != nil {
-		return errors.Wrap(err, "marshal next validator sweep index")
+		return errors.Wrap(err, "marshal validator sweep index")
 	}
 
-	err = store.Set(types.NextValidatorSweepIndexKey, bz)
+	err = store.Set(types.ValidatorSweepIndexKey, bz)
 	if err != nil {
-		return errors.Wrap(err, "set next validator sweep index")
+		return errors.Wrap(err, "set validator sweep index")
 	}
 
 	return nil
 }
 
-func (k Keeper) GetNextValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.IntProto, err error) {
+func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.IntProto, nextValDelIndex sdk.IntProto, err error) {
 	store := k.storeService.OpenKVStore(ctx)
-	bz, err := store.Get(types.NextValidatorSweepIndexKey)
+	bz, err := store.Get(types.ValidatorSweepIndexKey)
+	if err != nil {
+		return nextValIndex, nextValDelIndex, errors.Wrap(err, "get validator sweep index")
+	}
+
+	if bz == nil {
+		return sdk.IntProto{Int: math.NewInt(0)}, sdk.IntProto{Int: math.NewInt(0)}, nil
+	}
+
+	var sweepIndex types.ValidatorSweepIndex
+	err = k.cdc.Unmarshal(bz, &sweepIndex)
+	if err != nil {
+		return nextValIndex, nextValDelIndex, errors.Wrap(err, "unmarshal validator sweep index")
+	}
+
+	return nextValIndex, nextValDelIndex, nil
+}
+
+func (k Keeper) GetOldValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.IntProto, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	bz, err := store.Get(types.ValidatorSweepIndexKey)
 	if err != nil {
 		return nextValIndex, errors.Wrap(err, "get next validator sweep index")
 	}
@@ -105,38 +133,4 @@ func (k Keeper) GetNextValidatorSweepIndex(ctx context.Context) (nextValIndex sd
 	}
 
 	return nextValIndex, nil
-}
-
-func (k Keeper) SetNextValidatorDelegationSweepIndex(ctx context.Context, nextValDelIndex sdk.IntProto) error {
-	store := k.storeService.OpenKVStore(ctx)
-	bz, err := k.cdc.Marshal(&nextValDelIndex)
-	if err != nil {
-		return errors.Wrap(err, "marshal next validator delegation sweep index")
-	}
-
-	err = store.Set(types.NextValidatorDelegationSweepIndexKey, bz)
-	if err != nil {
-		return errors.Wrap(err, "set next validator delegation sweep index")
-	}
-
-	return nil
-}
-
-func (k Keeper) GetNextValidatorDelegationSweepIndex(ctx context.Context) (nextValDelIndex sdk.IntProto, err error) {
-	store := k.storeService.OpenKVStore(ctx)
-	bz, err := store.Get(types.NextValidatorDelegationSweepIndexKey)
-	if err != nil {
-		return nextValDelIndex, errors.Wrap(err, "get next validator delegation sweep index")
-	}
-
-	if bz == nil {
-		return sdk.IntProto{Int: math.NewInt(0)}, nil
-	}
-
-	err = k.cdc.Unmarshal(bz, &nextValDelIndex)
-	if err != nil {
-		return nextValDelIndex, errors.Wrap(err, "unmarshal next validator delegation sweep index")
-	}
-
-	return nextValDelIndex, nil
 }
