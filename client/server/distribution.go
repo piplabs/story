@@ -15,6 +15,8 @@ import (
 )
 
 func (s *Server) initDistributionRoute() {
+	s.httpMux.HandleFunc("/distribution/params", utils.SimpleWrap(s.aminoCodec, s.GetDistributionParams))
+
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorByValidatorAddress))
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/commission", utils.SimpleWrap(s.aminoCodec, s.GetValidatorCommissionByValidatorAddress))
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/outstanding_rewards", utils.SimpleWrap(s.aminoCodec, s.GetValidatorOutstandingRewardsByValidatorAddress))
@@ -27,6 +29,21 @@ func (s *Server) initDistributionRoute() {
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/withdraw_address", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorWithdrawAddressByDelegatorAddress))
 }
 
+// GetDistributionParams queries params of the distribution module.
+func (s *Server) GetDistributionParams(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).Params(queryContext, &distributiontypes.QueryParamsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
 // GetDistributionValidatorByValidatorAddress queries validator commission and self-delegation rewards for validator.
 func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
@@ -37,7 +54,6 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorDistributionInfo(queryContext, &distributiontypes.QueryValidatorDistributionInfoRequest{
 		ValidatorAddress: mux.Vars(r)["validator_address"],
 	})
-
 	if err != nil {
 		return nil, err
 	}

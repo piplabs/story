@@ -13,34 +13,11 @@ type pagination struct {
 	Reverse    bool   `mapstructure:"reverse"`
 }
 
-type getValidatorsRequest struct {
-	Status     string     `mapstructure:"status"`
-	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getValidatorDelegationsByValidatorAddressRequest struct {
-	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getDelegationsByDelegatorAddressRequest struct {
-	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getRedelegationsByDelegatorAddressRequest struct {
-	SrcValidatorAddr string     `mapstructure:"src_validator_addr"`
-	DstValidatorAddr string     `mapstructure:"dst_validator_addr"`
-	Pagination       pagination `mapstructure:"pagination"`
-}
-
-type getUnbondingDelegationsByDelegatorAddressRequest struct {
-	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getValidatorsByDelegatorAddressRequest struct {
-	Pagination pagination `mapstructure:"pagination"`
-}
-
 type getAccountsRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getSupplyRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
@@ -54,14 +31,16 @@ type getBalancesByAddressRequest struct {
 }
 
 type getBalancesByAddressDenomRequest struct {
-	Denom      string     `mapstructure:"denom"`
+	Denom string `mapstructure:"denom"`
+}
+
+type getDenomOwnersRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
-type getValidatorSlashesByValidatorAddressRequest struct {
-	StartingHeight uint64     `mapstructure:"starting_height"`
-	EndingHeight   uint64     `mapstructure:"ending_height"`
-	Pagination     pagination `mapstructure:"pagination"`
+type getDenomOwnersByQueryRequest struct {
+	Denom      string     `mapstructure:"denom"`
+	Pagination pagination `mapstructure:"pagination"`
 }
 
 type getComebftBlockEventsRequest struct {
@@ -83,6 +62,47 @@ type getAllValidatorOutstandingRewardsRequest struct {
 type getAllValidatorOutstandingRewardsRequestBlockResults struct {
 	Height     int64                   `json:"height"`
 	Validators map[string]sdk.DecCoins `json:"validators"`
+}
+
+type getValidatorSlashesByValidatorAddressRequest struct {
+	StartingHeight uint64     `mapstructure:"starting_height"`
+	EndingHeight   uint64     `mapstructure:"ending_height"`
+	Pagination     pagination `mapstructure:"pagination"`
+}
+
+type getSigningInfosRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getValidatorsRequest struct {
+	Status     string     `mapstructure:"status"`
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getValidatorDelegationsByValidatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getValidatorUnbondingDelegationsRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getDelegationsByDelegatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getRedelegationsByDelegatorAddressRequest struct {
+	SrcValidatorAddr string     `mapstructure:"src_validator_addr"`
+	DstValidatorAddr string     `mapstructure:"dst_validator_addr"`
+	Pagination       pagination `mapstructure:"pagination"`
+}
+
+type getUnbondingDelegationsByDelegatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getValidatorsByDelegatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
 }
 
 type getModuleVersionsRequest struct {

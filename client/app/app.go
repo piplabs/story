@@ -18,10 +18,12 @@ import (
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -177,8 +179,16 @@ func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
 }
 
+func (a App) GetEvmStakingKeeper() *evmstakingkeeper.Keeper {
+	return a.Keepers.EvmStakingKeeper
+}
+
 func (a App) GetStakingKeeper() *stakingkeeper.Keeper {
 	return a.Keepers.StakingKeeper
+}
+
+func (a App) GetSlashingKeeper() slashingkeeper.Keeper {
+	return a.Keepers.SlashingKeeper
 }
 
 func (a App) GetAccountKeeper() authkeeper.AccountKeeper {
