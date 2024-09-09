@@ -32,15 +32,20 @@ type payloadArgs struct {
 }
 
 //nolint:gochecknoglobals // This is a static mapping.
-var depositEvent = mustGetABI(bindings.IPTokenStakingMetaData).Events["Deposit"]
+var stakingAbi = mustGetABI(bindings.IPTokenStakingMetaData)
+var depositEvent = stakingAbi.Events["Deposit"]
+var withdrawEvent = stakingAbi.Events["Withdraw"]
+var slashingAbi = mustGetABI(bindings.IPTokenSlashingMetaData)
+var unjailEvent = slashingAbi.Events["Unjail"]
 
 var _ EngineClient = (*engineMock)(nil)
 
 // engineMock mocks the Engine API for testing purposes.
 type engineMock struct {
 	Client
-	fuzzer     *fuzz.Fuzzer
-	randomErrs float64
+	fuzzer            *fuzz.Fuzzer
+	randomErrs        float64
+	failOnBlockHashes map[common.Hash]bool // Field for block hashes that should trigger a failure
 
 	mu          sync.Mutex
 	head        *types.Block
@@ -80,6 +85,108 @@ func WithMockSelfDelegation(pubkey crypto.PubKey, ether int64) func(*engineMock)
 		}
 
 		mock.pendingLogs[contractAddr] = []types.Log{eventLog}
+	}
+}
+
+func WithMockUnstake(blkHash common.Hash, contractAddr common.Address, delPubKeyBytes, valPubKeyBytes []byte, ether int64) func(mock *engineMock) {
+	return func(mock *engineMock) {
+		mock.mu.Lock()
+		defer mock.mu.Unlock()
+
+		wei := new(big.Int).Mul(big.NewInt(ether), big.NewInt(params.Ether))
+		data, err := withdrawEvent.Inputs.NonIndexed().Pack(delPubKeyBytes, valPubKeyBytes, wei)
+		if err != nil {
+			panic(errors.Wrap(err, "pack delegate"))
+		}
+
+		eventLog := types.Log{
+			Address: contractAddr,
+			Topics: []common.Hash{
+				withdrawEvent.ID,
+			},
+			Data: data,
+		}
+
+		mock.logs[blkHash] = []types.Log{eventLog}
+
+	}
+}
+
+func WithMockUnjail(blkHash common.Hash, contractAddr, valEvmAddr common.Address, valPubKeyBytes []byte) func(mock *engineMock) {
+	return func(mock *engineMock) {
+		mock.mu.Lock()
+		defer mock.mu.Unlock()
+
+		data, err := unjailEvent.Inputs.NonIndexed().Pack(valPubKeyBytes)
+		if err != nil {
+			panic(errors.Wrap(err, "pack delegate"))
+		}
+
+		eventLog := types.Log{
+			Address: contractAddr,
+			Topics: []common.Hash{
+				unjailEvent.ID,
+				common.BytesToHash(valEvmAddr.Bytes()),
+			},
+			Data: data,
+		}
+
+		mock.logs[blkHash] = []types.Log{eventLog}
+
+	}
+}
+
+// TODO: consider making this mocking function more generic for other events also
+func WithMockUnstakeAndUnjail(
+	blkHash common.Hash, stakingContractAddr, slashingContractAddr, valEvmAddr common.Address,
+	delPubKeyBytes, valPubKeyBytes []byte, ether int64) func(mock *engineMock,
+) {
+	return func(mock *engineMock) {
+		mock.mu.Lock()
+		defer mock.mu.Unlock()
+
+		wei := new(big.Int).Mul(big.NewInt(ether), big.NewInt(params.Ether))
+		data, err := withdrawEvent.Inputs.NonIndexed().Pack(delPubKeyBytes, valPubKeyBytes, wei)
+		if err != nil {
+			panic(errors.Wrap(err, "pack delegate"))
+		}
+
+		eventLog := types.Log{
+			Address: stakingContractAddr,
+			Topics: []common.Hash{
+				withdrawEvent.ID,
+			},
+			Data: data,
+		}
+
+		mock.logs[blkHash] = []types.Log{eventLog}
+
+		data, err = unjailEvent.Inputs.NonIndexed().Pack(valPubKeyBytes)
+		if err != nil {
+			panic(errors.Wrap(err, "pack delegate"))
+		}
+
+		eventLog = types.Log{
+			Address: slashingContractAddr,
+			Topics: []common.Hash{
+				unjailEvent.ID,
+				common.BytesToHash(valEvmAddr.Bytes()),
+			},
+			Data: data,
+		}
+
+		mock.logs[blkHash] = append(mock.logs[blkHash], eventLog)
+	}
+}
+
+func WithMockFailedOnBlockHashes(hashes []common.Hash) func(*engineMock) {
+	return func(mock *engineMock) {
+		mock.mu.Lock()
+		defer mock.mu.Unlock()
+		mock.failOnBlockHashes = make(map[common.Hash]bool)
+		for _, hash := range hashes {
+			mock.failOnBlockHashes[hash] = true
+		}
 	}
 }
 
@@ -162,29 +269,44 @@ func (m *engineMock) FilterLogs(_ context.Context, q ethereum.FilterQuery) ([]ty
 		return nil, nil
 	}
 
-	addr := q.Addresses[0]
+	// If the block hash is in the failOnBlockHashes map, return an error
+	for hash := range m.failOnBlockHashes {
+		if *q.BlockHash == hash {
+			return nil, errors.New("failed to fetch logs")
+		}
+	}
+
+	// Initialize response slice for collecting logs
+	var resp []types.Log
 
 	// Ensure we return the same logs for the same query.
 	if eventLogs, ok := m.logs[*q.BlockHash]; ok {
-		var resp []types.Log
 		for _, eventLog := range eventLogs {
-			if eventLog.Address == addr {
-				resp = append(resp, eventLog)
+			for _, addr := range q.Addresses {
+				if eventLog.Address == addr {
+					resp = append(resp, eventLog)
+					break // Address match found; move to the next log
+				}
 			}
 		}
 
 		return resp, nil
 	}
 
-	eventLogs, ok := m.pendingLogs[addr]
-	if !ok {
-		return nil, nil
+	// If there are no logs in the main map, check pending logs for all addresses
+	for _, addr := range q.Addresses {
+		if eventLogs, ok := m.pendingLogs[addr]; ok {
+			resp = append(resp, eventLogs...)
+			delete(m.pendingLogs, addr)
+		}
 	}
 
-	m.logs[*q.BlockHash] = eventLogs
-	delete(m.pendingLogs, addr)
+	// Store the collected logs for future queries
+	if len(resp) > 0 {
+		m.logs[*q.BlockHash] = resp
+	}
 
-	return eventLogs, nil
+	return resp, nil
 }
 
 func (m *engineMock) BlockNumber(ctx context.Context) (uint64, error) {

@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
@@ -219,4 +221,20 @@ func newFuzzer(seed int64) *fuzz.Fuzzer {
 	)
 
 	return f
+}
+
+func createAddresses(count int) ([]crypto.PubKey, []sdk.AccAddress, []sdk.ValAddress) {
+	var pubKeys []crypto.PubKey
+	var accAddrs []sdk.AccAddress
+	var valAddrs []sdk.ValAddress
+	for range count {
+		pubKey := k1.GenPrivKey().PubKey()
+		accAddr := sdk.AccAddress(pubKey.Address().Bytes())
+		valAddr := sdk.ValAddress(pubKey.Address().Bytes())
+		pubKeys = append(pubKeys, pubKey)
+		accAddrs = append(accAddrs, accAddr)
+		valAddrs = append(valAddrs, valAddr)
+	}
+
+	return pubKeys, accAddrs, valAddrs
 }
