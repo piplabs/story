@@ -70,10 +70,6 @@ type getValidatorSlashesByValidatorAddressRequest struct {
 	Pagination     pagination `mapstructure:"pagination"`
 }
 
-type getWithdrawalQueueRequest struct {
-	Pagination pagination `mapstructure:"pagination"`
-}
-
 type getSigningInfosRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
