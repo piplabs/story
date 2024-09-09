@@ -53,16 +53,16 @@ func (l *EVMEvent) Verify() error {
 }
 
 // EthLogToEVMEvent converts an Ethereum Log to an EVMEvent.
-func EthLogToEVMEvent(l ethtypes.Log) (*EVMEvent, error) {
-	topics := make([][]byte, 0, len(l.Topics))
-	for _, t := range l.Topics {
+func EthLogToEVMEvent(ethLog ethtypes.Log) (*EVMEvent, error) {
+	topics := make([][]byte, 0, len(ethLog.Topics))
+	for _, t := range ethLog.Topics {
 		topics = append(topics, t.Bytes())
 	}
 
 	evmEvent := &EVMEvent{
-		Address: l.Address.Bytes(),
+		Address: ethLog.Address.Bytes(),
 		Topics:  topics,
-		Data:    l.Data,
+		Data:    ethLog.Data,
 	}
 	if err := evmEvent.Verify(); err != nil {
 		return nil, errors.Wrap(err, "verify log")
