@@ -416,6 +416,7 @@ func TestSortEVMEvents(t *testing.T) {
 			t.Parallel()
 			types.SortEVMEvents(tc.evmEvents)
 			require.Equal(t, tc.expectedResult, tc.evmEvents)
+			require.True(t, types.IsSortedEVMEvents(tc.evmEvents))
 		})
 	}
 }

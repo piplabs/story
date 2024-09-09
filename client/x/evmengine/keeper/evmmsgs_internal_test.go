@@ -1,9 +1,7 @@
 package keeper
 
 import (
-	"bytes"
 	"math/big"
-	"slices"
 	"testing"
 
 	"github.com/cometbft/cometbft/crypto"
@@ -121,7 +119,7 @@ func TestKeeper_evmEvents(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tc.expectedResult, events)
-				require.True(t, isSorted(events), "events are not sorted")
+				require.True(t, types.IsSortedEVMEvents(events), "events are not sorted")
 			}
 		})
 	}
@@ -190,38 +188,4 @@ func mustGetABI(metadata *bind.MetaData) *abi.ABI {
 	}
 
 	return abi
-}
-
-// Helper function to check if the events are sorted by ascending order of address, topics, and data.
-func isSorted(events []*types.EVMEvent) bool {
-	for i := 1; i < len(events); i++ {
-		// Compare addresses first
-		addressComparison := bytes.Compare(events[i-1].Address, events[i].Address)
-		if addressComparison > 0 {
-			// it is not sorted by ascending order of address
-			return false
-		}
-
-		if addressComparison == 0 {
-			// If addresses are equal, compare by topics
-			previousTopic := slices.Concat(events[i-1].Topics...)
-			currentTopic := slices.Concat(events[i].Topics...)
-			topicComparison := bytes.Compare(previousTopic, currentTopic)
-
-			if topicComparison > 0 {
-				// it is not sorted by ascending order of topics
-				return false
-			}
-
-			if topicComparison == 0 {
-				// If topics are also equal, compare by data
-				if bytes.Compare(events[i-1].Data, events[i].Data) > 0 {
-					// it is not sorted by ascending order of data
-					return false
-				}
-			}
-		}
-	}
-
-	return true
 }
