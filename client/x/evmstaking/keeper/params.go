@@ -11,11 +11,6 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-type ValidatorSweepIndex struct {
-	nextValIndex    sdk.IntProto
-	nextValDelIndex sdk.IntProto
-}
-
 func (k Keeper) MaxWithdrawalPerBlock(ctx context.Context) (uint32, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
