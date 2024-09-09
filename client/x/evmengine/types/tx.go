@@ -67,6 +67,7 @@ func EthLogToEVMEvent(l ethtypes.Log) (*EVMEvent, error) {
 	if err := evmEvent.Verify(); err != nil {
 		return nil, errors.Wrap(err, "verify log")
 	}
+
 	return evmEvent, nil
 }
 

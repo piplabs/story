@@ -300,6 +300,7 @@ func TestSortEVMEvents(t *testing.T) {
 	depositData2, err := stakingAbi.Events["Deposit"].Inputs.NonIndexed().Pack(
 		uncompressedDelPubKeyBytes, delPubKey.Bytes(), valPubKey.Bytes(), delAmtGwei,
 	)
+	require.NoError(t, err)
 	require.Negative(t, bytes.Compare(depositData, depositData2), "depositData should be less than depositData2")
 	// slashing contract events
 	unjailData, err := slashingAbi.Events["Unjail"].Inputs.NonIndexed().Pack(valPubKey.Bytes())
