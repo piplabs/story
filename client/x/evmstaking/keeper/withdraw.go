@@ -20,12 +20,7 @@ import (
 )
 
 func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withdrawal, error) {
-	nextValSweepIndex, err := k.GetNextValidatorSweepIndex(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	nextValDelSweepIndex, err := k.GetNextValidatorDelegationSweepIndex(ctx)
+	nextValSweepIndex, nextValDelSweepIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -167,17 +162,10 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 		swept += uint32(len(delegators))
 	}
 
-	// Update the nextValidatorSweepIndex.
-	if err := k.SetNextValidatorSweepIndex(
+	// Update the validator sweep index.
+	if err := k.SetValidatorSweepIndex(
 		ctx,
 		sdk.IntProto{Int: math.NewInt(nextValIndex)},
-	); err != nil {
-		return nil, err
-	}
-
-	// Update the nextValidatorDelegationSweepIndex.
-	if err := k.SetNextValidatorDelegationSweepIndex(
-		ctx,
 		sdk.IntProto{Int: math.NewInt(nextValDelIndex)},
 	); err != nil {
 		return nil, err
