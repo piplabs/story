@@ -3,8 +3,6 @@ package keeper
 import (
 	"context"
 
-	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
@@ -73,11 +71,11 @@ func (k Keeper) GetParams(ctx context.Context) (params types.Params, err error) 
 	return params, nil
 }
 
-func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex sdk.IntProto, nextValDelIndex sdk.IntProto) error {
+func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex uint64, nextValDelIndex uint64) error {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := k.cdc.Marshal(&types.ValidatorSweepIndex{
-		NextValIndex:    nextValIndex.Int.Uint64(),
-		NextValDelIndex: nextValDelIndex.Int.Uint64(),
+		NextValIndex:    nextValIndex,
+		NextValDelIndex: nextValDelIndex,
 	})
 	if err != nil {
 		return errors.Wrap(err, "marshal validator sweep index")
@@ -91,7 +89,7 @@ func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex sdk.Int
 	return nil
 }
 
-func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.IntProto, nextValDelIndex sdk.IntProto, err error) {
+func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex uint64, nextValDelIndex uint64, err error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.ValidatorSweepIndexKey)
 	if err != nil {
@@ -99,7 +97,7 @@ func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.In
 	}
 
 	if bz == nil {
-		return sdk.IntProto{Int: math.NewInt(0)}, sdk.IntProto{Int: math.NewInt(0)}, nil
+		return nextValIndex, nextValDelIndex, nil
 	}
 
 	var sweepIndex types.ValidatorSweepIndex
@@ -108,10 +106,10 @@ func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.In
 		return nextValIndex, nextValDelIndex, errors.Wrap(err, "unmarshal validator sweep index")
 	}
 
-	return nextValIndex, nextValDelIndex, nil
+	return sweepIndex.NextValIndex, sweepIndex.NextValDelIndex, nil
 }
 
-func (k Keeper) GetOldValidatorSweepIndex(ctx context.Context) (nextValIndex sdk.IntProto, err error) {
+func (k Keeper) GetOldValidatorSweepIndex(ctx context.Context) (nextValIndex uint64, err error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.ValidatorSweepIndexKey)
 	if err != nil {
@@ -119,13 +117,14 @@ func (k Keeper) GetOldValidatorSweepIndex(ctx context.Context) (nextValIndex sdk
 	}
 
 	if bz == nil {
-		return sdk.IntProto{Int: math.NewInt(0)}, nil
+		return nextValIndex, nil
 	}
 
-	err = k.cdc.Unmarshal(bz, &nextValIndex)
+	var nextValIndexProto sdk.IntProto
+	err = k.cdc.Unmarshal(bz, &nextValIndexProto)
 	if err != nil {
 		return nextValIndex, errors.Wrap(err, "unmarshal next validator sweep index")
 	}
 
-	return nextValIndex, nil
+	return nextValIndexProto.Int.Uint64(), nil
 }

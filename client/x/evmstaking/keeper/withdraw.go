@@ -3,8 +3,6 @@ package keeper
 import (
 	"context"
 
-	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -20,13 +18,10 @@ import (
 )
 
 func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withdrawal, error) {
-	nextValSweepIndex, nextValDelSweepIndex, err := k.GetValidatorSweepIndex(ctx)
+	nextValIndex, nextValDelIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	nextValIndex := nextValSweepIndex.Int.Int64()
-	nextValDelIndex := nextValDelSweepIndex.Int.Int64()
 
 	// Get all validators first, and then do a circular sweep
 	validatorSet, err := (k.stakingKeeper.(*skeeper.Keeper)).GetAllValidators(ctx)
@@ -34,7 +29,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 		return nil, errors.Wrap(err, "get all validators")
 	}
 
-	if nextValIndex >= int64(len(validatorSet)) {
+	if nextValIndex >= uint64(len(validatorSet)) {
 		// TODO: TBD
 		log.Warn(
 			ctx, "NextValidatorIndex exceeds the validator set size",
@@ -68,7 +63,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 	for range validatorSet {
 		if validatorSet[nextValIndex].IsJailed() {
 			// nextValIndex should be updated, even if the validator is jailed, to progress to the sweep.
-			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+			nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
 			nextValDelIndex = 0
 
 			continue
@@ -94,8 +89,8 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			return nil, errors.Wrap(err, "get validator delegations")
 		}
 
-		if nextValDelIndex >= int64(len(delegators)) {
-			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+		if nextValDelIndex >= uint64(len(delegators)) {
+			nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
 			nextValDelIndex = 0
 
 			continue
@@ -155,7 +150,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 
 		// Here, we have looped through all delegators of the validator (since we did not prematurely stop in the loop above).
 		// Thus, we signal to progress to the next validator by resetting the nextValDelIndex and circularly incrementing the nextValIndex
-		nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+		nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
 		nextValDelIndex = 0
 
 		// Increase the total swept amount.
@@ -165,8 +160,8 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 	// Update the validator sweep index.
 	if err := k.SetValidatorSweepIndex(
 		ctx,
-		sdk.IntProto{Int: math.NewInt(nextValIndex)},
-		sdk.IntProto{Int: math.NewInt(nextValDelIndex)},
+		nextValIndex,
+		nextValDelIndex,
 	); err != nil {
 		return nil, err
 	}

@@ -69,7 +69,7 @@ func (s *TestSuite) TestExpectedPartialWithdrawals() {
 		{
 			name: "pass: val sweep index is out of bounds, so it should be reset to 0 which is the index of the first validator",
 			preRun: func(_ sdk.Context) {
-				require.NoError(keeper.SetValidatorSweepIndex(ctx, sdk.IntProto{Int: sdkmath.NewInt(100)}, sdk.IntProto{Int: sdkmath.NewInt(0)}))
+				require.NoError(keeper.SetValidatorSweepIndex(ctx, uint64(100), uint64(0)))
 				distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), gomock.Any()).Return(dtypes.ValidatorAccumulatedCommission{}, nil)
 				distrKeeper.EXPECT().IncrementValidatorPeriod(gomock.Any(), gomock.Any()).Return(uint64(0), nil)
 				distrKeeper.EXPECT().CalculateDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(delRewards, nil)

@@ -4,10 +4,8 @@ package v0_10_0
 import (
 	"context"
 
-	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
 	"github.com/piplabs/story/client/app/keepers"
@@ -38,7 +36,7 @@ func CreateUpgradeHandler(
 			return vm, errors.Wrap(err, "get old validator sweep index")
 		}
 
-		nextValDelIndex := sdk.IntProto{Int: math.NewInt(0)}
+		nextValDelIndex := uint64(0)
 		if err := keepers.EvmStakingKeeper.SetValidatorSweepIndex(
 			ctx,
 			nextValIndex,
