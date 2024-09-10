@@ -1,6 +1,8 @@
 package keeper_test
 
 import (
+	"context"
+	"math/big"
 	"testing"
 	"time"
 
@@ -9,6 +11,11 @@ import (
 	"cosmossdk.io/store"
 	"cosmossdk.io/store/metrics"
 	storetypes "cosmossdk.io/store/types"
+	"github.com/cometbft/cometbft/crypto"
+	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
@@ -25,11 +32,15 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/suite"
 
+	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/module"
 	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/k1util"
 
 	"go.uber.org/mock/gomock"
 )
@@ -173,6 +184,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	valPubKey1 := pubKeys[1]
 	valAddr2 := valAddrs[2]
 	valPubKey2 := pubKeys[2]
+	valTokens := sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction)
 	// abis
 	stakingAbi, err := bindings.IPTokenStakingMetaData.GetAbi()
 	require.NoError(err)

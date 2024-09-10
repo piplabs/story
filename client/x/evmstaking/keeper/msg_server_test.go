@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"context"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
@@ -17,6 +18,7 @@ func (s *TestSuite) TestAddWithdrawal() {
 	delPubKey := pubKeys[0]
 	valAddr := valAddrs[1]
 	valPubKey := pubKeys[1]
+	valTokens := sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction)
 
 	// self delegation
 	valTokens := s.StakingKeeper.TokensFromConsensusPower(ctx, 10)
