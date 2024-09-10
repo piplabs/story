@@ -18,6 +18,7 @@ import (
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
@@ -34,18 +35,11 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
 
-	mockEngine, err := newMockEngineAPI(2)
-	require.NoError(t, err)
-
 	ctrl := gomock.NewController(t)
 	mockClient := mock.NewMockClient(ctrl)
 	ak := moduletestutil.NewMockAccountKeeper(ctrl)
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
-
-	// Expected call for PeekEligibleWithdrawals
-	esk.EXPECT().DequeueEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
-	esk.EXPECT().ProcessStakingEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	cmtAPI := newMockCometAPI(t, nil)
 	// set the header and proposer so we have the correct next proposer
@@ -54,10 +48,11 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
 	require.NoError(t, err)
 
-	ctx, storeService := setupCtxStore(t, &header)
+	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
-
 	evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
+	mockEngine, err := newMockEngineAPI(storeKey, 2)
+	require.NoError(t, err)
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
@@ -65,54 +60,202 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	populateGenesisHead(ctx, t, keeper)
 
 	msgSrv := NewMsgServerImpl(keeper)
-
-	var payloadData []byte
-	var payloadID engine.PayloadID
-	var latestHeight uint64
-	var block *etypes.Block
-	newPayload := func(ctx context.Context) {
+	createValidPayload := func(c context.Context) (*etypes.Block, engine.PayloadID, []byte) {
 		// get latest block to build on top
-		latestBlock, err := mockEngine.HeaderByType(ctx, ethclient.HeadLatest)
+		latestBlock, err := mockEngine.HeaderByType(c, ethclient.HeadLatest)
 		require.NoError(t, err)
 		latestHeight := latestBlock.Number.Uint64()
 
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx := sdk.UnwrapSDKContext(c)
 		appHash := common.BytesToHash(sdkCtx.BlockHeader().AppHash)
 
-		b, execPayload := mockEngine.nextBlock(t, latestHeight+1, uint64(time.Now().Unix()), latestBlock.Hash(), keeper.validatorAddr, &appHash)
-		block = b
-
-		payloadID, err = ethclient.MockPayloadID(execPayload, &appHash)
+		block, execPayload := mockEngine.nextBlock(t, latestHeight+1, uint64(time.Now().Unix()), latestBlock.Hash(), keeper.validatorAddr, &appHash)
+		payloadID, err := ethclient.MockPayloadID(execPayload, &appHash)
 		require.NoError(t, err)
 
 		// Create execution payload message
-		payloadData, err = json.Marshal(execPayload)
+		payloadData, err := json.Marshal(execPayload)
 		require.NoError(t, err)
+
+		return block, payloadID, payloadData
+	}
+	createRandomEvents := func(c context.Context, blkHash common.Hash) []*types.EVMEvent {
+		events, err := evmLogProc.Prepare(c, blkHash)
+		require.NoError(t, err)
+		return events
 	}
 
-	assertExecutionPayload := func(ctx context.Context) {
-		events, err := evmLogProc.Prepare(ctx, block.Hash())
-		require.NoError(t, err)
+	tcs := []struct {
+		name                    string
+		setup                   func(c context.Context) sdk.Context
+		createPayload           func(c context.Context) (*etypes.Block, engine.PayloadID, []byte)
+		createPrevPayloadEvents func(c context.Context, blkHash common.Hash) []*types.EVMEvent
+		expectedError           string
+		postCheck               func(c context.Context, block *etypes.Block, payloadID engine.PayloadID)
+	}{
+		{
+			name: "pass: valid payload",
+			setup: func(c context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(c).Return(nil, nil)
+				esk.EXPECT().ProcessStakingEvents(c, gomock.Any(), gomock.Any()).Return(nil)
+				return sdk.UnwrapSDKContext(c)
+			},
+			createPayload:           createValidPayload,
+			createPrevPayloadEvents: createRandomEvents,
+			postCheck: func(c context.Context, block *etypes.Block, payloadID engine.PayloadID) {
+				gotPayload, err := mockEngine.GetPayloadV3(c, payloadID)
+				require.NoError(t, err)
+				require.Equal(t, gotPayload.ExecutionPayload.Number, block.Header().Number.Uint64())
+				require.Equal(t, gotPayload.ExecutionPayload.BlockHash, block.Hash())
+				require.Equal(t, gotPayload.ExecutionPayload.FeeRecipient, keeper.validatorAddr)
+				require.Empty(t, gotPayload.ExecutionPayload.Withdrawals)
+			},
+		},
+		{
+			name: "fail: sdk exec mode is not finalize",
+			setup: func(c context.Context) sdk.Context {
+				return sdk.UnwrapSDKContext(c).WithExecMode(sdk.ExecModeCheck)
+			},
+			expectedError: "only allowed in finalize mode",
+		},
+		{
+			name: "fail: no execution head",
+			setup: func(c context.Context) sdk.Context {
+				head, err := keeper.headTable.Get(c, executionHeadID)
+				require.NoError(t, err)
+				require.NoError(t, keeper.headTable.Delete(c, head))
+				return sdk.UnwrapSDKContext(c)
+			},
+			createPayload: createValidPayload,
+			expectedError: "not found",
+		},
+		{
+			name: "fail: invalid payload - wrong payload number",
+			createPayload: func(ctx context.Context) (*etypes.Block, engine.PayloadID, []byte) {
+				latestBlock, err := mockEngine.HeaderByType(ctx, ethclient.HeadLatest)
+				require.NoError(t, err)
+				latestHeight := latestBlock.Number.Uint64()
+				wrongNextHeight := latestHeight + 2
 
-		resp, err := msgSrv.ExecutionPayload(ctx, &types.MsgExecutionPayload{
-			Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-			ExecutionPayload:  payloadData,
-			PrevPayloadEvents: events,
+				sdkCtx := sdk.UnwrapSDKContext(ctx)
+				appHash := common.BytesToHash(sdkCtx.BlockHeader().AppHash)
+
+				block, execPayload := mockEngine.nextBlock(t, wrongNextHeight, uint64(time.Now().Unix()), latestBlock.Hash(), keeper.validatorAddr, &appHash)
+				payloadID, err := ethclient.MockPayloadID(execPayload, &appHash)
+				require.NoError(t, err)
+
+				// Create execution payload message
+				payloadData, err := json.Marshal(execPayload)
+				require.NoError(t, err)
+
+				return block, payloadID, payloadData
+			},
+			createPrevPayloadEvents: createRandomEvents,
+			expectedError:           "invalid proposed payload number",
+		},
+		{
+			name: "fail: DequeueEligibleWithdrawals error",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, errors.New("failed to dequeue"))
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			expectedError: "error on withdrawals dequeue",
+		},
+		{
+			name: "fail: NewPayloadV3 returns status invalid",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				mockEngine.forceInvalidNewPayloadV3 = true
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload:           createValidPayload,
+			createPrevPayloadEvents: createRandomEvents,
+			expectedError:           "payload invalid",
+		},
+		{
+			name: "fail: ForkchoiceUpdatedV3 returns status invalid",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				mockEngine.forceInvalidForkchoiceUpdatedV3 = true
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload:           createValidPayload,
+			createPrevPayloadEvents: createRandomEvents,
+			expectedError:           "payload invalid",
+		},
+		{
+			name: "fail: ProcessStakingEvents error",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(errors.New("failed to process staking events"))
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload:           createValidPayload,
+			createPrevPayloadEvents: createRandomEvents,
+			expectedError:           "deliver staking-related event logs",
+		},
+		{
+			name: "fail: ProcessUpgradeEvents error",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			createPrevPayloadEvents: func(_ context.Context, _ common.Hash) []*types.EVMEvent {
+				// crate invalid upgrade event to trigger ProcessUpgradeEvents failure
+				upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
+				require.NoError(t, err, "failed to load ABI")
+				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
+				return []*types.EVMEvent{{
+					Address: nil, // nil address
+					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+					Data:    data,
+				}}
+			},
+			expectedError: "deliver upgrade-related event logs",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			// nolint:thelper
+			// currently, we can't run the tests in parallel due to the shared mockEngine.
+			// don't know how to fix it yet, just disable parallel for now.
+			//t.Parallel()
+			var payloadData []byte
+			var payloadID engine.PayloadID
+			var block *etypes.Block
+			var events []*types.EVMEvent
+
+			cachedCtx, _ := ctx.CacheContext()
+			if tc.setup != nil {
+				cachedCtx = tc.setup(cachedCtx)
+			}
+			if tc.createPayload != nil {
+				block, payloadID, payloadData = tc.createPayload(cachedCtx)
+			}
+			if tc.createPrevPayloadEvents != nil {
+				events = tc.createPrevPayloadEvents(cachedCtx, block.Hash())
+			}
+
+			resp, err := msgSrv.ExecutionPayload(cachedCtx, &types.MsgExecutionPayload{
+				Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
+				ExecutionPayload:  payloadData,
+				PrevPayloadEvents: events,
+			})
+			if tc.expectedError != "" {
+				require.ErrorContains(t, err, tc.expectedError)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+				if tc.postCheck != nil {
+					tc.postCheck(cachedCtx, block, payloadID)
+				}
+			}
 		})
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-
-		gotPayload, err := mockEngine.GetPayloadV3(ctx, payloadID)
-		require.NoError(t, err)
-		// make sure height is increasing in engine, blocks being built
-		require.Equal(t, gotPayload.ExecutionPayload.Number, latestHeight+1)
-		require.Equal(t, gotPayload.ExecutionPayload.BlockHash, block.Hash())
-		require.Equal(t, gotPayload.ExecutionPayload.FeeRecipient, keeper.validatorAddr)
-		require.Empty(t, gotPayload.ExecutionPayload.Withdrawals)
 	}
-
-	newPayload(ctx)
-	assertExecutionPayload(ctx)
 
 	// now lets run optimistic flow
 	// ctx = ctx.WithBlockTime(ctx.BlockTime().Add(time.Second))
@@ -236,9 +379,9 @@ func Test_pushPayload(t *testing.T) {
 			t.Parallel()
 
 			appHash := tutil.RandomHash()
-			ctx := ctxWithAppHash(t, appHash)
+			ctx, storeKey := ctxWithAppHash(t, appHash)
 
-			mockEngine, err := newMockEngineAPI(0)
+			mockEngine, err := newMockEngineAPI(storeKey, 0)
 			require.NoError(t, err)
 
 			mockEngine.newPayloadV3Func = tt.args.newPayloadV3Func
