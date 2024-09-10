@@ -30,9 +30,6 @@ var (
 	_ appmodule.AppModule = AppModule{}
 )
 
-// ConsensusVersion defines the current module consensus version.
-const ConsensusVersion = 1
-
 // ----------------------------------------------------------------------------
 // AppModuleBasic
 // ----------------------------------------------------------------------------
@@ -106,7 +103,7 @@ func (AppModule) IsOnePerModuleType() {}
 func (AppModule) IsAppModule() {}
 
 // ConsensusVersion implements AppModule/ConsensusVersion.
-func (AppModule) ConsensusVersion() uint64 { return ConsensusVersion }
+func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // DefaultGenesis returns default genesis state as raw bytes for the module.
 func (AppModule) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
@@ -114,11 +111,6 @@ func (AppModule) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 }
 
 // RegisterServices registers a gRPC query service to respond to the module-specific gRPC queries.
-//
-//	func (am AppModule) RegisterServices(registrar grpc.ServiceRegistrar) error {
-//		types.RegisterQueryServer(registrar, am.keeper)
-//		return nil
-//	}
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 	types.RegisterMsgServiceServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.keeper))

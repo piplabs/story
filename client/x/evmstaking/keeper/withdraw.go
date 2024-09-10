@@ -3,8 +3,6 @@ package keeper
 import (
 	"context"
 
-	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -20,19 +18,18 @@ import (
 )
 
 func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withdrawal, error) {
-	// TODO: user more fine-grained cursor with next delegator sweep index.
-	nextValSweepIndex, err := k.GetNextValidatorSweepIndex(ctx)
+	nextValIndex, nextValDelIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
-	nextValIndex := nextValSweepIndex.Int.Int64()
+
 	// Get all validators first, and then do a circular sweep
 	validatorSet, err := (k.stakingKeeper.(*skeeper.Keeper)).GetAllValidators(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get all validators")
 	}
 
-	if nextValIndex >= int64(len(validatorSet)) {
+	if nextValIndex >= uint64(len(validatorSet)) {
 		// TODO: TBD
 		log.Warn(
 			ctx, "NextValidatorIndex exceeds the validator set size",
@@ -41,6 +38,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			"next_validator_index", nextValIndex,
 		)
 		nextValIndex = 0
+		nextValDelIndex = 0
 	}
 
 	// Iterate all validators from `nextValidatorIndex` to find out eligible partial withdrawals.
@@ -48,30 +46,26 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 		swept       uint32
 		withdrawals []estypes.Withdrawal
 	)
+
 	// Get sweep limit per block.
 	sweepBound, err := k.MaxSweepPerBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	// Get minimal partial withdrawal amount.
 	minPartialWithdrawalAmount, err := k.MinPartialWithdrawalAmount(ctx)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug(
-		ctx, "partial withdrawal params",
-		"min_partial_withdraw_amount", minPartialWithdrawalAmount,
-		"max_sweep_per_block", sweepBound,
-	)
+
 	// Sweep and get eligible partial withdrawals.
 	for range validatorSet {
-		if swept > sweepBound {
-			break
-		}
-
 		if validatorSet[nextValIndex].IsJailed() {
 			// nextValIndex should be updated, even if the validator is jailed, to progress to the sweep.
-			nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+			nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
+			nextValDelIndex = 0
+
 			continue
 		}
 
@@ -82,86 +76,100 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 		}
 		valAddr := sdk.ValAddress(valBz)
 		valAccAddr := sdk.AccAddress(valAddr)
+
 		// Get validator commissions.
 		valCommission, err := k.distributionKeeper.GetValidatorAccumulatedCommission(ctx, valAddr)
 		if err != nil {
 			return nil, err
 		}
-		log.Debug(
-			ctx, "Get validator commission",
-			"val_addr", valAddr.String(),
-			"commission_amount", valCommission.Commission.String(),
-		)
+
 		// Get all delegators of the validator.
 		delegators, err := (k.stakingKeeper.(*skeeper.Keeper)).GetValidatorDelegations(ctx, valAddr)
 		if err != nil {
 			return nil, errors.Wrap(err, "get validator delegations")
 		}
-		swept += uint32(len(delegators))
-		log.Debug(
-			ctx, "Get all delegators of validator",
-			"val_addr", valAddr.String(),
-			"delegator_amount", len(delegators),
-		)
-		// Get delegator rewards.
-		for i := range delegators {
+
+		if nextValDelIndex >= uint64(len(delegators)) {
+			nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
+			nextValDelIndex = 0
+
+			continue
+		}
+
+		nextDelegators := delegators[nextValDelIndex:]
+		var shouldStopPrematurely bool
+
+		// Check if the sweep should stop prematurely as the current delegator loop exceeds the sweep bound while sweeping.
+		remainingSweep := sweepBound - swept
+		if uint32(len(nextDelegators)) > remainingSweep {
+			nextDelegators = nextDelegators[:remainingSweep]
+			shouldStopPrematurely = true
+		}
+
+		// Iterate on the validator's delegator rewards in the range [nextValDelIndex, len(delegators)].
+		for i := range nextDelegators {
 			// Get end current period and calculate rewards.
 			endingPeriod, err := k.distributionKeeper.IncrementValidatorPeriod(ctx, validatorSet[nextValIndex])
 			if err != nil {
 				return nil, err
 			}
-			delRewards, err := k.distributionKeeper.CalculateDelegationRewards(ctx, validatorSet[nextValIndex], delegators[i], endingPeriod)
+
+			delRewards, err := k.distributionKeeper.CalculateDelegationRewards(ctx, validatorSet[nextValIndex], nextDelegators[i], endingPeriod)
 			if err != nil {
 				return nil, err
 			}
-			if delegators[i].DelegatorAddress == valAccAddr.String() {
+
+			if nextDelegators[i].DelegatorAddress == valAccAddr.String() {
 				delRewards = delRewards.Add(valCommission.Commission...)
 			}
 			delRewardsTruncated, _ := delRewards.TruncateDecimal()
 			bondDenomAmount := delRewardsTruncated.AmountOf(sdk.DefaultBondDenom).Uint64()
 
-			log.Debug(
-				ctx, "Calculate delegator rewards",
-				"val_addr", valAddr.String(),
-				"del_addr", delegators[i].DelegatorAddress,
-				"rewards_amount", bondDenomAmount,
-				"ending_period", endingPeriod,
-			)
-
 			if bondDenomAmount >= minPartialWithdrawalAmount {
-				delEvmAddr, err := k.DelegatorMap.Get(ctx, delegators[i].DelegatorAddress)
+				delEvmAddr, err := k.DelegatorMap.Get(ctx, nextDelegators[i].DelegatorAddress)
 				if err != nil {
 					return nil, errors.Wrap(err, "map delegator pubkey to evm address")
 				}
+
 				withdrawals = append(withdrawals, estypes.NewWithdrawal(
 					uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-					delegators[i].DelegatorAddress,
+					nextDelegators[i].DelegatorAddress,
 					valAddr.String(),
 					delEvmAddr,
 					bondDenomAmount,
 				))
-
-				log.Debug(
-					ctx, "Found an eligible partial withdrawal",
-					"val_addr", valAddr.String(),
-					"del_addr", delegators[i].DelegatorAddress,
-					"del_evm_addr", delEvmAddr,
-					"rewards_amount", bondDenomAmount,
-				)
 			}
+
+			nextValDelIndex++
 		}
-		nextValIndex = (nextValIndex + 1) % int64(len(validatorSet))
+
+		// If the validator's delegation loop was stopped prematurely, we break from the validator sweep loop.
+		if shouldStopPrematurely {
+			break
+		}
+
+		// Here, we have looped through all delegators of the validator (since we did not prematurely stop in the loop above).
+		// Thus, we signal to progress to the next validator by resetting the nextValDelIndex and circularly incrementing the nextValIndex
+		nextValIndex = (nextValIndex + 1) % uint64(len(validatorSet))
+		nextValDelIndex = 0
+
+		// Increase the total swept amount.
+		swept += uint32(len(nextDelegators))
 	}
-	// Update the nextValidatorSweepIndex.
-	if err := k.SetNextValidatorSweepIndex(
+
+	// Update the validator sweep index.
+	if err := k.SetValidatorSweepIndex(
 		ctx,
-		sdk.IntProto{Int: math.NewInt(nextValIndex)},
+		nextValIndex,
+		nextValDelIndex,
 	); err != nil {
 		return nil, err
 	}
+
 	log.Debug(
 		ctx, "Finish validator sweep for partial withdrawals",
 		"next_validator_index", nextValIndex,
+		"next_validator_delegation_index", nextValDelIndex,
 		"partial_withdrawals", len(withdrawals),
 	)
 
