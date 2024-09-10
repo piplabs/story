@@ -11,6 +11,7 @@ import (
 	"time"
 
 	storetypes "cosmossdk.io/store/types"
+
 	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
@@ -181,15 +182,14 @@ func (m *engineMock) getHeadBlock(ctx context.Context) (*types.Block, error) {
 		if err := m.setHeadBlock(ctx, m.genesisBlock); err != nil {
 			return nil, err
 		}
+
 		return m.genesisBlock, nil
 	}
 	var headBlock types.Block
 	if err := rlp.DecodeBytes(headBz, &headBlock); err != nil {
 		return nil, errors.Wrap(err, "decode head")
 	}
-	//if err := headBlock.DecodeRLP(rlp.NewStream(bytes.NewReader(headBz), 1000)); err != nil {
-	//	return nil, errors.Wrap(err, "decode head")
-	//}
+
 	return &headBlock, nil
 }
 
@@ -202,6 +202,7 @@ func (m *engineMock) setHeadBlock(ctx context.Context, head *types.Block) error 
 	headBz := buf.Bytes()
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.KVStore(m.storeKey).Set(m.headKey, headBz)
+
 	return nil
 }
 
@@ -250,6 +251,7 @@ func (m *engineMock) BlockNumber(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return headBlock.NumberU64(), nil
 }
 

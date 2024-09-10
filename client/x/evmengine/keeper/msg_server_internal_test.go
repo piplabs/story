@@ -82,6 +82,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	createRandomEvents := func(c context.Context, blkHash common.Hash) []*types.EVMEvent {
 		events, err := evmLogProc.Prepare(c, blkHash)
 		require.NoError(t, err)
+
 		return events
 	}
 
@@ -98,6 +99,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(c context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(c).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(c, gomock.Any(), gomock.Any()).Return(nil)
+
 				return sdk.UnwrapSDKContext(c)
 			},
 			createPayload:           createValidPayload,
@@ -124,6 +126,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 				head, err := keeper.headTable.Get(c, executionHeadID)
 				require.NoError(t, err)
 				require.NoError(t, keeper.headTable.Delete(c, head))
+
 				return sdk.UnwrapSDKContext(c)
 			},
 			createPayload: createValidPayload,
@@ -157,6 +160,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			name: "fail: DequeueEligibleWithdrawals error",
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, errors.New("failed to dequeue"))
+
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload: createValidPayload,
@@ -167,6 +171,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
 				mockEngine.forceInvalidNewPayloadV3 = true
+
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload:           createValidPayload,
@@ -178,6 +183,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
 				mockEngine.forceInvalidForkchoiceUpdatedV3 = true
+
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload:           createValidPayload,
@@ -189,6 +195,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(errors.New("failed to process staking events"))
+
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload:           createValidPayload,
@@ -200,6 +207,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
+
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload: createValidPayload,
@@ -208,6 +216,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 				upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
 				require.NoError(t, err, "failed to load ABI")
 				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
+				require.NoError(t, err)
+
 				return []*types.EVMEvent{{
 					Address: nil, // nil address
 					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
@@ -219,11 +229,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		//nolint:tparallel // currently, we can't run the tests in parallel due to the shared mockEngine. don't know how to fix it yet, just disable parallel for now.
 		t.Run(tc.name, func(t *testing.T) {
-			// nolint:thelper
-			// currently, we can't run the tests in parallel due to the shared mockEngine.
-			// don't know how to fix it yet, just disable parallel for now.
-			//t.Parallel()
+			// t.Parallel()
 			var payloadData []byte
 			var payloadID engine.PayloadID
 			var block *etypes.Block
