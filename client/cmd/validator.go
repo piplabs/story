@@ -574,8 +574,15 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 	return nil
 }
 
-func checkStatus(_ context.Context, cfg baseConfig) error {
-	resp, err := http.Get(fmt.Sprintf("%s/status", cfg.RPC))
+func checkStatus(ctx context.Context, cfg baseConfig) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/status", cfg.RPC), nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to create request")
+	}
+
+	// Create an HTTP client and perform the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to query cometBFT status endpoint")
 	}
@@ -603,7 +610,7 @@ func checkStatus(_ context.Context, cfg baseConfig) error {
 		return errors.Wrap(err, "invalid block height")
 	}
 
-	responseJSON := map[string]interface{}{
+	responseJSON := map[string]any{
 		"sync_info": map[string]any{
 			"latest_block_height": blockHeight,
 		},
