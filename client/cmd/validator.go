@@ -581,7 +581,7 @@ func checkStatus(ctx context.Context, cfg baseConfig) error {
 	}
 
 	// Create an HTTP client and perform the request
-	client := &http.Client{}
+	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to query cometBFT status endpoint")
