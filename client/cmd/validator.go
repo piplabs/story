@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
+	"strconv"
 	"os"
 	"strings"
 
@@ -89,6 +91,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorAddOperatorCmd(),
 		newValidatorRemoveOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
+		newValidatorStatusCmd(),
 	)
 
 	return cmd
@@ -279,6 +282,24 @@ func newValidatorKeyExportCmd() *cobra.Command {
 	}
 
 	bindValidatorKeyExportFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorStatusCmd() *cobra.Command {
+	var cfg baseConfig
+
+	cmd := &cobra.Command{
+		Use:   "status",
+		Short: "Fetch status of the Story chain",
+		Args:  cobra.NoArgs,
+		RunE: runValidatorCommand(
+			func() error { return validateValidatorStatusFlags(cfg) },
+			func(ctx context.Context) error { return checkStatus(ctx, cfg) },
+		),
+	}
+
+	bindValidatorBaseFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -551,6 +572,51 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 	fmt.Println("Tokens unstaked on behalf of delegator successfully!")
 
 	return nil
+}
+
+func checkStatus(ctx context.Context, cfg baseConfig) error {
+    resp, err := http.Get(fmt.Sprintf("%s/status", cfg.RPC))
+    if err != nil {
+        return errors.Wrap(err, "failed to query cometBFT status endpoint")
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return errors.New(fmt.Sprintf("unexpected response code: %d", resp.StatusCode))
+    }
+
+    type statusResponse struct {
+        Result struct {
+            SyncInfo struct {
+                LatestBlockHeight string `json:"latest_block_height"`
+            } `json:"sync_info"`
+        } `json:"result"`
+    }
+
+    var statusResp statusResponse
+    if err := json.NewDecoder(resp.Body).Decode(&statusResp); err != nil {
+        return errors.Wrap(err, "failed to decode JSON response")
+    }
+
+    blockHeight, err := strconv.ParseInt(statusResp.Result.SyncInfo.LatestBlockHeight, 10, 64)
+    if err != nil {
+        return errors.Wrap(err, "invalid block height")
+    }
+
+    responseJSON := map[string]interface{}{
+        "sync_info": map[string]interface{}{
+            "latest_block_height": blockHeight,
+        },
+    }
+
+    output, err := json.Marshal(responseJSON)
+    if err != nil {
+        return errors.Wrap(err, "failed to marshal output JSON")
+    }
+
+    fmt.Println(string(output))
+
+    return nil
 }
 
 func prepareAndExecuteTransaction(ctx context.Context, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {

@@ -181,3 +181,9 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 		"unstake":          cfg.StakeAmount,
 	})
 }
+
+func validateValidatorStatusFlags(cfg baseConfig) error {
+	return validateFlags(map[string]string{
+		"rpc": cfg.RPC,
+	})
+}
