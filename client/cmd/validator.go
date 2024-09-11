@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strconv"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -574,49 +574,49 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 	return nil
 }
 
-func checkStatus(ctx context.Context, cfg baseConfig) error {
-    resp, err := http.Get(fmt.Sprintf("%s/status", cfg.RPC))
-    if err != nil {
-        return errors.Wrap(err, "failed to query cometBFT status endpoint")
-    }
-    defer resp.Body.Close()
+func checkStatus(_ context.Context, cfg baseConfig) error {
+	resp, err := http.Get(fmt.Sprintf("%s/status", cfg.RPC))
+	if err != nil {
+		return errors.Wrap(err, "failed to query cometBFT status endpoint")
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return errors.New(fmt.Sprintf("unexpected response code: %d", resp.StatusCode))
-    }
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("unexpected response code: " + strconv.Itoa(resp.StatusCode))
+	}
 
-    type statusResponse struct {
-        Result struct {
-            SyncInfo struct {
-                LatestBlockHeight string `json:"latest_block_height"`
-            } `json:"sync_info"`
-        } `json:"result"`
-    }
+	type statusResponse struct {
+		Result struct {
+			SyncInfo struct {
+				LatestBlockHeight string `json:"latest_block_height"`
+			} `json:"sync_info"`
+		} `json:"result"`
+	}
 
-    var statusResp statusResponse
-    if err := json.NewDecoder(resp.Body).Decode(&statusResp); err != nil {
-        return errors.Wrap(err, "failed to decode JSON response")
-    }
+	var statusResp statusResponse
+	if err := json.NewDecoder(resp.Body).Decode(&statusResp); err != nil {
+		return errors.Wrap(err, "failed to decode JSON response")
+	}
 
-    blockHeight, err := strconv.ParseInt(statusResp.Result.SyncInfo.LatestBlockHeight, 10, 64)
-    if err != nil {
-        return errors.Wrap(err, "invalid block height")
-    }
+	blockHeight, err := strconv.ParseInt(statusResp.Result.SyncInfo.LatestBlockHeight, 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "invalid block height")
+	}
 
-    responseJSON := map[string]interface{}{
-        "sync_info": map[string]interface{}{
-            "latest_block_height": blockHeight,
-        },
-    }
+	responseJSON := map[string]interface{}{
+		"sync_info": map[string]any{
+			"latest_block_height": blockHeight,
+		},
+	}
 
-    output, err := json.Marshal(responseJSON)
-    if err != nil {
-        return errors.Wrap(err, "failed to marshal output JSON")
-    }
+	output, err := json.Marshal(responseJSON)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal output JSON")
+	}
 
-    fmt.Println(string(output))
+	fmt.Println(string(output))
 
-    return nil
+	return nil
 }
 
 func prepareAndExecuteTransaction(ctx context.Context, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {
