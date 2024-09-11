@@ -55,12 +55,7 @@ func UnmarshalParams(cdc *codec.LegacyAmino, value []byte) (params Params, err e
 	return params, nil
 }
 
-func ValidateMaxWithdrawalPerBlock(i any) error {
-	v, ok := i.(uint32)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
+func ValidateMaxWithdrawalPerBlock(v uint32) error {
 	if v == 0 {
 		return fmt.Errorf("max withdrawal per block must be positive: %d", v)
 	}
@@ -68,29 +63,19 @@ func ValidateMaxWithdrawalPerBlock(i any) error {
 	return nil
 }
 
-func ValidateMaxSweepPerBlock(i any, maxWithdrawalPerBlock uint32) error {
-	v, ok := i.(uint32)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+func ValidateMaxSweepPerBlock(maxSweepPerBlock uint32, maxWithdrawalPerBlock uint32) error {
+	if maxSweepPerBlock == 0 {
+		return fmt.Errorf("max sweep per block must be positive: %d", maxSweepPerBlock)
 	}
 
-	if v == 0 {
-		return fmt.Errorf("max sweep per block must be positive: %d", v)
-	}
-
-	if v < maxWithdrawalPerBlock {
-		return fmt.Errorf("max sweep per block must be greater than or equal to max withdrawal per block: %d < %d", v, maxWithdrawalPerBlock)
+	if maxSweepPerBlock < maxWithdrawalPerBlock {
+		return fmt.Errorf("max sweep per block must be greater than or equal to max withdrawal per block: %d < %d", maxSweepPerBlock, maxWithdrawalPerBlock)
 	}
 
 	return nil
 }
 
-func ValidateMinPartialWithdrawalAmount(i any) error {
-	v, ok := i.(uint64)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
+func ValidateMinPartialWithdrawalAmount(v uint64) error {
 	if v == 0 {
 		return fmt.Errorf("min partial withdrawal amount must be positive: %d", v)
 	}
