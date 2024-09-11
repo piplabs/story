@@ -196,7 +196,7 @@ func (suite *WithdrawTestSuite) TestMustUnmarshalWithdraw() {
 	}
 }
 
-func TestTestSuite(t *testing.T) {
+func TestWithdrawalTestSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(WithdrawTestSuite))
 }
