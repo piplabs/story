@@ -575,7 +575,7 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 }
 
 func checkStatus(ctx context.Context, cfg baseConfig) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/status", cfg.RPC), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", cfg.RPC+"/status", nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to create request")
 	}
