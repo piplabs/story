@@ -139,6 +139,7 @@ func (s *TestSuite) SetupTest() {
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),
 	)
+	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, types.DefaultParams()))
 	s.EVMStakingKeeper = evmstakingKeeper
 	s.msgServer = keeper.NewMsgServerImpl(evmstakingKeeper)
 }
