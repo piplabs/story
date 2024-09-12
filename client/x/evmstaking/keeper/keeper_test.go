@@ -184,7 +184,8 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	valPubKey1 := pubKeys[1]
 	valAddr2 := valAddrs[2]
 	valPubKey2 := pubKeys[2]
-	valTokens := sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction)
+	// self delegation amount
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	// abis
 	stakingAbi, err := bindings.IPTokenStakingMetaData.GetAbi()
 	require.NoError(err)
@@ -198,8 +199,6 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
 	delAmtGwei := new(big.Int).Mul(gwei, new(big.Int).SetUint64(delCoin.Amount.Uint64()))
-	// self delegation amount
-	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 
 	tcs := []struct {
 		name           string

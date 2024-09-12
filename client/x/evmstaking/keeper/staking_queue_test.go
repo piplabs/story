@@ -4,23 +4,9 @@ import (
 	"context"
 	"time"
 
-	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"go.uber.org/mock/gomock"
 )
-
-// setupUnbonding creates unbondings for testing.
-func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
-	require := s.Require()
-	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
-
-	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
-	_, _, err := stakingKeeper.Undelegate(ctx, delAddr, valAddr, math.LegacyMustNewDecFromStr(amount))
-	require.NoError(err)
-}
 
 // setupMaturedUnbonding creates matured unbondings for testing.
 func (s *TestSuite) setupMatureUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt string, duration time.Duration) {
