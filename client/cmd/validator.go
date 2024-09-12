@@ -8,11 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"net/http"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -92,7 +89,6 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorAddOperatorCmd(),
 		newValidatorRemoveOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
-		newValidatorStatusCmd(),
 	)
 
 	return cmd
@@ -283,24 +279,6 @@ func newValidatorKeyExportCmd() *cobra.Command {
 	}
 
 	bindValidatorKeyExportFlags(cmd, &cfg)
-
-	return cmd
-}
-
-func newValidatorStatusCmd() *cobra.Command {
-	var cfg baseConfig
-
-	cmd := &cobra.Command{
-		Use:   "status",
-		Short: "Fetch status of the Story chain",
-		Args:  cobra.NoArgs,
-		RunE: runValidatorCommand(
-			func() error { return validateValidatorStatusFlags(cfg) },
-			func(ctx context.Context) error { return checkStatus(ctx, cfg) },
-		),
-	}
-
-	bindValidatorBaseFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -571,58 +549,6 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 	}
 
 	fmt.Println("Tokens unstaked on behalf of delegator successfully!")
-
-	return nil
-}
-
-func checkStatus(ctx context.Context, cfg baseConfig) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cfg.RPC+"/status", nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to create request")
-	}
-
-	// Create an HTTP client and perform the request
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "failed to query cometBFT status endpoint")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("unexpected response code: " + strconv.Itoa(resp.StatusCode))
-	}
-
-	type statusResponse struct {
-		Result struct {
-			SyncInfo struct {
-				LatestBlockHeight string `json:"latest_block_height"`
-			} `json:"sync_info"`
-		} `json:"result"`
-	}
-
-	var statusResp statusResponse
-	if err := json.NewDecoder(resp.Body).Decode(&statusResp); err != nil {
-		return errors.Wrap(err, "failed to decode JSON response")
-	}
-
-	blockHeight, err := strconv.ParseInt(statusResp.Result.SyncInfo.LatestBlockHeight, 10, 64)
-	if err != nil {
-		return errors.Wrap(err, "invalid block height")
-	}
-
-	responseJSON := map[string]any{
-		"sync_info": map[string]any{
-			"latest_block_height": blockHeight,
-		},
-	}
-
-	output, err := json.Marshal(responseJSON)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal output JSON")
-	}
-
-	fmt.Println(string(output))
 
 	return nil
 }
