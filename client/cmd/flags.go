@@ -116,6 +116,10 @@ func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
 }
 
+func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
+	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
+}
+
 // Flag Validation
 
 func validateFlags(flags map[string]string) error {
