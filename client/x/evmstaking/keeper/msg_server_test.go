@@ -17,7 +17,6 @@ func (s *TestSuite) TestAddWithdrawal() {
 	delPubKey := pubKeys[0]
 	valAddr := valAddrs[1]
 	valPubKey := pubKeys[1]
-
 	// self delegation
 	valTokens := s.StakingKeeper.TokensFromConsensusPower(ctx, 10)
 
