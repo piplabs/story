@@ -18,6 +18,9 @@ func (s *TestSuite) TestAddWithdrawal() {
 	valAddr := valAddrs[1]
 	valPubKey := pubKeys[1]
 
+	// self delegation
+	valTokens := s.StakingKeeper.TokensFromConsensusPower(ctx, 10)
+
 	tcs := []struct {
 		name          string
 		preRun        func(c context.Context)
@@ -71,7 +74,7 @@ func (s *TestSuite) TestAddWithdrawal() {
 		{
 			name: "fail: jailed validator",
 			preRun: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr, valTokens)
 				validator, err := s.StakingKeeper.GetValidator(c, valAddr)
 				require.NoError(err)
 				validator.Jailed = true
@@ -89,7 +92,7 @@ func (s *TestSuite) TestAddWithdrawal() {
 		{
 			name: "fail: unbonded validator",
 			preRun: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr, valTokens)
 				validator, err := s.StakingKeeper.GetValidator(c, valAddr)
 				require.NoError(err)
 				validator.Status = stypes.Unbonded
@@ -107,7 +110,7 @@ func (s *TestSuite) TestAddWithdrawal() {
 		{
 			name: "pass",
 			preRun: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey, delPubKey, valAddr, delAddr, valTokens)
 			},
 			msg: &types.MsgAddWithdrawal{
 				Withdrawal: &types.Withdrawal{

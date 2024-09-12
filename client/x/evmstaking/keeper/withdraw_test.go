@@ -36,7 +36,8 @@ func (s *TestSuite) TestExpectedPartialWithdrawals() {
 	valPubKey2 := pubKeys[2]
 	valAddr2 := valAddrs[2]
 
-	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey, valAddr, delAddr)
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
+	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey, valAddr, delAddr, valTokens)
 	// set params as default
 	params := types.DefaultParams()
 	require.NoError(keeper.SetParams(ctx, params))
@@ -103,7 +104,7 @@ func (s *TestSuite) TestExpectedPartialWithdrawals() {
 		{
 			name: "pass: multiple validators",
 			preRun: func(c sdk.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 				distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), gomock.Any()).Return(dtypes.ValidatorAccumulatedCommission{}, nil).Times(2)
 				distrKeeper.EXPECT().IncrementValidatorPeriod(gomock.Any(), gomock.Any()).Return(uint64(0), nil).Times(2)
 				distrKeeper.EXPECT().CalculateDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(delRewards, nil).Times(2)
@@ -126,7 +127,7 @@ func (s *TestSuite) TestExpectedPartialWithdrawals() {
 		{
 			name: "pass: skip jailed validator",
 			preRun: func(c sdk.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 				val, err := stakingKeeper.GetValidator(c, valAddr2)
 				require.NoError(err)
 				val.Jailed = true
@@ -290,7 +291,7 @@ func (s *TestSuite) TestEnqueueEligiblePartialWithdrawal() {
 
 func (s *TestSuite) TestProcessWithdraw() {
 	require := s.Require()
-	ctx, keeper, accountKeeper, bankKeeper := s.Ctx, s.EVMStakingKeeper, s.AccountKeeper, s.BankKeeper
+	ctx, keeper, accountKeeper, bankKeeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.AccountKeeper, s.BankKeeper, s.StakingKeeper
 
 	pubKeys, accAddrs, valAddrs := createAddresses(4)
 	// delegator-1
@@ -302,7 +303,8 @@ func (s *TestSuite) TestProcessWithdraw() {
 	// unknown pubkey
 	unknownPubKey := pubKeys[3]
 
-	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey1, valAddr, delAddr1)
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
+	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey1, valAddr, delAddr1, valTokens)
 
 	tcs := []struct {
 		name        string
