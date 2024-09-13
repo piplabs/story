@@ -267,11 +267,23 @@ func TestSortEVMEvents(t *testing.T) {
 	slashingAbi, err := bindings.IPTokenSlashingMetaData.GetAbi()
 	require.NoError(t, err, "failed to load ABI")
 	slashingAddr := common.HexToAddress(predeploys.IPTokenSlashing)
-	require.Negative(t, bytes.Compare(stakingAddr.Bytes(), slashingAddr.Bytes()), "stakingAddr should be less than slashingAddr")
+	// Ensure that stakingAddr < slashingAddr before sorting,
+	// so that we know the initial order of addresses.
+	// This check is necessary to validate that the sorting function
+	// will correctly reorder them if input in the wrong order.
+	// For example, if the input order is slashingAddr, stakingAddr,
+	// the sorted result should be stakingAddr, slashingAddr.
+	require.Negative(t, bytes.Compare(stakingAddr.Bytes(), slashingAddr.Bytes()))
 
 	withdrawEv := stakingAbi.Events["Withdraw"].ID.Bytes()
 	depositEv := stakingAbi.Events["Deposit"].ID.Bytes()
-	require.Negative(t, bytes.Compare(withdrawEv, depositEv), "withdrawEv should be less than depositEv")
+	// Ensure that withdrawEv < depositEv before testing the sorting by topics.
+	// This check is necessary to establish the initial order of event topics.
+	// It helps verify that the sorting function will reorder them correctly
+	// if they are initially in the wrong order.
+	// For example, if the input order is depositEv, withdrawEv,
+	// the sorted result should be withdrawEv, depositEv.
+	require.Negative(t, bytes.Compare(withdrawEv, depositEv))
 	unjailEv := slashingAbi.Events["Unjail"].ID.Bytes()
 
 	// prepare data
