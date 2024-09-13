@@ -8,10 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/lib/ethclient/mock"
+
+	"go.uber.org/mock/gomock"
 )
 
 func createTestKeeper(t *testing.T) (sdk.Context, *Keeper) {
