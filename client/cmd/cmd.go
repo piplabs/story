@@ -22,6 +22,7 @@ func New() *cobra.Command {
 		newInitCmd(),
 		buildinfo.NewVersionCmd(),
 		newValidatorCmds(),
+		newStatusCmd(),
 	)
 }
 

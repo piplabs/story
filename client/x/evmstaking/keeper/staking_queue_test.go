@@ -4,23 +4,9 @@ import (
 	"context"
 	"time"
 
-	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"go.uber.org/mock/gomock"
 )
-
-// setupUnbonding creates unbondings for testing.
-func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
-	require := s.Require()
-	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
-
-	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
-	_, _, err := stakingKeeper.Undelegate(ctx, delAddr, valAddr, math.LegacyMustNewDecFromStr(amount))
-	require.NoError(err)
-}
 
 // setupMaturedUnbonding creates matured unbondings for testing.
 func (s *TestSuite) setupMatureUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt string, duration time.Duration) {
@@ -51,8 +37,10 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 	valAddr1 := valAddrs[1]
 	valPubKey2 := pubKeys[2]
 	valAddr2 := valAddrs[2]
-	s.setupValidatorAndDelegation(ctx, valPubKey1, delPubKey, valAddr1, delAddr)
-	s.setupValidatorAndDelegation(ctx, valPubKey2, delPubKey, valAddr2, delAddr)
+	// self delegation
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
+	s.setupValidatorAndDelegation(ctx, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
+	s.setupValidatorAndDelegation(ctx, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 
 	// set staking module's params
 	ubdTime := time.Duration(3600) * time.Second

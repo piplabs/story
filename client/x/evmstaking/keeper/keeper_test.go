@@ -139,6 +139,7 @@ func (s *TestSuite) SetupTest() {
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),
 	)
+	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, types.DefaultParams()))
 	s.EVMStakingKeeper = evmstakingKeeper
 	s.msgServer = keeper.NewMsgServerImpl(evmstakingKeeper)
 }
@@ -184,6 +185,8 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	valPubKey1 := pubKeys[1]
 	valAddr2 := valAddrs[2]
 	valPubKey2 := pubKeys[2]
+	// self delegation amount
+	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	// abis
 	stakingAbi, err := bindings.IPTokenStakingMetaData.GetAbi()
 	require.NoError(err)
@@ -495,7 +498,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
 				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
 				bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
 				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
@@ -534,8 +537,8 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
+				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 			},
 			stateCheck: func(c context.Context) {
 				_, err = stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
@@ -568,7 +571,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
 				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
 				bankKeeper.EXPECT().SendCoinsFromModuleToModule(c, stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
 			},
@@ -637,7 +640,7 @@ func TestTestSuite(t *testing.T) {
 }
 
 // setupValidatorAndDelegation creates a validator and delegation for testing.
-func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
+func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
 	bankKeeper, stakingKeeper, keeper := s.BankKeeper, s.StakingKeeper, s.EVMStakingKeeper
@@ -648,7 +651,6 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 
 	// Create and update validator
 	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
-	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	validator, _ := val.AddTokensFromDel(valTokens)
 	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
@@ -675,6 +677,16 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey[1] = 0xFF
 
 	return corruptedPubKey
+}
+
+// setupUnbonding creates unbondings for testing.
+func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
+	require := s.Require()
+	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
+
+	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
+	_, _, err := stakingKeeper.Undelegate(ctx, delAddr, valAddr, sdkmath.LegacyMustNewDecFromStr(amount))
+	require.NoError(err)
 }
 
 // ethLogsToEvmEvents converts Ethereum logs to a slice of EVM events.
