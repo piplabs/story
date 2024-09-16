@@ -1,0 +1,13 @@
+services:
+  rpc:
+    platform: linux/arm64
+    image: story-rpc-node
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    volumes:
+      - rpc-storage:/data
+    environment:
+      NETWORK: public-testnet
+volumes:
+  rpc-storage:
