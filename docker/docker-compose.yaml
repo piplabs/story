@@ -1,6 +1,6 @@
 services:
   rpc:
-    platform: linux/arm64
+    platform: linux/amd64
     image: story-rpc-node
     build:
       context: .
