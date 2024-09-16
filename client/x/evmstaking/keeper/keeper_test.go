@@ -112,6 +112,7 @@ func (s *TestSuite) SetupTest() {
 	s.DistrKeeper = distrKeeper
 	slashingKeeper := estestutil.NewMockSlashingKeeper(ctrl)
 	s.SlashingKeeper = slashingKeeper
+	epochsKeeper := estestutil.NewMockEpochsKeeper(ctrl)
 
 	// staking keeper
 	stakingKeeper := skeeper.NewKeeper(
@@ -137,6 +138,7 @@ func (s *TestSuite) SetupTest() {
 		slashingKeeper,
 		stakingKeeper,
 		distrKeeper,
+		epochsKeeper,
 		authtypes.NewModuleAddress(types.ModuleName).String(),
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),

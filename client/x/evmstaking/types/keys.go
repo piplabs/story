@@ -19,4 +19,6 @@ var (
 	WithdrawalQueueKey     = collections.NewPrefix(1)
 	DelegatorMapKey        = collections.NewPrefix(2)
 	ValidatorSweepIndexKey = collections.NewPrefix(3)
+	EpochNumberKey         = collections.NewPrefix(4)
+	MsgQueueKey            = collections.NewPrefix(5)
 )

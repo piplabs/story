@@ -59,6 +59,16 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 		}
 	}
 
+	// init message queue
+	if err := k.MessageQueue.Initialize(ctx); err != nil {
+		return errors.Wrap(err, "initialize message queue")
+	}
+
+	// InitEpochNumber
+	if err := k.SetEpochNumber(ctx, gs.EpochNumber); err != nil {
+		return errors.Wrap(err, "initialize epoch num")
+	}
+
 	return nil
 }
 
@@ -69,8 +79,14 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 		panic(err)
 	}
 
+	epochNum, err := k.GetEpochNumber(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	return &types.GenesisState{
-		Params: params,
+		Params:      params,
+		EpochNumber: epochNum,
 	}
 }
 
@@ -84,5 +100,9 @@ func (k Keeper) ValidateGenesis(gs *types.GenesisState) error {
 		return err
 	}
 
-	return types.ValidateMinPartialWithdrawalAmount(gs.Params.MinPartialWithdrawalAmount)
+	if err := types.ValidateMinPartialWithdrawalAmount(gs.Params.MinPartialWithdrawalAmount); err != nil {
+		return err
+	}
+
+	return types.ValidateEpochIdentifier(gs.Params.EpochIdentifier)
 }

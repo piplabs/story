@@ -16,4 +16,8 @@ message Params {
   uint64 min_partial_withdrawal_amount = 3 [
     (gogoproto.moretags) = "yaml:\"min_partial_withdrawal_amount\""
   ];
+  // epoch_identifier is identifier for epoched staking e.g. (day, week).
+  string epoch_identifier = 4 [
+    (gogoproto.moretags) = "yaml:\"epoch_identifier\""
+  ];
 }

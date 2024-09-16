@@ -3,18 +3,21 @@ package keeper
 import (
 	"context"
 
+	"github.com/cometbft/cometbft/crypto/tmhash"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
+// HandleRedelegateEvent handles Redelegate event. It converts the event to sdk.Msg and enqueues for epoched staking.
+func (k Keeper) HandleRedelegateEvent(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
@@ -49,7 +52,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
-	log.Info(ctx, "EVM staking relegation detected",
+	log.Debug(ctx, "EVM staking relegation detected",
 		"del_story", depositorAddr.String(),
 		"val_src_story", validatorSrcAddr.String(),
 		"val_dst_story", validatorDstAddr.String(),
@@ -59,9 +62,33 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		"amount_coin", amountCoin.String(),
 	)
 
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	header := sdkCtx.BlockHeader()
+	txID := tmhash.Sum(sdkCtx.TxBytes())
+
 	msg := stypes.NewMsgBeginRedelegate(depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(), amountCoin)
-	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(ctx, msg)
+	qMsg, err := types.NewQueuedMessage(uint64(header.Height), header.Time, txID, msg)
 	if err != nil {
+		return errors.Wrap(err, "new queued message for Redelegate event")
+	}
+
+	if err := k.EnqueueMsg(ctx, qMsg); err != nil {
+		return errors.Wrap(err, "enqueue Redelegate message")
+	}
+
+	return nil
+}
+
+// ProcessRedelegateMsg processes the Redelegation message. It begins redelegation.
+func (k Keeper) ProcessRedelegateMsg(ctx context.Context, msg *stypes.MsgBeginRedelegate) error {
+	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
+
+	// Begin redelegation
+	if _, err := skeeperMsgServer.BeginRedelegate(ctx, msg); err != nil {
 		return errors.Wrap(err, "failed to begin redelegation")
 	}
 

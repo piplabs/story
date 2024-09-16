@@ -20,6 +20,7 @@ import (
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	types2 "github.com/cosmos/cosmos-sdk/x/staking/types"
+	types3 "github.com/piplabs/story/client/x/epochs/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -706,4 +707,42 @@ func (m *MockDistributionKeeper) WithdrawValidatorCommission(ctx context.Context
 func (mr *MockDistributionKeeperMockRecorder) WithdrawValidatorCommission(ctx, valAddr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithdrawValidatorCommission", reflect.TypeOf((*MockDistributionKeeper)(nil).WithdrawValidatorCommission), ctx, valAddr)
+}
+
+// MockEpochsKeeper is a mock of EpochsKeeper interface.
+type MockEpochsKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockEpochsKeeperMockRecorder
+}
+
+// MockEpochsKeeperMockRecorder is the mock recorder for MockEpochsKeeper.
+type MockEpochsKeeperMockRecorder struct {
+	mock *MockEpochsKeeper
+}
+
+// NewMockEpochsKeeper creates a new mock instance.
+func NewMockEpochsKeeper(ctrl *gomock.Controller) *MockEpochsKeeper {
+	mock := &MockEpochsKeeper{ctrl: ctrl}
+	mock.recorder = &MockEpochsKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEpochsKeeper) EXPECT() *MockEpochsKeeperMockRecorder {
+	return m.recorder
+}
+
+// GetEpochInfo mocks base method.
+func (m *MockEpochsKeeper) GetEpochInfo(ctx context.Context, identifier string) (types3.EpochInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpochInfo", ctx, identifier)
+	ret0, _ := ret[0].(types3.EpochInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEpochInfo indicates an expected call of GetEpochInfo.
+func (mr *MockEpochsKeeperMockRecorder) GetEpochInfo(ctx, identifier any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochInfo", reflect.TypeOf((*MockEpochsKeeper)(nil).GetEpochInfo), ctx, identifier)
 }

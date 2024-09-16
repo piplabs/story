@@ -11,6 +11,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/piplabs/story/client/x/epochs/types"
 )
 
 // AccountKeeper defines the expected account keeper (noalias).
@@ -80,4 +82,8 @@ type DistributionKeeper interface {
 	WithdrawValidatorCommission(ctx context.Context, valAddr sdk.ValAddress) (sdk.Coins, error)
 
 	IncrementValidatorPeriod(ctx context.Context, val stakingtypes.ValidatorI) (uint64, error)
+}
+
+type EpochsKeeper interface {
+	GetEpochInfo(ctx context.Context, identifier string) (types.EpochInfo, error)
 }

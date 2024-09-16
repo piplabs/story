@@ -396,7 +396,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			_, err := s.StakingKeeper.GetUnbondingDelegation(cachedCtx, delAddr1, valAddr)
 			require.ErrorContains(err, "no unbonding delegation found")
 
-			err = keeper.ProcessWithdraw(cachedCtx, tc.withdraw)
+			err = keeper.HandleWithdrawEvent(cachedCtx, tc.withdraw)
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {

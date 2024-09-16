@@ -211,7 +211,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			if moniker == "" {
 				moniker = "testing"
 			}
-			err := keeper.ProcessCreateValidator(cachedCtx, &bindings.IPTokenStakingCreateValidator{
+			err := keeper.HandleCreateValidatorEvent(cachedCtx, &bindings.IPTokenStakingCreateValidator{
 				ValidatorUncmpPubkey:    nil,
 				ValidatorCmpPubkey:      tc.valPubKeyBytes,
 				Moniker:                 moniker,

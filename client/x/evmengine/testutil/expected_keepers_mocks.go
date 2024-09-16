@@ -141,20 +141,6 @@ func (mr *MockEvmStakingKeeperMockRecorder) PeekEligibleWithdrawals(ctx any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeekEligibleWithdrawals", reflect.TypeOf((*MockEvmStakingKeeper)(nil).PeekEligibleWithdrawals), ctx)
 }
 
-// ProcessDeposit mocks base method.
-func (m *MockEvmStakingKeeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ProcessDeposit", ctx, ev)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ProcessDeposit indicates an expected call of ProcessDeposit.
-func (mr *MockEvmStakingKeeperMockRecorder) ProcessDeposit(ctx, ev any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeposit", reflect.TypeOf((*MockEvmStakingKeeper)(nil).ProcessDeposit), ctx, ev)
-}
-
 // ProcessStakingEvents mocks base method.
 func (m *MockEvmStakingKeeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*types2.EVMEvent) error {
 	m.ctrl.T.Helper()
@@ -167,20 +153,6 @@ func (m *MockEvmStakingKeeper) ProcessStakingEvents(ctx context.Context, height 
 func (mr *MockEvmStakingKeeperMockRecorder) ProcessStakingEvents(ctx, height, logs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessStakingEvents", reflect.TypeOf((*MockEvmStakingKeeper)(nil).ProcessStakingEvents), ctx, height, logs)
-}
-
-// ProcessWithdraw mocks base method.
-func (m *MockEvmStakingKeeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ProcessWithdraw", ctx, ev)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ProcessWithdraw indicates an expected call of ProcessWithdraw.
-func (mr *MockEvmStakingKeeperMockRecorder) ProcessWithdraw(ctx, ev any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessWithdraw", reflect.TypeOf((*MockEvmStakingKeeper)(nil).ProcessWithdraw), ctx, ev)
 }
 
 // MockUpgradeKeeper is a mock of UpgradeKeeper interface.

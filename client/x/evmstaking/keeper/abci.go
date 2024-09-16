@@ -78,9 +78,46 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		}
 	}
 
-	valUpdates, err := k.stakingKeeper.EndBlocker(ctx)
+	// Update validator set
+	var valUpdates []abci.ValidatorUpdate
+
+	isNextEpoch, err := k.IsNextEpoch(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "check if the next epoch starts")
+	}
+
+	//nolint:nestif // readability
+	if isNextEpoch {
+		// get queued messages
+		queuedMsgs, err := k.DequeueAllMsgs(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "get current epoch queued messages")
+		}
+
+		// execute queued message
+		for _, msg := range queuedMsgs {
+			if err := k.ProcessMsg(ctx, msg); err != nil {
+				// TODO(Narangde): do we need to handle failed message?
+				log.Error(ctx, "Error occurred while processing queued message", err)
+				continue
+			}
+		}
+
+		// if it is epoch based, increase epoch number
+		if err := k.IncCurEpochNumber(ctx); err != nil {
+			return nil, errors.Wrap(err, "increase current epoch number")
+		}
+
+		// update val set
+		valUpdates, err = k.stakingKeeper.EndBlocker(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "update validator set")
+		}
+
+		// init message queue
+		if err := k.MessageQueue.Initialize(ctx); err != nil {
+			return nil, errors.Wrap(err, "initialize message queue")
+		}
 	}
 
 	for _, entry := range unbondedEntries {
