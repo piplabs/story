@@ -207,7 +207,16 @@ func (s *TestSuite) TestProcessDeposit() {
 				tc.settingMock()
 			}
 			cachedCtx, _ := ctx.CacheContext()
-			err := keeper.HandleDepositEvent(cachedCtx, tc.deposit)
+			var err error
+			err = keeper.HandleDepositEvent(cachedCtx, tc.deposit)
+			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
+				var queuedMsgs []*types.QueuedMessage
+				queuedMsgs, err = keeper.DequeueAllMsgs(cachedCtx)
+
+				for _, msg := range queuedMsgs {
+					err = keeper.ProcessMsg(cachedCtx, msg)
+				}
+			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {

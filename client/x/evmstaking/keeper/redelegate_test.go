@@ -182,7 +182,16 @@ func (s *TestSuite) TestRedelegation() {
 		s.Run(tc.name, func() {
 			cachedCtx, _ := ctx.CacheContext()
 			input := tc.input()
-			err := keeper.HandleRedelegateEvent(cachedCtx, &input)
+			var err error
+			err = keeper.HandleRedelegateEvent(cachedCtx, &input)
+			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
+				var queuedMsgs []*types.QueuedMessage
+				queuedMsgs, err = keeper.DequeueAllMsgs(cachedCtx)
+
+				for _, msg := range queuedMsgs {
+					err = keeper.ProcessMsg(cachedCtx, msg)
+				}
+			}
 			if tc.expectedError != "" {
 				require.ErrorContains(err, tc.expectedError)
 			} else {
