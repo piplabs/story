@@ -6,7 +6,7 @@ import "google/api/annotations.proto";
 
 option go_package = "client/x/signal/types";
 
-// Msg defines the signal Msg service.
+// MsgService defines the signal Msg service.
 service MsgService {
   option (cosmos.msg.v1.service) = true;
 
