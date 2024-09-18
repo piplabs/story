@@ -1,7 +1,7 @@
 FROM golang:1.22-bookworm AS builder
 
 ENV GETH_VERSION=0.9.2
-ENV STORY_VERSION=0.10.0
+ENV STORY_VERSION=0.9.13
 
 COPY script/init /source/init
 
@@ -29,13 +29,13 @@ RUN mkdir /source/geth \
 
 FROM debian:bookworm
 
-COPY config /init-config
-COPY --from=builder /source/init/story-init /source/geth/geth /source/story/story /usr/local/bin/
-
 RUN apt update \
  && apt install -y openssl dnsutils
 
 COPY script/init-node.sh /
 RUN chmod +x /init-node.sh
+
+COPY --from=builder /source/init/story-init /source/geth/geth /source/story/story /usr/local/bin/
+COPY config /init-config
 
 ENTRYPOINT ["bash", "/init-node.sh"]

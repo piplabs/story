@@ -9,5 +9,10 @@ services:
       - rpc-storage:/data
     environment:
       NETWORK: public-testnet
+    ports:
+      - 127.0.0.1:26657:26657 # comebft json-rpc port
+      - 127.0.0.1:1317:1317 # story json-rpc port
+      - 8545:8545 # geth json-rpc port
+      - 8546:8546  # geth ws-rpc port
 volumes:
   rpc-storage:
