@@ -18,6 +18,7 @@ import (
 	evmengkeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	signalkeeper "github.com/piplabs/story/client/x/signal/keeper"
 )
 
 // Keepers includes all possible keepers. We separated it into a separate struct to make it easier to scaffold upgrades.
@@ -25,6 +26,7 @@ type Keepers struct {
 	// keepers
 	AccountKeeper         authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.Keeper
+	SignalKeeper          signalkeeper.Keeper
 	SlashingKeeper        slashingkeeper.Keeper
 	StakingKeeper         *stakingkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
