@@ -647,12 +647,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 			}
 			err = evmstakingKeeper.ProcessStakingEvents(cachedCtx, 1, evmLogs)
 			if !evmstakingKeeper.MessageQueue.IsEmpty(cachedCtx) {
-				var queuedMsgs []*types.QueuedMessage
-				queuedMsgs, err = evmstakingKeeper.DequeueAllMsgs(cachedCtx)
-
-				for _, msg := range queuedMsgs {
-					err = evmstakingKeeper.ProcessMsg(cachedCtx, msg)
-				}
+				err = evmstakingKeeper.ProcessAllMsgs(cachedCtx)
 			}
 			if tc.expectedError != "" {
 				require.Error(err)

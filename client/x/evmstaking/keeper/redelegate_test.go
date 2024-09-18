@@ -185,12 +185,7 @@ func (s *TestSuite) TestRedelegation() {
 			var err error
 			err = keeper.HandleRedelegateEvent(cachedCtx, &input)
 			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				var queuedMsgs []*types.QueuedMessage
-				queuedMsgs, err = keeper.DequeueAllMsgs(cachedCtx)
-
-				for _, msg := range queuedMsgs {
-					err = keeper.ProcessMsg(cachedCtx, msg)
-				}
+				err = keeper.ProcessAllMsgs(cachedCtx)
 			}
 			if tc.expectedError != "" {
 				require.ErrorContains(err, tc.expectedError)

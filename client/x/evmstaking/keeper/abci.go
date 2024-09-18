@@ -86,21 +86,10 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, errors.Wrap(err, "check if the next epoch starts")
 	}
 
-	//nolint:nestif // readability
 	if isNextEpoch {
-		// get queued messages
-		queuedMsgs, err := k.DequeueAllMsgs(ctx)
-		if err != nil {
+		// process all queued messages
+		if err := k.ProcessAllMsgs(ctx); err != nil {
 			return nil, errors.Wrap(err, "get current epoch queued messages")
-		}
-
-		// execute queued message
-		for _, msg := range queuedMsgs {
-			if err := k.ProcessMsg(ctx, msg); err != nil {
-				// TODO(Narangde): do we need to handle failed message?
-				log.Error(ctx, "Error occurred while processing queued message", err)
-				continue
-			}
 		}
 
 		// if it is epoch based, increase epoch number

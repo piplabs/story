@@ -9,6 +9,7 @@ import (
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 // EnqueueMsg enqueues a message to the queue of the current epoch.
@@ -16,27 +17,30 @@ func (k Keeper) EnqueueMsg(ctx context.Context, msg types.QueuedMessage) error {
 	return k.MessageQueue.Enqueue(ctx, msg)
 }
 
-// DequeueAllMsgs returns the set of messages queued in a given epoch.
-func (k Keeper) DequeueAllMsgs(ctx context.Context) ([]*types.QueuedMessage, error) {
+// ProcessAllMsgs returns the set of messages queued in a given epoch.
+func (k Keeper) ProcessAllMsgs(ctx context.Context) error {
 	iterator, err := k.MessageQueue.Iterate(ctx)
 	if err != nil {
-		return nil, err
+		return errors.Wrap(err, "message queue iterator")
 	}
 
-	var queuedMsgs []*types.QueuedMessage
 	for ; iterator.Valid(); iterator.Next() {
-		queuedMsg, err := k.MessageQueue.Dequeue(ctx)
+		qMsg, err := iterator.Value()
 		if err != nil {
-			return nil, err
+			return errors.Wrap(err, "get value of message queue")
 		}
-		queuedMsgs = append(queuedMsgs, &queuedMsg)
+
+		if err := k.processMsg(ctx, &qMsg); err != nil {
+			log.Warn(ctx, "Failed to process queued message", err, "tx_id", string(qMsg.TxId))
+			return errors.Wrap(err, "process queued message")
+		}
 	}
 
-	return queuedMsgs, nil
+	return nil
 }
 
-// ProcessMsg processes queues message depending on the type of message.
-func (k Keeper) ProcessMsg(ctx context.Context, msg *types.QueuedMessage) error {
+// processMsg processes queues message depending on the type of message.
+func (k Keeper) processMsg(ctx context.Context, msg *types.QueuedMessage) error {
 	var (
 		unwrappedMsgWithType sdk.Msg
 		err                  error
