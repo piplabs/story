@@ -1,12 +1,15 @@
 syntax = "proto3";
 package client.x.signal.types;
 
+import "cosmos/msg/v1/msg.proto";
 import "google/api/annotations.proto";
 
 option go_package = "client/x/signal/types";
 
 // Msg defines the signal Msg service.
-service Msg {
+service MsgService {
+  option (cosmos.msg.v1.service) = true;
+
   // SignalVersion allows a validator to signal for a version.
   rpc SignalVersion(MsgSignalVersion) returns (MsgSignalVersionResponse) {
     option (google.api.http).post = "/signal/signal";
