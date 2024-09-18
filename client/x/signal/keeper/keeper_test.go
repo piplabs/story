@@ -15,7 +15,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmversion "github.com/cometbft/cometbft/proto/tendermint/version"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -280,7 +279,7 @@ func (s *TestSuite) TestTallyingLogic(t *testing.T) {
 	upgradeKeeper.ResetTally(ctx)
 
 	// update the version to 2
-	ctx = ctx.WithBlockHeader(tmproto.Header{
+	ctx = ctx.WithBlockHeader(cmtproto.Header{
 		Version: tmversion.Consensus{
 			Block: 1,
 			App:   2,

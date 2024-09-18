@@ -22,8 +22,8 @@ const DefaultUpgradeHeightDelay = int64(7 * 24 * 60 * 60 / 12) // 7 days * 24 ho
 
 // Keeper implements the MsgServer and QueryServer interfaces.
 var (
-	_ types.MsgServer   = &Keeper{}
-	_ types.QueryServer = Keeper{}
+	_ types.MsgServiceServer = &Keeper{}
+	_ types.QueryServer      = Keeper{}
 
 	// defaultSignalThreshold is 5/6 or approximately 83.33%.
 	defaultSignalThreshold = sdkmath.LegacyNewDec(5).Quo(sdkmath.LegacyNewDec(6))
