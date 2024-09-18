@@ -36,6 +36,8 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	signalmodule "github.com/piplabs/story/client/x/signal/module"
+	signaltypes "github.com/piplabs/story/client/x/signal/types"
 )
 
 // Bech32HRP is the human-readable-part of the Bech32 address format.
@@ -89,6 +91,7 @@ var (
 		epochstypes.ModuleName,
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
+		signaltypes.ModuleName,
 	}
 
 	// NOTE: upgrade module must come first, as upgrades might break state schema.
@@ -106,11 +109,13 @@ var (
 		distrtypes.ModuleName, // Note: slashing happens after distr.BeginBlocker
 		slashingtypes.ModuleName,
 		stakingtypes.ModuleName,
+		signaltypes.ModuleName,
 	}
 
 	endBlockers = []string{
 		govtypes.ModuleName,
 		evmstakingtypes.ModuleName, // Must be before staking module removes mature unbonding delegations & validators.
+		signaltypes.ModuleName,
 	}
 
 	// blocked account addresses.
@@ -122,6 +127,7 @@ var (
 		stakingtypes.NotBondedPoolName,
 		evmstakingtypes.ModuleName,
 		epochstypes.ModuleName,
+		signaltypes.ModuleName,
 	}
 
 	moduleAccPerms = []*authmodulev1.ModuleAccountPermission{
@@ -132,6 +138,7 @@ var (
 		{Account: stakingtypes.NotBondedPoolName, Permissions: []string{authtypes.Burner, authtypes.Staking}},
 		{Account: evmstakingtypes.ModuleName, Permissions: []string{authtypes.Burner, authtypes.Minter}},
 		{Account: govtypes.ModuleName, Permissions: []string{authtypes.Burner}},
+		{Account: signaltypes.ModuleName},
 	}
 
 	// appConfig application configuration (used by depinject).
@@ -212,6 +219,10 @@ var (
 			{
 				Name:   evmenginetypes.ModuleName,
 				Config: appconfig.WrapAny(&evmenginemodule.Module{}),
+			},
+			{
+				Name:   signaltypes.ModuleName,
+				Config: appconfig.WrapAny(&signalmodule.Module{}),
 			},
 			{
 				Name:   minttypes.ModuleName,

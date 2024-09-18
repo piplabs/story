@@ -86,6 +86,7 @@ func newApp(
 		&app.interfaceRegistry,
 		&app.Keepers.AccountKeeper,
 		&app.Keepers.BankKeeper,
+		&app.Keepers.SignalKeeper,
 		&app.Keepers.StakingKeeper,
 		&app.Keepers.SlashingKeeper,
 		&app.Keepers.DistrKeeper,
