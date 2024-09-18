@@ -1,0 +1,16 @@
+syntax = "proto3";
+package client.x.signal.module;
+
+import "cosmos/app/v1alpha1/module.proto";
+
+option go_package = "client/x/signal/module";
+
+// ModuleName is the config object for the signal module.
+message Module {
+  option (cosmos.app.v1alpha1.module) = {
+    go_import: "github.com/piplabs/story/client/x/signal"
+  };
+
+  // authority defines the custom module authority. If not set, defaults to the governance module.
+  string authority = 1;
+}
