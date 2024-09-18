@@ -3,13 +3,14 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"cosmossdk.io/core/store"
 	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
 	"github.com/piplabs/story/client/x/signal/types"
 	"github.com/piplabs/story/lib/log"
 )
