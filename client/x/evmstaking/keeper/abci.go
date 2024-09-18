@@ -38,12 +38,6 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, err
 	}
 
-	delegations, err := k.stakingKeeper.GetAllDelegations(ctx)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug(ctx, "All delegations", "count", len(delegations))
-
 	// make an array with each entry being the validator address, delegator address, and the amount
 	var unbondedEntries []UnbondedEntry
 
