@@ -87,37 +87,3 @@ func SortEVMEvents(events []*EVMEvent) {
 		return bytes.Compare(events[i].Data, events[j].Data) < 0
 	})
 }
-
-// IsSortedEVMEvents check if the events are sorted by ascending order of address, topics, and data.
-func IsSortedEVMEvents(events []*EVMEvent) bool {
-	for i := 1; i < len(events); i++ {
-		// Compare addresses first
-		addressComparison := bytes.Compare(events[i-1].Address, events[i].Address)
-		if addressComparison > 0 {
-			// it is not sorted by ascending order of address
-			return false
-		}
-
-		if addressComparison == 0 {
-			// If addresses are equal, compare by topics
-			previousTopic := slices.Concat(events[i-1].Topics...)
-			currentTopic := slices.Concat(events[i].Topics...)
-			topicComparison := bytes.Compare(previousTopic, currentTopic)
-
-			if topicComparison > 0 {
-				// it is not sorted by ascending order of topics
-				return false
-			}
-
-			if topicComparison == 0 {
-				// If topics are also equal, compare by data
-				if bytes.Compare(events[i-1].Data, events[i].Data) > 0 {
-					// it is not sorted by ascending order of data
-					return false
-				}
-			}
-		}
-	}
-
-	return true
-}
