@@ -34,6 +34,7 @@ func (s *TestSuite) TestInitGenesis() {
 	valPubKey2 := pubKeys[2]
 	valEvmAddr2, err := k1util.CosmosPubkeyToEVMAddress(valPubKey2.Bytes())
 	require.NoError(err)
+	valTokens := s.StakingKeeper.TokensFromConsensusPower(ctx, 10)
 
 	tcs := []struct {
 		name           string
@@ -58,8 +59,8 @@ func (s *TestSuite) TestInitGenesis() {
 		{
 			name: "pass: with validators",
 			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr)
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr)
+				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
+				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 			},
 			gs: func() *types.GenesisState {
 				return &types.GenesisState{
