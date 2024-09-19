@@ -20,15 +20,14 @@ func TestRetryForever(t *testing.T) {
 		expectedAttempts int
 	}{
 		{
-			name: "Success after retries",
-			ctxFunc: func() context.Context {
-				return context.Background()
-			},
+			name:    "Success after retries",
+			ctxFunc: context.Background,
 			fn: func(ctx context.Context) (bool, error) {
 				attempts++
 				if attempts < 3 {
 					return false, nil // Retry
 				}
+
 				return true, nil // Success
 			},
 			expectedErr:      "",
@@ -39,6 +38,7 @@ func TestRetryForever(t *testing.T) {
 			ctxFunc: func() context.Context {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel() // Cancel immediately
+
 				return ctx
 			},
 			fn: func(ctx context.Context) (bool, error) {
@@ -47,10 +47,8 @@ func TestRetryForever(t *testing.T) {
 			expectedErr: "retry canceled",
 		},
 		{
-			name: "Func returns error",
-			ctxFunc: func() context.Context {
-				return context.Background()
-			},
+			name:    "Func returns error",
+			ctxFunc: context.Background,
 			fn: func(ctx context.Context) (bool, error) {
 				return false, errors.New("some error")
 			},
