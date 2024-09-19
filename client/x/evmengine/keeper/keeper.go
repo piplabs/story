@@ -172,7 +172,8 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 //
 // Note that the validator set can change, so this is an optimistic check.
 func (k *Keeper) isNextProposer(ctx context.Context, currentProposer []byte, currentHeight int64) (bool, error) {
-	// cometAPI is lazily set and may be nil on startup (e.g. replayBlocks).
+	// PostFinalize can be called during block replay (performed in newCometNode),
+	// but cmtAPI is set only after newCometNode completes (see app.SetCometAPI), so a nil check is necessary.
 	if k.cmtAPI == nil {
 		return false, nil
 	}
