@@ -43,6 +43,7 @@ func createTestKeeper(t *testing.T) (context.Context, *Keeper) {
 }
 
 func TestKeeper_ExecutionBlockHash(t *testing.T) {
+	t.Parallel()
 	ctx, keeper := createTestKeeper(t)
 
 	// check existing execution block hash
@@ -61,6 +62,7 @@ func TestKeeper_ExecutionBlockHash(t *testing.T) {
 }
 
 func TestKeeper_GetSetParams(t *testing.T) {
+	t.Parallel()
 	ctx, keeper := createTestKeeper(t)
 
 	// check existing params
