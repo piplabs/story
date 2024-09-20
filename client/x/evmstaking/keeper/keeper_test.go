@@ -15,6 +15,7 @@ import (
 	"github.com/cometbft/cometbft/crypto"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -61,6 +62,7 @@ type TestSuite struct {
 	SlashingKeeper   *estestutil.MockSlashingKeeper
 	EVMStakingKeeper *keeper.Keeper
 	msgServer        types.MsgServiceServer
+	queryClient      types.QueryClient
 
 	encCfg moduletestutil.TestEncodingConfig
 }
@@ -142,6 +144,9 @@ func (s *TestSuite) SetupTest() {
 	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, types.DefaultParams()))
 	s.EVMStakingKeeper = evmstakingKeeper
 	s.msgServer = keeper.NewMsgServerImpl(evmstakingKeeper)
+	queryHelper := baseapp.NewQueryServerTestHelper(s.Ctx, s.encCfg.InterfaceRegistry)
+	types.RegisterQueryServer(queryHelper, evmstakingKeeper)
+	s.queryClient = types.NewQueryClient(queryHelper)
 }
 
 func (s *TestSuite) TestLogger() {
