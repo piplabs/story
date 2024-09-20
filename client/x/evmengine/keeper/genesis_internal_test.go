@@ -105,7 +105,7 @@ func TestKeeper_InitGenesis(t *testing.T) {
 			}
 			if tc.requirePanic {
 				require.PanicsWithError(t, tc.expectedError, func() {
-					keeper.InitGenesis(ctx, tc.gs())
+					_ = keeper.InitGenesis(ctx, tc.gs())
 				})
 			} else {
 				err := keeper.InitGenesis(ctx, tc.gs())
