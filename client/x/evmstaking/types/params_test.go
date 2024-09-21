@@ -149,6 +149,38 @@ func (suite *ParamsTestSuite) TestValidateMinPartialWithdrawatAmount() {
 	}
 }
 
+func (suite *ParamsTestSuite) TestValidateEpochIdentifier() {
+	require := suite.Require()
+
+	tcs := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:  "valid value",
+			input: "hour",
+		},
+		{
+			name:        "empty epoch identifier",
+			input:       "",
+			expectedErr: "cannot be empty string for identifier",
+		},
+	}
+
+	for _, tc := range tcs {
+		suite.Run(tc.name, func() {
+			err := types.ValidateEpochIdentifier(tc.input)
+			if tc.expectedErr == "" {
+				require.NoError(err)
+			} else {
+				require.Error(err)
+				require.Contains(err.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
+
 func TestParamsTestSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(ParamsTestSuite))
