@@ -20,6 +20,11 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 		return err
 	}
 
+	// The epoch duration must be less than or equal to the unbonding time.
+	if err := k.validateEpochDuration(ctx, gs.Params.EpochIdentifier); err != nil {
+		panic(err)
+	}
+
 	if err := k.WithdrawalQueue.Initialize(ctx); err != nil {
 		log.Error(ctx, "InitGenesis.evmstaking not initialized", err)
 		return err
@@ -105,4 +110,22 @@ func (k Keeper) ValidateGenesis(gs *types.GenesisState) error {
 	}
 
 	return types.ValidateEpochIdentifier(gs.Params.EpochIdentifier)
+}
+
+func (k Keeper) validateEpochDuration(ctx context.Context, epochIdentifier string) error {
+	unbondingTime, err := k.stakingKeeper.UnbondingTime(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get unbonding time of staking keeper")
+	}
+
+	epoch, err := k.epochsKeeper.GetEpochInfo(ctx, epochIdentifier)
+	if err != nil {
+		return errors.Wrap(err, "get epoch info from epochs keeper", "epoch_identifier", epochIdentifier)
+	}
+
+	if epoch.Duration > unbondingTime {
+		return errors.New("epoch duration must be less than or equal to the unbonding time", "unbondind_time", unbondingTime, "epoch_duration", epoch.Duration)
+	}
+
+	return nil
 }

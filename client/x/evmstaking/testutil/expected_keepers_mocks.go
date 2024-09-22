@@ -545,6 +545,21 @@ func (mr *MockStakingKeeperMockRecorder) UBDQueueIterator(ctx, endTime any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UBDQueueIterator", reflect.TypeOf((*MockStakingKeeper)(nil).UBDQueueIterator), ctx, endTime)
 }
 
+// UnbondingTime mocks base method.
+func (m *MockStakingKeeper) UnbondingTime(ctx context.Context) (time.Duration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnbondingTime", ctx)
+	ret0, _ := ret[0].(time.Duration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnbondingTime indicates an expected call of UnbondingTime.
+func (mr *MockStakingKeeperMockRecorder) UnbondingTime(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbondingTime", reflect.TypeOf((*MockStakingKeeper)(nil).UnbondingTime), ctx)
+}
+
 // ValidatorAddressCodec mocks base method.
 func (m *MockStakingKeeper) ValidatorAddressCodec() address.Codec {
 	m.ctrl.T.Helper()
