@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - haodi/add-version-file
+      - main
   # # TESTING ONLY
   # pull_request:
   #   branches:
