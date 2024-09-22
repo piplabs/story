@@ -88,7 +88,7 @@ jobs:
           COMMIT_HASH=$(git rev-parse --short HEAD)
           FOLDER_NAME="story-${{ matrix.platform }}-${VERSION}-${COMMIT_HASH}"
           ARCHIVE_NAME="${FOLDER_NAME}.tar.gz"
-          PUBLIC_DOWNLOAD_URL="https://$S3_BUCKET/$BIN_NAME-public/$ARCHIVE_NAME"
+          PUBLIC_DOWNLOAD_URL="https://$S3_BUCKET.s3.us-west-1.amazonaws.com/$BIN_NAME-public/$ARCHIVE_NAME"
 
           BIN_NAME_WITH_PATH=./client/$BIN_NAME
           if [ "$GOOS" = "windows" ]; then
