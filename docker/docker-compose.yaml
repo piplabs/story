@@ -8,7 +8,7 @@ services:
     volumes:
       - rpc-storage:/data
     environment:
-      NETWORK: public-testnet
+      NETWORK: iliad
     ports:
       - 127.0.0.1:26657:26657 # comebft json-rpc port
       - 127.0.0.1:1317:1317 # story json-rpc port
