@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - haodi/add-version-file
   # # TESTING ONLY
   # pull_request:
   #   branches:
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64]
+        platform: [linux-amd64] # , linux-arm64, darwin-amd64, darwin-arm64, windows-amd64
 
     steps:
       - name: Checkout code
@@ -61,6 +61,7 @@ jobs:
 
           echo "Version extracted: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_META=$VERSION_META" >> $GITHUB_ENV
 
       - name: Build the story binary
         run: |
@@ -115,7 +116,30 @@ jobs:
             aws s3 cp s3://$S3_BUCKET/$BIN_NAME/manifest.txt manifest.txt --quiet || touch manifest.txt
             echo "$TIMESTAMP" >> manifest.txt
             aws s3 cp manifest.txt s3://$S3_BUCKET/$BIN_NAME/manifest.txt --quiet
+          
+            # Update version file
+            aws s3 cp s3://$S3_BUCKET/$BIN_NAME-public/version.txt version.txt --quiet || echo "File Name\t\t\tVerison\t\t\t\tCommit Hash\t\tTimestamp" > version.txt
+            
+            if [ "${VERSION_META}" != "stable" ]; then
+              echo "$VERSION-$COMMIT_HASH\t\t$VERSION\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP" >> version.txt
+            else
+              echo "$VERSION-$COMMIT_HASH\t\t\t$VERSION\t\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP" >> version.txt
+            fi
+            
+            aws s3 cp version.txt s3://$S3_BUCKET/$BIN_NAME-public/version.txt --quiet
           fi
+          
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+
+      - name: Upload the story binary to S3
+        if: matrix.platform == 'linux-amd64'
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ### Binary successfully upload to S3 🎉
+            📦 **Version Name:** $VERSION-$COMMIT_HASH
+            📦 **Download Url:** https://$S3_BUCKET/$BIN_NAME-public/$BIN_NAME-${{ matrix.platform }}-$VERSION-$COMMIT_HASH.tar.gz
 
   cleanup:
     runs-on: ubuntu-latest
