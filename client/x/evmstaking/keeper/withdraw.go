@@ -302,16 +302,6 @@ func (k Keeper) HandleWithdrawEvent(ctx context.Context, ev *bindings.IPTokenSta
 }
 
 func (k Keeper) ProcessWithdrawMsg(ctx context.Context, msg *stypes.MsgUndelegate) error {
-	delegatorAddr, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
-	if err != nil {
-		return errors.Wrap(err, "acc address from bech32", "delegator_addr", msg.DelegatorAddress)
-	}
-
-	validatorAddr, err := sdk.ValAddressFromBech32(msg.ValidatorAddress)
-	if err != nil {
-		return errors.Wrap(err, "acc address from bech32", "validator_addr", msg.ValidatorAddress)
-	}
-
 	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
 	if !ok {
 		return errors.New("type assertion failed")
