@@ -139,7 +139,7 @@ jobs:
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ### Binary successfully upload to S3 🎉
+            ### Binary uploaded successfully 🎉
             📦 **Version Name:** ${{ env.VERSION }}-${{ env.COMMIT_HASH }}
             📦 **Download Source:** [AWS S3](${{ env.PUBLIC_DOWNLOAD_URL }})
 
