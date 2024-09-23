@@ -117,22 +117,21 @@ jobs:
             aws s3 cp s3://$S3_BUCKET/$BIN_NAME/manifest.txt manifest.txt --quiet || touch manifest.txt
             echo "$TIMESTAMP" >> manifest.txt
             aws s3 cp manifest.txt s3://$S3_BUCKET/$BIN_NAME/manifest.txt --quiet
-          
+
             # Update version file
             aws s3 cp s3://$S3_BUCKET/$BIN_NAME-public/version.txt version.txt --quiet || printf "File Name\t\t\tVerison\t\t\t\tCommit Hash\t\tTimestamp\n" > version.txt
-            
+
             if [ "${VERSION_META}" != "stable" ]; then
               printf "$VERSION-$COMMIT_HASH\t\t$VERSION\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP\n" >> version.txt
             else
               printf "$VERSION-$COMMIT_HASH\t\t\t$VERSION\t\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP\n" >> version.txt
             fi
-            
+
             aws s3 cp version.txt s3://$S3_BUCKET/$BIN_NAME-public/version.txt --quiet
           fi
-          
+
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
           echo "PUBLIC_DOWNLOAD_URL=$PUBLIC_DOWNLOAD_URL" >> $GITHUB_ENV
-
 
       - name: Add binary version back to PR
         if: matrix.platform == 'linux-amd64'
