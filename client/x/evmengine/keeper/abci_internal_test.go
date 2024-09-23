@@ -481,7 +481,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // appendMsgToTx appends the given message to the unpacked transaction and returns the new packed transaction bytes.
@@ -718,6 +717,7 @@ func (m *mockEngineAPI) GetPayloadV3(ctx context.Context, payloadID eengine.Payl
 	if m.getPayloadV3Func != nil {
 		return m.getPayloadV3Func(ctx, payloadID)
 	}
+
 	return m.mock.GetPayloadV3(ctx, payloadID)
 }
 
