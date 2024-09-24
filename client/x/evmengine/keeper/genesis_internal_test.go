@@ -4,44 +4,12 @@ import (
 	"context"
 	"testing"
 
-	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
-	"github.com/piplabs/story/lib/ethclient/mock"
-
-	"go.uber.org/mock/gomock"
 )
-
-func createTestKeeper(t *testing.T) (context.Context, *Keeper) {
-	t.Helper()
-
-	cdc := getCodec(t)
-	txConfig := authtx.NewTxConfig(cdc, nil)
-	mockEngine, err := newMockEngineAPI(0)
-	require.NoError(t, err)
-
-	cmtAPI := newMockCometAPI(t, nil)
-	header := cmtproto.Header{Height: 1}
-
-	ctrl := gomock.NewController(t)
-	mockClient := mock.NewMockClient(ctrl)
-	ak := moduletestutil.NewMockAccountKeeper(ctrl)
-	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
-	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
-
-	ctx, storeService := setupCtxStore(t, &header)
-
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk)
-	require.NoError(t, err)
-	keeper.SetCometAPI(cmtAPI)
-
-	return ctx, keeper
-}
 
 func TestKeeper_InitGenesis(t *testing.T) {
 	t.Parallel()

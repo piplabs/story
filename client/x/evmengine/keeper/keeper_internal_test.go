@@ -35,6 +35,32 @@ type args struct {
 	header         func(height int64, address []byte) cmtproto.Header
 }
 
+func createTestKeeper(t *testing.T) (context.Context, *Keeper) {
+	t.Helper()
+
+	cdc := getCodec(t)
+	txConfig := authtx.NewTxConfig(cdc, nil)
+	mockEngine, err := newMockEngineAPI(0)
+	require.NoError(t, err)
+
+	cmtAPI := newMockCometAPI(t, nil)
+	header := cmtproto.Header{Height: 1}
+
+	ctrl := gomock.NewController(t)
+	mockClient := mock.NewMockClient(ctrl)
+	ak := moduletestutil.NewMockAccountKeeper(ctrl)
+	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
+	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
+
+	ctx, storeService := setupCtxStore(t, &header)
+
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk)
+	require.NoError(t, err)
+	keeper.SetCometAPI(cmtAPI)
+
+	return ctx, keeper
+}
+
 func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper) {
 	t.Helper()
 
