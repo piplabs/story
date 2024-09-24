@@ -108,7 +108,7 @@ func MockGenesisBlock() (*types.Block, error) {
 		fuzzer           = NewFuzzer(timestamp)
 	)
 
-	genesisPayload, err := makePayload(fuzzer, height, uint64(timestamp), parentHash, common.Address{}, parentHash, &parentBeaconRoot)
+	genesisPayload, err := MakePayload(fuzzer, height, uint64(timestamp), parentHash, common.Address{}, parentHash, &parentBeaconRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "make next payload")
 	}
@@ -337,7 +337,7 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 
 	// If we have payload attributes, make a new payload
 	if attrs != nil {
-		payload, err := makePayload(m.fuzzer, m.head.NumberU64()+1,
+		payload, err := MakePayload(m.fuzzer, m.head.NumberU64()+1,
 			attrs.Timestamp, update.HeadBlockHash, attrs.SuggestedFeeRecipient, attrs.Random, attrs.BeaconRoot)
 		if err != nil {
 			return engine.ForkChoiceResponse{}, err
@@ -396,8 +396,8 @@ func (*engineMock) GetPayloadV2(context.Context, engine.PayloadID) (*engine.Exec
 	panic("implement me")
 }
 
-// makePayload returns a new fuzzed payload using head as parent if provided.
-func makePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHash common.Hash,
+// MakePayload returns a new fuzzed payload using head as parent if provided.
+func MakePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHash common.Hash,
 	feeRecipient common.Address, randao common.Hash, beaconRoot *common.Hash) (engine.ExecutableData, error) {
 	// Build a new header
 	var header types.Header
