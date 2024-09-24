@@ -61,6 +61,7 @@ jobs:
 
           echo "Version extracted: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_META=$VERSION_META" >> $GITHUB_ENV
 
       - name: Build the story binary
         run: |
@@ -87,6 +88,7 @@ jobs:
           COMMIT_HASH=$(git rev-parse --short HEAD)
           FOLDER_NAME="story-${{ matrix.platform }}-${VERSION}-${COMMIT_HASH}"
           ARCHIVE_NAME="${FOLDER_NAME}.tar.gz"
+          PUBLIC_DOWNLOAD_URL="https://$S3_BUCKET.s3.us-west-1.amazonaws.com/$BIN_NAME-public/$ARCHIVE_NAME"
 
           BIN_NAME_WITH_PATH=./client/$BIN_NAME
           if [ "$GOOS" = "windows" ]; then
@@ -115,7 +117,30 @@ jobs:
             aws s3 cp s3://$S3_BUCKET/$BIN_NAME/manifest.txt manifest.txt --quiet || touch manifest.txt
             echo "$TIMESTAMP" >> manifest.txt
             aws s3 cp manifest.txt s3://$S3_BUCKET/$BIN_NAME/manifest.txt --quiet
+
+            # Update version file
+            aws s3 cp s3://$S3_BUCKET/$BIN_NAME-public/version.txt version.txt --quiet || printf "File Name\t\t\tVerison\t\t\t\tCommit Hash\t\tTimestamp\n" > version.txt
+
+            if [ "${VERSION_META}" != "stable" ]; then
+              printf "$VERSION-$COMMIT_HASH\t\t$VERSION\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP\n" >> version.txt
+            else
+              printf "$VERSION-$COMMIT_HASH\t\t\t$VERSION\t\t\t\t$COMMIT_HASH\t\t\t$TIMESTAMP\n" >> version.txt
+            fi
+
+            aws s3 cp version.txt s3://$S3_BUCKET/$BIN_NAME-public/version.txt --quiet
           fi
+
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "PUBLIC_DOWNLOAD_URL=$PUBLIC_DOWNLOAD_URL" >> $GITHUB_ENV
+
+      - name: Add binary version back to PR
+        if: matrix.platform == 'linux-amd64'
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ### Binary uploaded successfully 🎉
+            📦 **Version Name:** ${{ env.VERSION }}-${{ env.COMMIT_HASH }}
+            📦 **Download Source:** [AWS S3](${{ env.PUBLIC_DOWNLOAD_URL }})
 
   cleanup:
     runs-on: ubuntu-latest
