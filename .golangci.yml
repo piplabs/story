@@ -159,3 +159,4 @@ linters:
     - varnamelen           # False positives
     - wsl                  # Way to strict and opinionated
     - lll                  # Disable rigid line length limit
+    - tparallel           # Disable test parallelization
