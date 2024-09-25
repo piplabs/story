@@ -1,0 +1,23 @@
+services:
+  bootnode1:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    volumes:
+      - ./config/1+1/bootnodes/bootnode1:/config
+    networks:
+      - local-node-test
+  validator1:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    volumes:
+      - ./config/1+1/validators/validator1:/config
+    networks:
+      - local-node-test
+networks:
+  local-node-test:
