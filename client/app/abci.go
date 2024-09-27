@@ -65,7 +65,7 @@ func (l abciWrapper) InitChain(ctx context.Context, chain *abci.RequestInitChain
 }
 
 func (l abciWrapper) PrepareProposal(ctx context.Context, proposal *abci.RequestPrepareProposal) (*abci.ResponsePrepareProposal, error) {
-	log.Info(ctx, "👾 ABCI call: PrepareProposal",
+	log.Info(ctx, "👾 ABCI call: PrepareProposal1",
 		"height", proposal.Height,
 		log.Hex7("proposer", proposal.ProposerAddress),
 	)
