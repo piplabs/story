@@ -399,7 +399,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 
 			err = keeper.HandleWithdrawEvent(cachedCtx, tc.withdraw)
 			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				err = keeper.ProcessAllMsgs(cachedCtx)
+				err = s.processQueuedMessage(cachedCtx)
 			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)

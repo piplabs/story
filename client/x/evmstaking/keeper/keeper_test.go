@@ -740,3 +740,12 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 
 	return events, nil
 }
+
+func (s *TestSuite) processQueuedMessage(ctx context.Context) error {
+	qMsg, err := s.EVMStakingKeeper.MessageQueue.Dequeue(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.EVMStakingKeeper.ProcessMsg(ctx, &qMsg)
+}

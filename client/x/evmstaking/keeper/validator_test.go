@@ -223,7 +223,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				Raw:                     gethtypes.Log{},
 			})
 			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				err = keeper.ProcessAllMsgs(cachedCtx)
+				err = s.processQueuedMessage(cachedCtx)
 			}
 			if tc.expectedError != "" {
 				require.Error(err, tc.expectedError)

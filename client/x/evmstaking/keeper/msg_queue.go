@@ -30,17 +30,17 @@ func (k Keeper) ProcessAllMsgs(ctx context.Context) error {
 			return errors.Wrap(err, "get value of message queue")
 		}
 
-		if err := k.processMsg(ctx, &qMsg); err != nil {
+		if err := k.ProcessMsg(ctx, &qMsg); err != nil {
 			log.Warn(ctx, "Failed to process queued message", err, "tx_id", string(qMsg.TxId))
-			return errors.Wrap(err, "process queued message")
+			continue
 		}
 	}
 
 	return nil
 }
 
-// processMsg processes queues message depending on the type of message.
-func (k Keeper) processMsg(ctx context.Context, msg *types.QueuedMessage) error {
+// ProcessMsg processes queues message depending on the type of message.
+func (k Keeper) ProcessMsg(ctx context.Context, msg *types.QueuedMessage) error {
 	var (
 		unwrappedMsgWithType sdk.Msg
 		err                  error

@@ -62,7 +62,7 @@ func (s *TestSuite) TestProcessUnjail() {
 			var err error
 			err = keeper.HandleUnjailEvent(cachedCtx, tc.unjailEv)
 			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				err = keeper.ProcessAllMsgs(cachedCtx)
+				err = s.processQueuedMessage(cachedCtx)
 			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)

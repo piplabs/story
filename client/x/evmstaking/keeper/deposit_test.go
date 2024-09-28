@@ -210,7 +210,7 @@ func (s *TestSuite) TestProcessDeposit() {
 			var err error
 			err = keeper.HandleDepositEvent(cachedCtx, tc.deposit)
 			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				err = keeper.ProcessAllMsgs(cachedCtx)
+				err = s.processQueuedMessage(cachedCtx)
 			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
