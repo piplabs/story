@@ -90,17 +90,39 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	}
 
 	for _, entry := range unbondedEntries {
-		log.Debug(ctx, "Adding undelegation to withdrawal queue",
-			"delegator", entry.delegatorAddress,
-			"validator", entry.validatorAddress,
-			"amount", entry.amount.String())
-
 		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.delegatorAddress)
 		if err != nil {
 			return nil, errors.Wrap(err, "delegator address from bech32")
 		}
+
+		maxAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
+		if maxAmount.IsZero() {
+			log.Warn(ctx, "No spendable coins for undelegation",
+				errors.New("no spendable coins for undelegation"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"original_amount", entry.amount.String())
+
+			continue
+		}
+
+		if entry.amount.LT(maxAmount) {
+			maxAmount = entry.amount
+			log.Warn(ctx, "Undelegation amount is less than max amount",
+				errors.New("undelegation amount is less than max amount"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"original_amount", entry.amount.String(),
+				"max_amount", maxAmount.String())
+		}
+
+		log.Debug(ctx, "Adding undelegation to withdrawal queue",
+			"delegator", entry.delegatorAddress,
+			"validator", entry.validatorAddress,
+			"max_amount", maxAmount.String())
+
 		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(entry.amount.BigInt())
+		_, coins := IPTokenToBondCoin(maxAmount.BigInt())
 		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
 		if err != nil {
 			return nil, errors.Wrap(err, "send coins from account to module")
@@ -123,7 +145,7 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			entry.delegatorAddress,
 			entry.validatorAddress,
 			delEvmAddr,
-			entry.amount.Uint64(),
+			maxAmount.Uint64(),
 		))
 		if err != nil {
 			return nil, err
