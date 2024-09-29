@@ -106,10 +106,12 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			continue
 		}
 
+		// If the requested undelegation amount is greater than the spendable amount, set the real undelegation amount to
+		// the total spendable amount.
 		if entry.amount.LT(maxAmount) {
 			maxAmount = entry.amount
-			log.Warn(ctx, "Undelegation amount is less than max amount",
-				errors.New("undelegation amount is less than max amount"),
+			log.Warn(ctx, "Spendable amount is less than the requested undelegation amount",
+				errors.New("spendable amount is less than the requested undelegation amount"),
 				"delegator", entry.delegatorAddress,
 				"validator", entry.validatorAddress,
 				"original_amount", entry.amount.String(),
