@@ -40,6 +40,7 @@ type BankKeeper interface {
 	GetAllBalances(ctx context.Context, addr sdk.AccAddress) sdk.Coins
 	LockedCoins(ctx context.Context, addr sdk.AccAddress) sdk.Coins
 	SpendableCoins(ctx context.Context, addr sdk.AccAddress) sdk.Coins
+	SpendableCoin(ctx context.Context, addr sdk.AccAddress, denom string) sdk.Coin
 	GetSupply(ctx context.Context, denom string) sdk.Coin
 	SendCoinsFromModuleToModule(ctx context.Context, senderPool, recipientPool string, amt sdk.Coins) error
 }

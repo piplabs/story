@@ -95,8 +95,9 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			return nil, errors.Wrap(err, "delegator address from bech32")
 		}
 
-		maxAmount := k.bankKeeper.GetBalance(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
-		if entry.amount.LT(maxAmount) {
+		maxAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
+		maxBounded := entry.amount.LT(maxAmount)
+		if maxBounded {
 			maxAmount = entry.amount
 		}
 
@@ -115,7 +116,7 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			"delegator", entry.delegatorAddress,
 			"validator", entry.validatorAddress,
 			"max_amount", maxAmount.String())
-		if entry.amount.LT(maxAmount) {
+		if maxBounded {
 			log.Warn(ctx, "Undelegation amount is less than max amount",
 				errors.New("undelegation amount is less than max amount"),
 				"delegator", entry.delegatorAddress,
