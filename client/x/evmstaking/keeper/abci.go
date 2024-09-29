@@ -96,6 +96,16 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		}
 
 		maxAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
+		if maxAmount.IsZero() {
+			log.Warn(ctx, "No spendable coins for undelegation",
+				errors.New("no spendable coins for undelegation"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"original_amount", entry.amount.String())
+
+			continue
+		}
+
 		maxBounded := entry.amount.LT(maxAmount)
 		if maxBounded {
 			maxAmount = entry.amount
