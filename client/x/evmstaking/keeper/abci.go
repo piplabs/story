@@ -106,10 +106,20 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			continue
 		}
 
-		maxBounded := entry.amount.LT(maxAmount)
-		if maxBounded {
+		if entry.amount.LT(maxAmount) {
 			maxAmount = entry.amount
+			log.Warn(ctx, "Undelegation amount is less than max amount",
+				errors.New("undelegation amount is less than max amount"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"original_amount", entry.amount.String(),
+				"max_amount", maxAmount.String())
 		}
+
+		log.Debug(ctx, "Adding undelegation to withdrawal queue",
+			"delegator", entry.delegatorAddress,
+			"validator", entry.validatorAddress,
+			"max_amount", maxAmount.String())
 
 		// Burn tokens from the delegator
 		_, coins := IPTokenToBondCoin(maxAmount.BigInt())
@@ -120,19 +130,6 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
 		if err != nil {
 			return nil, errors.Wrap(err, "burn coins")
-		}
-
-		log.Debug(ctx, "Adding undelegation to withdrawal queue",
-			"delegator", entry.delegatorAddress,
-			"validator", entry.validatorAddress,
-			"max_amount", maxAmount.String())
-		if maxBounded {
-			log.Warn(ctx, "Undelegation amount is less than max amount",
-				errors.New("undelegation amount is less than max amount"),
-				"delegator", entry.delegatorAddress,
-				"validator", entry.validatorAddress,
-				"original_amount", entry.amount.String(),
-				"max_amount", maxAmount.String())
 		}
 
 		// This should not produce error, as all delegations are done via the evmstaking module via EL.
