@@ -155,15 +155,15 @@ func (mr *MockAccountKeeperMockRecorder) SetAccount(ctx, acc any) *gomock.Call {
 }
 
 // SetModuleAccount mocks base method.
-func (m *MockAccountKeeper) SetModuleAccount(arg0 context.Context, arg1 types0.ModuleAccountI) {
+func (m *MockAccountKeeper) SetModuleAccount(ctx context.Context, modAcc types0.ModuleAccountI) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetModuleAccount", arg0, arg1)
+	m.ctrl.Call(m, "SetModuleAccount", ctx, modAcc)
 }
 
 // SetModuleAccount indicates an expected call of SetModuleAccount.
-func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(arg0, arg1 any) *gomock.Call {
+func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(ctx, modAcc any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetModuleAccount", reflect.TypeOf((*MockAccountKeeper)(nil).SetModuleAccount), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetModuleAccount", reflect.TypeOf((*MockAccountKeeper)(nil).SetModuleAccount), ctx, modAcc)
 }
 
 // MockBankKeeper is a mock of BankKeeper interface.
@@ -329,6 +329,20 @@ func (mr *MockBankKeeperMockRecorder) SendCoinsFromModuleToModule(ctx, senderPoo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCoinsFromModuleToModule", reflect.TypeOf((*MockBankKeeper)(nil).SendCoinsFromModuleToModule), ctx, senderPool, recipientPool, amt)
 }
 
+// SpendableCoin mocks base method.
+func (m *MockBankKeeper) SpendableCoin(ctx context.Context, addr types0.AccAddress, denom string) types0.Coin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SpendableCoin", ctx, addr, denom)
+	ret0, _ := ret[0].(types0.Coin)
+	return ret0
+}
+
+// SpendableCoin indicates an expected call of SpendableCoin.
+func (mr *MockBankKeeperMockRecorder) SpendableCoin(ctx, addr, denom any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpendableCoin", reflect.TypeOf((*MockBankKeeper)(nil).SpendableCoin), ctx, addr, denom)
+}
+
 // SpendableCoins mocks base method.
 func (m *MockBankKeeper) SpendableCoins(ctx context.Context, addr types0.AccAddress) types0.Coins {
 	m.ctrl.T.Helper()
@@ -395,21 +409,6 @@ func (mr *MockStakingKeeperMockRecorder) BondDenom(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BondDenom", reflect.TypeOf((*MockStakingKeeper)(nil).BondDenom), ctx)
 }
 
-// CompleteRedelegation mocks base method.
-func (m *MockStakingKeeper) CompleteRedelegation(ctx context.Context, delAddr types0.AccAddress, valSrcAddr, valDstAddr types0.ValAddress) (types0.Coins, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CompleteRedelegation", ctx, delAddr, valSrcAddr, valDstAddr)
-	ret0, _ := ret[0].(types0.Coins)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CompleteRedelegation indicates an expected call of CompleteRedelegation.
-func (mr *MockStakingKeeperMockRecorder) CompleteRedelegation(ctx, delAddr, valSrcAddr, valDstAddr any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteRedelegation", reflect.TypeOf((*MockStakingKeeper)(nil).CompleteRedelegation), ctx, delAddr, valSrcAddr, valDstAddr)
-}
-
 // DeleteUnbondingIndex mocks base method.
 func (m *MockStakingKeeper) DeleteUnbondingIndex(ctx context.Context, id uint64) error {
 	m.ctrl.T.Helper()
@@ -422,21 +421,6 @@ func (m *MockStakingKeeper) DeleteUnbondingIndex(ctx context.Context, id uint64)
 func (mr *MockStakingKeeperMockRecorder) DeleteUnbondingIndex(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnbondingIndex", reflect.TypeOf((*MockStakingKeeper)(nil).DeleteUnbondingIndex), ctx, id)
-}
-
-// DequeueAllMatureRedelegationQueue mocks base method.
-func (m *MockStakingKeeper) DequeueAllMatureRedelegationQueue(ctx context.Context, currTime time.Time) ([]types2.DVVTriplet, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DequeueAllMatureRedelegationQueue", ctx, currTime)
-	ret0, _ := ret[0].([]types2.DVVTriplet)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DequeueAllMatureRedelegationQueue indicates an expected call of DequeueAllMatureRedelegationQueue.
-func (mr *MockStakingKeeperMockRecorder) DequeueAllMatureRedelegationQueue(ctx, currTime any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DequeueAllMatureRedelegationQueue", reflect.TypeOf((*MockStakingKeeper)(nil).DequeueAllMatureRedelegationQueue), ctx, currTime)
 }
 
 // EndBlocker mocks base method.
