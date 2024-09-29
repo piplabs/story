@@ -116,7 +116,10 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			"validator", entry.validatorAddress,
 			"max_amount", maxAmount.String())
 		if entry.amount.LT(maxAmount) {
-			log.Debug(ctx, "Undelegation amount is less than max amount",
+			log.Warn(ctx, "Undelegation amount is less than max amount",
+				errors.New("undelegation amount is less than max amount"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
 				"original_amount", entry.amount.String(),
 				"max_amount", maxAmount.String())
 		}
