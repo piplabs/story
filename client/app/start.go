@@ -184,6 +184,49 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}, nil
 }
 
+func CreateApp(ctx context.Context, cfg Config) *App {
+	privVal, err := loadPrivVal(cfg)
+	if err != nil {
+		panic(errors.Wrap(err, "load validator key"))
+	}
+
+	db, err := dbm.NewDB("application", cfg.BackendType(), cfg.DataDir())
+	if err != nil {
+		panic(errors.Wrap(err, "create db"))
+	}
+
+	baseAppOpts, err := makeBaseAppOpts(cfg)
+	if err != nil {
+		panic(errors.Wrap(err, "make base app opts"))
+	}
+
+	engineCl, err := newEngineClient(ctx, cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	//nolint:contextcheck // False positive
+	app, err := newApp(
+		newSDKLogger(ctx),
+		db,
+		engineCl,
+		baseAppOpts...,
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "create app"))
+	}
+	app.Keepers.EVMEngKeeper.SetBuildDelay(cfg.EVMBuildDelay)
+	app.Keepers.EVMEngKeeper.SetBuildOptimistic(cfg.EVMBuildOptimistic)
+
+	addr, err := k1util.PubKeyToAddress(privVal.Key.PrivKey.PubKey())
+	if err != nil {
+		panic(errors.Wrap(err, "convert validator pubkey to address"))
+	}
+	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
+
+	return app
+}
+
 func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator,
 ) (*node.Node, error) {
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
