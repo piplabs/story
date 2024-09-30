@@ -2,9 +2,8 @@ package keeper
 
 import (
 	"context"
+	"math/big"
 	"time"
-
-	"cosmossdk.io/math"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -14,12 +13,6 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
-
-type UnbondedEntry struct {
-	validatorAddress string
-	delegatorAddress string
-	amount           math.Int
-}
 
 // Query staking module's UnbondingDelegation (UBD Queue) to get the matured unbonding delegations. Then,
 // insert the matured unbonding delegations into the withdrawal queue.
@@ -38,18 +31,17 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, err
 	}
 
-	// make an array with each entry being the validator address, delegator address, and the amount
-	var unbondedEntries []UnbondedEntry
-
+	// delegatorAddress -> validatorAddress -> unbondingId -> amount
+	unbondedEntries := make(map[string]map[string]map[uint64]uint64)
+	// Fetch all the mature unbonding entries before processed by staking keeper's EndBlocker.
 	for _, dvPair := range matureUnbonds {
-		validatorAddr, err := k.validatorAddressCodec.StringToBytes(dvPair.ValidatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "validator address from bech32")
-		}
-
 		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(dvPair.DelegatorAddress)
 		if err != nil {
 			return nil, errors.Wrap(err, "delegator address from bech32")
+		}
+		validatorAddr, err := k.validatorAddressCodec.StringToBytes(dvPair.ValidatorAddress)
+		if err != nil {
+			return nil, errors.Wrap(err, "validator address from bech32")
 		}
 
 		ubd, err := (k.stakingKeeper).GetUnbondingDelegation(ctx, delegatorAddr, validatorAddr)
@@ -57,23 +49,18 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			return nil, err
 		}
 
-		// TODO: parameterized bondDenom
-		bondDenom := sdk.DefaultBondDenom
-
 		// loop through all the entries and process unbonding mature entries
 		for i := range len(ubd.Entries) {
 			entry := ubd.Entries[i]
-			if entry.IsMature(ctxTime) && !entry.OnHold() {
-				// track undelegation only when remaining or truncated shares are non-zero
-				if !entry.Balance.IsZero() {
-					amt := sdk.NewCoin(bondDenom, entry.Balance)
-					// TODO: check if it's possible to add a double entry in the unbondedEntries array
-					unbondedEntries = append(unbondedEntries, UnbondedEntry{
-						validatorAddress: dvPair.ValidatorAddress,
-						delegatorAddress: dvPair.DelegatorAddress,
-						amount:           amt.Amount,
-					})
+			// track undelegation only when remaining or truncated shares are non-zero
+			if entry.IsMature(ctxTime) && !entry.OnHold() && !entry.Balance.IsZero() {
+				if _, ok := unbondedEntries[dvPair.DelegatorAddress]; !ok {
+					unbondedEntries[dvPair.DelegatorAddress] = make(map[string]map[uint64]uint64)
 				}
+				if _, ok := unbondedEntries[dvPair.DelegatorAddress][dvPair.ValidatorAddress]; !ok {
+					unbondedEntries[dvPair.DelegatorAddress][dvPair.ValidatorAddress] = make(map[uint64]uint64)
+				}
+				unbondedEntries[dvPair.DelegatorAddress][dvPair.ValidatorAddress][entry.UnbondingId] = entry.Balance.Uint64()
 			}
 		}
 	}
@@ -83,44 +70,70 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, err
 	}
 
-	for _, entry := range unbondedEntries {
-		log.Debug(ctx, "Adding undelegation to withdrawal queue",
-			"delegator", entry.delegatorAddress,
-			"validator", entry.validatorAddress,
-			"amount", entry.amount.String())
+	for delegatorAddr, validatorMap := range unbondedEntries {
+		for validatorAddr, unbondingMap := range validatorMap {
+			// Double check if there any unprocessed mature unbonding entries.
+			delAddr, err := k.authKeeper.AddressCodec().StringToBytes(delegatorAddr)
+			if err != nil {
+				return nil, errors.Wrap(err, "delegator address from bech32")
+			}
+			valAddr, err := k.validatorAddressCodec.StringToBytes(validatorAddr)
+			if err != nil {
+				return nil, errors.Wrap(err, "validator address from bech32")
+			}
+			ubd, err := (k.stakingKeeper).GetUnbondingDelegation(ctx, delAddr, valAddr)
+			if err != nil {
+				return nil, err
+			}
+			for _, entry := range ubd.Entries {
+				if entry.IsMature(ctxTime) && !entry.OnHold() {
+					// Maps used here should already initialized in the previous loop.
+					if _, ok := unbondedEntries[validatorAddr][delegatorAddr][entry.UnbondingId]; !entry.Balance.IsZero() && ok {
+						log.Warn(ctx, "Incomplete mature unbonding entry", nil,
+							"delegator", delegatorAddr,
+							"validator", validatorAddr,
+							"unbonding_id", entry.UnbondingId,
+							"amount", entry.Balance.Uint64(),
+						)
+						// NOTE: We should delete the incomplete unbonding entry from the map to avoid duplicate processing later on.
+						delete(unbondingMap, entry.UnbondingId)
+					}
+				}
+			}
+			// Process the complete mature unbonding entries.
+			for _, amount := range unbondingMap {
+				log.Debug(ctx, "Adding undelegation to withdrawal queue",
+					"delegator", delegatorAddr,
+					"validator", validatorAddr,
+					"amount", amount,
+				)
+				// Burn tokens from the delegator
+				_, coins := IPTokenToBondCoin(big.NewInt(int64(amount)))
+				if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delAddr, types.ModuleName, coins); err != nil {
+					return nil, errors.Wrap(err, "send coins from account to module")
+				}
+				if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
+					return nil, errors.Wrap(err, "burn coins")
+				}
 
-		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.delegatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "delegator address from bech32")
-		}
-		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(entry.amount.BigInt())
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
-		if err != nil {
-			return nil, errors.Wrap(err, "send coins from account to module")
-		}
-		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
-		if err != nil {
-			return nil, errors.Wrap(err, "burn coins")
-		}
+				// This should not produce error, as all delegations are done via the evmstaking module via EL.
+				// However, we should gracefully handle in case Get fails.
+				delEvmAddr, err := k.DelegatorMap.Get(ctx, delegatorAddr)
+				if err != nil {
+					return nil, errors.Wrap(err, "map delegator pubkey to evm address")
+				}
 
-		// This should not produce error, as all delegations are done via the evmstaking module via EL.
-		// However, we should gracefully handle in case Get fails.
-		delEvmAddr, err := k.DelegatorMap.Get(ctx, entry.delegatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "map delegator pubkey to evm address")
-		}
-
-		// push the undelegation to the withdrawal queue
-		err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
-			uint64(blockHeight),
-			entry.delegatorAddress,
-			entry.validatorAddress,
-			delEvmAddr,
-			entry.amount.Uint64(),
-		))
-		if err != nil {
-			return nil, err
+				// push the undelegation to the withdrawal queue
+				if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+					uint64(blockHeight),
+					delegatorAddr,
+					validatorAddr,
+					delEvmAddr,
+					amount,
+				)); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
