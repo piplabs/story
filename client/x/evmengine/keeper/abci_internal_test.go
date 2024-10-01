@@ -124,7 +124,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
-				ctx, storeService := setupCtxStore(t, nil)
+				ctx, storeKey, storeService := setupCtxStore(t, nil)
 				cdc := getCodec(t)
 				txConfig := authtx.NewTxConfig(cdc, nil)
 
@@ -138,7 +138,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				}
 
 				var err error
-				tt.mockEngine.EngineClient, err = ethclient.NewEngineMock()
+				tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 				require.NoError(t, err)
 
 				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk)
@@ -160,11 +160,11 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	t.Run("TestBuildNonOptimistic", func(t *testing.T) {
 		t.Parallel()
 		// setup dependencies
-		ctx, storeService := setupCtxStore(t, nil)
+		ctx, storeKey, storeService := setupCtxStore(t, nil)
 		cdc := getCodec(t)
 		txConfig := authtx.NewTxConfig(cdc, nil)
 
-		mockEngine, err := newMockEngineAPI(0)
+		mockEngine, err := newMockEngineAPI(storeKey, 0)
 		require.NoError(t, err)
 
 		ctrl := gomock.NewController(t)
@@ -250,14 +250,14 @@ func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash comm
 	// require.Equal(t, evmLog.Address, zeroAddr.Bytes())
 }
 
-func ctxWithAppHash(t *testing.T, appHash common.Hash) context.Context {
+func ctxWithAppHash(t *testing.T, appHash common.Hash) (context.Context, *storetypes.KVStoreKey) {
 	t.Helper()
-	ctx, _ := setupCtxStore(t, &cmtproto.Header{AppHash: appHash.Bytes()})
+	ctx, storeKey, _ := setupCtxStore(t, &cmtproto.Header{AppHash: appHash.Bytes()})
 
-	return ctx
+	return ctx, storeKey
 }
 
-func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, store.KVStoreService) {
+func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storetypes.KVStoreKey, store.KVStoreService) {
 	t.Helper()
 	key := storetypes.NewKVStoreKey("test")
 	storeService := runtime.NewKVStoreService(key)
@@ -267,7 +267,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, store.KV
 	}
 	ctx := testCtx.Ctx.WithBlockHeader(*header)
 
-	return ctx, storeService
+	return ctx, key, storeService
 }
 
 func getCodec(t *testing.T) codec.Codec {
@@ -304,11 +304,15 @@ type mockEngineAPI struct {
 	headerByTypeFunc        func(context.Context, ethclient.HeadType) (*types.Header, error)
 	forkchoiceUpdatedV3Func func(context.Context, eengine.ForkchoiceStateV1, *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error)
 	newPayloadV3Func        func(context.Context, eengine.ExecutableData, []common.Hash, *common.Hash) (eengine.PayloadStatusV1, error)
+	// forceInvalidNewPayloadV3 forces the NewPayloadV3 returns an invalid status.
+	forceInvalidNewPayloadV3 bool
+	// forceInvalidForkchoiceUpdatedV3 forces the ForkchoiceUpdatedV3 returns an invalid status.
+	forceInvalidForkchoiceUpdatedV3 bool
 }
 
 // newMockEngineAPI returns a new mock engine API with a fuzzer and a mock engine client.
-func newMockEngineAPI(syncings int) (mockEngineAPI, error) {
-	me, err := ethclient.NewEngineMock()
+func newMockEngineAPI(key *storetypes.KVStoreKey, syncings int) (mockEngineAPI, error) {
+	me, err := ethclient.NewEngineMock(key)
 	if err != nil {
 		return mockEngineAPI{}, err
 	}
@@ -395,6 +399,13 @@ func (m *mockEngineAPI) NewPayloadV2(ctx context.Context, params eengine.Executa
 
 //nolint:nonamedreturns // Required for defer
 func (m *mockEngineAPI) NewPayloadV3(ctx context.Context, params eengine.ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (resp eengine.PayloadStatusV1, err error) {
+	if m.forceInvalidNewPayloadV3 {
+		m.forceInvalidNewPayloadV3 = false
+		return eengine.PayloadStatusV1{
+			Status: eengine.INVALID,
+		}, nil
+	}
+
 	if status, ok := m.maybeSync(); ok {
 		defer func() {
 			resp.Status = status.Status
@@ -410,6 +421,14 @@ func (m *mockEngineAPI) NewPayloadV3(ctx context.Context, params eengine.Executa
 
 //nolint:nonamedreturns // Required for defer
 func (m *mockEngineAPI) ForkchoiceUpdatedV3(ctx context.Context, update eengine.ForkchoiceStateV1, payloadAttributes *eengine.PayloadAttributes) (resp eengine.ForkChoiceResponse, err error) {
+	if m.forceInvalidForkchoiceUpdatedV3 {
+		m.forceInvalidForkchoiceUpdatedV3 = false
+		return eengine.ForkChoiceResponse{
+			PayloadStatus: eengine.PayloadStatusV1{
+				Status: eengine.INVALID,
+			},
+		}, nil
+	}
 	if status, ok := m.maybeSync(); ok {
 		defer func() {
 			resp.PayloadStatus.Status = status.Status
@@ -448,7 +467,7 @@ func (m *mockEngineAPI) nextBlock(
 	header.ParentBeaconRoot = beaconRoot
 
 	// Convert header to block
-	block := types.NewBlock(&header, nil, nil, trie.NewStackTrie(nil))
+	block := types.NewBlock(&header, &types.Body{Withdrawals: make([]*types.Withdrawal, 0)}, nil, trie.NewStackTrie(nil))
 
 	// Convert block to payload
 	env := eengine.BlockToExecutableData(block, big.NewInt(0), nil)

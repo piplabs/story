@@ -127,7 +127,7 @@ func (s *TestSuite) SetupTest() {
 	s.Require().NoError(s.StakingKeeper.SetParams(s.Ctx, stypes.DefaultParams()))
 
 	// emvstaking keeper
-	ethCl, err := ethclient.NewEngineMock()
+	ethCl, err := ethclient.NewEngineMock(evmstakingKey)
 	s.Require().NoError(err)
 	evmstakingKeeper := keeper.NewKeeper(
 		marshaler,

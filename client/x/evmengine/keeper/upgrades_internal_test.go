@@ -254,8 +254,6 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	t.Helper()
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
-	mockEngine, err := newMockEngineAPI(0)
-	require.NoError(t, err)
 
 	cmtAPI := newMockCometAPI(t, nil)
 	header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes(), ProposerAddress: cmtAPI.validatorSet.Validators[0].Address}
@@ -265,7 +263,9 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 
-	ctx, storeService := setupCtxStore(t, &header)
+	ctx, storeKey, storeService := setupCtxStore(t, &header)
+	mockEngine, err := newMockEngineAPI(storeKey, 0)
+	require.NoError(t, err)
 
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk)
 	require.NoError(t, err)
