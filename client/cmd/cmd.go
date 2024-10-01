@@ -109,6 +109,7 @@ application.
 			}
 
 			fmt.Printf("Rolled back state to height %d and hash %X", height, hash)
+
 			return nil
 		},
 	}
