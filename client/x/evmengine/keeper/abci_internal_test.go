@@ -452,8 +452,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			}
 
 			var err error
-			tt.mockEngine.EngineClient, err = ethclient.NewEngineMock()
-			require.NoError(t, err)
 
 			cmtAPI := newMockCometAPI(t, nil)
 			// set the header and proposer so we have the correct next proposer
@@ -461,8 +459,10 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			header.ProposerAddress = cmtAPI.validatorSet.Validators[0].Address
 			nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
 			require.NoError(t, err)
-			ctx, storeService := setupCtxStore(t, &header)
+			ctx, storeKey, storeService := setupCtxStore(t, &header)
 			ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
+			tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
+			require.NoError(t, err)
 
 			k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk)
 			require.NoError(t, err)
