@@ -18,13 +18,29 @@ import (
 func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types.EVMEvent, error) {
 	var events []*types.EVMEvent
 
+	// identify updated addresses
+	var iPTokenStakingAddress = predeploys.IPTokenStaking
+	if predeploys.UpdatedIPTokenStaking != "" {
+		iPTokenStakingAddress = predeploys.UpdatedIPTokenStaking
+	}
+
+	var iPTokenSlashingAddress = predeploys.IPTokenSlashing
+	if predeploys.UpdatedIPTokenSlashing != "" {
+		iPTokenSlashingAddress = predeploys.UpdatedIPTokenSlashing
+	}
+
+	var upgradeEntrypointAddress = predeploys.UpgradeEntrypoint
+	if predeploys.UpdatedIPTokenStaking != "" {
+		upgradeEntrypointAddress = predeploys.UpdatedUpgradeEntrypoint
+	}
+
 	logs, err := k.engineCl.FilterLogs(ctx, ethereum.FilterQuery{
 		BlockHash: &blockHash,
 		// only IPTokenStaking contract
 		Addresses: []common.Address{
-			common.HexToAddress(predeploys.IPTokenStaking),
-			common.HexToAddress(predeploys.IPTokenSlashing),
-			common.HexToAddress(predeploys.UpgradeEntrypoint),
+			common.HexToAddress(iPTokenStakingAddress),
+			common.HexToAddress(iPTokenSlashingAddress),
+			common.HexToAddress(upgradeEntrypointAddress),
 		},
 	})
 	if err != nil {

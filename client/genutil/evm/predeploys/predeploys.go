@@ -39,6 +39,11 @@ const (
 )
 
 var (
+	// IP Token Updated Addresses. Not used if empty.
+	UpdatedIPTokenStaking    = ""
+	UpdatedIPTokenSlashing   = ""
+	UpdatedUpgradeEntrypoint = ""
+
 	// Namespace big.Ints.
 	storyNamespace   = common.HexToAddress(StoryNamespace).Big()
 	ipTokenNamespace = common.HexToAddress(IPTokenNamespace).Big()
