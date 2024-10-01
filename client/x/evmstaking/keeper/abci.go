@@ -95,8 +95,8 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			return nil, errors.Wrap(err, "delegator address from bech32")
 		}
 
-		maxAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
-		if maxAmount.IsZero() {
+		spendableAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
+		if spendableAmount.IsZero() {
 			log.Warn(ctx, "No spendable coins for undelegation",
 				errors.New("no spendable coins for undelegation"),
 				"delegator", entry.delegatorAddress,
@@ -106,23 +106,25 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			continue
 		}
 
-		if entry.amount.LT(maxAmount) {
-			maxAmount = entry.amount
-			log.Warn(ctx, "Undelegation amount is less than max amount",
-				errors.New("undelegation amount is less than max amount"),
+		// If the requested undelegation amount is greater than the spendable amount, set the real undelegation amount to
+		// the total spendable amount.
+		if entry.amount.GT(spendableAmount) {
+			entry.amount = spendableAmount
+			log.Warn(ctx, "Spendable amount is less than the requested undelegation amount",
+				errors.New("spendable amount is less than the requested undelegation amount"),
 				"delegator", entry.delegatorAddress,
 				"validator", entry.validatorAddress,
-				"original_amount", entry.amount.String(),
-				"max_amount", maxAmount.String())
+				"requested_amount", entry.amount.String(),
+				"spendable_amount", spendableAmount.String())
 		}
 
 		log.Debug(ctx, "Adding undelegation to withdrawal queue",
 			"delegator", entry.delegatorAddress,
 			"validator", entry.validatorAddress,
-			"max_amount", maxAmount.String())
+			"amount", entry.amount.String())
 
 		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(maxAmount.BigInt())
+		_, coins := IPTokenToBondCoin(entry.amount.BigInt())
 		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
 		if err != nil {
 			return nil, errors.Wrap(err, "send coins from account to module")
@@ -145,7 +147,7 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 			entry.delegatorAddress,
 			entry.validatorAddress,
 			delEvmAddr,
-			maxAmount.Uint64(),
+			entry.amount.Uint64(),
 		))
 		if err != nil {
 			return nil, err
