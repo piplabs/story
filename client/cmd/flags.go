@@ -120,6 +120,10 @@ func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 }
 
+func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
+}
+
 // Flag Validation
 
 func validateFlags(flags map[string]string) error {

@@ -160,6 +160,7 @@ type Config struct {
 	ExternalAddress    string
 	Seeds              string
 	SeedMode           bool
+	RemoveBlock        bool // See cosmos-sdk/server/rollback.go
 }
 
 // ConfigFile returns the default path to the toml story config file.
