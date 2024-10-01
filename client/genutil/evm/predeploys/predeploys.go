@@ -43,9 +43,7 @@ var (
 	UpdatedIPTokenStaking    = ""
 	UpdatedIPTokenSlashing   = ""
 	UpdatedUpgradeEntrypoint = ""
-)
 
-var (
 	// Namespace big.Ints.
 	storyNamespace   = common.HexToAddress(StoryNamespace).Big()
 	ipTokenNamespace = common.HexToAddress(IPTokenNamespace).Big()
