@@ -184,6 +184,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}, nil
 }
 
+// TODO: Refactor CreateApp() to be used within the Start function, as most of the code originates from there.
 func CreateApp(ctx context.Context, cfg Config) *App {
 	privVal, err := loadPrivVal(cfg)
 	if err != nil {
