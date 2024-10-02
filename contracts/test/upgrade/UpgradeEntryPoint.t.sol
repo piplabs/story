@@ -12,10 +12,6 @@ import { Test } from "../utils/Test.sol";
 
 contract UpgradeEntrypointTest is Test {
 
-    function setUp() public {
-        setUpgrade();
-    }
-
     function testUpgradeEntrypoint_planUpgrade() public {
         // Network shall allow the protocol owner to submit an upgrade plan.
         string memory name = "upgrade";

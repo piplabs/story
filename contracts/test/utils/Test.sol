@@ -10,6 +10,9 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { IPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
+import { Predeploys } from "../../src/libraries/Predeploys.sol";
+
+import { EtchInitialState } from "../../script/EtchInitialState.s.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
@@ -19,38 +22,12 @@ contract Test is ForgeTest {
     IPTokenSlashing internal ipTokenSlashing;
     UpgradeEntrypoint internal upgradeEntrypoint;
 
-    function setStaking() internal {
-        address impl = address(
-            new IPTokenStaking(
-                1 gwei, // stakingRounding
-                1000, // defaultCommissionRate, 10%
-                5000, // defaultMaxCommissionRate, 50%
-                500 // defaultMaxCommissionChangeRate, 5%
-            )
-        );
-        bytes memory initializer = abi.encodeCall(
-            IPTokenStaking.initialize,
-            (admin, 1 ether, 1 ether, 1 ether, 7 days)
-        );
-        ipTokenStaking = IPTokenStaking(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
-    }
-
-    function setSlashing() internal {
-        require(address(ipTokenStaking) != address(0), "ipTokenStaking not set");
-
-        address impl = address(new IPTokenSlashing(address(ipTokenStaking)));
-
-        bytes memory initializer = abi.encodeCall(IPTokenSlashing.initialize, (admin, 1 ether));
-        ipTokenSlashing = IPTokenSlashing(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
-
-        console2.log("unjailFee:", ipTokenSlashing.unjailFee());
-    }
-
-    function setUpgrade() internal {
-        address impl = address(new UpgradeEntrypoint());
-
-        bytes memory initializer = abi.encodeWithSignature("initialize(address)", admin);
-
-        upgradeEntrypoint = UpgradeEntrypoint(address(new TransparentUpgradeableProxy(impl, upgradeAdmin, initializer)));
+    function setUp() virtual public {
+        EtchInitialState initializer = new EtchInitialState();
+        initializer.disableStateDump(); // Faster tests. Don't call to verify JSON output
+        initializer.run();
+        ipTokenStaking = IPTokenStaking(Predeploys.Staking);
+        ipTokenSlashing = IPTokenSlashing(Predeploys.Slashing);
+        upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
     }
 }
