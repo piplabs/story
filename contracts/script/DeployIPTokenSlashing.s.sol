@@ -7,8 +7,9 @@ import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { CREATE3 } from "solady/src/utils/CREATE3.sol";
+
 import { IPTokenSlashing } from "../src/protocol/IPTokenSlashing.sol";
+import { Create3 } from "../src/deploy/Create3.sol";
 
 /**
  * @title DeployIPTokenSlashing
@@ -34,6 +35,8 @@ contract DeployIPTokenSlashing is Script {
         console2.log("deployer", deployer);
         vm.startBroadcast(deployerKey);
 
+        Create3 c3Deployer = new Create3();
+
         address ipTokenStaking = 0xCCcCcC0000000000000000000000000000000001;
 
         address impl = address(new IPTokenSlashing(ipTokenStaking));
@@ -47,12 +50,12 @@ contract DeployIPTokenSlashing is Script {
         bytes memory creationCode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(impl, initializationData));
         bytes32 salt = keccak256(abi.encode("STORY", type(IPTokenSlashing).name));
-        address predicted = CREATE3.predictDeterministicAddress(salt);
+        address predicted = c3Deployer.getDeployed(salt);
         console2.log("IPTokenSlashing will be deployed at:", predicted);
-
-        IPTokenSlashing ipTokenSlashing = IPTokenSlashing(this.deployDeterministic(creationCode, salt));
+        IPTokenSlashing ipTokenSlashing = IPTokenSlashing(c3Deployer.deploy(salt, creationCode));
 
         console2.log("IP_TOKEN_STAKING", address(ipTokenSlashing.IP_TOKEN_STAKING()));
+        console2.log("owner:", ipTokenSlashing.owner());
         if (address(ipTokenSlashing) != predicted) {
             revert("IPTokenSlashing mismatch");
         }
@@ -61,7 +64,5 @@ contract DeployIPTokenSlashing is Script {
         vm.stopBroadcast();
     }
 
-    function deployDeterministic(bytes calldata creationCode, bytes32 salt) public returns (address) {
-        return CREATE3.deployDeterministic(0, creationCode, salt);
-    }
+
 }
