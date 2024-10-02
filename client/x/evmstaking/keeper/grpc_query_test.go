@@ -61,3 +61,15 @@ func (s *TestSuite) TestGetWithdrawalQueue() {
 	require.NoError(err)
 	require.Equal(1, len(res.Withdrawals), "expected 1 withdrawal after second page query, but found %d", len(res.Withdrawals))
 }
+
+func (s *TestSuite) TestParams() {
+	require := s.Require()
+	ctx, keeper, queryClient := s.Ctx, s.EVMStakingKeeper, s.queryClient
+
+	params, err := keeper.GetParams(ctx)
+	require.NoError(err)
+
+	res, err := queryClient.Params(context.Background(), &types.QueryParamsRequest{})
+	require.NoError(err)
+	require.Equal(params, res.Params)
+}
