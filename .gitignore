@@ -23,3 +23,6 @@ dist
 
 # Environment vars
 .env
+
+# Local storage dumps
+local-state.json
