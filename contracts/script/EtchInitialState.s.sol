@@ -14,6 +14,7 @@ import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 
 import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
 import { InitializableHelper } from "./utils/InitializableHelper.sol";
+import { Predeploys } from "../src/libraries/Predeploys.sol";
 
 /**
  * @title EtchInitialState
@@ -25,25 +26,28 @@ contract EtchInitialState is Script {
      */
     address internal deployer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
-    address internal constant StakingProxyAddr = 0xCCcCcC0000000000000000000000000000000001;
-    address internal constant SlashingProxyAddr = 0xCccCCC0000000000000000000000000000000002;
-    address internal constant UpgradeProxyAddr = 0xccCCcc0000000000000000000000000000000003;
 
     address internal upgradeAdmin = vm.envAddress("UPGRADE_ADMIN_ADDRESS");
     address internal protocolAdmin = vm.envAddress("ADMIN_ADDRESS");
     string internal dumpPath = getDumpPath();
+    bool public saveState = true;
+
+    function disableStateDump() external {
+        require(block.chainid == 31337, "Only for local tests");
+        saveState = false;
+    }
 
     function getDumpPath() internal view returns (string memory) {
         if (block.chainid == 1513) {
             return "./iliad-state.json";
+        } else if (block.chainid == 31337) {
+            return "./local-state.json";
         } else {
             revert("Unsupported chain id");
         }
     }
 
     function run() public {
-        require(block.chainid == 1513, "Wrong chain id");
-
         require(upgradeAdmin != address(0), "upgradeAdmin not set");
         require(protocolAdmin != address(0), "protocolAdmin not set");
 
@@ -56,20 +60,13 @@ contract EtchInitialState is Script {
         vm.deal(msg.sender, 0);
 
         vm.stopPrank();
-
-        vm.dumpState(dumpPath);
-    }
-
-    /**
-     * @notice Return implementation address for a proxied predeploy
-     */
-    function getImplAddress(address addr) internal pure returns (address) {
-        // max uint160 is odd, which gives us unique implementation for each predeploy
-        return address(type(uint160).max - uint160(addr));
+        if (saveState) {
+            vm.dumpState(dumpPath);
+        }
     }
 
     function setProxy(address proxyAddr) internal {
-        address impl = getImplAddress(proxyAddr);
+        address impl = Predeploys.getImplAddress(proxyAddr);
 
         // set impl code to non-zero length, so it passes TransparentUpgradeableProxy constructor check
         // assert it is not already set
@@ -95,9 +92,9 @@ contract EtchInitialState is Script {
     }
 
     function setPredeploys() internal {
-        setProxy(StakingProxyAddr);
-        setProxy(SlashingProxyAddr);
-        setProxy(UpgradeProxyAddr);
+        setProxy(Predeploys.Staking);
+        setProxy(Predeploys.Slashing);
+        setProxy(Predeploys.Upgrades);
 
         setStaking();
         setSlashing();
@@ -108,7 +105,7 @@ contract EtchInitialState is Script {
      * @notice Setup Staking predeploy
      */
     function setStaking() internal {
-        address impl = getImplAddress(StakingProxyAddr);
+        address impl = Predeploys.getImplAddress(Predeploys.Staking);
 
         address tmp = address(new IPTokenStaking(
             1 gwei, // stakingRounding
@@ -125,48 +122,51 @@ contract EtchInitialState is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        IPTokenStaking(StakingProxyAddr).initialize(protocolAdmin, 1 ether, 1 ether, 1 ether, 7 days);
+        IPTokenStaking(Predeploys.Staking).initialize(protocolAdmin, 1 ether, 1 ether, 1 ether, 7 days);
 
-        console2.log("IPTokenStaking proxy deployed at:", StakingProxyAddr);
-        console2.log("IPTokenStaking ProxyAdmin deployed at:", EIP1967Helper.getAdmin(StakingProxyAddr));
-        console2.log("IPTokenStaking impl at:", EIP1967Helper.getImplementation(StakingProxyAddr));
+        console2.log("IPTokenStaking proxy deployed at:", Predeploys.Staking);
+        console2.log("IPTokenStaking ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Staking));
+        console2.log("IPTokenStaking impl at:", EIP1967Helper.getImplementation(Predeploys.Staking));
+        console2.log("IPTokenStaking owner:", IPTokenStaking(Predeploys.Staking).owner());
     }
 
     /**
      * @notice Setup Slashing predeploy
      */
     function setSlashing() internal {
-        address impl = getImplAddress(SlashingProxyAddr);
-        bytes memory bytecode = type(IPTokenSlashing).creationCode;
-        // set IPTokenStaking address in constructor
-        bytes memory constructorArgs = abi.encode(StakingProxyAddr);
+        address impl = Predeploys.getImplAddress(Predeploys.Slashing);
+        address tmp = address(new IPTokenSlashing(Predeploys.Staking));
 
-        // Combine bytecode and constructor args
-        bytes memory deployCode = abi.encodePacked(bytecode, constructorArgs);
-        vm.etch(SlashingProxyAddr, deployCode);
+        console2.log("tpm", tmp);
+        vm.etch(impl, tmp.code);
+
+        // reset tmp
+        vm.etch(tmp, "");
+        vm.store(tmp, 0, "0x");
+        vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        IPTokenSlashing(SlashingProxyAddr).initialize(protocolAdmin, 1 ether);
+        IPTokenSlashing(Predeploys.Slashing).initialize(protocolAdmin, 1 ether);
 
-        console2.log("IPTokenSlashing proxy deployed at:", SlashingProxyAddr);
-        console2.log("IPTokenSlashing ProxyAdmin deployed at:", EIP1967Helper.getAdmin(SlashingProxyAddr));
-        console2.log("IPTokenSlashing impl at:", EIP1967Helper.getImplementation(SlashingProxyAddr));
+        console2.log("IPTokenSlashing proxy deployed at:", Predeploys.Slashing);
+        console2.log("IPTokenSlashing ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Slashing));
+        console2.log("IPTokenSlashing impl at:", EIP1967Helper.getImplementation(Predeploys.Slashing));
     }
 
     /**
      * @notice Setup Upgrade predeploy
      */
     function setUpgrade() internal {
-        address impl = getImplAddress(UpgradeProxyAddr);
+        address impl = Predeploys.getImplAddress(Predeploys.Upgrades);
         bytes memory bytecode = type(UpgradeEntrypoint).creationCode;
 
-        vm.etch(UpgradeProxyAddr, bytecode);
+        vm.etch(Predeploys.Upgrades, bytecode);
 
         InitializableHelper.disableInitializers(impl);
-        UpgradeEntrypoint(UpgradeProxyAddr).initialize(protocolAdmin);
+        UpgradeEntrypoint(Predeploys.Upgrades).initialize(protocolAdmin);
 
-        console2.log("UpgradeEntrypoint proxy deployed at:", UpgradeProxyAddr);
-        console2.log("UpgradeEntrypoint ProxyAdmin deployed at:", EIP1967Helper.getAdmin(UpgradeProxyAddr));
-        console2.log("UpgradeEntrypoint impl at:", EIP1967Helper.getImplementation(UpgradeProxyAddr));
+        console2.log("UpgradeEntrypoint proxy deployed at:", Predeploys.Upgrades);
+        console2.log("UpgradeEntrypoint ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Upgrades));
+        console2.log("UpgradeEntrypoint impl at:", EIP1967Helper.getImplementation(Predeploys.Upgrades));
     }
 }
