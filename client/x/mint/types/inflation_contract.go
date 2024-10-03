@@ -10,7 +10,7 @@ import (
 // (rayden) TODO.
 var (
 	inflationUpdateABI     = mustGetABI(bindings.IPTokenStakingMetaData)
-	SetInflationParameters = mustGetEvent(inflationUpdateABI, "SetInflationParameters")
+	SetInflationParameters = mustGetEvent(inflationUpdateABI, "Deposit")
 )
 
 // mustGetABI returns the metadata's ABI as an abi.ABI type.

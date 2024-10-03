@@ -4,7 +4,6 @@ package keeper
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"cosmossdk.io/collections"
 	storetypes "cosmossdk.io/core/store"
@@ -17,7 +16,6 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/mint/types"
 	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	clog "github.com/piplabs/story/lib/log"
 )
 
@@ -51,12 +49,13 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:              cdc,
-		storeService:     storeService,
-		stakingKeeper:    sk,
-		bankKeeper:       bk,
-		feeCollectorName: feeCollectorName,
-		Params:           collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		cdc:                     cdc,
+		storeService:            storeService,
+		stakingKeeper:           sk,
+		bankKeeper:              bk,
+		feeCollectorName:        feeCollectorName,
+		inflationUpdateContract: nil,
+		Params:                  collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 	}
 
 	schema, err := sb.Build()
@@ -104,29 +103,7 @@ func (k Keeper) AddCollectedFees(ctx context.Context, fees sdk.Coins) error {
 }
 
 func (k Keeper) ProcessInflationEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
-	gwei, exp := big.NewInt(10), big.NewInt(9)
-	gwei.Exp(gwei, exp, nil)
-
-	for _, evmLog := range logs {
-		if err := evmLog.Verify(); err != nil {
-			return errors.Wrap(err, "verify log [BUG]") // This shouldn't happen
-		}
-		ethlog := evmLog.ToEthLog()
-
-		// (rayden) TODO: handle when each event processing fails.
-		if ethlog.Topics[0] == types.SetInflationParameters.ID {
-			ev, err := k.inflationUpdateContract.ParseDeposit(ethlog)
-			if err != nil {
-				clog.Error(ctx, "Failed to parse SetInflationParameters log", err)
-				continue
-			}
-			if err = k.ProcessSetInflationParameters(ctx, ev); err != nil {
-				clog.Error(ctx, "Failed to process update inflation parameters", err)
-				continue
-			}
-		}
-	}
-
+	// (rayden) TODO
 	clog.Debug(ctx, "Processed inflation events", "height", height, "count", len(logs))
 
 	return nil
