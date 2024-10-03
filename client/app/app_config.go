@@ -9,7 +9,6 @@ import (
 	distrmodulev1 "cosmossdk.io/api/cosmos/distribution/module/v1"
 	genutilmodulev1 "cosmossdk.io/api/cosmos/genutil/module/v1"
 	govmodulev1 "cosmossdk.io/api/cosmos/gov/module/v1"
-	mintmodulev1 "cosmossdk.io/api/cosmos/mint/module/v1"
 	slashingmodulev1 "cosmossdk.io/api/cosmos/slashing/module/v1"
 	stakingmodulev1 "cosmossdk.io/api/cosmos/staking/module/v1"
 	txconfigv1 "cosmossdk.io/api/cosmos/tx/config/v1"
@@ -35,6 +34,7 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	mintmodule "github.com/piplabs/story/client/x/mint/module"
 	minttypes "github.com/piplabs/story/client/x/mint/types"
 )
 
@@ -82,13 +82,13 @@ var (
 		stakingtypes.ModuleName,
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
-		minttypes.ModuleName,
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
 		// Story modules
 		epochstypes.ModuleName,
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
+		minttypes.ModuleName,
 	}
 
 	// NOTE: upgrade module must come first, as upgrades might break state schema.
@@ -215,7 +215,7 @@ var (
 			},
 			{
 				Name:   minttypes.ModuleName,
-				Config: appconfig.WrapAny(&mintmodulev1.Module{}),
+				Config: appconfig.WrapAny(&mintmodule.Module{}),
 			},
 		},
 	})
