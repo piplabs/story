@@ -26,7 +26,6 @@ import (
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -36,6 +35,7 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	minttypes "github.com/piplabs/story/client/x/mint/types"
 )
 
 // Bech32HRP is the human-readable-part of the Bech32 address format.
