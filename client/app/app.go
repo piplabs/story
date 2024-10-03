@@ -24,6 +24,7 @@ import (
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
+	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -94,6 +95,7 @@ func newApp(
 		&app.Keepers.EpochsKeeper,
 		&app.Keepers.EvmStakingKeeper,
 		&app.Keepers.EVMEngKeeper,
+		&app.Keepers.MintKeeper,
 	); err != nil {
 		return nil, errors.Wrap(err, "dep inject")
 	}
@@ -205,4 +207,8 @@ func (a App) GetDistrKeeper() distrkeeper.Keeper {
 
 func (a App) GetUpgradeKeeper() *upgradekeeper.Keeper {
 	return a.Keepers.UpgradeKeeper
+}
+
+func (a App) GetMintKeeper() mintkeeper.Keeper {
+	return a.Keepers.MintKeeper
 }

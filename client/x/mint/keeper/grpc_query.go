@@ -6,18 +6,18 @@ import (
 	"github.com/piplabs/story/client/x/mint/types"
 )
 
-var _ types.QueryServer = queryServer{}
+var _ types.QueryServer = Querier{}
 
-func NewQueryServerImpl(k Keeper) types.QueryServer {
-	return queryServer{k}
+func NewQuerier(k Keeper) types.QueryServer {
+	return Querier{k}
 }
 
-type queryServer struct {
+type Querier struct {
 	k Keeper
 }
 
 // Params returns params of the mint module.
-func (q queryServer) Params(ctx context.Context, _ *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+func (q Querier) Params(ctx context.Context, _ *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	params, err := q.k.Params.Get(ctx)
 	if err != nil {
 		return nil, err
