@@ -13,7 +13,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
@@ -53,7 +52,6 @@ func (suite *MintTestSuite) SetupTest() {
 		accountKeeper,
 		bankKeeper,
 		authtypes.FeeCollectorName,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
 	err := suite.mintKeeper.Params.Set(suite.ctx, types.DefaultParams())
@@ -72,16 +70,6 @@ func (suite *MintTestSuite) TestGRPCParams() {
 	kparams, err := suite.mintKeeper.Params.Get(suite.ctx)
 	suite.Require().NoError(err)
 	suite.Require().Equal(params.Params, kparams)
-
-	inflation, err := suite.queryClient.Inflation(gocontext.Background(), &types.QueryInflationRequest{})
-	suite.Require().NoError(err)
-	minter, err := suite.mintKeeper.Minter.Get(suite.ctx)
-	suite.Require().NoError(err)
-	suite.Require().Equal(inflation.Inflation, minter.Inflation)
-
-	annualProvisions, err := suite.queryClient.AnnualProvisions(gocontext.Background(), &types.QueryAnnualProvisionsRequest{})
-	suite.Require().NoError(err)
-	suite.Require().Equal(annualProvisions.AnnualProvisions, minter.AnnualProvisions)
 }
 
 func TestMintTestSuite(t *testing.T) {

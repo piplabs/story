@@ -12,7 +12,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
@@ -27,7 +26,6 @@ type IntegrationTestSuite struct {
 
 	mintKeeper    keeper.Keeper
 	ctx           sdk.Context
-	msgServer     types.MsgServer
 	stakingKeeper *minttestutil.MockStakingKeeper
 	bankKeeper    *minttestutil.MockBankKeeper
 }
@@ -58,7 +56,6 @@ func (s *IntegrationTestSuite) SetupTest() {
 		accountKeeper,
 		bankKeeper,
 		authtypes.FeeCollectorName,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	s.stakingKeeper = stakingKeeper
 	s.bankKeeper = bankKeeper
@@ -69,8 +66,6 @@ func (s *IntegrationTestSuite) SetupTest() {
 	err := s.mintKeeper.Params.Set(s.ctx, types.DefaultParams())
 	s.Require().NoError(err)
 	s.Require().NoError(s.mintKeeper.Minter.Set(s.ctx, types.DefaultInitialMinter()))
-
-	s.msgServer = keeper.NewMsgServerImpl(s.mintKeeper)
 }
 
 func (s *IntegrationTestSuite) TestAliasFunctions() {

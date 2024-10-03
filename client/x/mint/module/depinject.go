@@ -8,7 +8,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/piplabs/story/client/x/mint/keeper"
 	"github.com/piplabs/story/client/x/mint/types"
@@ -57,12 +56,6 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		feeCollectorName = authtypes.FeeCollectorName
 	}
 
-	// default to governance authority if not provided
-	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
-	if in.Config.GetAuthority() != "" {
-		authority = authtypes.NewModuleAddressOrBech32Address(in.Config.GetAuthority())
-	}
-
 	k := keeper.NewKeeper(
 		in.Cdc,
 		in.StoreService,
@@ -70,7 +63,6 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.AccountKeeper,
 		in.BankKeeper,
 		feeCollectorName,
-		authority.String(),
 	)
 
 	// when no inflation calculation function is provided it will use the default types.DefaultInflationCalculationFn
