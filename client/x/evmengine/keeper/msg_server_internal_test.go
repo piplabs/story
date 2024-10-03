@@ -100,6 +100,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			setup: func(c context.Context) sdk.Context {
 				esk.EXPECT().DequeueEligibleWithdrawals(c).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(c, gomock.Any(), gomock.Any()).Return(nil)
+				mk.EXPECT().ProcessInflationEvents(c, gomock.Any(), gomock.Any()).Return(nil)
 
 				return sdk.UnwrapSDKContext(c)
 			},
