@@ -4,7 +4,6 @@ package keeper_test
 import (
 	"testing"
 
-	"cosmossdk.io/collections"
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
@@ -62,25 +61,13 @@ func (s *GenesisTestSuite) SetupTest() {
 
 func (s *GenesisTestSuite) TestImportExportGenesis() {
 	genesisState := types.DefaultGenesisState()
-	genesisState.Minter = types.NewMinter(math.LegacyNewDecWithPrec(20, 2), math.LegacyNewDec(1))
 	genesisState.Params = types.NewParams(
 		"testDenom",
-		math.LegacyNewDecWithPrec(15, 2),
-		math.LegacyNewDecWithPrec(22, 2),
-		math.LegacyNewDecWithPrec(9, 2),
-		math.LegacyNewDecWithPrec(69, 2),
+		math.LegacyNewDecWithPrec(24625000, 0),
 		uint64(60*60*8766/5),
 	)
 
 	s.keeper.InitGenesis(s.sdkCtx, s.accountKeeper, genesisState)
-
-	minter, err := s.keeper.Minter.Get(s.sdkCtx)
-	s.Require().Equal(genesisState.Minter, minter)
-	s.Require().NoError(err)
-
-	invalidCtx := testutil.DefaultContextWithDB(s.T(), s.key, storetypes.NewTransientStoreKey("transient_test"))
-	_, err = s.keeper.Minter.Get(invalidCtx.Ctx)
-	s.Require().ErrorIs(err, collections.ErrNotFound)
 
 	params, err := s.keeper.Params.Get(s.sdkCtx)
 	s.Require().Equal(genesisState.Params, params)

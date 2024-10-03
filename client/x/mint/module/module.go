@@ -80,7 +80,7 @@ type AppModule struct {
 	keeper     keeper.Keeper
 	authKeeper types.AccountKeeper
 
-	// inflationCalculator is used to calculate the inflation rate during BeginBlock.
+	// inflationCalculator is used to calculate the inflation amount during BeginBlock.
 	// If inflationCalculator is nil, the default inflation calculation logic is used.
 	inflationCalculator types.InflationCalculationFn
 }

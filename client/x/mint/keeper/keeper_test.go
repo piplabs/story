@@ -65,7 +65,6 @@ func (s *IntegrationTestSuite) SetupTest() {
 
 	err := s.mintKeeper.Params.Set(s.ctx, types.DefaultParams())
 	s.Require().NoError(err)
-	s.Require().NoError(s.mintKeeper.Minter.Set(s.ctx, types.DefaultInitialMinter()))
 }
 
 func (s *IntegrationTestSuite) TestAliasFunctions() {

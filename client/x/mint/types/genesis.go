@@ -6,22 +6,21 @@ import (
 	"cosmossdk.io/math"
 )
 
-// InflationCalculationFn defines the function required to calculate inflation rate during
-// BeginBlock. It receives the minter and params stored in the keeper, along with the current
-// bondedRatio and returns the newly calculated inflation rate.
+// InflationCalculationFn defines the function required to calculate inflation amount during
+// BeginBlock. It receives the params stored in the keeper, along with the current
+// bondedRatio and returns the newly calculated inflation amount.
 // It can be used to specify a custom inflation calculation logic, instead of relying on the
 // default logic provided by the sdk.
-type InflationCalculationFn func(ctx context.Context, minter Minter, params Params, bondedRatio math.LegacyDec) math.LegacyDec
+type InflationCalculationFn func(ctx context.Context, params Params, _ math.LegacyDec) math.LegacyDec
 
 // DefaultInflationCalculationFn is the default function used to calculate inflation.
-func DefaultInflationCalculationFn(_ context.Context, minter Minter, params Params, bondedRatio math.LegacyDec) math.LegacyDec {
-	return minter.NextInflationRate(params, bondedRatio)
+func DefaultInflationCalculationFn(_ context.Context, params Params, _ math.LegacyDec) math.LegacyDec {
+	return params.InflationsPerYear.QuoInt64(int64(params.BlocksPerYear))
 }
 
 // NewGenesisState creates a new GenesisState object.
-func NewGenesisState(minter Minter, params Params) *GenesisState {
+func NewGenesisState(params Params) *GenesisState {
 	return &GenesisState{
-		Minter: minter,
 		Params: params,
 	}
 }
@@ -29,7 +28,6 @@ func NewGenesisState(minter Minter, params Params) *GenesisState {
 // DefaultGenesisState creates a default GenesisState object.
 func DefaultGenesisState() *GenesisState {
 	return &GenesisState{
-		Minter: DefaultInitialMinter(),
 		Params: DefaultParams(),
 	}
 }
@@ -37,9 +35,5 @@ func DefaultGenesisState() *GenesisState {
 // ValidateGenesis validates the provided genesis state to ensure the
 // expected invariants holds.
 func ValidateGenesis(data GenesisState) error {
-	if err := data.Params.Validate(); err != nil {
-		return err
-	}
-
-	return ValidateMinter(data.Minter)
+	return data.Params.Validate()
 }

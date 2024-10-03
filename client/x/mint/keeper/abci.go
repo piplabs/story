@@ -13,19 +13,7 @@ import (
 func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationFn) error {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, telemetry.Now(), telemetry.MetricKeyBeginBlocker)
 
-	// fetch stored minter & params
-	minter, err := k.Minter.Get(ctx)
-	if err != nil {
-		return err
-	}
-
 	params, err := k.Params.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	// recalculate inflation rate
-	totalStakingSupply, err := k.StakingTokenSupply(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,24 +23,16 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 		return err
 	}
 
-	minter.Inflation = ic(ctx, minter, params, bondedRatio)
-	minter.AnnualProvisions = minter.NextAnnualProvisions(params, totalStakingSupply)
-	if err = k.Minter.Set(ctx, minter); err != nil {
-		return err
-	}
-
 	// mint coins, update supply
-	mintedCoin := minter.BlockProvision(params)
+	mintedCoinAmt := ic(ctx, params, bondedRatio)
+	mintedCoin := sdk.NewCoin(params.MintDenom, mintedCoinAmt.TruncateInt())
 	mintedCoins := sdk.NewCoins(mintedCoin)
-
-	err = k.MintCoins(ctx, mintedCoins)
-	if err != nil {
+	if err := k.MintCoins(ctx, mintedCoins); err != nil {
 		return err
 	}
 
 	// send the minted coins to the fee collector account
-	err = k.AddCollectedFees(ctx, mintedCoins)
-	if err != nil {
+	if err := k.AddCollectedFees(ctx, mintedCoins); err != nil {
 		return err
 	}
 
@@ -65,8 +45,6 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 		sdk.NewEvent(
 			types.EventTypeMint,
 			sdk.NewAttribute(types.AttributeKeyBondedRatio, bondedRatio.String()),
-			sdk.NewAttribute(types.AttributeKeyInflation, minter.Inflation.String()),
-			sdk.NewAttribute(types.AttributeKeyAnnualProvisions, minter.AnnualProvisions.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, mintedCoin.Amount.String()),
 		),
 	)

@@ -26,7 +26,6 @@ type Keeper struct {
 
 	Schema collections.Schema
 	Params collections.Item[types.Params]
-	Minter collections.Item[types.Minter]
 }
 
 // NewKeeper creates a new mint Keeper instance.
@@ -51,7 +50,6 @@ func NewKeeper(
 		bankKeeper:       bk,
 		feeCollectorName: feeCollectorName,
 		Params:           collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
-		Minter:           collections.NewItem(sb, types.MinterKey, "minter", codec.CollValue[types.Minter](cdc)),
 	}
 
 	schema, err := sb.Build()
