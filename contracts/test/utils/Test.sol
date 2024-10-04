@@ -12,7 +12,7 @@ import { IPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
 import { Predeploys } from "../../src/libraries/Predeploys.sol";
 
-import { EtchInitialState } from "../../script/EtchInitialState.s.sol";
+import { GenerateAlloc } from "../../script/GenerateAlloc.s.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
@@ -23,7 +23,7 @@ contract Test is ForgeTest {
     UpgradeEntrypoint internal upgradeEntrypoint;
 
     function setUp() virtual public {
-        EtchInitialState initializer = new EtchInitialState();
+        GenerateAlloc initializer = new GenerateAlloc();
         initializer.disableStateDump(); // Faster tests. Don't call to verify JSON output
         initializer.run();
         ipTokenStaking = IPTokenStaking(Predeploys.Staking);

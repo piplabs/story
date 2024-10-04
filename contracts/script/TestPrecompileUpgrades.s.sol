@@ -124,10 +124,6 @@ contract TestPrecompileUpgrades is Script {
         if (EIP1967Helper.getImplementation(Predeploys.Upgrades) != newImpl) {
             revert("UpgradeEntrypoint not upgraded");
         }
-        
-
         vm.stopBroadcast();
     }
-
-
 }
