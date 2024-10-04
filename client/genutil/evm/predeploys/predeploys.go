@@ -28,7 +28,7 @@ const (
 
 	// IP Token Predeploys.
 	IPTokenStaking    = "0xcccccc0000000000000000000000000000000001"
-	IPTokenSlashing   = "0xcccccc0000000000000000000000000000000002"
+	IPTokenSlashing   = "0xa39241Eb9Ff830178339D1E6aD38EfB160Ee9ab1"
 	UpgradeEntrypoint = "0xcccccc0000000000000000000000000000000003"
 
 	Secp256k1 = "0x00000000000000000000000000000000000256f1"
@@ -39,11 +39,6 @@ const (
 )
 
 var (
-	// IP Token Updated Addresses. Not used if empty.
-	UpdatedIPTokenStaking    = ""
-	UpdatedIPTokenSlashing   = ""
-	UpdatedUpgradeEntrypoint = ""
-
 	// Namespace big.Ints.
 	storyNamespace   = common.HexToAddress(StoryNamespace).Big()
 	ipTokenNamespace = common.HexToAddress(IPTokenNamespace).Big()
