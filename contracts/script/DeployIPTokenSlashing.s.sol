@@ -6,10 +6,9 @@ pragma solidity ^0.8.23;
 import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 
 import { IPTokenSlashing } from "../src/protocol/IPTokenSlashing.sol";
-import { Create3 } from "../src/deploy/Create3.sol";
+import { ICreate3Deployer } from "../src/deploy/ICreate3Deployer.sol";
 
 /**
  * @title DeployIPTokenSlashing
@@ -32,12 +31,11 @@ contract DeployIPTokenSlashing is Script {
         // Read env for deployer private key
         uint256 deployerKey = vm.envUint("IPTOKENSTAKING_DEPLOYER_KEY");
         address deployer = vm.addr(deployerKey);
+        require(deployer != protocolAccessManagerAddr, "Deployer wallet can't be admin address");
         console2.log("deployer", deployer);
         vm.startBroadcast(deployerKey);
 
-        bytes32 salt = keccak256(abi.encode("STORY", type(Create3).name));
-
-        Create3 c3Deployer = Create3(Create2.deploy(0, salt, type(Create3).creationCode));
+        ICreate3Deployer c3Deployer = ICreate3Deployer(0x384a891dFDE8180b054f04D66379f16B7a678Ad6);
         console2.log("Create3 deployer:", address(c3Deployer));
 
         address ipTokenStaking = 0xCCcCcC0000000000000000000000000000000001;
@@ -53,7 +51,7 @@ contract DeployIPTokenSlashing is Script {
         bytes memory creationCode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(impl, initializationData));
 
-        salt = keccak256(abi.encode("STORY", type(IPTokenSlashing).name));
+        bytes32 salt = keccak256(abi.encode("STORY", type(IPTokenSlashing).name));
         address predicted = c3Deployer.getDeployed(salt);
         console2.log("IPTokenSlashing will be deployed at:", predicted);
         IPTokenSlashing ipTokenSlashing = IPTokenSlashing(c3Deployer.deploy(salt, creationCode));
