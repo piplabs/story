@@ -124,6 +124,11 @@ func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
 }
 
+func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+}
+
 // Flag Validation
 
 func validateFlags(flags map[string]string) error {
@@ -187,5 +192,12 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 		"validator-pubkey": cfg.ValidatorPubKey,
 		"delegator-pubkey": cfg.DelegatorPubKey,
 		"unstake":          cfg.StakeAmount,
+	})
+}
+
+func validateValidatorUnjailFlags(cfg unjailConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":       cfg.RPC,
+		"validator-pubkey": cfg.ValidatorPubKey,
 	})
 }

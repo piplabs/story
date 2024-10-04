@@ -16,6 +16,25 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
+func readContract(ctx context.Context, cfg baseConfig, contractAddress common.Address, data []byte) ([]byte, error) {
+	client, err := ethclient.Dial(cfg.RPC)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to connect to Ethereum client")
+	}
+
+	callMsg := ethereum.CallMsg{
+		To:   &contractAddress,
+		Data: data,
+	}
+
+	result, err := client.CallContract(ctx, callMsg, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "contract call failed")
+	}
+
+	return result, nil
+}
+
 func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddress common.Address, value *big.Int, data []byte) error {
 	client, err := ethclient.Dial(cfg.RPC)
 	if err != nil {
