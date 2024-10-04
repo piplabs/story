@@ -329,6 +329,7 @@ func newValidatorUnjailCmd() *cobra.Command {
 	}
 
 	bindValidatorUnjailFlags(cmd, &cfg)
+
 	return cmd
 }
 
@@ -640,7 +641,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 	return nil
 }
 
-func prepareAndReadContract(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, args ...interface{}) ([]byte, error) {
+func prepareAndReadContract(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, args ...any) ([]byte, error) {
 	contractInfo := contracts[contractType]
 	contractAddress := common.HexToAddress(contractInfo.AddressHex)
 	contractABI, err := abi.JSON(strings.NewReader(string(contractInfo.ABI)))
