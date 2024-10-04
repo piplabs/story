@@ -34,6 +34,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "5.0.2",
     "@openzeppelin/contracts-upgradeable": "5.0.2",
+    "solady": "^0.0.246",
     "solmate": "^6.2.0"
   }
 }
