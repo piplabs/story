@@ -26,13 +26,13 @@ import (
 type ContractType int
 
 const (
-		STAKING ContractType = iota
-		SLASHING
+	STAKING ContractType = iota
+	SLASHING
 )
 
 type ContractInfo struct {
-    AddressHex string
-    ABI        []byte
+	AddressHex string
+	ABI        []byte
 }
 
 //go:embed abi/IPTokenStaking.abi.json
@@ -448,7 +448,7 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 
 	withdrawalAddress := common.HexToAddress(cfg.WithdrawalAddress)
 
-	err = prepareAndExecuteTransaction(ctx, STAKING,  &cfg.baseConfig, "setWithdrawalAddress", big.NewInt(0), uncompressedPubKey, withdrawalAddress)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "setWithdrawalAddress", big.NewInt(0), uncompressedPubKey, withdrawalAddress)
 	if err != nil {
 		return err
 	}
@@ -619,13 +619,13 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 
 	result, err := prepareAndReadContract(ctx, SLASHING, &cfg.baseConfig, "unjailFee")
 	if err != nil {
-		 return err
+		return err
 	}
 
 	var unjailFee *big.Int
 	err = contractABI.UnpackIntoInterface(&unjailFee, "unjailFee", result)
 	if err != nil {
-		 return errors.Wrap(err, "failed to unpack unailFee")
+		return errors.Wrap(err, "failed to unpack unjailFee")
 	}
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())

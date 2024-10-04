@@ -197,7 +197,7 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 
 func validateValidatorUnjailFlags(cfg unjailConfig) error {
 	return validateFlags(map[string]string{
-		"rpc":       cfg.RPC,
+		"rpc":              cfg.RPC,
 		"validator-pubkey": cfg.ValidatorPubKey,
 	})
 }
