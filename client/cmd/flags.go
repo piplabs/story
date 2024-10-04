@@ -124,6 +124,11 @@ func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
 }
 
+func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+}
+
 // Flag Validation
 
 func validateFlags(flags map[string]string) error {
@@ -187,5 +192,35 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 		"validator-pubkey": cfg.ValidatorPubKey,
 		"delegator-pubkey": cfg.DelegatorPubKey,
 		"unstake":          cfg.StakeAmount,
+	})
+}
+
+func validateKeyConvertFlags(cfg keyConfig) error {
+	flagMap := map[string]string{
+		"validator-key-file":      cfg.ValidatorKeyFile,
+		"private-key-file":        cfg.PrivateKeyFile,
+		"pubkey-hex":              cfg.PubKeyHex,
+		"pubkey-base64":           cfg.PubKeyBase64,
+		"pubkey-hex-uncompressed": cfg.PubKeyHexUncompressed,
+	}
+
+	for _, value := range flagMap {
+		if value != "" {
+			return nil
+		}
+	}
+
+	flagNames := make([]string, 0, len(flagMap))
+	for flag := range flagMap {
+		flagNames = append(flagNames, "--"+flag)
+	}
+
+	return fmt.Errorf("at least one of %s must be provided", strings.Join(flagNames, ", "))
+}
+
+func validateValidatorUnjailFlags(cfg unjailConfig) error {
+	return validateFlags(map[string]string{
+		"rpc":              cfg.RPC,
+		"validator-pubkey": cfg.ValidatorPubKey,
 	})
 }
