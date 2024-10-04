@@ -18,6 +18,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
 	_ "embed"
@@ -84,11 +85,11 @@ type exportKeyConfig struct {
 
 var contracts = map[ContractType]ContractInfo{
 	STAKING: {
-		AddressHex: "0xCCcCcC0000000000000000000000000000000001",
+		AddressHex: predeploys.IPTokenStaking,
 		ABI:        ipTokenStakingABI,
 	},
 	SLASHING: {
-		AddressHex: "0xcccccc0000000000000000000000000000000002",
+		AddressHex: predeploys.IPTokenSlashing,
 		ABI:        ipTokenSlashingABI,
 	},
 }
