@@ -4,7 +4,6 @@ package keeper_test
 import (
 	"testing"
 
-	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -63,7 +62,7 @@ func (s *GenesisTestSuite) TestImportExportGenesis() {
 	genesisState := types.DefaultGenesisState()
 	genesisState.Params = types.NewParams(
 		"testDenom",
-		math.LegacyNewDecWithPrec(24625000, 0),
+		24625000_000_000_000,
 		uint64(60*60*8766/5),
 	)
 

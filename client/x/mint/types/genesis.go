@@ -11,11 +11,11 @@ import (
 // bondedRatio and returns the newly calculated inflation amount.
 // It can be used to specify a custom inflation calculation logic, instead of relying on the
 // default logic provided by the sdk.
-type InflationCalculationFn func(ctx context.Context, params Params, _ math.LegacyDec) math.LegacyDec
+type InflationCalculationFn func(ctx context.Context, params Params, bondedRatio math.LegacyDec) math.LegacyDec
 
 // DefaultInflationCalculationFn is the default function used to calculate inflation.
 func DefaultInflationCalculationFn(_ context.Context, params Params, _ math.LegacyDec) math.LegacyDec {
-	return params.InflationsPerYear.QuoInt64(int64(params.BlocksPerYear))
+	return math.LegacyNewDec(int64(params.InflationsPerYear)).Quo(math.LegacyNewDec(int64(params.BlocksPerYear)))
 }
 
 // NewGenesisState creates a new GenesisState object.

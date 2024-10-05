@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	"cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -18,13 +20,8 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 		return err
 	}
 
-	bondedRatio, err := k.BondedRatio(ctx)
-	if err != nil {
-		return err
-	}
-
 	// mint coins, update supply
-	mintedCoinAmt := ic(ctx, params, bondedRatio)
+	mintedCoinAmt := ic(ctx, params, math.LegacyNewDec(0)) // NOTE: bondedRatio is not used in current implementation.
 	mintedCoin := sdk.NewCoin(params.MintDenom, mintedCoinAmt.TruncateInt())
 	mintedCoins := sdk.NewCoins(mintedCoin)
 	if err := k.MintCoins(ctx, mintedCoins); err != nil {
@@ -44,7 +41,6 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeMint,
-			sdk.NewAttribute(types.AttributeKeyBondedRatio, bondedRatio.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, mintedCoin.Amount.String()),
 		),
 	)

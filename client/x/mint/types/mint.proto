@@ -3,8 +3,6 @@ package client.x.mint.types;
 
 option go_package = "client/x/mint/types";
 
-import "gogoproto/gogo.proto";
-import "cosmos_proto/cosmos.proto";
 import "amino/amino.proto";
 
 // Params defines the parameters for the x/mint module.
@@ -14,12 +12,7 @@ message Params {
   // type of coin to mint
   string mint_denom = 1;
   // inflation amount per year
-  string inflations_per_year = 2 [
-    (cosmos_proto.scalar)  = "cosmos.Dec",
-    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
-    (gogoproto.nullable)   = false,
-    (amino.dont_omitempty) = true
-  ];
+  uint64 inflations_per_year = 2;
   // expected blocks per year
   uint64 blocks_per_year = 3;
 }

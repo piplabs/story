@@ -78,6 +78,7 @@ var (
 	genesisModuleOrder = []string{
 		authtypes.ModuleName,
 		banktypes.ModuleName,
+		minttypes.ModuleName,
 		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
 		slashingtypes.ModuleName,
@@ -88,7 +89,6 @@ var (
 		epochstypes.ModuleName,
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
-		minttypes.ModuleName,
 	}
 
 	// NOTE: upgrade module must come first, as upgrades might break state schema.
