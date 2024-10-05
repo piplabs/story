@@ -61,7 +61,7 @@ The minting module contains the following parameters:
 | Key                 | Type            | Example                      |
 |---------------------|-----------------|------------------------------|
 | MintDenom           | string          | "stake"                      |
-| InflationsPerYear   | string (dec)    | "24625000000000000" |
+| InflationsPerYear   | string (dec)    | "24625000000000000"          |
 | BlocksPerYear       | string (uint64) | "6311520"                    |
 
 
