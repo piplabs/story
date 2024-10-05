@@ -78,11 +78,11 @@ var (
 	genesisModuleOrder = []string{
 		authtypes.ModuleName,
 		banktypes.ModuleName,
-		minttypes.ModuleName,
 		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
+		minttypes.ModuleName,
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
 		// Story modules
