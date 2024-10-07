@@ -120,6 +120,13 @@ func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 }
 
+func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
+	cmd.Flags().StringVar(&cfg.ValidatorKeyFile, "validator-key-file", "", "Path to the validator key file")
+	cmd.Flags().StringVar(&cfg.PrivateKeyFile, "private-key-file", "", "Path to the EVM private key env file")
+	cmd.Flags().StringVar(&cfg.PubKeyHex, "pubkey-hex", "", "Public key in hex format")
+	cmd.Flags().StringVar(&cfg.PubKeyBase64, "pubkey-base64", "", "Public key in base64 format")
+}
+
 func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
 }
@@ -188,4 +195,25 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 		"delegator-pubkey": cfg.DelegatorPubKey,
 		"unstake":          cfg.StakeAmount,
 	})
+}
+
+func validateKeyConvertFlags(cfg keyConfig) error {
+	flagMap := map[string]string{
+		"validator-key-file": cfg.ValidatorKeyFile,
+		"private-key-file":   cfg.PrivateKeyFile,
+		"pubkey-hex":         cfg.PubKeyHex,
+		"pubkey-base64":      cfg.PubKeyBase64,
+	}
+
+	for _, value := range flagMap {
+		if value != "" {
+			return nil
+		}
+	}
+
+	flagNames := make([]string, 0, len(flagMap))
+	for flag := range flagMap {
+		flagNames = append(flagNames, "--"+flag)
+	}
+	return fmt.Errorf("at least one of %s must be provided", strings.Join(flagNames, ", "))
 }
