@@ -43,6 +43,7 @@ func loadValidatorFile(path string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode private key")
 	}
+
 	return privKeyBytes, nil
 }
 
@@ -79,6 +80,7 @@ func validatorKeyFileToCmpPubKey(path string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load validator key file")
 	}
+
 	return privKeyToCmpPubKey(privKeyBytes)
 }
 
@@ -106,6 +108,7 @@ func cmpPubKeyToUncmpPubKey(compressedPubKeyBytes []byte) ([]byte, error) {
 	}
 
 	uncompressedPubKeyBytes := pubKey.SerializeUncompressed()
+
 	return uncompressedPubKeyBytes, nil
 }
 
@@ -134,6 +137,7 @@ func cmpPubKeyToEVMAddress(cmpPubKey []byte) (string, error) {
 		return "", errors.Wrap(err, "failed to decompress public key")
 	}
 	evmAddress := crypto.PubkeyToAddress(*pubKey).Hex()
+
 	return evmAddress, nil
 }
 
@@ -150,8 +154,8 @@ func cmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
 	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
 		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
 	}
-
 	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
+
 	return cosmostypes.ValAddress(pubKey.Address().Bytes()).String(), nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -50,7 +49,7 @@ func newKeyConvertCmd() *cobra.Command {
 	return cmd
 }
 
-func convertKey(ctx context.Context, cfg keyConfig) error {
+func convertKey(_ context.Context, cfg keyConfig) error {
 	var compressedPubKeyBytes []byte
 	var err error
 
@@ -77,11 +76,7 @@ func convertKey(ctx context.Context, cfg keyConfig) error {
 			return errors.Wrap(err, "failed to decode base64 public key")
 		}
 	default:
-		return fmt.Errorf("no valid key input provided")
-	}
-
-	if err != nil {
-		return err
+		return errors.New("no valid key input provided")
 	}
 
 	return printKeyFormats(compressedPubKeyBytes)

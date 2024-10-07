@@ -215,5 +215,6 @@ func validateKeyConvertFlags(cfg keyConfig) error {
 	for flag := range flagMap {
 		flagNames = append(flagNames, "--"+flag)
 	}
+
 	return fmt.Errorf("at least one of %s must be provided", strings.Join(flagNames, ", "))
 }
