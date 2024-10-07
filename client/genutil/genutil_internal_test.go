@@ -15,7 +15,7 @@ import (
 func TestDefaultConsensusParams(t *testing.T) {
 	t.Parallel()
 	cons := defaultConsensusGenesis()
-	require.EqualValues(t, 1, cons.Params.ABCI.VoteExtensionsEnableHeight)
+	require.EqualValues(t, 0, cons.Params.ABCI.VoteExtensionsEnableHeight)
 	require.EqualValues(t, types.ABCIPubKeyTypeSecp256k1, cons.Params.Validator.PubKeyTypes[0])
 	require.EqualValues(t, -1, cons.Params.Block.MaxBytes)
 	require.EqualValues(t, -1, cons.Params.Block.MaxGas)
