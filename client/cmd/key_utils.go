@@ -12,8 +12,8 @@ import (
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/joho/godotenv"
+
 	"github.com/piplabs/story/lib/errors"
 )
 
@@ -147,6 +147,7 @@ func cmpPubKeyToDelegatorAddress(cmpPubKey []byte) (string, error) {
 	}
 
 	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
+
 	return cosmostypes.AccAddress(pubKey.Address().Bytes()).String(), nil
 }
 
