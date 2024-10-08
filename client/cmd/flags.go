@@ -125,6 +125,7 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 	cmd.Flags().StringVar(&cfg.PrivateKeyFile, "private-key-file", "", "Path to the EVM private key env file")
 	cmd.Flags().StringVar(&cfg.PubKeyHex, "pubkey-hex", "", "Public key in hex format")
 	cmd.Flags().StringVar(&cfg.PubKeyBase64, "pubkey-base64", "", "Public key in base64 format")
+	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
 }
 
 func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
@@ -199,10 +200,11 @@ func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
 
 func validateKeyConvertFlags(cfg keyConfig) error {
 	flagMap := map[string]string{
-		"validator-key-file": cfg.ValidatorKeyFile,
-		"private-key-file":   cfg.PrivateKeyFile,
-		"pubkey-hex":         cfg.PubKeyHex,
-		"pubkey-base64":      cfg.PubKeyBase64,
+		"validator-key-file":      cfg.ValidatorKeyFile,
+		"private-key-file":        cfg.PrivateKeyFile,
+		"pubkey-hex":              cfg.PubKeyHex,
+		"pubkey-base64":           cfg.PubKeyBase64,
+		"pubkey-hex-uncompressed": cfg.PubKeyHexUncompressed,
 	}
 
 	for _, value := range flagMap {

@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
+	"math/big"
+
 
 	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
@@ -160,6 +163,23 @@ func cmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
 	return cosmostypes.ValAddress(pubKey.Address().Bytes()).String(), nil
 }
 
+func uncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
+    if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
+        return nil, errors.New("invalid uncompressed public key length or format")
+    }
+
+    x := new(big.Int).SetBytes(uncmpPubKey[1:33])
+    y := new(big.Int).SetBytes(uncmpPubKey[33:])
+
+    pubKey := ecdsa.PublicKey{
+        Curve: elliptic.P256(),
+        X:     x,
+        Y:     y,
+    }
+
+    return crypto.CompressPubkey(&pubKey), nil
+}
+
 func printKeyFormats(compressedPubKeyBytes []byte) error {
 	compressedPubKeyBase64 := base64.StdEncoding.EncodeToString(compressedPubKeyBytes)
 	evmAddress, err := cmpPubKeyToEVMAddress(compressedPubKeyBytes)
@@ -167,10 +187,11 @@ func printKeyFormats(compressedPubKeyBytes []byte) error {
 		return errors.Wrap(err, "failed to convert compressed pub key to EVM address")
 	}
 
-	uncompressedPubKeyHex, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
+	uncompressedPubKeyBytes, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert compressed pub key to uncompressed format")
 	}
+	uncompressedPubKeyHex := hex.EncodeToString(uncompressedPubKeyBytes)
 
 	validatorAddress, err := cmpPubKeyToValidatorAddress(compressedPubKeyBytes)
 	if err != nil {

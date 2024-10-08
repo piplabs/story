@@ -11,10 +11,11 @@ import (
 )
 
 type keyConfig struct {
-	ValidatorKeyFile string
-	PrivateKeyFile   string
-	PubKeyHex        string
-	PubKeyBase64     string
+	ValidatorKeyFile         string
+	PrivateKeyFile           string
+	PubKeyHex                string
+	PubKeyBase64             string
+	PubKeyHexUncompressed    string
 }
 
 func newKeyCmds() *cobra.Command {
@@ -74,6 +75,16 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 		compressedPubKeyBytes, err = base64.StdEncoding.DecodeString(cfg.PubKeyBase64)
 		if err != nil {
 			return errors.Wrap(err, "failed to decode base64 public key")
+		}
+	case cfg.PubKeyHexUncompressed != "":
+		pubKeyHex := strings.TrimPrefix(cfg.PubKeyHexUncompressed, "0x")
+		uncompressedPubKeyBytes, err := hex.DecodeString(pubKeyHex)
+		if err != nil {
+			return errors.Wrap(err, "failed to decode hex public key")
+		}
+		compressedPubKeyBytes, err = uncmpPubKeyToCmpPubKey(uncompressedPubKeyBytes)
+		if err != nil {
+			return errors.Wrap(err, "failed to convert uncompressed pub key")
 		}
 	default:
 		return errors.New("no valid key input provided")
