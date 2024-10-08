@@ -219,3 +219,40 @@ func (mr *MockUpgradeKeeperMockRecorder) ScheduleUpgrade(ctx, plan any) *gomock.
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScheduleUpgrade", reflect.TypeOf((*MockUpgradeKeeper)(nil).ScheduleUpgrade), ctx, plan)
 }
+
+// MockMintKeeper is a mock of MintKeeper interface.
+type MockMintKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockMintKeeperMockRecorder
+}
+
+// MockMintKeeperMockRecorder is the mock recorder for MockMintKeeper.
+type MockMintKeeperMockRecorder struct {
+	mock *MockMintKeeper
+}
+
+// NewMockMintKeeper creates a new mock instance.
+func NewMockMintKeeper(ctrl *gomock.Controller) *MockMintKeeper {
+	mock := &MockMintKeeper{ctrl: ctrl}
+	mock.recorder = &MockMintKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMintKeeper) EXPECT() *MockMintKeeperMockRecorder {
+	return m.recorder
+}
+
+// ProcessInflationEvents mocks base method.
+func (m *MockMintKeeper) ProcessInflationEvents(ctx context.Context, height uint64, logs []*types2.EVMEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProcessInflationEvents", ctx, height, logs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ProcessInflationEvents indicates an expected call of ProcessInflationEvents.
+func (mr *MockMintKeeperMockRecorder) ProcessInflationEvents(ctx, height, logs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessInflationEvents", reflect.TypeOf((*MockMintKeeper)(nil).ProcessInflationEvents), ctx, height, logs)
+}

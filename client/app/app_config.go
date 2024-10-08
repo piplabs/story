@@ -9,7 +9,6 @@ import (
 	distrmodulev1 "cosmossdk.io/api/cosmos/distribution/module/v1"
 	genutilmodulev1 "cosmossdk.io/api/cosmos/genutil/module/v1"
 	govmodulev1 "cosmossdk.io/api/cosmos/gov/module/v1"
-	mintmodulev1 "cosmossdk.io/api/cosmos/mint/module/v1"
 	slashingmodulev1 "cosmossdk.io/api/cosmos/slashing/module/v1"
 	stakingmodulev1 "cosmossdk.io/api/cosmos/staking/module/v1"
 	txconfigv1 "cosmossdk.io/api/cosmos/tx/config/v1"
@@ -26,7 +25,6 @@ import (
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -36,6 +34,8 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	mintmodule "github.com/piplabs/story/client/x/mint/module"
+	minttypes "github.com/piplabs/story/client/x/mint/types"
 )
 
 // Bech32HRP is the human-readable-part of the Bech32 address format.
@@ -215,7 +215,7 @@ var (
 			},
 			{
 				Name:   minttypes.ModuleName,
-				Config: appconfig.WrapAny(&mintmodulev1.Module{}),
+				Config: appconfig.WrapAny(&mintmodule.Module{}),
 			},
 		},
 	})
