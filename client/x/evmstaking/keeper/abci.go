@@ -148,14 +148,14 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 				return nil, err
 			}
 		}
+	}
 
-		partialWithdrawals, err := k.ExpectedPartialWithdrawals(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if err := k.EnqueueEligiblePartialWithdrawal(ctx, partialWithdrawals); err != nil {
-			return nil, err
-		}
+	partialWithdrawals, err := k.ExpectedPartialWithdrawals(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := k.EnqueueEligiblePartialWithdrawal(ctx, partialWithdrawals); err != nil {
+		return nil, err
 	}
 
 	return valUpdates, nil
