@@ -22,7 +22,7 @@ func New(msg string, attrs ...any) error {
 //nolint:inamedparam // This function does custom wrapping and errors.
 func Wrap(err error, msg string, attrs ...any) error {
 	if err == nil {
-		panic("wrap nil error")
+		return nil
 	}
 
 	// Support error types that do their own wrapping.
