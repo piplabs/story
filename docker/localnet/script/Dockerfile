@@ -6,6 +6,4 @@ RUN apt update \
 COPY script/init-node.sh /
 RUN chmod +x /init-node.sh
 
-COPY binary/* /usr/local/bin
-
 ENTRYPOINT ["bash", "/init-node.sh"]

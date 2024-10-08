@@ -5,8 +5,11 @@ services:
     build:
       context: .
       dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: bootnode
     volumes:
-      - ./config/1+1/bootnodes/bootnode1:/config
+      - ./config/1+1/bootnode1:/config
+      - ./binary:/binary
     networks:
       - local-node-test
   validator1:
@@ -15,8 +18,11 @@ services:
     build:
       context: .
       dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: validator
     volumes:
-      - ./config/1+1/validators/validator1:/config
+      - ./config/1+1/validator1:/config
+      - ./binary:/binary
     networks:
       - local-node-test
 networks:
