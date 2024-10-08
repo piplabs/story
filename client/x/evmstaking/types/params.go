@@ -2,10 +2,6 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-
-	"github.com/piplabs/story/lib/errors"
 )
 
 // Staking params default values.
@@ -33,26 +29,6 @@ func DefaultParams() Params {
 		DefaultMaxSweepPerBlock,
 		DefaultMinPartialWithdrawalAmount,
 	)
-}
-
-// unmarshal the current params value from store key or panic.
-func MustUnmarshalParams(cdc *codec.LegacyAmino, value []byte) Params {
-	params, err := UnmarshalParams(cdc, value)
-	if err != nil {
-		panic(err)
-	}
-
-	return params
-}
-
-// unmarshal the current params value from store key.
-func UnmarshalParams(cdc *codec.LegacyAmino, value []byte) (params Params, err error) {
-	err = cdc.Unmarshal(value, &params)
-	if err != nil {
-		return params, errors.Wrap(err, "unmarshal params")
-	}
-
-	return params, nil
 }
 
 func ValidateMaxWithdrawalPerBlock(v uint32) error {

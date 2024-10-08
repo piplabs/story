@@ -4,10 +4,6 @@ import (
 	"strings"
 
 	"cosmossdk.io/core/address"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-
-	"github.com/piplabs/story/lib/errors"
 )
 
 // Withdrawals is a collection of Withdrawal.
@@ -47,29 +43,4 @@ func NewWithdrawalFromMsg(msg *MsgAddWithdrawal) Withdrawal {
 		ExecutionAddress: msg.Withdrawal.ExecutionAddress,
 		Amount:           msg.Withdrawal.Amount,
 	}
-}
-
-func MustMarshalWithdrawal(cdc codec.BinaryCodec, withdrawal *Withdrawal) []byte {
-	return cdc.MustMarshal(withdrawal)
-}
-
-// MustUnmarshalWithdrawal return the unmarshaled withdrawal from bytes.
-// Panics if fails.
-func MustUnmarshalWithdrawal(cdc codec.BinaryCodec, value []byte) Withdrawal {
-	withdrawal, err := UnmarshalWithdrawal(cdc, value)
-	if err != nil {
-		panic(err)
-	}
-
-	return withdrawal
-}
-
-// UnmarshalWithdrawal returns the withdrawal.
-func UnmarshalWithdrawal(cdc codec.BinaryCodec, value []byte) (withdrawal Withdrawal, err error) {
-	err = cdc.Unmarshal(value, &withdrawal)
-	if err != nil {
-		return withdrawal, errors.Wrap(err, "unmarshal withdrawal")
-	}
-
-	return withdrawal, nil
 }
