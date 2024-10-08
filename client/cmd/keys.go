@@ -11,11 +11,11 @@ import (
 )
 
 type keyConfig struct {
-	ValidatorKeyFile         string
-	PrivateKeyFile           string
-	PubKeyHex                string
-	PubKeyBase64             string
-	PubKeyHexUncompressed    string
+	ValidatorKeyFile      string
+	PrivateKeyFile        string
+	PubKeyHex             string
+	PubKeyBase64          string
+	PubKeyHexUncompressed string
 }
 
 func newKeyCmds() *cobra.Command {

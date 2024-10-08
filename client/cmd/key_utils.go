@@ -7,9 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 	"math/big"
-
+	"os"
 
 	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
@@ -164,20 +163,20 @@ func cmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
 }
 
 func uncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
-    if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
-        return nil, errors.New("invalid uncompressed public key length or format")
-    }
+	if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
+		return nil, errors.New("invalid uncompressed public key length or format")
+	}
 
-    x := new(big.Int).SetBytes(uncmpPubKey[1:33])
-    y := new(big.Int).SetBytes(uncmpPubKey[33:])
+	x := new(big.Int).SetBytes(uncmpPubKey[1:33])
+	y := new(big.Int).SetBytes(uncmpPubKey[33:])
 
-    pubKey := ecdsa.PublicKey{
-        Curve: elliptic.P256(),
-        X:     x,
-        Y:     y,
-    }
+	pubKey := ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}
 
-    return crypto.CompressPubkey(&pubKey), nil
+	return crypto.CompressPubkey(&pubKey), nil
 }
 
 func printKeyFormats(compressedPubKeyBytes []byte) error {
