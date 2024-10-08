@@ -28,6 +28,7 @@ import (
 	"github.com/gorilla/mux"
 
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
+	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 )
 
 type Store interface {
@@ -39,6 +40,7 @@ type Store interface {
 	GetBankKeeper() bankkeeper.Keeper
 	GetDistrKeeper() distrkeeper.Keeper
 	GetUpgradeKeeper() *upgradekeeper.Keeper
+	GetMintKeeper() mintkeeper.Keeper
 }
 
 type Server struct {
@@ -121,6 +123,7 @@ func (s *Server) registerHandle() {
 	s.initSlashingRoute()
 	s.initStakingRoute()
 	s.initUpgradeRoute()
+	s.initMintRoute()
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {

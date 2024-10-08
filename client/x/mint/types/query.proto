@@ -1,0 +1,26 @@
+syntax = "proto3";
+package client.x.mint.types;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "client/x/mint/types/mint.proto";
+import "amino/amino.proto";
+
+option go_package = "client/x/mint/types";
+
+// Query provides defines the gRPC querier service.
+service Query {
+  // Params returns the total set of minting parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/client/mint/v1/params";
+  }
+}
+
+// QueryParamsRequest is the request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  // params defines the parameters of the module.
+  Params params = 1 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
