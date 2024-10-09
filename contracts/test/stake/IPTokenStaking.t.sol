@@ -27,8 +27,8 @@ contract IPTokenStakingTest is Test {
         emit Received(msg.sender, msg.value);
     }
 
-    function setUp() public override {
-        setStaking();
+    function setUp() public virtual override {
+        super.setUp();
 
         vm.assertEq(delegatorCmpPubkey, Secp256k1.compressPublicKey(delegatorUncmpPubkey));
     }

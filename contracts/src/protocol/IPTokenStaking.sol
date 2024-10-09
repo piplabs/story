@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
@@ -13,7 +12,7 @@ import { Secp256k1 } from "../libraries/Secp256k1.sol";
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
  */
-contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Default commission rate for a validator. Out of 100%, or 10_000.
@@ -92,7 +91,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 _withdrawalAddressChangeInterval
     ) public initializer {
         __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
         __Ownable_init(accessManager);
         _setMinStakeAmount(_minStakeAmount);
         _setMinUnstakeAmount(_minUnstakeAmount);
@@ -549,8 +547,4 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         (bool success, ) = msg.sender.call{ value: remainder }("");
         require(success, "IPTokenStaking: Failed to refund remainder");
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

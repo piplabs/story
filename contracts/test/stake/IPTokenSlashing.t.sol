@@ -24,11 +24,6 @@ contract IPTokenSlashingTest is Test {
         emit Received(msg.sender, msg.value);
     }
 
-    function setUp() public override {
-        setStaking();
-        setSlashing();
-    }
-
     function testIPTokenSlashing_Parameters() public view {
         assertEq(ipTokenSlashing.unjailFee(), 1 ether);
     }
