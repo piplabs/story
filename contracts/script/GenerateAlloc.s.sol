@@ -35,8 +35,8 @@ contract GenerateAlloc is Script {
     // Upgrade admin controls upgradeability (by being Owner of each ProxyAdmin),
     // protocol admin is Owner of precompiles (admin/governance methods).
     // To disable upgradeability, we transfer ProxyAdmin ownership to a dead address
-    address internal upgradeAdmin = vm.envAddress("UPGRADE_ADMIN_ADDRESS");
-    address internal protocolAdmin = vm.envAddress("ADMIN_ADDRESS");
+    address internal upgradeAdmin;
+    address internal protocolAdmin;
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
     uint256 public constant MAINNET_CHAIN_ID = 0; // TBD
@@ -45,6 +45,13 @@ contract GenerateAlloc is Script {
     function disableStateDump() external {
         require(block.chainid == 31337, "Only for local tests");
         saveState = false;
+    }
+
+    /// @notice call from Test.sol only
+    function setAdminAddresses(address upgrade, address protocol) external {
+        require(block.chainid == 31337, "Only for local tests");
+        upgradeAdmin = upgrade;
+        protocolAdmin = protocol;
     }
 
     /// @notice path where alloc file will be stored
@@ -62,7 +69,14 @@ contract GenerateAlloc is Script {
 
     /// @notice main script method
     function run() public {
+        if (upgradeAdmin == address(0)) {
+            upgradeAdmin = vm.envAddress("UPGRADE_ADMIN_ADDRESS");
+        }
         require(upgradeAdmin != address(0), "upgradeAdmin not set");
+
+        if (protocolAdmin == address(0)) {
+            protocolAdmin = vm.envAddress("ADMIN_ADDRESS");
+        }
         require(protocolAdmin != address(0), "protocolAdmin not set");
 
         vm.startPrank(deployer);

@@ -25,6 +25,7 @@ contract Test is ForgeTest {
     function setUp() virtual public {
         GenerateAlloc initializer = new GenerateAlloc();
         initializer.disableStateDump(); // Faster tests. Don't call to verify JSON output
+        initializer.setAdminAddresses(upgradeAdmin, admin);
         initializer.run();
         ipTokenStaking = IPTokenStaking(Predeploys.Staking);
         ipTokenSlashing = IPTokenSlashing(Predeploys.Slashing);
