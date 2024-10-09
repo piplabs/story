@@ -24,5 +24,5 @@ dist
 # Environment vars
 .env
 
-# Local storage dumps
-local-state.json
+# Local Alloc file
+local-alloc.json

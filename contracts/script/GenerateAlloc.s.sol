@@ -6,7 +6,6 @@ pragma solidity ^0.8.23;
 import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
 import { IPTokenSlashing } from "../src/protocol/IPTokenSlashing.sol";
@@ -33,7 +32,7 @@ contract GenerateAlloc is Script {
      */
     address internal deployer = 0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd;
 
-    // Upgrade admin controls upgradeability (by being Owner of each ProxyAdmin), 
+    // Upgrade admin controls upgradeability (by being Owner of each ProxyAdmin),
     // protocol admin is Owner of precompiles (admin/governance methods).
     // To disable upgradeability, we transfer ProxyAdmin ownership to a dead address
     address internal upgradeAdmin = vm.envAddress("UPGRADE_ADMIN_ADDRESS");
@@ -213,7 +212,6 @@ contract GenerateAlloc is Script {
         vm.deal(0x0000000000000000000000000000000000000008, 1);
         vm.deal(0x0000000000000000000000000000000000000009, 1);
         vm.deal(0x000000000000000000000000000000000000001a, 1);
-    
         // Allocation
         if (block.chainid == MAINNET_CHAIN_ID) {
             // TBD
