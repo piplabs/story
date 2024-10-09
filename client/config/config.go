@@ -63,6 +63,27 @@ var (
 		Seeds:              "",
 		SeedMode:           false,
 	}
+	OdysseyConfig = Config{
+		HomeDir:            DefaultHomeDir(),
+		Network:            "odyssey",
+		EngineEndpoint:     DefaultEngineEndpoint,
+		EngineJWTFile:      DefaultJWTFile("odyssey"),
+		SnapshotInterval:   defaultSnapshotInterval,
+		SnapshotKeepRecent: defaultSnapshotKeepRecent,
+		BackendType:        string(defaultDBBackend),
+		MinRetainBlocks:    defaultMinRetainBlocks,
+		PruningOption:      pruningtypes.PruningOptionDefault,
+		EVMBuildDelay:      defaultEVMBuildDelay,
+		EVMBuildOptimistic: false,
+		APIEnable:          false,
+		APIAddress:         "127.0.0.1:1317",
+		EnableUnsafeCORS:   false,
+		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
+	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "local",
