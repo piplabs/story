@@ -15,7 +15,7 @@ type InflationCalculationFn func(ctx context.Context, params Params, bondedRatio
 
 // DefaultInflationCalculationFn is the default function used to calculate inflation.
 func DefaultInflationCalculationFn(_ context.Context, params Params, _ math.LegacyDec) math.LegacyDec {
-	return math.LegacyNewDec(int64(params.InflationsPerYear)).Quo(math.LegacyNewDec(int64(params.BlocksPerYear)))
+	return params.InflationsPerYear.Quo(math.LegacyNewDec(int64(params.BlocksPerYear)))
 }
 
 // NewGenesisState creates a new GenesisState object.
