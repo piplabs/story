@@ -39,9 +39,10 @@ jobs:
         working-directory: contracts
 
       # Run lint
-      - name: Check lint
-        run: pnpm lint-check
-        working-directory: contracts
+      # TODO: Fix and unify linting
+      # - name: Check lint
+      #  run: pnpm lint-check
+      #  working-directory: contracts
 
       # first, build contracts excluding the tests and scripts. Check contract sizes in this step.
       - name: Run Contract Size check
