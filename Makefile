@@ -1,7 +1,6 @@
 help:  ## Display this help message
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m  %-30s\033[0m %s\n", $$1, $$2}'
 
-
 ###############################################################################
 ###                                Contracts                                 ###
 ###############################################################################
@@ -32,7 +31,7 @@ lint: ## Runs linters via pre-commit.
 	@pre-commit run -v --all-files
 
 .PHONY: bufgen
-bufgen: ## Generates protobufs using buf generate.
+bufgen: ## Generates protobufs using buf generate. TODO: remove in favor of proto-gen
 	@./scripts/buf_generate.sh
 
 .PHONY:
@@ -44,5 +43,35 @@ fix-golden: ## Fixes golden test fixtures.
 	@./scripts/fix_golden_tests.sh
 
 ###############################################################################
-###                                Testing                                 	###
+###                                Protobuf                                 ###
 ###############################################################################
+
+protoVer=0.15.1
+protoImageName=ghcr.io/cosmos/proto-builder:$(protoVer)
+protoImage=$(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace $(protoImageName)
+
+#? proto-all: Run make proto-format proto-lint proto-gen
+proto-all: proto-format proto-lint proto-gen
+
+#? proto-gen: Generate Protobuf files
+proto-gen:
+	@$(protoImage) sh ./scripts/protocgen.sh
+
+#? proto-format: Format proto file
+proto-format:
+	@$(protoImage) find ./ -name "*.proto" -exec clang-format -i {} \;
+
+#? proto-lint: Lint proto file
+proto-lint:
+	@$(protoImage) buf lint --error-format=json
+
+#? proto-check-breaking: Check proto file is breaking
+proto-check-breaking:
+	@$(protoImage) buf breaking --against $(HTTPS_GIT)#branch=main
+
+#? proto-update-deps: Update protobuf dependencies
+proto-update-deps:
+	@echo "Updating Protobuf dependencies"
+	$(DOCKER) run --rm -v $(CURDIR)/proto:/workspace --workdir /workspace $(protoImageName) buf mod update
+
+.PHONY: proto-all proto-gen proto-format proto-lint proto-check-breaking proto-update-deps

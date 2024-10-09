@@ -1,0 +1,11 @@
+syntax = "proto3";
+package story.evmengine.v1;
+
+import "gogoproto/gogo.proto";
+import "story/evmengine/v1/params.proto";
+
+option go_package = "github.com/piplabs/story/client/x/evmengine/types";
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+}

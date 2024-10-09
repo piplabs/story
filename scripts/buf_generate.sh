@@ -7,17 +7,18 @@
 function bufgen() {
     TYPE=$1 # Either orm,pulsar,proto
     DIR=$2 # Path to dir containing protos to generate
+    OUTPUT=$3 # Path to output dir
 
     # Skip if ${DIR}/*.proto does not exist
     if ! test -n "$(find "${DIR}" -maxdepth 1 -name '*.proto')"; then
       return
     fi
 
-
     echo "  ${TYPE}: ${DIR}"
 
     buf generate \
-      --template="scripts/buf.gen.${TYPE}.yaml" \
+      --template="../scripts/buf.gen.${TYPE}.yaml" \
+      --output="${OUTPUT}" \
       --path="${DIR}"
 }
 
@@ -28,19 +29,26 @@ if [ ! -f go.mod ]; then
 fi
 
 echo "Generating pulsar protos for cosmos module config"
-for DIR in client/x/*/module/
-do
-  bufgen pulsar "${DIR}"
-done
 
-echo "Generating gogo protos for cosmos module types"
-for DIR in client/x/*/types/
-do
-  bufgen gogo "${DIR}"
-done
+bufgen pulsar story/evmengine/v1/module.proto ../client/x/evmengine/module
+bufgen pulsar story/evmstaking/v1/module.proto ../client/x/evmstaking/module
 
-echo "Generating orm protos for cosmos keeper orm"
-for DIR in client/x/*/keeper/
-do
-  bufgen orm "${DIR}"
-done
+cd proto
+
+echo "Generating gogo protos for cosmos types"
+
+bufgen gogo story/evmengine/v1/genesis.proto ../client/x/evmengine/types
+bufgen gogo story/evmengine/v1/params.proto ../client/x/evmengine/types
+bufgen gogo story/evmengine/v1/tx.proto ../client/x/evmengine/types
+
+bufgen gogo story/evmstaking/v1/genesis.proto ../client/x/evmstaking/types
+bufgen gogo story/evmstaking/v1/evmstaking.proto ../client/x/evmstaking/types
+bufgen gogo story/evmstaking/v1/params.proto ../client/x/evmstaking/types
+bufgen gogo story/evmstaking/v1/query.proto ../client/x/evmstaking/types
+bufgen gogo story/evmstaking/v1/tx.proto ../client/x/evmstaking/types
+
+echo "Generating orm protos"
+
+bufgen orm proto/story/evmengine/v1/keeper/evmengine.proto ../client/x/evmengine/keeper
+
+cd ..

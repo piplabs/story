@@ -1,10 +1,10 @@
 syntax = "proto3";
-package client.x.evmstaking.types;
+package story.evmstaking.v1;
 
 import "gogoproto/gogo.proto";
-import "client/x/evmstaking/types/params.proto";
+import "story/evmstaking/v1/params.proto";
 
-option go_package = "client/x/evmstaking/types";
+option go_package = "github.com/piplabs/story/client/x/evmstaking/types";
 
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];

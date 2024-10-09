@@ -42,9 +42,9 @@ require (
 	go.uber.org/mock v0.4.0
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/tools v0.24.0
-	google.golang.org/grpc v1.64.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/grpc v1.65.0
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
+	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -128,7 +128,7 @@ require (
 	github.com/gofrs/uuid/v5 v5.1.0 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/glog v1.2.0 // indirect
+	github.com/golang/glog v1.2.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
@@ -240,8 +240,8 @@ require (
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	google.golang.org/genproto v0.0.0-20240325203815-454cdb8f5daa // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240520151616-dc85e6b867a5
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect

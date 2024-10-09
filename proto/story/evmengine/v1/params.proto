@@ -1,9 +1,9 @@
 syntax = "proto3";
-package client.x.evmengine.types;
+package story.evmengine.v1;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "client/x/evmengine/types";
+option go_package = "github.com/piplabs/story/client/x/evmengine/types";
 
 // Params defines the parameters for the module.
 message Params {
