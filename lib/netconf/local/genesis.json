@@ -194,7 +194,34 @@
           "current_epoch": "0",
           "current_epoch_start_time": "1970-01-01T00:00:00Z",
           "epoch_counting_started": false,
-          "current_epoch_start_height": "10"
+          "current_epoch_start_height": "1"
+        },
+        {
+          "identifier": "hour",
+          "start_time": "1970-01-01T00:00:00Z",
+          "duration": "1h",
+          "current_epoch": "0",
+          "current_epoch_start_time": "1970-01-01T00:00:00Z",
+          "epoch_counting_started": false,
+          "current_epoch_start_height": "1"
+        },
+        {
+          "identifier": "day",
+          "start_time": "1970-01-01T00:00:00Z",
+          "duration": "24h",
+          "current_epoch": "0",
+          "current_epoch_start_time": "1970-01-01T00:00:00Z",
+          "epoch_counting_started": false,
+          "current_epoch_start_height": "1"
+        },
+        {
+          "identifier": "week",
+          "start_time": "1970-01-01T00:00:00Z",
+          "duration": "168h",
+          "current_epoch": "0",
+          "current_epoch_start_time": "1970-01-01T00:00:00Z",
+          "epoch_counting_started": false,
+          "current_epoch_start_height": "1"
         }
       ]
     }
