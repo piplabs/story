@@ -13,7 +13,7 @@ import (
 )
 
 // NewParams returns Params instance with the given values.
-func NewParams(mintDenom string, inflationsPerYear uint64, blocksPerYear uint64) Params {
+func NewParams(mintDenom string, inflationsPerYear math.LegacyDec, blocksPerYear uint64) Params {
 	return Params{
 		MintDenom:         mintDenom,
 		InflationsPerYear: inflationsPerYear,
@@ -25,7 +25,7 @@ func NewParams(mintDenom string, inflationsPerYear uint64, blocksPerYear uint64)
 func DefaultParams() Params {
 	return Params{
 		MintDenom:         sdk.DefaultBondDenom,
-		InflationsPerYear: 24625000_000_000_000,
+		InflationsPerYear: math.LegacyNewDec(24625000000000000.000000000000000000),
 		BlocksPerYear:     uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
 	}
 }

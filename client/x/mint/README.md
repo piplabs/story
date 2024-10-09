@@ -32,7 +32,11 @@ message Params {
   // type of coin to mint
   string mint_denom = 1;
   // inflation amount per year
-  uint64 inflations_per_year = 2;
+  string inflations_per_year = 2 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false
+  ];
   // expected blocks per year
   uint64 blocks_per_year = ;
 }
@@ -58,11 +62,11 @@ type InflationCalculationFn func(ctx sdk.Context, minter Minter, params Params, 
 
 The minting module contains the following parameters:
 
-| Key                 | Type            | Example                      |
-|---------------------|-----------------|------------------------------|
-| MintDenom           | string          | "stake"                      |
-| InflationsPerYear   | string (dec)    | "24625000000000000"          |
-| BlocksPerYear       | string (uint64) | "6311520"                    |
+| Key                 | Type            | Example                                |
+|---------------------|-----------------|----------------------------------------|
+| MintDenom           | string          | "stake"                                |
+| InflationsPerYear   | string (dec)    | "24625000000000000.000000000000000000" |
+| BlocksPerYear       | string (uint64) | "6311520"                              |
 
 
 ## Events
