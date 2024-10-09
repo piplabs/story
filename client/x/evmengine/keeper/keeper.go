@@ -41,6 +41,7 @@ type Keeper struct {
 	accountKeeper    types.AccountKeeper
 	evmstakingKeeper types.EvmStakingKeeper
 	upgradeKeeper    types.UpgradeKeeper
+	mintKeeper       types.MintKeeper
 
 	upgradeContract *bindings.UpgradeEntrypoint
 
@@ -64,6 +65,7 @@ func NewKeeper(
 	ak types.AccountKeeper,
 	esk types.EvmStakingKeeper,
 	uk types.UpgradeKeeper,
+	mk types.MintKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
 		{Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
@@ -94,6 +96,7 @@ func NewKeeper(
 		evmstakingKeeper: esk,
 		upgradeKeeper:    uk,
 		upgradeContract:  upgradeContract,
+		mintKeeper:       mk,
 	}, nil
 }
 
@@ -172,10 +175,16 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 //
 // Note that the validator set can change, so this is an optimistic check.
 func (k *Keeper) isNextProposer(ctx context.Context, currentProposer []byte, currentHeight int64) (bool, error) {
+	// PostFinalize can be called during block replay (performed in newCometNode),
+	// but cmtAPI is set only after newCometNode completes (see app.SetCometAPI), so a nil check is necessary.
+	if k.cmtAPI == nil {
+		return false, nil
+	}
+
 	valset, ok, err := k.cmtAPI.Validators(ctx, currentHeight)
 	if err != nil {
 		return false, err
-	} else if !ok {
+	} else if !ok || len(valset.Validators) == 0 {
 		return false, errors.New("validators not available")
 	}
 

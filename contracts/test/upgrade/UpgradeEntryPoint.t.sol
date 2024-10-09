@@ -5,18 +5,12 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
-import { Test } from "forge-std/Test.sol";
-
 import { UpgradeEntrypoint, IUpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { Test } from "../utils/Test.sol";
 
 contract UpgradeEntrypointTest is Test {
-    UpgradeEntrypoint private upgradeEntrypoint;
-
-    function setUp() public {
-        address protocolAccessManagerAddr = address(this);
-
-        upgradeEntrypoint = new UpgradeEntrypoint(protocolAccessManagerAddr);
-    }
 
     function testUpgradeEntrypoint_planUpgrade() public {
         // Network shall allow the protocol owner to submit an upgrade plan.
@@ -24,9 +18,9 @@ contract UpgradeEntrypointTest is Test {
         int64 height = 1;
         string memory info = "info";
 
-        vm.prank(address(this));
         vm.expectEmit(address(upgradeEntrypoint));
         emit IUpgradeEntrypoint.SoftwareUpgrade(name, height, info);
+        vm.prank(admin);
         upgradeEntrypoint.planUpgrade(name, height, info);
 
         // Network shall not allow non-protocol owner to submit an upgrade plan.

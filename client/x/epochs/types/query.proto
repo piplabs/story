@@ -1,0 +1,32 @@
+syntax = "proto3";
+package client.x.epochs.types;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "client/x/epochs/types/genesis.proto";
+
+option go_package = "client/x/epochs/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // EpochInfos provide running epochInfos
+  rpc EpochInfos(QueryEpochsInfoRequest) returns (QueryEpochsInfoResponse) {
+    option (google.api.http).get = "/client/epochs/v1/epochs";
+  }
+  // CurrentEpoch provide current epoch of specified identifier
+  rpc CurrentEpoch(QueryCurrentEpochRequest) returns (QueryCurrentEpochResponse) {
+    option (google.api.http).get = "/client/epochs/v1/current_epoch";
+  }
+}
+
+message QueryEpochsInfoRequest {}
+message QueryEpochsInfoResponse {
+  repeated EpochInfo epochs = 1 [(gogoproto.nullable) = false];
+}
+
+message QueryCurrentEpochRequest {
+  string identifier = 1;
+}
+message QueryCurrentEpochResponse {
+  int64 current_epoch = 1;
+}

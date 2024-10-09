@@ -16,12 +16,12 @@ import (
 )
 
 func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DepositorPubkey)
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -35,7 +35,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "validator pubkey to evm address")
+		return errors.Wrap(err, "delegator pubkey to evm address")
 	}
 
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.Amount)

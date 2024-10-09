@@ -5,15 +5,11 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
-import { Test } from "forge-std/Test.sol";
+import { IIPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
 
-import { IPTokenSlashing, IIPTokenSlashing } from "../../src/protocol/IPTokenSlashing.sol";
-import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
+import { Test } from "../utils/Test.sol";
 
 contract IPTokenSlashingTest is Test {
-    IPTokenSlashing private ipTokenSlashing;
-    IPTokenStaking private ipTokenStaking;
-
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorUncmpPubkey
@@ -26,28 +22,6 @@ contract IPTokenSlashingTest is Test {
     // For some tests, we need to receive the native token to this contract
     receive() external payable {
         emit Received(msg.sender, msg.value);
-    }
-
-    function setUp() public {
-        address protocolAccessManagerAddr = address(this);
-
-        ipTokenStaking = new IPTokenStaking(
-            protocolAccessManagerAddr,
-            1 ether, // minStakeAmount
-            1 ether, // minUnstakeAmount
-            1 ether, // minRedelegateAmount
-            1 gwei, // stakingRounding
-            7 days, // withdrawalAddressChangeInterval
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
-        );
-
-        ipTokenSlashing = new IPTokenSlashing(
-            protocolAccessManagerAddr,
-            address(ipTokenStaking),
-            1 ether // unjailFee
-        );
     }
 
     function testIPTokenSlashing_Parameters() public view {
@@ -170,7 +144,7 @@ contract IPTokenSlashingTest is Test {
         uint256 newUnjailFee = 2 ether;
         vm.expectEmit(address(ipTokenSlashing));
         emit IIPTokenSlashing.UnjailFeeSet(newUnjailFee);
-        vm.prank(address(this));
+        vm.prank(admin);
         ipTokenSlashing.setUnjailFee(newUnjailFee);
         assertEq(ipTokenSlashing.unjailFee(), newUnjailFee);
 

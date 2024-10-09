@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/types/query"
 
+	"github.com/piplabs/story/client/collections"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 
 	"google.golang.org/grpc/codes"
@@ -37,7 +38,7 @@ func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetW
 	}
 
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
-	wqStore := prefix.NewStore(store, types.WithdrawalQueueKey) // withdrawal queue store
+	wqStore := prefix.NewStore(store, append(types.WithdrawalQueueKey, collections.QueueElementsPrefixSuffix)) // withdrawal queue store
 
 	withdrawals, pageResp, err := query.GenericFilteredPaginate(k.cdc, wqStore, request.Pagination, func(_ []byte, wit *types.Withdrawal) (*types.Withdrawal, error) {
 		return wit, nil

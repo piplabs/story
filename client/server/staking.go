@@ -3,6 +3,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -13,18 +14,37 @@ import (
 )
 
 func (s *Server) initStakingRoute() {
+	s.httpMux.HandleFunc("/staking/params", utils.SimpleWrap(s.aminoCodec, s.GetStakingParams))
 	s.httpMux.HandleFunc("/staking/pool", utils.SimpleWrap(s.aminoCodec, s.GetStakingPool))
+	s.httpMux.HandleFunc("/staking/historical_info/{height}", utils.SimpleWrap(s.aminoCodec, s.GetHistoricalInfoByHeight))
 
 	s.httpMux.HandleFunc("/staking/validators", utils.AutoWrap(s.aminoCodec, s.GetValidators))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorDelegationsByValidatorAddress))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
+	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
 
 	s.httpMux.HandleFunc("/staking/delegations/{delegator_addr}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+}
+
+// GetStakingParams queries the staking parameters.
+func (s *Server) GetStakingParams(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Params(queryContext, &stakingtypes.QueryParamsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
 }
 
 // GetStakingPool queries the staking pool info.
@@ -36,6 +56,33 @@ func (s *Server) GetStakingPool(r *http.Request) (resp any, err error) {
 
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Pool(queryContext, &stakingtypes.QueryPoolRequest{})
 	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetHistoricalInfoByHeight queries the historical info for given height.
+func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	heightStr := mux.Vars(r)["height"]
+	height, err := strconv.ParseInt(heightStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).HistoricalInfo(queryContext, &stakingtypes.QueryHistoricalInfoRequest{
+		Height: height,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.prepareUnpackInterfaces(queryResp.Hist); err != nil {
 		return nil, err
 	}
 
@@ -65,8 +112,7 @@ func (s *Server) GetValidators(req *getValidatorsRequest, r *http.Request) (resp
 	}
 
 	for _, validator := range queryResp.Validators {
-		err = s.prepareUnpackInterfaces(validator)
-		if err != nil {
+		if err := s.prepareUnpackInterfaces(validator); err != nil {
 			return nil, err
 		}
 	}
@@ -89,8 +135,7 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 		return nil, err
 	}
 
-	err = s.prepareUnpackInterfaces(queryResp.Validator)
-	if err != nil {
+	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
 	}
 
@@ -131,6 +176,49 @@ func (s *Server) GetDelegationByValidatorAddressDelegatorAddress(r *http.Request
 
 	muxVars := mux.Vars(r)
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Delegation(queryContext, &stakingtypes.QueryDelegationRequest{
+		ValidatorAddr: muxVars["validator_addr"],
+		DelegatorAddr: muxVars["delegator_addr"],
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetValidatorUnbondingDelegations queries unbonding delegations of a validator.
+func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDelegationsRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).ValidatorUnbondingDelegations(queryContext, &stakingtypes.QueryValidatorUnbondingDelegationsRequest{
+		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		Pagination: &query.PageRequest{
+			Key:        []byte(req.Pagination.Key),
+			Offset:     req.Pagination.Offset,
+			Limit:      req.Pagination.Limit,
+			CountTotal: req.Pagination.CountTotal,
+			Reverse:    req.Pagination.Reverse,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetDelegatorUnbondingDelegation queries unbonding info for given validator delegator pair.
+func (s *Server) GetDelegatorUnbondingDelegation(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	muxVars := mux.Vars(r)
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).UnbondingDelegation(queryContext, &stakingtypes.QueryUnbondingDelegationRequest{
 		ValidatorAddr: muxVars["validator_addr"],
 		DelegatorAddr: muxVars["delegator_addr"],
 	})
@@ -241,8 +329,7 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 	}
 
 	for _, validator := range queryResp.Validators {
-		err = s.prepareUnpackInterfaces(validator)
-		if err != nil {
+		if err = s.prepareUnpackInterfaces(validator); err != nil {
 			return nil, err
 		}
 	}
@@ -267,8 +354,7 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 		return nil, err
 	}
 
-	err = s.prepareUnpackInterfaces(queryResp.Validator)
-	if err != nil {
+	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
 	}
 

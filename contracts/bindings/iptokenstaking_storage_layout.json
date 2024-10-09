@@ -1,100 +1,79 @@
 {
   "storage": [
     {
-      "astId": 8,
-      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "_owner",
-      "offset": 0,
-      "slot": "0",
-      "type": "t_address"
-    },
-    {
-      "astId": 156,
-      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "_pendingOwner",
-      "offset": 0,
-      "slot": "1",
-      "type": "t_address"
-    },
-    {
-      "astId": 40493,
+      "astId": 42049,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "minStakeAmount",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 42052,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "minUnstakeAmount",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 42055,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "minRedelegateAmount",
       "offset": 0,
       "slot": "2",
       "type": "t_uint256"
     },
     {
-      "astId": 40496,
+      "astId": 42058,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "minUnstakeAmount",
+      "label": "withdrawalAddressChangeInterval",
       "offset": 0,
       "slot": "3",
       "type": "t_uint256"
     },
     {
-      "astId": 40499,
-      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "minRedelegateAmount",
-      "offset": 0,
-      "slot": "4",
-      "type": "t_uint256"
-    },
-    {
-      "astId": 40502,
-      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
-      "label": "withdrawalAddressChangeInterval",
-      "offset": 0,
-      "slot": "5",
-      "type": "t_uint256"
-    },
-    {
-      "astId": 40508,
+      "astId": 42064,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "validatorMetadata",
       "offset": 0,
-      "slot": "6",
-      "type": "t_mapping(t_bytes_memory_ptr,t_struct(ValidatorMetadata)40039_storage)"
+      "slot": "4",
+      "type": "t_mapping(t_bytes_memory_ptr,t_struct(ValidatorMetadata)41288_storage)"
     },
     {
-      "astId": 40513,
+      "astId": 42069,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "delegatorTotalStakes",
       "offset": 0,
-      "slot": "7",
+      "slot": "5",
       "type": "t_mapping(t_bytes_memory_ptr,t_uint256)"
     },
     {
-      "astId": 40520,
+      "astId": 42076,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "delegatorValidatorStakes",
       "offset": 0,
-      "slot": "8",
+      "slot": "6",
       "type": "t_mapping(t_bytes_memory_ptr,t_mapping(t_bytes_memory_ptr,t_uint256))"
     },
     {
-      "astId": 40526,
+      "astId": 42082,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "delegatorOperators",
       "offset": 0,
-      "slot": "9",
-      "type": "t_mapping(t_bytes_memory_ptr,t_struct(AddressSet)589_storage)"
+      "slot": "7",
+      "type": "t_mapping(t_bytes_memory_ptr,t_struct(AddressSet)2028_storage)"
     },
     {
-      "astId": 40531,
+      "astId": 42087,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "withdrawalAddressChange",
       "offset": 0,
-      "slot": "10",
+      "slot": "8",
       "type": "t_mapping(t_bytes_memory_ptr,t_uint256)"
     }
   ],
   "types": {
-    "t_address": {
-      "encoding": "inplace",
-      "label": "address",
-      "numberOfBytes": "20"
-    },
     "t_array(t_bytes32)dyn_storage": {
       "encoding": "dynamic_array",
       "label": "bytes32[]",
@@ -130,19 +109,19 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_bytes_memory_ptr,t_uint256)"
     },
-    "t_mapping(t_bytes_memory_ptr,t_struct(AddressSet)589_storage)": {
+    "t_mapping(t_bytes_memory_ptr,t_struct(AddressSet)2028_storage)": {
       "encoding": "mapping",
       "key": "t_bytes_memory_ptr",
       "label": "mapping(bytes => struct EnumerableSet.AddressSet)",
       "numberOfBytes": "32",
-      "value": "t_struct(AddressSet)589_storage"
+      "value": "t_struct(AddressSet)2028_storage"
     },
-    "t_mapping(t_bytes_memory_ptr,t_struct(ValidatorMetadata)40039_storage)": {
+    "t_mapping(t_bytes_memory_ptr,t_struct(ValidatorMetadata)41288_storage)": {
       "encoding": "mapping",
       "key": "t_bytes_memory_ptr",
       "label": "mapping(bytes => struct IIPTokenStaking.ValidatorMetadata)",
       "numberOfBytes": "32",
-      "value": "t_struct(ValidatorMetadata)40039_storage"
+      "value": "t_struct(ValidatorMetadata)41288_storage"
     },
     "t_mapping(t_bytes_memory_ptr,t_uint256)": {
       "encoding": "mapping",
@@ -156,28 +135,28 @@
       "label": "string",
       "numberOfBytes": "32"
     },
-    "t_struct(AddressSet)589_storage": {
+    "t_struct(AddressSet)2028_storage": {
       "encoding": "inplace",
       "label": "struct EnumerableSet.AddressSet",
       "numberOfBytes": "64",
       "members": [
         {
-          "astId": 588,
+          "astId": 2027,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "_inner",
           "offset": 0,
           "slot": "0",
-          "type": "t_struct(Set)274_storage"
+          "type": "t_struct(Set)1713_storage"
         }
       ]
     },
-    "t_struct(Set)274_storage": {
+    "t_struct(Set)1713_storage": {
       "encoding": "inplace",
       "label": "struct EnumerableSet.Set",
       "numberOfBytes": "64",
       "members": [
         {
-          "astId": 269,
+          "astId": 1708,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "_values",
           "offset": 0,
@@ -185,7 +164,7 @@
           "type": "t_array(t_bytes32)dyn_storage"
         },
         {
-          "astId": 273,
+          "astId": 1712,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "_positions",
           "offset": 0,
@@ -194,13 +173,13 @@
         }
       ]
     },
-    "t_struct(ValidatorMetadata)40039_storage": {
+    "t_struct(ValidatorMetadata)41288_storage": {
       "encoding": "inplace",
       "label": "struct IIPTokenStaking.ValidatorMetadata",
       "numberOfBytes": "128",
       "members": [
         {
-          "astId": 40028,
+          "astId": 41277,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "exists",
           "offset": 0,
@@ -208,7 +187,7 @@
           "type": "t_bool"
         },
         {
-          "astId": 40030,
+          "astId": 41279,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "moniker",
           "offset": 0,
@@ -216,7 +195,7 @@
           "type": "t_string_storage"
         },
         {
-          "astId": 40032,
+          "astId": 41281,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "totalStake",
           "offset": 0,
@@ -224,7 +203,7 @@
           "type": "t_uint256"
         },
         {
-          "astId": 40034,
+          "astId": 41283,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "commissionRate",
           "offset": 0,
@@ -232,7 +211,7 @@
           "type": "t_uint32"
         },
         {
-          "astId": 40036,
+          "astId": 41285,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "maxCommissionRate",
           "offset": 4,
@@ -240,7 +219,7 @@
           "type": "t_uint32"
         },
         {
-          "astId": 40038,
+          "astId": 41287,
           "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
           "label": "maxCommissionChangeRate",
           "offset": 8,

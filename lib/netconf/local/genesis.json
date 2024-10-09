@@ -4,7 +4,7 @@
   "initial_height": "1",
   "consensus_params": {
     "block": {
-      "max_bytes": "22020096",
+      "max_bytes": "-1",
       "max_gas": "-1"
     },
     "evidence": {
@@ -19,7 +19,7 @@
       "app": "0"
     },
     "abci": {
-      "vote_extensions_enable_height": "1"
+      "vote_extensions_enable_height": "0"
     }
   },
   "app_hash": "",
@@ -88,7 +88,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "x1AaLCAZ7s5wgA7U7ImJzFebqyQKHP42VmkPXCXgqO4="
+				"execution_block_hash": "jz/Faw3DoAnmdx2pn/c3kA2oS5rq4V0briJcyLTbvcM="
       }
     },
     "genutil": {
@@ -179,18 +179,24 @@
       }
     },
     "mint": {
-      "minter": {
-        "inflation": "0.130000000000000000",
-        "annual_provisions": "0.000000000000000000"
-      },
       "params": {
         "mint_denom": "stake",
-        "inflation_rate_change": "0.130000000000000000",
-        "inflation_max": "0.200000000000000000",
-        "inflation_min": "0.070000000000000000",
-        "goal_bonded": "0.670000000000000000",
+        "inflations_per_year": "24625000000000000.000000000000000000",
         "blocks_per_year": "6311520"
       }
+    },
+    "epochs": {
+      "epochs": [
+        {
+          "identifier": "minute",
+          "start_time": "1970-01-01T00:00:00Z",
+          "duration": "60s",
+          "current_epoch": "0",
+          "current_epoch_start_time": "1970-01-01T00:00:00Z",
+          "epoch_counting_started": false,
+          "current_epoch_start_height": "10"
+        }
+      ]
     }
   }
 }

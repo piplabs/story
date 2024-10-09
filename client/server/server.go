@@ -21,19 +21,26 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
+	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 )
 
 type Store interface {
 	CreateQueryContext(height int64, prove bool) (sdk.Context, error)
+	GetEvmStakingKeeper() *evmstakingkeeper.Keeper
 	GetStakingKeeper() *stakingkeeper.Keeper
+	GetSlashingKeeper() slashingkeeper.Keeper
 	GetAccountKeeper() authkeeper.AccountKeeper
 	GetBankKeeper() bankkeeper.Keeper
 	GetDistrKeeper() distrkeeper.Keeper
 	GetUpgradeKeeper() *upgradekeeper.Keeper
+	GetMintKeeper() mintkeeper.Keeper
 }
 
 type Server struct {
@@ -108,12 +115,15 @@ func (s *Server) prepareUnpackInterfaces(v codectypes.UnpackInterfacesMessage) e
 }
 
 func (s *Server) registerHandle() {
-	s.initStakingRoute()
 	s.initAuthRoute()
 	s.initBankRoute()
-	s.initDistributionRoute()
 	s.initComeBFTRoute()
+	s.initDistributionRoute()
+	s.initEvmStakingRoute()
+	s.initSlashingRoute()
+	s.initStakingRoute()
 	s.initUpgradeRoute()
+	s.initMintRoute()
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {

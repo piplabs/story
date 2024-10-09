@@ -18,10 +18,13 @@ import (
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
+	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
+	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -34,7 +37,6 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/distribution"   // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/genutil"        // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/gov"            // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/mint"           // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/slashing"       // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/staking"        // import for side-effects
 )
@@ -90,8 +92,10 @@ func newApp(
 		&app.Keepers.ConsensusParamsKeeper,
 		&app.Keepers.GovKeeper,
 		&app.Keepers.UpgradeKeeper,
+		&app.Keepers.EpochsKeeper,
 		&app.Keepers.EvmStakingKeeper,
 		&app.Keepers.EVMEngKeeper,
+		&app.Keepers.MintKeeper,
 	); err != nil {
 		return nil, errors.Wrap(err, "dep inject")
 	}
@@ -103,7 +107,7 @@ func newApp(
 		bapp.SetPrepareProposal(app.Keepers.EVMEngKeeper.PrepareProposal)
 
 		// Route proposed messages to keepers for verification and external state updates.
-		bapp.SetProcessProposal(makeProcessProposalHandler(app))
+		bapp.SetProcessProposal(makeProcessProposalHandler(makeProcessProposalRouter(app), app.txConfig))
 	})
 
 	app.App = appBuilder.Build(db, nil, baseAppOpts...)
@@ -177,8 +181,16 @@ func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
 }
 
+func (a App) GetEvmStakingKeeper() *evmstakingkeeper.Keeper {
+	return a.Keepers.EvmStakingKeeper
+}
+
 func (a App) GetStakingKeeper() *stakingkeeper.Keeper {
 	return a.Keepers.StakingKeeper
+}
+
+func (a App) GetSlashingKeeper() slashingkeeper.Keeper {
+	return a.Keepers.SlashingKeeper
 }
 
 func (a App) GetAccountKeeper() authkeeper.AccountKeeper {
@@ -195,4 +207,8 @@ func (a App) GetDistrKeeper() distrkeeper.Keeper {
 
 func (a App) GetUpgradeKeeper() *upgradekeeper.Keeper {
 	return a.Keepers.UpgradeKeeper
+}
+
+func (a App) GetMintKeeper() mintkeeper.Keeper {
+	return a.Keepers.MintKeeper
 }

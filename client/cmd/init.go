@@ -26,13 +26,18 @@ import (
 
 // InitConfig is the config for the init command.
 type InitConfig struct {
-	HomeDir       string
-	Network       netconf.ID
-	TrustedSync   bool
-	Force         bool
-	Clean         bool
-	Cosmos        bool
-	ExecutionHash common.Hash
+	HomeDir         string
+	Network         netconf.ID
+	TrustedSync     bool
+	Force           bool
+	Clean           bool
+	Cosmos          bool
+	ExecutionHash   common.Hash
+	RPCLaddr        string
+	ExternalAddress string
+	Seeds           string
+	SeedMode        bool
+	Moniker         string
 }
 
 // newInitCmd returns a new cobra command that initializes the files and folders required by story.
@@ -107,9 +112,9 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		cfg = storycfg.LocalConfig
 	default:
 		cfg = storycfg.DefaultConfig()
-		cfg.HomeDir = homeDir
 		cfg.Network = network
 	}
+	cfg.HomeDir = homeDir
 
 	// Folders
 	folders := []struct {
@@ -133,9 +138,36 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		log.Info(ctx, "Generated folder", "reason", folder.Name, "path", folder.Path)
 	}
 
-	// Add P2P seeds to comet config
-	if seeds := network.Static().ConsensusSeeds(); len(seeds) > 0 {
+	if initCfg.Moniker != "" {
+		comet.Moniker = initCfg.Moniker
+		log.Info(ctx, "Overriding node moniker", "moniker", comet.Moniker)
+	}
+
+	if initCfg.RPCLaddr != "" {
+		comet.RPC.ListenAddress = initCfg.RPCLaddr
+		log.Info(ctx, "Overriding RPC listen address", "address", comet.RPC.ListenAddress)
+	}
+
+	if initCfg.ExternalAddress != "" {
+		comet.P2P.ExternalAddress = initCfg.ExternalAddress
+		log.Info(ctx, "Overriding P2P external address", "address", comet.P2P.ExternalAddress)
+	}
+
+	// Handle P2P seeds with prioritization
+	if initCfg.Seeds != "" {
+		// If seeds are provided via the flag, use them
+		seeds := SplitAndTrim(initCfg.Seeds)
 		comet.P2P.Seeds = strings.Join(seeds, ",")
+		log.Info(ctx, "Overriding P2P seeds with provided flag", "seeds", comet.P2P.Seeds)
+	} else if networkSeeds := network.Static().ConsensusSeeds(); len(networkSeeds) > 0 {
+		// Otherwise, use the network's default seeds
+		comet.P2P.Seeds = strings.Join(networkSeeds, ",")
+		log.Info(ctx, "Using network's default P2P seeds", "seeds", comet.P2P.Seeds)
+	}
+
+	if initCfg.SeedMode {
+		comet.P2P.SeedMode = true
+		log.Info(ctx, "Seed mode enabled")
 	}
 
 	// Setup comet config
@@ -252,4 +284,16 @@ func prepareHomeDirectory(ctx context.Context, initCfg InitConfig, homeDir strin
 	}
 
 	return nil
+}
+
+func SplitAndTrim(input string) []string {
+	l := strings.Split(input, ",")
+	var ret []string
+	for _, r := range l {
+		if r = strings.TrimSpace(r); r != "" {
+			ret = append(ret, r)
+		}
+	}
+
+	return ret
 }

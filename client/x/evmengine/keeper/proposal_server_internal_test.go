@@ -29,21 +29,19 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
 
-	mockEngine, err := newMockEngineAPI(0)
-	require.NoError(t, err)
-
 	ctrl := gomock.NewController(t)
 	mockClient := mock.NewMockClient(ctrl)
 	ak := moduletestutil.NewMockAccountKeeper(ctrl)
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
-
+	mk := moduletestutil.NewMockMintKeeper(ctrl)
 	esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
 
-	sdkCtx, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: tutil.RandomHash().Bytes()})
+	sdkCtx, storeKey, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: tutil.RandomHash().Bytes()})
 	sdkCtx = sdkCtx.WithExecMode(sdk.ExecModeFinalize)
-
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk)
+	mockEngine, err := newMockEngineAPI(storeKey, 0)
+	require.NoError(t, err)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
 	require.NoError(t, err)
 	populateGenesisHead(sdkCtx, t, keeper)
 	propSrv := NewProposalServer(keeper)

@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 library Secp256k1 {
     /// @notice Compress an uncompressed 65-byte Secp256k1 public key.
     /// @dev Assumes that the input is a valid 65-byte uncompressed public key.
-    function compressPublicKey(bytes memory uncompressedKey) public pure returns (bytes memory) {
+    function compressPublicKey(bytes memory uncompressedKey) internal pure returns (bytes memory) {
         require(uncompressedKey.length == 65, "Invalid uncompressed public key length");
 
         // Extract the X and Y coordinates

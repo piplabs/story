@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.23;
 
-import { Ownable, Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 import { IIPTokenSlashing } from "../interfaces/IIPTokenSlashing.sol";
 import { IPTokenStaking } from "./IPTokenStaking.sol";
@@ -12,18 +12,25 @@ import { Secp256k1 } from "../libraries/Secp256k1.sol";
  * @notice The EVM interface to the consensus chain's x/slashing module. Calls are proxied to the consensus chain, but
  *         not executed synchronously; execution is left to the consensus chain, which may fail.
  */
-contract IPTokenSlashing is IIPTokenSlashing, Ownable2Step {
+contract IPTokenSlashing is IIPTokenSlashing, Ownable2StepUpgradeable {
     /// @notice IPTokenStaking contract address.
     IPTokenStaking public immutable IP_TOKEN_STAKING;
 
     /// @notice The fee paid to unjail a validator.
     uint256 public unjailFee;
 
-    constructor(address newOwner, address ipTokenStaking, uint256 newUnjailFee) Ownable(newOwner) {
-        require(newUnjailFee > 0, "IPTokenSlashing: Invalid unjail fee");
+    constructor(address ipTokenStaking) {
         require(ipTokenStaking != address(0), "IPTokenSlashing: Invalid IPTokenStaking address");
         IP_TOKEN_STAKING = IPTokenStaking(ipTokenStaking);
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract.
+    function initialize(address accessManager, uint256 newUnjailFee) public initializer {
+        __Ownable_init(accessManager);
+        require(newUnjailFee > 0, "IPTokenSlashing: Invalid unjail fee");
         unjailFee = newUnjailFee;
+        emit UnjailFeeSet(newUnjailFee);
     }
 
     /// @notice Verifies that the given 65 byte uncompressed secp256k1 public key (with 0x04 prefix) is valid and

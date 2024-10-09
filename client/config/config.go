@@ -58,6 +58,10 @@ var (
 		APIAddress:         "127.0.0.1:1317",
 		EnableUnsafeCORS:   false,
 		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
 	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -75,6 +79,10 @@ var (
 		APIAddress:         "127.0.0.1:1317",
 		EnableUnsafeCORS:   false,
 		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
 	}
 )
 
@@ -96,6 +104,10 @@ func DefaultConfig() Config {
 		APIAddress:         "127.0.0.1:1317",
 		EnableUnsafeCORS:   false,
 		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
 	}
 }
 
@@ -144,6 +156,11 @@ type Config struct {
 	APIAddress         string
 	EnableUnsafeCORS   bool
 	Tracer             tracer.Config
+	RPCLaddr           string
+	ExternalAddress    string
+	Seeds              string
+	SeedMode           bool
+	RemoveBlock        bool // See cosmos-sdk/server/rollback.go
 }
 
 // ConfigFile returns the default path to the toml story config file.

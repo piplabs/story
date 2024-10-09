@@ -28,3 +28,7 @@ type EvmStakingKeeper interface {
 type UpgradeKeeper interface {
 	ScheduleUpgrade(ctx context.Context, plan upgradetypes.Plan) error
 }
+
+type MintKeeper interface {
+	ProcessInflationEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
+}

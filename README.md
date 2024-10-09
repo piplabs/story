@@ -1,4 +1,4 @@
-## Story Consesus Layer
+## Story Consesus Implementation
 
 Golang consensus layer implementation and staking contracts for the Story L1 blockchain.
 
@@ -6,7 +6,7 @@ Golang consensus layer implementation and staking contracts for the Story L1 blo
 [![Twitter Follow](https://img.shields.io/twitter/follow/storyprotocol?style=social)](https://twitter.com/storyprotocol)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/storyprotocol)
 
-You may find pre-built binaries for our latest stable release in our [release page](https://github.com/storyprotocol/iliad/releases#latest).
+You may find pre-built binaries for our latest stable release in our [release page](https://github.com/piplabs/story/releases#latest).
 
 ## Architecture
 
@@ -53,10 +53,10 @@ To connect to Iliad, initialize `story` with the `--network iliad` flag, which w
 ./story init --network iliad
 ```
 
-Afterwards, run the [`story-geth`](https://github.com/storyprotocol/story-geth) execution client with `iliad` network flag:
+Afterwards, run the [`story-geth`](https://github.com/piplabs/story-geth) execution client in `full` sync mode with the `iliad` network flag:
 
 ```bash
-./geth --iliad
+./geth --iliad --syncmode full
 ```
 
 Now you should be able to sync to the Iliad network with the following:
@@ -94,7 +94,7 @@ story/
 ├── config/
 │ ├── config.toml                  # networking & consesus settings
 │ ├── genesis.json                 # blockchain genesis state
-│ ├── iliad.toml                   # client configs
+│ ├── story.toml                   # client configs
 │ ├── node_key.json                # p2p node key  [SENSITIVE]
 │ ├── priv_validator_key.json      # validator key [SENSITIVE]
 ├── data/
@@ -113,10 +113,10 @@ To use your own custom root directory, you can pass the `--home` flag when initi
 For ensuring synchronization with the execution client, two settings are particularly important:
 
 **__`engine-jwt-endpoint:`__**
-This configures the JSON-RPC engine API endpoint, which facilitates commuication between the consensus and execution layer. By default, it is set to `http://localhost:8551`, but may be changed by overriding the value in `iliad.toml` or through the `--engine-endpoint` CLI flag.
+This configures the JSON-RPC engine API endpoint, which facilitates commuication between the consensus and execution layer. By default, it is set to `http://localhost:8551`, but may be changed by overriding the value in `story.toml` or through the `--engine-endpoint` CLI flag.
 
 **__`engine-jwt-file:`__**
-To authenticate the engine API, a JWT must be passed which is created on execution client initialization. By default, this points to the default execution client JWT file path. For example, if initializing a local network via `story init --local` on Linux, this will default to `~/.story/geth/local/geth/jwtsecret`. To override, either change the value in `iliad.toml` or by specifying the `--engine-jwt-file` CLI flag.
+To authenticate the engine API, a JWT must be passed which is created on execution client initialization. By default, this points to the default execution client JWT file path. For example, if initializing a local network via `story init --local` on Linux, this will default to `~/.story/geth/local/geth/jwtsecret`. To override, either change the value in `story.toml` or by specifying the `--engine-jwt-file` CLI flag.
 
 ### Creating a private network
 
@@ -169,6 +169,16 @@ Once done, you should be able to run each of your consensus nodes with the same 
 #### 4. Running Validators
 
 Once the network is setup, you will be able to run validator operations using the validator key generated in `story/data/priv_validator_key.json`. In fact, `story` comes with a `validator` subcommand that allows you to streamline this process. For more information on running validators, read our [official docs](https://docs.story.foundation/docs/what-is-story).
+
+### Contributions
+
+Please see our [contribution guidelines](https://github.com/piplabs/story/blob/ba440c721ec0c187a35a3db370ee494492a4514d/CONTRIBUTING.md).
+
+### Acknowledgements
+
+We would like to express our sincere gratitude to the [Omni](https://github.com/omni-network) team for their valuable research and contributions to the blockchain space. The Story blockchain's CECS (Consensus Execution Client Separation) architecture was influenced by the Omni's team pioneering work on the EVM staking module using the engine API. Their early efforts showcased the potential of this architecture and served as an inspiration to us. Our initial codebase was, in fact, forked from an early version of their work.
+
+We built the `story` consensus client leveraging the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) using [CometBFT](https://github.com/cometbft/cometbft) as the consensus engine. Thanks to all the open source contributors and their wonderful work.
 
 ### License
 

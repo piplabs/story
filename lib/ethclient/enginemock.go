@@ -1,6 +1,7 @@
 package ethclient
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"math/big"
@@ -9,7 +10,10 @@ import (
 	"testing"
 	"time"
 
+	storetypes "cosmossdk.io/store/types"
+
 	"github.com/cometbft/cometbft/crypto"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -17,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	fuzz "github.com/google/gofuzz"
 
@@ -24,6 +29,11 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
+)
+
+const (
+	// headKey is the key to store the head block.
+	headKey = "head"
 )
 
 type payloadArgs struct {
@@ -42,8 +52,15 @@ type engineMock struct {
 	fuzzer     *fuzz.Fuzzer
 	randomErrs float64
 
-	mu          sync.Mutex
-	head        *types.Block
+	mu sync.Mutex
+	// storeKey is added to make engineMock dependent on sdk.Context for better testability.
+	// By using storeKey, engineMock's methods can interact with the sdk.Context's store,
+	// allowing for independent tests that do not interfere with each other’s store state.
+	storeKey *storetypes.KVStoreKey
+	// headKey is the key to store the head block.
+	headKey      []byte
+	genesisBlock *types.Block
+	// consider the following maps also dependent on sdk.Context if needed.
 	pendingLogs map[common.Address][]types.Log
 	logs        map[common.Hash][]types.Log
 	payloads    map[engine.PayloadID]payloadArgs
@@ -108,7 +125,7 @@ func MockGenesisBlock() (*types.Block, error) {
 		fuzzer           = NewFuzzer(timestamp)
 	)
 
-	genesisPayload, err := makePayload(fuzzer, height, uint64(timestamp), parentHash, common.Address{}, parentHash, &parentBeaconRoot)
+	genesisPayload, err := MakePayload(fuzzer, height, uint64(timestamp), parentHash, common.Address{}, parentHash, &parentBeaconRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "make next payload")
 	}
@@ -122,18 +139,20 @@ func MockGenesisBlock() (*types.Block, error) {
 
 // NewEngineMock returns a new mock engine API client.
 // Note only some methods are implemented, it will panic if you call an unimplemented method.
-func NewEngineMock(opts ...func(mock *engineMock)) (EngineClient, error) {
+func NewEngineMock(key *storetypes.KVStoreKey, opts ...func(mock *engineMock)) (EngineClient, error) {
 	genesisBlock, err := MockGenesisBlock()
 	if err != nil {
 		return nil, err
 	}
 
 	m := &engineMock{
-		fuzzer:      NewFuzzer(int64(genesisBlock.Time())),
-		head:        genesisBlock,
-		pendingLogs: make(map[common.Address][]types.Log),
-		payloads:    make(map[engine.PayloadID]payloadArgs),
-		logs:        make(map[common.Hash][]types.Log),
+		fuzzer:       NewFuzzer(int64(genesisBlock.Time())),
+		storeKey:     key,
+		headKey:      []byte(headKey),
+		genesisBlock: genesisBlock,
+		pendingLogs:  make(map[common.Address][]types.Log),
+		payloads:     make(map[engine.PayloadID]payloadArgs),
+		logs:         make(map[common.Hash][]types.Log),
 	}
 	for _, opt := range opts {
 		opt(m)
@@ -150,6 +169,39 @@ func (m *engineMock) maybeErr(ctx context.Context) error {
 	if rand.Float64() < m.randomErrs {
 		return errors.New("test error")
 	}
+
+	return nil
+}
+
+// getHeadBlock returns the head block from the store.
+func (m *engineMock) getHeadBlock(ctx context.Context) (*types.Block, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	headBz := sdkCtx.KVStore(m.storeKey).Get(m.headKey)
+	if headBz == nil {
+		// Set genesis block as head
+		if err := m.setHeadBlock(ctx, m.genesisBlock); err != nil {
+			return nil, err
+		}
+
+		return m.genesisBlock, nil
+	}
+	var headBlock types.Block
+	if err := rlp.DecodeBytes(headBz, &headBlock); err != nil {
+		return nil, errors.Wrap(err, "decode head")
+	}
+
+	return &headBlock, nil
+}
+
+// setHeadBlock sets the head block in the store.
+func (m *engineMock) setHeadBlock(ctx context.Context, head *types.Block) error {
+	buf := new(bytes.Buffer)
+	if err := head.EncodeRLP(buf); err != nil {
+		return errors.Wrap(err, "encode head")
+	}
+	headBz := buf.Bytes()
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.KVStore(m.storeKey).Set(m.headKey, headBz)
 
 	return nil
 }
@@ -195,7 +247,12 @@ func (m *engineMock) BlockNumber(ctx context.Context) (uint64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return m.head.NumberU64(), nil
+	headBlock, err := m.getHeadBlock(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return headBlock.NumberU64(), nil
 }
 
 func (m *engineMock) HeaderByNumber(ctx context.Context, height *big.Int) (*types.Header, error) {
@@ -228,11 +285,15 @@ func (m *engineMock) HeaderByHash(ctx context.Context, hash common.Hash) (*types
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if hash != m.head.Hash() {
+	head, err := m.getHeadBlock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if hash != head.Hash() {
 		return nil, errors.New("only head hash supported") // Only support latest block
 	}
 
-	return m.head.Header(), nil
+	return head.Header(), nil
 }
 
 func (m *engineMock) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
@@ -243,15 +304,19 @@ func (m *engineMock) BlockByNumber(ctx context.Context, number *big.Int) (*types
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	head, err := m.getHeadBlock(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if number == nil {
-		return m.head, nil
+		return head, nil
 	}
 
-	if number.Cmp(m.head.Number()) != 0 {
+	if number.Cmp(head.Number()) != 0 {
 		return nil, errors.New("block not found") // Only support latest block
 	}
 
-	return m.head, nil
+	return head, nil
 }
 
 func (m *engineMock) NewPayloadV3(ctx context.Context, params engine.ExecutableData, _ []common.Hash, beaconRoot *common.Hash) (engine.PayloadStatusV1, error) {
@@ -262,6 +327,8 @@ func (m *engineMock) NewPayloadV3(ctx context.Context, params engine.ExecutableD
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// if Withdrawals is nil, cannot rlp encode and decode properly.
+	params.Withdrawals = make([]*types.Withdrawal, 0)
 	args := payloadArgs{
 		params:     params,
 		beaconRoot: beaconRoot,
@@ -300,9 +367,14 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 		},
 	}
 
+	head, err := m.getHeadBlock(ctx)
+	if err != nil {
+		return engine.ForkChoiceResponse{}, err
+	}
+
 	// Maybe update head
 	//nolint: nestif // this is a mock it's fine
-	if m.head.Hash() != update.HeadBlockHash {
+	if head.Hash() != update.HeadBlockHash {
 		var found bool
 		for _, args := range m.payloads {
 			block, err := engine.ExecutableDataToBlock(args.params, nil, args.beaconRoot)
@@ -314,11 +386,13 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 				continue
 			}
 
-			if err := verifyChild(m.head, block); err != nil {
+			if err := verifyChild(head, block); err != nil {
 				return engine.ForkChoiceResponse{}, err
 			}
 
-			m.head = block
+			if err := m.setHeadBlock(ctx, block); err != nil {
+				return engine.ForkChoiceResponse{}, err
+			}
 			found = true
 
 			id, err := MockPayloadID(args.params, args.beaconRoot)
@@ -331,13 +405,13 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 		}
 		if !found {
 			return engine.ForkChoiceResponse{}, errors.New("forkchoice block not found",
-				log.Hex7("forkchoice", m.head.Hash().Bytes()))
+				log.Hex7("forkchoice", head.Hash().Bytes()))
 		}
 	}
 
 	// If we have payload attributes, make a new payload
 	if attrs != nil {
-		payload, err := makePayload(m.fuzzer, m.head.NumberU64()+1,
+		payload, err := MakePayload(m.fuzzer, head.NumberU64()+1,
 			attrs.Timestamp, update.HeadBlockHash, attrs.SuggestedFeeRecipient, attrs.Random, attrs.BeaconRoot)
 		if err != nil {
 			return engine.ForkChoiceResponse{}, err
@@ -356,7 +430,7 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 	}
 
 	log.Debug(ctx, "Engine mock forkchoice updated",
-		"height", m.head.NumberU64(),
+		"height", head.NumberU64(),
 		log.Hex7("forkchoice", update.HeadBlockHash.Bytes()),
 	)
 
@@ -396,8 +470,8 @@ func (*engineMock) GetPayloadV2(context.Context, engine.PayloadID) (*engine.Exec
 	panic("implement me")
 }
 
-// makePayload returns a new fuzzed payload using head as parent if provided.
-func makePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHash common.Hash,
+// MakePayload returns a new fuzzed payload using head as parent if provided.
+func MakePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHash common.Hash,
 	feeRecipient common.Address, randao common.Hash, beaconRoot *common.Hash) (engine.ExecutableData, error) {
 	// Build a new header
 	var header types.Header
@@ -410,7 +484,7 @@ func makePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHas
 	header.ParentBeaconRoot = beaconRoot
 
 	// Convert header to block
-	block := types.NewBlock(&header, nil, nil, trie.NewStackTrie(nil))
+	block := types.NewBlock(&header, &types.Body{Withdrawals: make([]*types.Withdrawal, 0)}, nil, trie.NewStackTrie(nil))
 
 	// Convert block to payload
 	env := engine.BlockToExecutableData(block, big.NewInt(0), nil)

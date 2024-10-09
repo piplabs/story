@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmttypes "github.com/cometbft/cometbft/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/beacon/engine"
@@ -34,6 +36,9 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	}()
 	if len(req.Txs) > 0 {
 		return nil, errors.New("unexpected transactions in proposal")
+	} else if req.MaxTxBytes < cmttypes.MaxBlockSizeBytes*9/10 {
+		// ConsensusParams.Block.MaxBytes is set to -1, so req.MaxTxBytes should be close to MaxBlockSizeBytes.
+		return nil, errors.New("invalid max tx bytes [BUG]", "max_tx_bytes", req.MaxTxBytes)
 	}
 
 	if req.Height == 1 {
@@ -75,7 +80,7 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		}
 		triggeredAt = time.Now()
 	} else {
-		log.Debug(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
+		log.Info(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
 	}
 
 	// Wait the minimum build_delay for the payload to be available.
@@ -91,7 +96,9 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		var err error
 		payloadResp, err = k.engineCl.GetPayloadV3(ctx, *payloadID)
-		if err != nil {
+		if isUnknownPayload(err) {
+			return false, err
+		} else if err != nil {
 			log.Warn(ctx, "Preparing proposal failed: get evm payload (will retry)", err)
 			return false, nil
 		}
@@ -176,7 +183,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 
 	nextHeight := height + 1
 	logAttr := slog.Int64("next_height", nextHeight)
-	log.Debug(ctx, "Starting optimistic EVM payload build", logAttr)
+	log.Info(ctx, "Starting optimistic EVM payload build", logAttr)
 
 	// TODO: This will fail because ctx provided in ABCI call in CometBFT 0.37 is context.TODO()
 	// If optimistic block is discarded, we need to restore the dequeued withdrawals back to the queue.
@@ -228,7 +235,7 @@ func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, wi
 		FinalizedBlockHash: head.Hash(),
 	}
 
-	log.Debug(ctx, "Submit new EVM payload",
+	log.Info(ctx, "Submit new EVM payload",
 		"timestamp", timestamp,
 		"withdrawals", len(withdrawals),
 		"app_hash", appHash.String(),
@@ -253,4 +260,21 @@ func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, wi
 	}
 
 	return resp, nil
+}
+
+// isUnknownPayload returns true if the error is due to an unknown payload.
+func isUnknownPayload(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// TODO: Add support for typed errors.
+	if strings.Contains(
+		strings.ToLower(err.Error()),
+		strings.ToLower(engine.UnknownPayload.Error()),
+	) {
+		return true
+	}
+
+	return false
 }

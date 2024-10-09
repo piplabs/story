@@ -2,10 +2,6 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-
-	"github.com/piplabs/story/lib/errors"
 )
 
 // Staking params default values.
@@ -35,32 +31,7 @@ func DefaultParams() Params {
 	)
 }
 
-// unmarshal the current params value from store key or panic.
-func MustUnmarshalParams(cdc *codec.LegacyAmino, value []byte) Params {
-	params, err := UnmarshalParams(cdc, value)
-	if err != nil {
-		panic(err)
-	}
-
-	return params
-}
-
-// unmarshal the current params value from store key.
-func UnmarshalParams(cdc *codec.LegacyAmino, value []byte) (params Params, err error) {
-	err = cdc.Unmarshal(value, &params)
-	if err != nil {
-		return params, errors.Wrap(err, "unmarshal params")
-	}
-
-	return params, nil
-}
-
-func ValidateMaxWithdrawalPerBlock(i any) error {
-	v, ok := i.(uint32)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
+func ValidateMaxWithdrawalPerBlock(v uint32) error {
 	if v == 0 {
 		return fmt.Errorf("max withdrawal per block must be positive: %d", v)
 	}
@@ -68,29 +39,19 @@ func ValidateMaxWithdrawalPerBlock(i any) error {
 	return nil
 }
 
-func ValidateMaxSweepPerBlock(i any, maxWithdrawalPerBlock uint32) error {
-	v, ok := i.(uint32)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+func ValidateMaxSweepPerBlock(maxSweepPerBlock uint32, maxWithdrawalPerBlock uint32) error {
+	if maxSweepPerBlock == 0 {
+		return fmt.Errorf("max sweep per block must be positive: %d", maxSweepPerBlock)
 	}
 
-	if v == 0 {
-		return fmt.Errorf("max sweep per block must be positive: %d", v)
-	}
-
-	if v < maxWithdrawalPerBlock {
-		return fmt.Errorf("max sweep per block must be greater than or equal to max withdrawal per block: %d < %d", v, maxWithdrawalPerBlock)
+	if maxSweepPerBlock < maxWithdrawalPerBlock {
+		return fmt.Errorf("max sweep per block must be greater than or equal to max withdrawal per block: %d < %d", maxSweepPerBlock, maxWithdrawalPerBlock)
 	}
 
 	return nil
 }
 
-func ValidateMinPartialWithdrawalAmount(i any) error {
-	v, ok := i.(uint64)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
+func ValidateMinPartialWithdrawalAmount(v uint64) error {
 	if v == 0 {
 		return fmt.Errorf("min partial withdrawal amount must be positive: %d", v)
 	}
