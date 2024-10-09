@@ -32,7 +32,11 @@ message Params {
   // type of coin to mint
   string mint_denom = 1;
   // inflation amount per year
-  uint64 inflations_per_year = 2;
+  string inflations_per_year = 2 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false
+  ];
   // expected blocks per year
   uint64 blocks_per_year = ;
 }
