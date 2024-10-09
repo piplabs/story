@@ -25,7 +25,7 @@ func NewParams(mintDenom string, inflationsPerYear math.LegacyDec, blocksPerYear
 func DefaultParams() Params {
 	return Params{
 		MintDenom:         sdk.DefaultBondDenom,
-		InflationsPerYear: math.LegacyNewDec(24625000_000_000_000),
+		InflationsPerYear: math.LegacyNewDec(24625000000000000.000000000000000000),
 		BlocksPerYear:     uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
 	}
 }

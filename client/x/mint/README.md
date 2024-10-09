@@ -62,11 +62,11 @@ type InflationCalculationFn func(ctx sdk.Context, minter Minter, params Params, 
 
 The minting module contains the following parameters:
 
-| Key                 | Type            | Example                      |
-|---------------------|-----------------|------------------------------|
-| MintDenom           | string          | "stake"                      |
-| InflationsPerYear   | string (dec)    | "24625000000000000"          |
-| BlocksPerYear       | string (uint64) | "6311520"                    |
+| Key                 | Type            | Example                                |
+|---------------------|-----------------|----------------------------------------|
+| MintDenom           | string          | "stake"                                |
+| InflationsPerYear   | string (dec)    | "24625000000000000.000000000000000000" |
+| BlocksPerYear       | string (uint64) | "6311520"                              |
 
 
 ## Events
