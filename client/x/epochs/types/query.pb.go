@@ -29,21 +29,21 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type QueryEpochsInfoRequest struct {
+type GetEpochInfosRequest struct {
 }
 
-func (m *QueryEpochsInfoRequest) Reset()         { *m = QueryEpochsInfoRequest{} }
-func (m *QueryEpochsInfoRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryEpochsInfoRequest) ProtoMessage()    {}
-func (*QueryEpochsInfoRequest) Descriptor() ([]byte, []int) {
+func (m *GetEpochInfosRequest) Reset()         { *m = GetEpochInfosRequest{} }
+func (m *GetEpochInfosRequest) String() string { return proto.CompactTextString(m) }
+func (*GetEpochInfosRequest) ProtoMessage()    {}
+func (*GetEpochInfosRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_78cd7c4fa831b33b, []int{0}
 }
-func (m *QueryEpochsInfoRequest) XXX_Unmarshal(b []byte) error {
+func (m *GetEpochInfosRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryEpochsInfoRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetEpochInfosRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryEpochsInfoRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetEpochInfosRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -53,34 +53,34 @@ func (m *QueryEpochsInfoRequest) XXX_Marshal(b []byte, deterministic bool) ([]by
 		return b[:n], nil
 	}
 }
-func (m *QueryEpochsInfoRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryEpochsInfoRequest.Merge(m, src)
+func (m *GetEpochInfosRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetEpochInfosRequest.Merge(m, src)
 }
-func (m *QueryEpochsInfoRequest) XXX_Size() int {
+func (m *GetEpochInfosRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryEpochsInfoRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryEpochsInfoRequest.DiscardUnknown(m)
+func (m *GetEpochInfosRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetEpochInfosRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryEpochsInfoRequest proto.InternalMessageInfo
+var xxx_messageInfo_GetEpochInfosRequest proto.InternalMessageInfo
 
-type QueryEpochsInfoResponse struct {
+type GetEpochInfosResponse struct {
 	Epochs []EpochInfo `protobuf:"bytes,1,rep,name=epochs,proto3" json:"epochs"`
 }
 
-func (m *QueryEpochsInfoResponse) Reset()         { *m = QueryEpochsInfoResponse{} }
-func (m *QueryEpochsInfoResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryEpochsInfoResponse) ProtoMessage()    {}
-func (*QueryEpochsInfoResponse) Descriptor() ([]byte, []int) {
+func (m *GetEpochInfosResponse) Reset()         { *m = GetEpochInfosResponse{} }
+func (m *GetEpochInfosResponse) String() string { return proto.CompactTextString(m) }
+func (*GetEpochInfosResponse) ProtoMessage()    {}
+func (*GetEpochInfosResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_78cd7c4fa831b33b, []int{1}
 }
-func (m *QueryEpochsInfoResponse) XXX_Unmarshal(b []byte) error {
+func (m *GetEpochInfosResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryEpochsInfoResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetEpochInfosResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryEpochsInfoResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetEpochInfosResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -90,41 +90,41 @@ func (m *QueryEpochsInfoResponse) XXX_Marshal(b []byte, deterministic bool) ([]b
 		return b[:n], nil
 	}
 }
-func (m *QueryEpochsInfoResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryEpochsInfoResponse.Merge(m, src)
+func (m *GetEpochInfosResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetEpochInfosResponse.Merge(m, src)
 }
-func (m *QueryEpochsInfoResponse) XXX_Size() int {
+func (m *GetEpochInfosResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryEpochsInfoResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryEpochsInfoResponse.DiscardUnknown(m)
+func (m *GetEpochInfosResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetEpochInfosResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryEpochsInfoResponse proto.InternalMessageInfo
+var xxx_messageInfo_GetEpochInfosResponse proto.InternalMessageInfo
 
-func (m *QueryEpochsInfoResponse) GetEpochs() []EpochInfo {
+func (m *GetEpochInfosResponse) GetEpochs() []EpochInfo {
 	if m != nil {
 		return m.Epochs
 	}
 	return nil
 }
 
-type QueryCurrentEpochRequest struct {
+type GetEpochInfoRequest struct {
 	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
 }
 
-func (m *QueryCurrentEpochRequest) Reset()         { *m = QueryCurrentEpochRequest{} }
-func (m *QueryCurrentEpochRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryCurrentEpochRequest) ProtoMessage()    {}
-func (*QueryCurrentEpochRequest) Descriptor() ([]byte, []int) {
+func (m *GetEpochInfoRequest) Reset()         { *m = GetEpochInfoRequest{} }
+func (m *GetEpochInfoRequest) String() string { return proto.CompactTextString(m) }
+func (*GetEpochInfoRequest) ProtoMessage()    {}
+func (*GetEpochInfoRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_78cd7c4fa831b33b, []int{2}
 }
-func (m *QueryCurrentEpochRequest) XXX_Unmarshal(b []byte) error {
+func (m *GetEpochInfoRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryCurrentEpochRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetEpochInfoRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryCurrentEpochRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetEpochInfoRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -134,41 +134,41 @@ func (m *QueryCurrentEpochRequest) XXX_Marshal(b []byte, deterministic bool) ([]
 		return b[:n], nil
 	}
 }
-func (m *QueryCurrentEpochRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryCurrentEpochRequest.Merge(m, src)
+func (m *GetEpochInfoRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetEpochInfoRequest.Merge(m, src)
 }
-func (m *QueryCurrentEpochRequest) XXX_Size() int {
+func (m *GetEpochInfoRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryCurrentEpochRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryCurrentEpochRequest.DiscardUnknown(m)
+func (m *GetEpochInfoRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetEpochInfoRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryCurrentEpochRequest proto.InternalMessageInfo
+var xxx_messageInfo_GetEpochInfoRequest proto.InternalMessageInfo
 
-func (m *QueryCurrentEpochRequest) GetIdentifier() string {
+func (m *GetEpochInfoRequest) GetIdentifier() string {
 	if m != nil {
 		return m.Identifier
 	}
 	return ""
 }
 
-type QueryCurrentEpochResponse struct {
-	CurrentEpoch int64 `protobuf:"varint,1,opt,name=current_epoch,json=currentEpoch,proto3" json:"current_epoch,omitempty"`
+type GetEpochInfoResponse struct {
+	Epoch EpochInfo `protobuf:"bytes,1,opt,name=epoch,proto3" json:"epoch"`
 }
 
-func (m *QueryCurrentEpochResponse) Reset()         { *m = QueryCurrentEpochResponse{} }
-func (m *QueryCurrentEpochResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryCurrentEpochResponse) ProtoMessage()    {}
-func (*QueryCurrentEpochResponse) Descriptor() ([]byte, []int) {
+func (m *GetEpochInfoResponse) Reset()         { *m = GetEpochInfoResponse{} }
+func (m *GetEpochInfoResponse) String() string { return proto.CompactTextString(m) }
+func (*GetEpochInfoResponse) ProtoMessage()    {}
+func (*GetEpochInfoResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_78cd7c4fa831b33b, []int{3}
 }
-func (m *QueryCurrentEpochResponse) XXX_Unmarshal(b []byte) error {
+func (m *GetEpochInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryCurrentEpochResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetEpochInfoResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryCurrentEpochResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetEpochInfoResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -178,59 +178,58 @@ func (m *QueryCurrentEpochResponse) XXX_Marshal(b []byte, deterministic bool) ([
 		return b[:n], nil
 	}
 }
-func (m *QueryCurrentEpochResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryCurrentEpochResponse.Merge(m, src)
+func (m *GetEpochInfoResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetEpochInfoResponse.Merge(m, src)
 }
-func (m *QueryCurrentEpochResponse) XXX_Size() int {
+func (m *GetEpochInfoResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryCurrentEpochResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryCurrentEpochResponse.DiscardUnknown(m)
+func (m *GetEpochInfoResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetEpochInfoResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryCurrentEpochResponse proto.InternalMessageInfo
+var xxx_messageInfo_GetEpochInfoResponse proto.InternalMessageInfo
 
-func (m *QueryCurrentEpochResponse) GetCurrentEpoch() int64 {
+func (m *GetEpochInfoResponse) GetEpoch() EpochInfo {
 	if m != nil {
-		return m.CurrentEpoch
+		return m.Epoch
 	}
-	return 0
+	return EpochInfo{}
 }
 
 func init() {
-	proto.RegisterType((*QueryEpochsInfoRequest)(nil), "client.x.epochs.types.QueryEpochsInfoRequest")
-	proto.RegisterType((*QueryEpochsInfoResponse)(nil), "client.x.epochs.types.QueryEpochsInfoResponse")
-	proto.RegisterType((*QueryCurrentEpochRequest)(nil), "client.x.epochs.types.QueryCurrentEpochRequest")
-	proto.RegisterType((*QueryCurrentEpochResponse)(nil), "client.x.epochs.types.QueryCurrentEpochResponse")
+	proto.RegisterType((*GetEpochInfosRequest)(nil), "client.x.epochs.types.GetEpochInfosRequest")
+	proto.RegisterType((*GetEpochInfosResponse)(nil), "client.x.epochs.types.GetEpochInfosResponse")
+	proto.RegisterType((*GetEpochInfoRequest)(nil), "client.x.epochs.types.GetEpochInfoRequest")
+	proto.RegisterType((*GetEpochInfoResponse)(nil), "client.x.epochs.types.GetEpochInfoResponse")
 }
 
 func init() { proto.RegisterFile("client/x/epochs/types/query.proto", fileDescriptor_78cd7c4fa831b33b) }
 
 var fileDescriptor_78cd7c4fa831b33b = []byte{
-	// 367 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0x31, 0x4b, 0x3b, 0x31,
-	0x18, 0xc6, 0x2f, 0xed, 0xff, 0x5f, 0x30, 0xd6, 0x25, 0x58, 0x3d, 0x0f, 0x49, 0xaf, 0xd7, 0xc1,
-	0x2e, 0x26, 0x5a, 0x37, 0x07, 0x91, 0x8a, 0x83, 0xa3, 0xb7, 0xe9, 0x22, 0xf5, 0x4c, 0xcf, 0x40,
-	0x49, 0xae, 0x97, 0x54, 0xda, 0xd5, 0x5d, 0x10, 0xdc, 0xfc, 0x1c, 0x7e, 0x88, 0x8e, 0x05, 0x17,
-	0x27, 0x91, 0xd6, 0x0f, 0x22, 0xcd, 0x05, 0xa9, 0xf4, 0x94, 0x6e, 0x21, 0xf9, 0x3d, 0xef, 0xf3,
-	0xe4, 0x7d, 0x5f, 0x58, 0x8b, 0xba, 0x9c, 0x09, 0x4d, 0x07, 0x94, 0x25, 0x32, 0xba, 0x55, 0x54,
-	0x0f, 0x13, 0xa6, 0x68, 0xaf, 0xcf, 0xd2, 0x21, 0x49, 0x52, 0xa9, 0x25, 0xaa, 0x64, 0x08, 0x19,
-	0x90, 0x0c, 0x21, 0x06, 0xf1, 0xd6, 0x63, 0x19, 0x4b, 0x43, 0xd0, 0xd9, 0x29, 0x83, 0xbd, 0xed,
-	0x58, 0xca, 0xb8, 0xcb, 0x68, 0x3b, 0xe1, 0xb4, 0x2d, 0x84, 0xd4, 0x6d, 0xcd, 0xa5, 0x50, 0xf6,
-	0xb5, 0x9e, 0xef, 0x16, 0x33, 0xc1, 0x14, 0xb7, 0x50, 0xe0, 0xc2, 0x8d, 0xf3, 0x99, 0xfd, 0xa9,
-	0x41, 0xce, 0x44, 0x47, 0x86, 0xac, 0xd7, 0x67, 0x4a, 0x07, 0x17, 0x70, 0x73, 0xe1, 0x45, 0x25,
-	0x52, 0x28, 0x86, 0x8e, 0x60, 0x29, 0x2b, 0xe9, 0x02, 0xbf, 0xd8, 0x58, 0x6d, 0xfa, 0x24, 0x37,
-	0x35, 0x31, 0xd2, 0x99, 0xb2, 0xf5, 0x6f, 0xf4, 0x5e, 0x75, 0x42, 0xab, 0x0a, 0x0e, 0xa1, 0x6b,
-	0x4a, 0x9f, 0xf4, 0xd3, 0x94, 0x09, 0x6d, 0x30, 0x6b, 0x8b, 0x30, 0x84, 0xfc, 0x86, 0x09, 0xcd,
-	0x3b, 0x9c, 0xa5, 0x2e, 0xf0, 0x41, 0x63, 0x25, 0x9c, 0xbb, 0x09, 0x8e, 0xe1, 0x56, 0x8e, 0xd6,
-	0x06, 0xab, 0xc3, 0xb5, 0x28, 0xbb, 0xbf, 0x32, 0x56, 0x46, 0x5f, 0x0c, 0xcb, 0xd1, 0x1c, 0xdc,
-	0x7c, 0x29, 0xc0, 0xff, 0xa6, 0x04, 0x7a, 0x00, 0x10, 0x7e, 0x67, 0x54, 0x68, 0xf7, 0x97, 0x6f,
-	0xe4, 0x37, 0xc8, 0x23, 0xcb, 0xe2, 0x59, 0xb8, 0xc0, 0xbf, 0x7f, 0xfd, 0x7c, 0x2a, 0x78, 0xc8,
-	0xa5, 0x76, 0x30, 0x76, 0x2c, 0x77, 0xfb, 0xf6, 0x84, 0x9e, 0x01, 0x2c, 0xcf, 0xff, 0x0b, 0xd1,
-	0xbf, 0x2c, 0x72, 0xba, 0xe7, 0xed, 0x2d, 0x2f, 0xb0, 0xa9, 0x76, 0x4c, 0xaa, 0x1a, 0xaa, 0x2e,
-	0xa6, 0xfa, 0xd1, 0xca, 0x16, 0x1d, 0x4d, 0x30, 0x18, 0x4f, 0x30, 0xf8, 0x98, 0x60, 0xf0, 0x38,
-	0xc5, 0xce, 0x78, 0x8a, 0x9d, 0xb7, 0x29, 0x76, 0x2e, 0x2b, 0xb9, 0x8b, 0x76, 0x5d, 0x32, 0x1b,
-	0x76, 0xf0, 0x15, 0x00, 0x00, 0xff, 0xff, 0x7b, 0x87, 0x4b, 0x27, 0xf6, 0x02, 0x00, 0x00,
+	// 350 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x52, 0x4c, 0xce, 0xc9, 0x4c,
+	0xcd, 0x2b, 0xd1, 0xaf, 0xd0, 0x4f, 0x2d, 0xc8, 0x4f, 0xce, 0x28, 0xd6, 0x2f, 0xa9, 0x2c, 0x48,
+	0x2d, 0xd6, 0x2f, 0x2c, 0x4d, 0x2d, 0xaa, 0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x12, 0x85,
+	0x28, 0xd1, 0xab, 0xd0, 0x83, 0x28, 0xd1, 0x03, 0x2b, 0x91, 0x12, 0x49, 0xcf, 0x4f, 0xcf, 0x07,
+	0xab, 0xd0, 0x07, 0xb1, 0x20, 0x8a, 0xa5, 0x64, 0xd2, 0xf3, 0xf3, 0xd3, 0x73, 0x52, 0xf5, 0x13,
+	0x0b, 0x32, 0xf5, 0x13, 0xf3, 0xf2, 0xf2, 0x4b, 0x12, 0x4b, 0x32, 0xf3, 0xf3, 0x8a, 0xa1, 0xb2,
+	0xca, 0xd8, 0x6d, 0x4b, 0x4f, 0xcd, 0x4b, 0x2d, 0xce, 0x84, 0x2a, 0x52, 0x12, 0xe3, 0x12, 0x71,
+	0x4f, 0x2d, 0x71, 0x05, 0x29, 0xf0, 0xcc, 0x4b, 0xcb, 0x2f, 0x0e, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d,
+	0x2e, 0x51, 0x0a, 0xe7, 0x12, 0x45, 0x13, 0x2f, 0x2e, 0xc8, 0xcf, 0x2b, 0x4e, 0x15, 0xb2, 0xe3,
+	0x62, 0x83, 0x18, 0x27, 0xc1, 0xa8, 0xc0, 0xac, 0xc1, 0x6d, 0xa4, 0xa0, 0x87, 0xd5, 0xc5, 0x7a,
+	0x70, 0xad, 0x4e, 0x2c, 0x27, 0xee, 0xc9, 0x33, 0x04, 0x41, 0x75, 0x29, 0x99, 0x72, 0x09, 0x23,
+	0x1b, 0x0c, 0xb5, 0x4f, 0x48, 0x8e, 0x8b, 0x2b, 0x33, 0x25, 0x35, 0xaf, 0x24, 0x33, 0x2d, 0x33,
+	0xb5, 0x48, 0x82, 0x51, 0x81, 0x51, 0x83, 0x33, 0x08, 0x49, 0x44, 0x29, 0x04, 0xd5, 0x9d, 0x70,
+	0xe7, 0xd8, 0x70, 0xb1, 0x82, 0x0d, 0x06, 0x6b, 0x21, 0xde, 0x35, 0x10, 0x4d, 0x46, 0x0b, 0x99,
+	0xb8, 0x58, 0x03, 0x41, 0xa1, 0x2f, 0xd4, 0xc3, 0xc8, 0xc5, 0x8b, 0xe2, 0x61, 0x21, 0x6d, 0x1c,
+	0x46, 0x61, 0x0b, 0x2e, 0x29, 0x1d, 0xe2, 0x14, 0x43, 0x1c, 0xad, 0xa4, 0xd0, 0x74, 0xf9, 0xc9,
+	0x64, 0x26, 0x29, 0x21, 0x09, 0x7d, 0x68, 0x14, 0x41, 0x23, 0xa8, 0xcc, 0x10, 0xca, 0x12, 0xea,
+	0x60, 0xe4, 0xe2, 0x41, 0xd6, 0x2b, 0xa4, 0x45, 0x84, 0x05, 0x30, 0xc7, 0x68, 0x13, 0xa5, 0x16,
+	0xea, 0x16, 0x79, 0xb0, 0x5b, 0x24, 0x85, 0xc4, 0x71, 0xb8, 0xc5, 0x49, 0xff, 0xc4, 0x23, 0x39,
+	0xc6, 0x0b, 0x8f, 0xe4, 0x18, 0x1f, 0x3c, 0x92, 0x63, 0x9c, 0xf0, 0x58, 0x8e, 0xe1, 0xc2, 0x63,
+	0x39, 0x86, 0x1b, 0x8f, 0xe5, 0x18, 0xa2, 0x44, 0xb1, 0x26, 0xb0, 0x24, 0x36, 0x70, 0xca, 0x32,
+	0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x41, 0xe5, 0x68, 0xaf, 0xee, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -245,10 +244,10 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type QueryClient interface {
-	// EpochInfos provide running epochInfos
-	EpochInfos(ctx context.Context, in *QueryEpochsInfoRequest, opts ...grpc.CallOption) (*QueryEpochsInfoResponse, error)
-	// CurrentEpoch provide current epoch of specified identifier
-	CurrentEpoch(ctx context.Context, in *QueryCurrentEpochRequest, opts ...grpc.CallOption) (*QueryCurrentEpochResponse, error)
+	// GetEpochInfos provide running epochInfos
+	GetEpochInfos(ctx context.Context, in *GetEpochInfosRequest, opts ...grpc.CallOption) (*GetEpochInfosResponse, error)
+	// GetEpochInfo provide epochInfo of specified identifier
+	GetEpochInfo(ctx context.Context, in *GetEpochInfoRequest, opts ...grpc.CallOption) (*GetEpochInfoResponse, error)
 }
 
 type queryClient struct {
@@ -259,18 +258,18 @@ func NewQueryClient(cc grpc1.ClientConn) QueryClient {
 	return &queryClient{cc}
 }
 
-func (c *queryClient) EpochInfos(ctx context.Context, in *QueryEpochsInfoRequest, opts ...grpc.CallOption) (*QueryEpochsInfoResponse, error) {
-	out := new(QueryEpochsInfoResponse)
-	err := c.cc.Invoke(ctx, "/client.x.epochs.types.Query/EpochInfos", in, out, opts...)
+func (c *queryClient) GetEpochInfos(ctx context.Context, in *GetEpochInfosRequest, opts ...grpc.CallOption) (*GetEpochInfosResponse, error) {
+	out := new(GetEpochInfosResponse)
+	err := c.cc.Invoke(ctx, "/client.x.epochs.types.Query/GetEpochInfos", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *queryClient) CurrentEpoch(ctx context.Context, in *QueryCurrentEpochRequest, opts ...grpc.CallOption) (*QueryCurrentEpochResponse, error) {
-	out := new(QueryCurrentEpochResponse)
-	err := c.cc.Invoke(ctx, "/client.x.epochs.types.Query/CurrentEpoch", in, out, opts...)
+func (c *queryClient) GetEpochInfo(ctx context.Context, in *GetEpochInfoRequest, opts ...grpc.CallOption) (*GetEpochInfoResponse, error) {
+	out := new(GetEpochInfoResponse)
+	err := c.cc.Invoke(ctx, "/client.x.epochs.types.Query/GetEpochInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -279,59 +278,59 @@ func (c *queryClient) CurrentEpoch(ctx context.Context, in *QueryCurrentEpochReq
 
 // QueryServer is the server API for Query service.
 type QueryServer interface {
-	// EpochInfos provide running epochInfos
-	EpochInfos(context.Context, *QueryEpochsInfoRequest) (*QueryEpochsInfoResponse, error)
-	// CurrentEpoch provide current epoch of specified identifier
-	CurrentEpoch(context.Context, *QueryCurrentEpochRequest) (*QueryCurrentEpochResponse, error)
+	// GetEpochInfos provide running epochInfos
+	GetEpochInfos(context.Context, *GetEpochInfosRequest) (*GetEpochInfosResponse, error)
+	// GetEpochInfo provide epochInfo of specified identifier
+	GetEpochInfo(context.Context, *GetEpochInfoRequest) (*GetEpochInfoResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
 type UnimplementedQueryServer struct {
 }
 
-func (*UnimplementedQueryServer) EpochInfos(ctx context.Context, req *QueryEpochsInfoRequest) (*QueryEpochsInfoResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EpochInfos not implemented")
+func (*UnimplementedQueryServer) GetEpochInfos(ctx context.Context, req *GetEpochInfosRequest) (*GetEpochInfosResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEpochInfos not implemented")
 }
-func (*UnimplementedQueryServer) CurrentEpoch(ctx context.Context, req *QueryCurrentEpochRequest) (*QueryCurrentEpochResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CurrentEpoch not implemented")
+func (*UnimplementedQueryServer) GetEpochInfo(ctx context.Context, req *GetEpochInfoRequest) (*GetEpochInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEpochInfo not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
 	s.RegisterService(&_Query_serviceDesc, srv)
 }
 
-func _Query_EpochInfos_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryEpochsInfoRequest)
+func _Query_GetEpochInfos_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEpochInfosRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).EpochInfos(ctx, in)
+		return srv.(QueryServer).GetEpochInfos(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/client.x.epochs.types.Query/EpochInfos",
+		FullMethod: "/client.x.epochs.types.Query/GetEpochInfos",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).EpochInfos(ctx, req.(*QueryEpochsInfoRequest))
+		return srv.(QueryServer).GetEpochInfos(ctx, req.(*GetEpochInfosRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_CurrentEpoch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryCurrentEpochRequest)
+func _Query_GetEpochInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEpochInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).CurrentEpoch(ctx, in)
+		return srv.(QueryServer).GetEpochInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/client.x.epochs.types.Query/CurrentEpoch",
+		FullMethod: "/client.x.epochs.types.Query/GetEpochInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).CurrentEpoch(ctx, req.(*QueryCurrentEpochRequest))
+		return srv.(QueryServer).GetEpochInfo(ctx, req.(*GetEpochInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -341,19 +340,19 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "EpochInfos",
-			Handler:    _Query_EpochInfos_Handler,
+			MethodName: "GetEpochInfos",
+			Handler:    _Query_GetEpochInfos_Handler,
 		},
 		{
-			MethodName: "CurrentEpoch",
-			Handler:    _Query_CurrentEpoch_Handler,
+			MethodName: "GetEpochInfo",
+			Handler:    _Query_GetEpochInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "client/x/epochs/types/query.proto",
 }
 
-func (m *QueryEpochsInfoRequest) Marshal() (dAtA []byte, err error) {
+func (m *GetEpochInfosRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -363,12 +362,12 @@ func (m *QueryEpochsInfoRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *QueryEpochsInfoRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetEpochInfosRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryEpochsInfoRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GetEpochInfosRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -376,7 +375,7 @@ func (m *QueryEpochsInfoRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryEpochsInfoResponse) Marshal() (dAtA []byte, err error) {
+func (m *GetEpochInfosResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -386,12 +385,12 @@ func (m *QueryEpochsInfoResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *QueryEpochsInfoResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetEpochInfosResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryEpochsInfoResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GetEpochInfosResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -413,7 +412,7 @@ func (m *QueryEpochsInfoResponse) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryCurrentEpochRequest) Marshal() (dAtA []byte, err error) {
+func (m *GetEpochInfoRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -423,12 +422,12 @@ func (m *QueryCurrentEpochRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *QueryCurrentEpochRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetEpochInfoRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryCurrentEpochRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GetEpochInfoRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -443,7 +442,7 @@ func (m *QueryCurrentEpochRequest) MarshalToSizedBuffer(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryCurrentEpochResponse) Marshal() (dAtA []byte, err error) {
+func (m *GetEpochInfoResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -453,21 +452,26 @@ func (m *QueryCurrentEpochResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *QueryCurrentEpochResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetEpochInfoResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryCurrentEpochResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GetEpochInfoResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.CurrentEpoch != 0 {
-		i = encodeVarintQuery(dAtA, i, uint64(m.CurrentEpoch))
-		i--
-		dAtA[i] = 0x8
+	{
+		size, err := m.Epoch.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintQuery(dAtA, i, uint64(size))
 	}
+	i--
+	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -482,7 +486,7 @@ func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *QueryEpochsInfoRequest) Size() (n int) {
+func (m *GetEpochInfosRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -491,7 +495,7 @@ func (m *QueryEpochsInfoRequest) Size() (n int) {
 	return n
 }
 
-func (m *QueryEpochsInfoResponse) Size() (n int) {
+func (m *GetEpochInfosResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -506,7 +510,7 @@ func (m *QueryEpochsInfoResponse) Size() (n int) {
 	return n
 }
 
-func (m *QueryCurrentEpochRequest) Size() (n int) {
+func (m *GetEpochInfoRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -519,15 +523,14 @@ func (m *QueryCurrentEpochRequest) Size() (n int) {
 	return n
 }
 
-func (m *QueryCurrentEpochResponse) Size() (n int) {
+func (m *GetEpochInfoResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.CurrentEpoch != 0 {
-		n += 1 + sovQuery(uint64(m.CurrentEpoch))
-	}
+	l = m.Epoch.Size()
+	n += 1 + l + sovQuery(uint64(l))
 	return n
 }
 
@@ -537,7 +540,7 @@ func sovQuery(x uint64) (n int) {
 func sozQuery(x uint64) (n int) {
 	return sovQuery(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *QueryEpochsInfoRequest) Unmarshal(dAtA []byte) error {
+func (m *GetEpochInfosRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -560,10 +563,10 @@ func (m *QueryEpochsInfoRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryEpochsInfoRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetEpochInfosRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryEpochsInfoRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetEpochInfosRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -587,7 +590,7 @@ func (m *QueryEpochsInfoRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *QueryEpochsInfoResponse) Unmarshal(dAtA []byte) error {
+func (m *GetEpochInfosResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -610,10 +613,10 @@ func (m *QueryEpochsInfoResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryEpochsInfoResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetEpochInfosResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryEpochsInfoResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetEpochInfosResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -671,7 +674,7 @@ func (m *QueryEpochsInfoResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *QueryCurrentEpochRequest) Unmarshal(dAtA []byte) error {
+func (m *GetEpochInfoRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -694,10 +697,10 @@ func (m *QueryCurrentEpochRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryCurrentEpochRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetEpochInfoRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryCurrentEpochRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetEpochInfoRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -753,7 +756,7 @@ func (m *QueryCurrentEpochRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *QueryCurrentEpochResponse) Unmarshal(dAtA []byte) error {
+func (m *GetEpochInfoResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -776,17 +779,17 @@ func (m *QueryCurrentEpochResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryCurrentEpochResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetEpochInfoResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryCurrentEpochResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetEpochInfoResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CurrentEpoch", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
 			}
-			m.CurrentEpoch = 0
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowQuery
@@ -796,11 +799,25 @@ func (m *QueryCurrentEpochResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CurrentEpoch |= int64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Epoch.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])
