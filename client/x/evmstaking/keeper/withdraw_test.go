@@ -393,10 +393,14 @@ func (s *TestSuite) TestProcessWithdraw() {
 			}
 			cachedCtx, _ := ctx.CacheContext()
 			// check undelegation does not exist
-			_, err := s.StakingKeeper.GetUnbondingDelegation(cachedCtx, delAddr1, valAddr)
+			var err error
+			_, err = s.StakingKeeper.GetUnbondingDelegation(cachedCtx, delAddr1, valAddr)
 			require.ErrorContains(err, "no unbonding delegation found")
 
-			err = keeper.ProcessWithdraw(cachedCtx, tc.withdraw)
+			err = keeper.HandleWithdrawEvent(cachedCtx, tc.withdraw)
+			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
+				err = s.processQueuedMessage(cachedCtx)
+			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {

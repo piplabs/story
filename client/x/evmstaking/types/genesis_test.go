@@ -34,12 +34,14 @@ func TestNewGenesisState(t *testing.T) {
 				10,
 				20,
 				30,
+				"hour",
 			),
 			expectedGenesisState: &types.GenesisState{
 				Params: types.NewParams(
 					10,
 					20,
 					30,
+					"hour",
 				),
 				ValidatorSweepIndex: zeroVallidatorSweepIndex,
 			},

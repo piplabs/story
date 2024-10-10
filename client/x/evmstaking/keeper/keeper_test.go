@@ -33,6 +33,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
 
+	epochstypes "github.com/piplabs/story/client/x/epochs/types"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/module"
@@ -47,7 +48,11 @@ import (
 )
 
 var (
-	PKs = simtestutil.CreateTestPubKeys(3)
+	PKs                  = simtestutil.CreateTestPubKeys(3)
+	TestEVMStakingParams = types.NewParams(types.DefaultMaxWithdrawalPerBlock,
+		types.DefaultMaxSweepPerBlock,
+		types.DefaultMinPartialWithdrawalAmount,
+		"second")
 )
 
 type TestSuite struct {
@@ -112,6 +117,17 @@ func (s *TestSuite) SetupTest() {
 	s.DistrKeeper = distrKeeper
 	slashingKeeper := estestutil.NewMockSlashingKeeper(ctrl)
 	s.SlashingKeeper = slashingKeeper
+	epochsKeeper := estestutil.NewMockEpochsKeeper(ctrl)
+	secondEpochInfo := epochstypes.EpochInfo{
+		Identifier:              "second",
+		StartTime:               time.Time{},
+		Duration:                time.Second,
+		CurrentEpoch:            1, // to update validator set
+		CurrentEpochStartHeight: s.Ctx.BlockHeight(),
+		CurrentEpochStartTime:   time.Time{},
+		EpochCountingStarted:    true,
+	}
+	epochsKeeper.EXPECT().GetEpochInfo(gomock.Any(), gomock.Any()).Return(secondEpochInfo, nil).AnyTimes()
 
 	// staking keeper
 	stakingKeeper := skeeper.NewKeeper(
@@ -137,11 +153,13 @@ func (s *TestSuite) SetupTest() {
 		slashingKeeper,
 		stakingKeeper,
 		distrKeeper,
+		epochsKeeper,
 		authtypes.NewModuleAddress(types.ModuleName).String(),
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),
 	)
-	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, types.DefaultParams()))
+	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, TestEVMStakingParams))
+	s.Require().NoError(evmstakingKeeper.SetEpochNumber(s.Ctx, 0))
 	s.EVMStakingKeeper = evmstakingKeeper
 	s.msgServer = keeper.NewMsgServerImpl(evmstakingKeeper)
 	queryHelper := baseapp.NewQueryServerTestHelper(s.Ctx, s.encCfg.InterfaceRegistry)
@@ -620,12 +638,17 @@ func (s *TestSuite) TestProcessStakingEvents() {
 			if tc.setup != nil {
 				tc.setup(cachedCtx)
 			}
-			evmLogs, err := tc.evmEvents()
+			var err error
+			var evmLogs []*evmenginetypes.EVMEvent
+			evmLogs, err = tc.evmEvents()
 			require.NoError(err)
 			if tc.stateCheck != nil {
 				tc.stateCheck(cachedCtx)
 			}
 			err = evmstakingKeeper.ProcessStakingEvents(cachedCtx, 1, evmLogs)
+			if !evmstakingKeeper.MessageQueue.IsEmpty(cachedCtx) {
+				err = evmstakingKeeper.ProcessAllMsgs(cachedCtx)
+			}
 			if tc.expectedError != "" {
 				require.Error(err)
 				require.Contains(err.Error(), tc.expectedError)
@@ -716,4 +739,13 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 	}
 
 	return events, nil
+}
+
+func (s *TestSuite) processQueuedMessage(ctx context.Context) error {
+	qMsg, err := s.EVMStakingKeeper.MessageQueue.Dequeue(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.EVMStakingKeeper.ProcessMsg(ctx, &qMsg)
 }

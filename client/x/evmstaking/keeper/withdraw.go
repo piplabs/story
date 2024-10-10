@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 
+	"github.com/cometbft/cometbft/crypto/tmhash"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -243,7 +244,8 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 	return nil
 }
 
-func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
+// HandleWithdrawEvent handles Withdraw event. It converts the event to sdk.Msg and enqueues for epoched staking.
+func (k Keeper) HandleWithdrawEvent(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
@@ -268,7 +270,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
-	log.Debug(ctx, "Processing EVM staking withdraw",
+	log.Debug(ctx, "EVM staking withdraw detected",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
@@ -282,19 +284,34 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.New("depositor account not found")
 	}
 
-	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	header := sdkCtx.BlockHeader()
+	txID := tmhash.Sum(sdkCtx.TxBytes())
 
-	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
-	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(ctx, msg)
+	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
+	qMsg, err := estypes.NewQueuedMessage(uint64(header.Height), header.Time, txID, msg)
 	if err != nil {
-		return errors.Wrap(err, "undelegate")
+		return errors.Wrap(err, "new queues message for Withdraw event")
 	}
 
-	log.Info(ctx, "EVM staking withdraw detected, undelegating from validator",
-		"delegator", depositorAddr.String(),
-		"validator", validatorAddr.String(),
-		"amount", resp.Amount.String(),
-		"completion_time", resp.CompletionTime)
+	if err := k.EnqueueMsg(ctx, qMsg); err != nil {
+		return errors.Wrap(err, "enqueue Withdraw message")
+	}
+
+	return nil
+}
+
+func (k Keeper) ProcessWithdrawMsg(ctx context.Context, msg *stypes.MsgUndelegate) error {
+	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
+
+	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
+	if _, err := skeeperMsgServer.Undelegate(ctx, msg); err != nil {
+		return errors.Wrap(err, "undelegate")
+	}
 
 	return nil
 }

@@ -59,7 +59,11 @@ func (s *TestSuite) TestProcessUnjail() {
 			if tc.setupMock != nil {
 				tc.setupMock(cachedCtx)
 			}
-			err := keeper.ProcessUnjail(cachedCtx, tc.unjailEv)
+			var err error
+			err = keeper.HandleUnjailEvent(cachedCtx, tc.unjailEv)
+			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
+				err = s.processQueuedMessage(cachedCtx)
+			}
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {

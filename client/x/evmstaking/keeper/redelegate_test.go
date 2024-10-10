@@ -182,7 +182,11 @@ func (s *TestSuite) TestRedelegation() {
 		s.Run(tc.name, func() {
 			cachedCtx, _ := ctx.CacheContext()
 			input := tc.input()
-			err := keeper.ProcessRedelegate(cachedCtx, &input)
+			var err error
+			err = keeper.HandleRedelegateEvent(cachedCtx, &input)
+			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
+				err = s.processQueuedMessage(cachedCtx)
+			}
 			if tc.expectedError != "" {
 				require.ErrorContains(err, tc.expectedError)
 			} else {

@@ -36,6 +36,7 @@ type ModuleInputs struct {
 	SlashingKeeper        types.SlashingKeeper
 	StakingKeeper         types.StakingKeeper
 	DistributionKeeper    types.DistributionKeeper
+	EpochsKeeper          types.EpochsKeeper
 	Cdc                   codec.Codec
 	StoreService          store.KVStoreService
 }
@@ -62,6 +63,7 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.SlashingKeeper,
 		in.StakingKeeper,
 		in.DistributionKeeper,
+		in.EpochsKeeper,
 		authority.String(),
 		in.EthClient,
 		in.ValidatorAddressCodec,
