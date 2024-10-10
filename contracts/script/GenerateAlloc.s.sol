@@ -7,8 +7,8 @@ import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import { IIPTokenStaking } from "../src/interfaces/IIPTokenStaking.sol";
 import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
-import { IPTokenSlashing } from "../src/protocol/IPTokenSlashing.sol";
 import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 
 import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
@@ -102,11 +102,9 @@ contract GenerateAlloc is Script {
 
     function setPredeploys() internal {
         setProxy(Predeploys.Staking);
-        setProxy(Predeploys.Slashing);
         setProxy(Predeploys.Upgrades);
 
         setStaking();
-        setSlashing();
         setUpgrade();
     }
 
@@ -162,35 +160,30 @@ contract GenerateAlloc is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        IPTokenStaking(Predeploys.Staking).initialize(protocolAdmin, 1 ether, 1 ether, 1 ether, 7 days);
+        IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
+            accessManager: protocolAdmin,
+            minStakeAmount: 1 ether,
+            minUnstakeAmount: 1 ether,
+            withdrawalAddressChangeInterval: 7 days,
+            shortStakingPeriod: 90 days,
+            mediumStakingPeriod: 360 days, // 12 * 30
+            longStakingPeriod: 540 days
+        });
+
+        // Testnet timing values
+        if (block.chainid != MAINNET_CHAIN_ID) {
+            args.withdrawalAddressChangeInterval = 5 seconds;
+            args.shortStakingPeriod = 10 seconds;
+            args.mediumStakingPeriod = 15 seconds;
+            args.longStakingPeriod = 20 seconds;
+        }
+
+        IPTokenStaking(Predeploys.Staking).initialize(args);
 
         console2.log("IPTokenStaking proxy deployed at:", Predeploys.Staking);
         console2.log("IPTokenStaking ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Staking));
         console2.log("IPTokenStaking impl at:", EIP1967Helper.getImplementation(Predeploys.Staking));
         console2.log("IPTokenStaking owner:", IPTokenStaking(Predeploys.Staking).owner());
-    }
-
-    /**
-     * @notice Setup Slashing predeploy
-     */
-    function setSlashing() internal {
-        address impl = Predeploys.getImplAddress(Predeploys.Slashing);
-        address tmp = address(new IPTokenSlashing(Predeploys.Staking));
-
-        console2.log("tpm", tmp);
-        vm.etch(impl, tmp.code);
-
-        // reset tmp
-        vm.etch(tmp, "");
-        vm.store(tmp, 0, "0x");
-        vm.resetNonce(tmp);
-
-        InitializableHelper.disableInitializers(impl);
-        IPTokenSlashing(Predeploys.Slashing).initialize(protocolAdmin, 1 ether);
-
-        console2.log("IPTokenSlashing proxy deployed at:", Predeploys.Slashing);
-        console2.log("IPTokenSlashing ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Slashing));
-        console2.log("IPTokenSlashing impl at:", EIP1967Helper.getImplementation(Predeploys.Slashing));
     }
 
     /**
