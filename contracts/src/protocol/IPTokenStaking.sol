@@ -209,7 +209,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the operators for the delegator.
-    /// @param uncmpPubkey65 bytes uncompressed secp256k1 public key.
+    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory) {
         return delegatorOperators[uncmpPubkey].values();
     }
