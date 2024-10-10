@@ -25,8 +25,9 @@ contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
         uint256 stakingRounding,
         uint32 defaultCommissionRate,
         uint32 defaultMaxCommissionRate,
-        uint32 defaultMaxCommissionChangeRate
-    ) IPTokenStaking(stakingRounding, defaultCommissionRate, defaultMaxCommissionRate, defaultMaxCommissionChangeRate) {
+        uint32 defaultMaxCommissionChangeRate,
+        uint256 defaultMinUnjailFee
+    ) IPTokenStaking(stakingRounding, defaultCommissionRate, defaultMaxCommissionRate, defaultMaxCommissionChangeRate, defaultMinUnjailFee) {
 
     }
 }
@@ -59,7 +60,8 @@ contract TestPrecompileUpgrades is Script {
             1 gwei, // stakingRounding
             1000, // defaultCommissionRate, 10%
             5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
+            500, // defaultMaxCommissionChangeRate, 5%
+            1 ether
         ));
         ProxyAdmin proxyAdmin = ProxyAdmin(
             EIP1967Helper.getAdmin(Predeploys.Staking)
