@@ -633,7 +633,7 @@
     "mint": {
       "params": {
         "mint_denom": "stake",
-        "inflations_per_year": "24625000000000000.000000000000000000",
+        "inflations_per_year": "24625000000000000",
         "blocks_per_year": "6311520"
       }
     }
