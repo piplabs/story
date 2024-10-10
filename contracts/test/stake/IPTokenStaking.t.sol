@@ -35,28 +35,41 @@ contract IPTokenStakingTest is Test {
             1 gwei, // stakingRounding
             10_001, // defaultCommissionRate, 10%
             5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
+            500, // defaultMaxCommissionChangeRate, 5%,
+            1 ether // Default min unjail fee, 1 eth
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission rate");
         new IPTokenStaking(
             1 gwei, // stakingRounding
             1000, // defaultCommissionRate, 10%
             10_001, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
+            500, // defaultMaxCommissionChangeRate, 5%
+            1 ether // Default min unjail fee, 1 eth
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission rate");
         new IPTokenStaking(
             1 gwei, // stakingRounding
             1000, // defaultCommissionRate, 10%
             1, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
+            500, // defaultMaxCommissionChangeRate, 5%
+            1 ether // Default min unjail fee, 1 eth
         );
         vm.expectRevert("IPTokenStaking: Invalid default max commission change rate");
         new IPTokenStaking(
             1 gwei, // stakingRounding
             1000, // defaultCommissionRate, 10%
             5000, // defaultMaxCommissionRate, 50%
-            10_001 // defaultMaxCommissionChangeRate, 5%
+            10_001, // defaultMaxCommissionChangeRate, 5%
+            1 ether // Default min unjail fee, 1 eth
+        );
+
+        vm.expectRevert("IPTokenStaking: Invalid min unjail fee");
+        new IPTokenStaking(
+            1 gwei, // stakingRounding
+            1000, // defaultCommissionRate, 10%
+            5000, // defaultMaxCommissionRate, 50%
+            10_001, // defaultMaxCommissionChangeRate, 5%
+            0 ether
         );
 
         address impl = address(
@@ -64,7 +77,8 @@ contract IPTokenStakingTest is Test {
                 0, // stakingRounding
                 1000, // defaultCommissionRate, 10%
                 5000, // defaultMaxCommissionRate, 50%
-                500 // defaultMaxCommissionChangeRate, 5%
+                500, // defaultMaxCommissionChangeRate, 5%
+                1 ether // Default min unjail fee, 1 eth
             )
         );
         IPTokenStaking staking = IPTokenStaking(address(new ERC1967Proxy(impl, "")));
@@ -76,7 +90,8 @@ contract IPTokenStakingTest is Test {
             withdrawalAddressChangeInterval: 7 days,
             shortStakingPeriod: 1,
             mediumStakingPeriod: 2,
-            longStakingPeriod: 3
+            longStakingPeriod: 3,
+            unjailFee: 1 ether
         });
 
         // IPTokenStaking: minStakeAmount cannot be 0
@@ -96,8 +111,43 @@ contract IPTokenStakingTest is Test {
         staking.initialize(args);
 
         // TODO test short
-        // TODO test medium
-        // TODO test long
+        // IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0
+        vm.expectRevert();
+        args.shortStakingPeriod = 0;
+        args.mediumStakingPeriod = 10;
+        args.shortStakingPeriod = 100;
+        staking.initialize(args);
+
+        vm.expectRevert();
+        args.shortStakingPeriod = 1;
+        args.mediumStakingPeriod = 1;
+        args.shortStakingPeriod = 100;
+        staking.initialize(args);
+
+        vm.expectRevert();
+        args.shortStakingPeriod = 2;
+        args.mediumStakingPeriod = 1;
+        args.shortStakingPeriod = 100;
+        staking.initialize(args);
+
+        vm.expectRevert();
+        args.shortStakingPeriod = 2;
+        args.mediumStakingPeriod = 100;
+        args.shortStakingPeriod = 100;
+        staking.initialize(args);
+
+        vm.expectRevert();
+        args.shortStakingPeriod = 2;
+        args.mediumStakingPeriod = 3;
+        args.shortStakingPeriod = 2;
+        staking.initialize(args);
+
+        vm.expectRevert();
+        args.shortStakingPeriod = 1;
+        args.mediumStakingPeriod = 2;
+        args.shortStakingPeriod = 3;
+        args.unjailFee = 10;
+        staking.initialize(args);
     }
 
     function testIPTokenStaking_Parameters() public view {
@@ -108,6 +158,7 @@ contract IPTokenStakingTest is Test {
         assertEq(ipTokenStaking.DEFAULT_COMMISSION_RATE(), 1000);
         assertEq(ipTokenStaking.DEFAULT_MAX_COMMISSION_RATE(), 5000);
         assertEq(ipTokenStaking.DEFAULT_MAX_COMMISSION_CHANGE_RATE(), 500);
+        assertEq(ipTokenStaking.DEFAULT_MIN_UNJAIL_FEE(), 1 ether);
     }
 
     function testIPTokenStaking_CreateValidator() public {
@@ -130,11 +181,11 @@ contract IPTokenStakingTest is Test {
 
         });
 
-        // Network shall not allow anyone to create a new validator on behalf if the sender account’s balance is 0.
+        // Network shall not allow anyone to create a new validator on behalf if the msg.value < min
         bytes
             memory validator1Pubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
-        stakeAmount = 0 ether;
-        vm.deal(delegatorAddr, stakeAmount);
+        stakeAmount = 0.5 ether;
+        vm.deal(delegatorAddr, 1 ether);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Stake amount too low");
         ipTokenStaking.createValidatorOnBehalf{ value: stakeAmount }({ validatorUncmpPubkey: validator1Pubkey, isLocked: false, data: "" });
@@ -151,7 +202,7 @@ contract IPTokenStakingTest is Test {
             1000,
             5000,
             100,
-            true,
+            1, // isLocked
             abi.encode("data")
         );
         ipTokenStaking.createValidator{ value: stakeAmount }({
@@ -179,7 +230,7 @@ contract IPTokenStakingTest is Test {
             1000,
             5000,
             500,
-            false,
+            0, //isLocked
             abi.encode("data")
         );
         ipTokenStaking.createValidatorOnBehalf{ value: stakeAmount }({
@@ -487,5 +538,9 @@ contract IPTokenStakingTest is Test {
         vm.expectRevert();
         ipTokenStaking.setUnjailFee(1 ether);
         assertEq(ipTokenStaking.unjailFee(), newUnjailFee);
+
+        // Network shall not allow fees < default
+        vm.expectRevert();
+        ipTokenStaking.setUnjailFee(1);
     }
 }
