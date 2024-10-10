@@ -27,6 +27,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
 
+    uint256 public immutable DEFAULT_MIN_UNJAIL_FEE;
+
     /// @notice Minimum amount required to stake.
     uint256 public minStakeAmount;
 
@@ -61,7 +63,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 stakingRounding,
         uint32 defaultCommissionRate,
         uint32 defaultMaxCommissionRate,
-        uint32 defaultMaxCommissionChangeRate
+        uint32 defaultMaxCommissionChangeRate,
+        uint256 defaultMinUnjailFee
     ) {
         STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
         require(defaultCommissionRate <= 10_000, "IPTokenStaking: Invalid default commission rate");
@@ -76,6 +79,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         require(defaultMaxCommissionChangeRate <= 10_000, "IPTokenStaking: Invalid default max commission change rate");
         DEFAULT_MAX_COMMISSION_CHANGE_RATE = defaultMaxCommissionChangeRate; // Recommended: 5%, or 500 / 10_000
 
+        require(defaultMinUnjailFee >= 1 gwei, "IPTokenStaking: Invalid default min unjail fee");
+        DEFAULT_MIN_UNJAIL_FEE = defaultMinUnjailFee;
+
         _disableInitializers();
     }
 
@@ -87,6 +93,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setWithdrawalAddressChangeInterval(args.withdrawalAddressChangeInterval);
         _setStakingPeriods(args.shortStakingPeriod, args.mediumStakingPeriod, args.longStakingPeriod);
+        _setUnjailFee(args.unjailFee);
     }
 
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
@@ -137,6 +144,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Sets the unjail fee.
     /// @param newUnjailFee The new unjail fee.
     function setUnjailFee(uint256 newUnjailFee) external onlyOwner {
+        _setUnjailFee(newUnjailFee);
+    }
+
+    function _setUnjailFee(uint256 newUnjailFee) private {
+        if (newUnjailFee < DEFAULT_MIN_UNJAIL_FEE) {
+            revert("IPTokenStaking: Invalid min unjail fee");
+        }
         unjailFee = newUnjailFee;
         emit UnjailFeeSet(newUnjailFee);
     }
@@ -195,7 +209,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the operators for the delegator.
-    /// @param uncmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param uncmpPubkey65 bytes uncompressed secp256k1 public key.
     function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory) {
         return delegatorOperators[uncmpPubkey].values();
     }
@@ -333,7 +347,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             commissionRate,
             maxCommissionRate,
             maxCommissionChangeRate,
-            isLocked,
+            isLocked? 1 : 0,
             data
         );
 
@@ -348,7 +362,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
     /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 33 bytes compressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
     function stake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -362,8 +376,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// the stake and manages the stake accounting and validator onboarding. Payer can stake on behalf of another user,
     /// who will be the beneficiary of the stake.
     /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
-    /// @param delegatorUncmpPubkey Delegator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 33 bytes compressed secp256k1 public key.
+    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
     function stakeOnBehalf(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -423,7 +437,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Entry point for unstaking the previously staked token.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 33 bytes compressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
     /// @param amount Token amount to unstake.
     function unstake(
         bytes calldata delegatorUncmpPubkey,
@@ -432,13 +446,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount,
         bytes calldata data
     ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
-        emit Withdraw(delegatorUncmpPubkey, validatorUncmpPubkey, amount, delegationId, msg.sender, data);
+        _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
     /// @dev Must be an approved operator for the delegator.
-    /// @param delegatorUncmpPubkey Delegator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 33 bytes compressed secp256k1 public key.
+    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
     /// @param amount Token amount to unstake.
     function unstakeOnBehalf(
         bytes calldata delegatorUncmpPubkey,
@@ -448,6 +462,19 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     ) external verifyUncmpPubkey(delegatorUncmpPubkey) {
         _verifyCallerIsOperator(delegatorUncmpPubkey, msg.sender);
+        _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
+    }
+
+    function _unstake(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        uint256 delegationId,
+        uint256 amount,
+        bytes calldata data
+    ) private {
+        if (amount < minUnstakeAmount) {
+            revert();
+        }
         emit Withdraw(delegatorUncmpPubkey, validatorUncmpPubkey, amount, delegationId, msg.sender, data);
     }
 
