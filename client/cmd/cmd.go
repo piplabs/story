@@ -26,6 +26,7 @@ func New() *cobra.Command {
 		buildinfo.NewVersionCmd(),
 		newValidatorCmds(),
 		newStatusCmd(),
+		newKeyCmds(),
 		newRollbackCmd(app.CreateApp),
 	)
 }
