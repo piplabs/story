@@ -97,7 +97,7 @@ interface IIPTokenStaking {
     function roundedStakeAmount(uint256 rawAmount) external view returns (uint256 amount, uint256 remainder);
 
     /// @notice Returns the operators for the delegator.
-    /// @param uncmpPubkey65 bytes uncompressed secp256k1 public key.
+    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory);
 
     /// @notice Adds an operator for the delegator.
