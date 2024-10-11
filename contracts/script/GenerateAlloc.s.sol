@@ -60,6 +60,8 @@ contract GenerateAlloc is Script {
             return "./iliad-alloc.json";
         } else if (block.chainid == 1512) {
             return "./mininet-alloc.json";
+        } else if (block.chainid == 1315) {
+            return "./odyssey-devnet-alloc.json";
         } else if (block.chainid == 31337) {
             return "./local-alloc.json";
         } else {
