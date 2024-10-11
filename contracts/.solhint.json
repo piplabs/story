@@ -20,7 +20,6 @@
     "private-vars-leading-underscore": "off",
     "func-name-mixedcase": "off",
     "var-name-mixedcase": "off",
-    "modifier-name-mixedcase": "off",
-    "custom-errors": "off"
+    "modifier-name-mixedcase": "off"
   }
 }
