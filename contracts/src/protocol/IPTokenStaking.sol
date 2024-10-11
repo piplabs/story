@@ -36,19 +36,20 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     uint256 public minUnstakeAmount;
 
     /// @notice The interval between changing the withdrawal address for each delegator
-    uint256 public withdrawalAddressChangeInterval;
+    uint256 public withdrawalAddressChangeInterval; // TODO: Remove
+
 
     /// @notice Approved operators for delegators.
     /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes validatorUncmpPubkey => EnumerableSet.AddressSet operators) private delegatorOperators;
+    mapping(bytes validatorUncmpPubkey => EnumerableSet.AddressSet operators) private delegatorOperators; // TODO: Remove
 
     /// @notice The timestamp of last withdrawal address changes for each delegator.
     /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes validatorUncmpPubkey => uint256 lastChange) public withdrawalAddressChange;
+    mapping(bytes validatorUncmpPubkey => uint256 lastChange) public withdrawalAddressChange; // TODO: Remove
 
     /// @notice The timestamp of last reward address changes for each delegator.
     /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes validatorUncmpPubkey => uint256 lastChange) public rewardAddressChange;
+    mapping(bytes validatorUncmpPubkey => uint256 lastChange) public rewardAddressChange; // TODO: Remove
 
     /// @notice Counter to generate delegationIds for delegations with period.
     /// @dev Starts in 1, since 0 is reserved for flexible delegations.
@@ -210,7 +211,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Returns the operators for the delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory) {
+    function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory) { // TODO: Remove
         return delegatorOperators[uncmpPubkey].values();
     }
 
@@ -275,6 +276,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
     /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    // TODO: explain refund if fail
+    // TODO: MIN STAKE 1024
+    // TODO: Burn tokens
     function createValidator(
         bytes calldata validatorUncmpPubkey,
         string calldata moniker,
@@ -298,6 +302,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Entry point for creating a new validator with self delegation on behalf of the validator.
     /// @dev There's no minimum amount required to stake when creating a new validator.
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    // TODO: MIN STAKE, NON DEFAULT 1024
+    // TODO: Explain reasoning
+    // TODO: fee? 100 IP // Set fee
+    // TODO: Burn tokens
     function createValidatorOnBehalf(
         bytes calldata validatorUncmpPubkey,
         bool isLocked,
@@ -354,6 +362,12 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _refundRemainder(remainder);
     }
 
+    // TODO: ADD REDELEGATION BACK
+    // TODO: MIN REDELEGATION
+
+    // TODO: update validator method
+    
+
     /*//////////////////////////////////////////////////////////////////////////
     //                             Token Staking                              //
     //////////////////////////////////////////////////////////////////////////*/
@@ -399,9 +413,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     ) internal returns (uint256) {
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount too low");
-        _delegationIdCounter++;
+        
         uint32 duration = 0;
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
+            _delegationIdCounter++;
             duration = stakingDurations[stakingPeriod];
         }
         emit Deposit(
@@ -409,7 +424,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             validatorUncmpPubkey,
             stakeAmount,
             duration,
-            _delegationIdCounter,
+            _delegationIdCounter, // TODO: FLEXIBLE is 0
             msg.sender,
             data
         );
@@ -418,7 +433,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
         _refundRemainder(remainder);
 
-        return _delegationIdCounter;
+        return _delegationIdCounter;// TODO: FLEXIBLE is 0
     }
 
     /// @notice Returns the rounded stake amount and the remainder.
@@ -454,6 +469,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
     /// @param amount Token amount to unstake.
+    // TODO: explain operator needed in CL
     function unstakeOnBehalf(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
