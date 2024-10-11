@@ -163,9 +163,9 @@ contract GenerateAlloc is Script {
             minStakeAmount: 1 ether,
             minUnstakeAmount: 1 ether,
             withdrawalAddressChangeInterval: 7 days,
-            shortStakingPeriod: 90 days,
-            mediumStakingPeriod: 360 days, // 12 * 30
-            longStakingPeriod: 540 days,
+            shortStakingPeriod: 10 days, // TODO: Not final numbers
+            mediumStakingPeriod: 123 days,
+            longStakingPeriod: 456 days,
             unjailFee: 1 ether
         });
 
