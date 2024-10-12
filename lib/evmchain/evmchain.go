@@ -18,7 +18,7 @@ const (
 	IDIliad uint64 = 1513
 
 	// Odyssey Testnets.
-	IDOdyssey uint64 = 1514
+	IDOdyssey uint64 = 1516
 
 	storyEVMName        = "story_evm"
 	storyEVMBlockPeriod = time.Second * 2
