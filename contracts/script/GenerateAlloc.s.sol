@@ -62,6 +62,8 @@ contract GenerateAlloc is Script {
             return "./mininet-alloc.json";
         } else if (block.chainid == 31337) {
             return "./local-alloc.json";
+        } else if (block.chainid == 1315) {
+            return "./odyssey-devnet-alloc.json";
         } else {
             revert("Unsupported chain id");
         }
@@ -225,7 +227,7 @@ contract GenerateAlloc is Script {
         if (block.chainid == MAINNET_CHAIN_ID) {
             // TBD
         } else {
-            // Testnet alloc
+            // Devnet alloc
             vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
             vm.deal(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab, 100000000 ether);
             vm.deal(0xEcB1D051475A7e330b1DD6683cdC7823Bbcf8Dcf, 100000000 ether);
@@ -233,6 +235,7 @@ contract GenerateAlloc is Script {
             vm.deal(0xbd39FAe873F301b53e14d365383118cD4a222222, 100000000 ether);
             vm.deal(0x00FCeC044cD73e8eC6Ad771556859b00C9011111, 100000000 ether);
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
+            vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
         }
     }
 }

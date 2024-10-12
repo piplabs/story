@@ -308,15 +308,19 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     // TODO: Burn tokens
     function createValidatorOnBehalf(
         bytes calldata validatorUncmpPubkey,
+        string calldata moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
         bool isLocked,
         bytes calldata data
     ) external payable verifyUncmpPubkey(validatorUncmpPubkey) nonReentrant {
         _createValidator(
             validatorUncmpPubkey,
-            "validator",
-            DEFAULT_COMMISSION_RATE,
-            DEFAULT_MAX_COMMISSION_RATE,
-            DEFAULT_MAX_COMMISSION_CHANGE_RATE,
+            moniker,
+            commissionRate,
+            maxCommissionRate,
+            maxCommissionChangeRate,
             isLocked,
             data
         );

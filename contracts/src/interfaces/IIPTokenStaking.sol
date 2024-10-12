@@ -136,8 +136,16 @@ interface IIPTokenStaking {
     /// @notice Entry point for creating a new validator with self delegation on behalf of the validator.
     /// @dev There's no minimum amount required to stake when creating a new validator.
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param moniker The moniker of the validator.
+    /// @param commissionRate The commission rate of the validator.
+    /// @param maxCommissionRate The maximum commission rate of the validator.
+    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
     function createValidatorOnBehalf(
         bytes calldata validatorUncmpPubkey,
+        string calldata moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
         bool isLocked,
         bytes calldata data
     ) external payable;
