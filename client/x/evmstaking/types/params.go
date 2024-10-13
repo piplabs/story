@@ -2,8 +2,6 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/piplabs/story/lib/errors"
 )
 
 // Staking params default values.
@@ -13,16 +11,14 @@ const (
 	DefaultMaxSweepPerBlock uint32 = 64
 
 	DefaultMinPartialWithdrawalAmount uint64 = 600_000
-	DefaultEpochIdentifier            string = "day"
 )
 
 // NewParams creates a new Params instance.
-func NewParams(maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64, epochIdentifier string) Params {
+func NewParams(maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64) Params {
 	return Params{
 		MaxWithdrawalPerBlock:      maxWithdrawalPerBlock,
 		MaxSweepPerBlock:           maxSweepPerBlock,
 		MinPartialWithdrawalAmount: minPartialWithdrawalAmount,
-		EpochIdentifier:            epochIdentifier,
 	}
 }
 
@@ -32,7 +28,6 @@ func DefaultParams() Params {
 		DefaultMaxWithdrawalPerBlock,
 		DefaultMaxSweepPerBlock,
 		DefaultMinPartialWithdrawalAmount,
-		DefaultEpochIdentifier,
 	)
 }
 
@@ -59,19 +54,6 @@ func ValidateMaxSweepPerBlock(maxSweepPerBlock uint32, maxWithdrawalPerBlock uin
 func ValidateMinPartialWithdrawalAmount(v uint64) error {
 	if v == 0 {
 		return fmt.Errorf("min partial withdrawal amount must be positive: %d", v)
-	}
-
-	return nil
-}
-
-func ValidateEpochIdentifier(i any) error {
-	v, ok := i.(string)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if v == "" {
-		return errors.New("cannot be empty string for identifier")
 	}
 
 	return nil

@@ -10,10 +10,6 @@ message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];
   // TODO: Add withdrawals collections field as ORM if needed
   ValidatorSweepIndex validator_sweep_index = 2;
-  // epoch_number is the number of current epoch
-  uint64 epoch_number = 3 [
-    (gogoproto.moretags) = "yaml:\"epoch_number\""
-  ];
 }
 
 message ValidatorSweepIndex {

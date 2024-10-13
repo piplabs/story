@@ -1,11 +1,8 @@
 syntax = "proto3";
 package client.x.evmstaking.types;
 
-import "google/protobuf/timestamp.proto";
 import "gogoproto/gogo.proto";
 import "cosmos_proto/cosmos.proto";
-import "cosmos/staking/v1beta1/tx.proto";
-import "cosmos/slashing/v1beta1/tx.proto";
 
 option go_package = "client/x/evmstaking/types";
 
@@ -34,26 +31,4 @@ message Withdrawal {
     // (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"amount\""
   ];
-}
-
-// QueuedMessage is a message that can change the validator set and is delayed
-// to the end of an epoch
-message QueuedMessage {
-  // tx_id is the ID of the tx that contains the message
-  bytes tx_id = 1;
-  // msg_id is the original message ID, i.e., hash of the marshaled message
-  bytes msg_id = 2;
-  // block_height is the height when this msg is submitted
-  uint64 block_height = 3;
-  // block_time is the timestamp when this msg is submitted
-  google.protobuf.Timestamp block_time = 4 [ (gogoproto.stdtime) = true ];
-  // msg is the actual message that is sent by a user and is queued by the
-  // epoching module
-  oneof msg {
-    cosmos.staking.v1beta1.MsgCreateValidator msg_create_validator = 5;
-    cosmos.staking.v1beta1.MsgDelegate msg_delegate = 6;
-    cosmos.staking.v1beta1.MsgUndelegate msg_undelegate = 7;
-    cosmos.staking.v1beta1.MsgBeginRedelegate msg_begin_redelegate = 8;
-    cosmos.slashing.v1beta1.MsgUnjail msg_unjail = 9;
-  }
 }

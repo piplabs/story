@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 
-	"github.com/cometbft/cometbft/crypto/tmhash"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -16,8 +15,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// HandleDepositEvent handles Deposit event. It converts the event to sdk.Msg and enqueues for epoched staking.
-func (k Keeper) HandleDepositEvent(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
+func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
@@ -40,54 +38,15 @@ func (k Keeper) HandleDepositEvent(ctx context.Context, ev *bindings.IPTokenStak
 		return errors.Wrap(err, "delegator pubkey to evm address")
 	}
 
-	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
-
-	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
-	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
-	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
-	if err := k.DelegatorMap.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator map")
-	}
-
-	log.Debug(ctx, "EVM staking deposit detected, delegating to validator",
-		"del_story", depositorAddr.String(),
-		"val_story", validatorAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
-		"val_evm_addr", valEvmAddr.String(),
-		"amount_coin", amountCoin.String(),
-	)
-
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	header := sdkCtx.BlockHeader()
-	txID := tmhash.Sum(sdkCtx.TxBytes())
-
-	msg := stypes.NewMsgDelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
-	qMsg, err := types.NewQueuedMessage(uint64(header.Height), header.Time, txID, msg)
-	if err != nil {
-		return errors.Wrap(err, "new queued message for Delegate event")
-	}
-
-	if err := k.EnqueueMsg(ctx, qMsg); err != nil {
-		return errors.Wrap(err, "enqueue Delegate message")
-	}
-
-	return nil
-}
-
-// ProcessDepositMsg processes the Delegate message. It makes delegation.
-func (k Keeper) ProcessDepositMsg(ctx context.Context, msg *stypes.MsgDelegate) error {
-	amountCoins := sdk.Coins{msg.Amount}
-	delegatorAddr, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
-	if err != nil {
-		return errors.Wrap(err, "acc address from bech32", "delegator_addr", msg.DelegatorAddress)
-	}
+	amountCoin, amountCoins := IPTokenToBondCoin(ev.Amount)
 
 	// Create account if not exists
-	if !k.authKeeper.HasAccount(ctx, delegatorAddr) {
-		acc := k.authKeeper.NewAccountWithAddress(ctx, delegatorAddr)
+	if !k.authKeeper.HasAccount(ctx, depositorAddr) {
+		acc := k.authKeeper.NewAccountWithAddress(ctx, depositorAddr)
 		k.authKeeper.SetAccount(ctx, acc)
 		log.Debug(ctx, "Created account for depositor",
-			"address", delegatorAddr.String(),
+			"address", depositorAddr.String(),
+			"evm_address", delEvmAddr.String(),
 		)
 	}
 
@@ -95,8 +54,23 @@ func (k Keeper) ProcessDepositMsg(ctx context.Context, msg *stypes.MsgDelegate) 
 		return errors.Wrap(err, "create stake coin for depositor: mint coins")
 	}
 
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, delegatorAddr, amountCoins); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, depositorAddr, amountCoins); err != nil {
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
+	}
+
+	log.Info(ctx, "EVM staking deposit detected, delegating to validator",
+		"del_story", depositorAddr.String(),
+		"val_story", validatorAddr.String(),
+		"del_evm_addr", delEvmAddr.String(),
+		"val_evm_addr", valEvmAddr.String(),
+		"amount_coin", amountCoin.String(),
+	)
+
+	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
+	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
+	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
+	if err := k.DelegatorMap.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+		return errors.Wrap(err, "set delegator map")
 	}
 
 	// TODO: Check if we can instantiate the msgServer without type assertion
@@ -107,7 +81,9 @@ func (k Keeper) ProcessDepositMsg(ctx context.Context, msg *stypes.MsgDelegate) 
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
-	if _, err = skeeperMsgServer.Delegate(ctx, msg); err != nil {
+	msg := stypes.NewMsgDelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
+	_, err = skeeperMsgServer.Delegate(ctx, msg)
+	if err != nil {
 		return errors.Wrap(err, "delegate")
 	}
 

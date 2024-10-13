@@ -7,7 +7,7 @@ func (s *TestSuite) TestGetParams() {
 	ctx, keeper := s.Ctx, s.EVMStakingKeeper
 	params, err := keeper.GetParams(ctx)
 	require.NoError(err)
-	require.Equal(TestEVMStakingParams, params)
+	require.Equal(types.DefaultParams(), params)
 }
 
 func (s *TestSuite) TestSetParams() {

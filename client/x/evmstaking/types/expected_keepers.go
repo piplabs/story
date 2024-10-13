@@ -11,8 +11,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"github.com/piplabs/story/client/x/epochs/types"
 )
 
 // AccountKeeper defines the expected account keeper (noalias).
@@ -53,7 +51,6 @@ type StakingKeeper interface {
 	GetValidator(ctx context.Context, addr sdk.ValAddress) (validator stakingtypes.Validator, err error)
 	GetAllValidators(ctx context.Context) (validators []stakingtypes.Validator, err error)
 	BondDenom(ctx context.Context) (string, error)
-	UnbondingTime(ctx context.Context) (time.Duration, error)
 
 	UBDQueueIterator(ctx context.Context, endTime time.Time) (corestore.Iterator, error)
 	// GetUnbondingDelegation returns a unbonding delegation.
@@ -83,8 +80,4 @@ type DistributionKeeper interface {
 	WithdrawValidatorCommission(ctx context.Context, valAddr sdk.ValAddress) (sdk.Coins, error)
 
 	IncrementValidatorPeriod(ctx context.Context, val stakingtypes.ValidatorI) (uint64, error)
-}
-
-type EpochsKeeper interface {
-	GetEpochInfo(ctx context.Context, identifier string) (types.EpochInfo, error)
 }

@@ -242,8 +242,9 @@ func (s *TestSuite) TestEndBlock() {
 				pastHeader.Time = pastHeader.Time.Add(-ubdTime).Add(-time.Minute)
 				s.setupUnbonding(sdkCtx.WithBlockHeader(pastHeader), delAddr, valAddr1, "10")
 
-				// Mock evmstaking.EndBlocker
+				// Mock staking.EndBlocker
 				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
+				// Mock evmstaking.EndBlocker
 				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(errors.New("failed to send coins to module"))
 
 				return nil, []abcitypes.ValidatorUpdate{
@@ -267,8 +268,9 @@ func (s *TestSuite) TestEndBlock() {
 				pastHeader.Time = pastHeader.Time.Add(-ubdTime).Add(-time.Minute)
 				s.setupUnbonding(sdkCtx.WithBlockHeader(pastHeader), delAddr, valAddr1, "10")
 
-				// Mock evmstaking.EndBlocker
+				// Mock staking.EndBlocker
 				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
+				// Mock evmstaking.EndBlocker
 				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(nil)
 				s.BankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New("failed to burn coins"))
 

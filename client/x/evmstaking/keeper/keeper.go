@@ -36,14 +36,12 @@ type Keeper struct {
 	slashingKeeper     types.SlashingKeeper
 	stakingKeeper      types.StakingKeeper
 	distributionKeeper types.DistributionKeeper
-	epochsKeeper       types.EpochsKeeper
 
 	ipTokenStakingContract  *bindings.IPTokenStaking
 	ipTokenSlashingContract *bindings.IPTokenSlashing
 
 	WithdrawalQueue addcollections.Queue[types.Withdrawal]
 	DelegatorMap    collections.Map[string, string] // bech32 to evm address (TODO: confirm that it's one-to-one or many-bech32-to-one-evm)
-	MessageQueue    addcollections.Queue[types.QueuedMessage]
 }
 
 // NewKeeper creates a new evmstaking Keeper instance.
@@ -55,7 +53,6 @@ func NewKeeper(
 	slk types.SlashingKeeper,
 	stk types.StakingKeeper,
 	dk types.DistributionKeeper,
-	ek types.EpochsKeeper,
 	authority string,
 	ethCl ethclient.Client,
 	validatorAddressCodec addresscodec.Codec,
@@ -90,14 +87,12 @@ func NewKeeper(
 		slashingKeeper:          slk,
 		stakingKeeper:           stk,
 		distributionKeeper:      dk,
-		epochsKeeper:            ek,
 		authority:               authority,
 		validatorAddressCodec:   validatorAddressCodec,
 		ipTokenStakingContract:  ipTokenStakingContract,
 		ipTokenSlashingContract: ipTokenSlashingContract,
 		WithdrawalQueue:         addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
 		DelegatorMap:            collections.NewMap(sb, types.DelegatorMapKey, "delegator_map", collections.StringKey, collections.StringValue),
-		MessageQueue:            addcollections.NewQueue(sb, types.MsgQueueKey, "message_queue", codec.CollValue[types.QueuedMessage](cdc)),
 	}
 }
 
@@ -149,7 +144,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 			ev.StakeAmount.Div(ev.StakeAmount, gwei)
-			if err = k.HandleCreateValidatorEvent(ctx, ev); err != nil {
+			if err = k.ProcessCreateValidator(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process create validator", err)
 				continue
 			}
@@ -160,7 +155,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 			ev.Amount.Div(ev.Amount, gwei)
-			if err = k.HandleDepositEvent(ctx, ev); err != nil {
+			if err = k.ProcessDeposit(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process deposit", err)
 				continue
 			}
@@ -171,7 +166,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 			ev.Amount.Div(ev.Amount, gwei)
-			if err = k.HandleRedelegateEvent(ctx, ev); err != nil {
+			if err = k.ProcessRedelegate(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process redelegate", err)
 				continue
 			}
@@ -182,7 +177,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 			ev.Amount.Div(ev.Amount, gwei)
-			if err = k.HandleWithdrawEvent(ctx, ev); err != nil {
+			if err = k.ProcessWithdraw(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process withdraw", err)
 				continue
 			}
@@ -192,7 +187,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Unjail log", err)
 				continue
 			}
-			if err = k.HandleUnjailEvent(ctx, ev); err != nil {
+			if err = k.ProcessUnjail(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process unjail", err)
 				continue
 			}
