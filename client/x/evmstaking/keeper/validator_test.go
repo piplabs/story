@@ -211,8 +211,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			if moniker == "" {
 				moniker = "testing"
 			}
-			var err error
-			err = keeper.HandleCreateValidatorEvent(cachedCtx, &bindings.IPTokenStakingCreateValidator{
+			err := keeper.ProcessCreateValidator(cachedCtx, &bindings.IPTokenStakingCreateValidator{
 				ValidatorUncmpPubkey:    nil,
 				ValidatorCmpPubkey:      tc.valPubKeyBytes,
 				Moniker:                 moniker,
@@ -222,9 +221,6 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				MaxCommissionChangeRate: 500,  // 5%
 				Raw:                     gethtypes.Log{},
 			})
-			if !keeper.MessageQueue.IsEmpty(cachedCtx) {
-				err = s.processQueuedMessage(cachedCtx)
-			}
 			if tc.expectedError != "" {
 				require.Error(err, tc.expectedError)
 			} else {

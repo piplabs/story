@@ -6,5 +6,3 @@ plugins:
       - plugins=grpc
       - Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types
       - Mcosmos/orm/v1/orm.proto=cosmossdk.io/orm
-      - Mcosmos/staking/v1beta1/tx.proto=github.com/cosmos/cosmos-sdk/x/staking/types
-      - Mcosmos/slashing/v1beta1/tx.proto=github.com/cosmos/cosmos-sdk/x/slashing/types

@@ -175,10 +175,8 @@
       "params": {
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
-        "min_partial_withdrawal_amount": 100000000,
-        "epoch_identifier": "minute"
-      },
-      "epoch_number": "0"
+        "min_partial_withdrawal_amount": 100000000
+      }
     },
     "mint": {
       "params": {

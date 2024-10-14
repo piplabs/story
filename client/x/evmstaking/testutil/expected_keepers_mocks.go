@@ -20,7 +20,6 @@ import (
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	types2 "github.com/cosmos/cosmos-sdk/x/staking/types"
-	types3 "github.com/piplabs/story/client/x/epochs/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -545,21 +544,6 @@ func (mr *MockStakingKeeperMockRecorder) UBDQueueIterator(ctx, endTime any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UBDQueueIterator", reflect.TypeOf((*MockStakingKeeper)(nil).UBDQueueIterator), ctx, endTime)
 }
 
-// UnbondingTime mocks base method.
-func (m *MockStakingKeeper) UnbondingTime(ctx context.Context) (time.Duration, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnbondingTime", ctx)
-	ret0, _ := ret[0].(time.Duration)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UnbondingTime indicates an expected call of UnbondingTime.
-func (mr *MockStakingKeeperMockRecorder) UnbondingTime(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbondingTime", reflect.TypeOf((*MockStakingKeeper)(nil).UnbondingTime), ctx)
-}
-
 // ValidatorAddressCodec mocks base method.
 func (m *MockStakingKeeper) ValidatorAddressCodec() address.Codec {
 	m.ctrl.T.Helper()
@@ -722,42 +706,4 @@ func (m *MockDistributionKeeper) WithdrawValidatorCommission(ctx context.Context
 func (mr *MockDistributionKeeperMockRecorder) WithdrawValidatorCommission(ctx, valAddr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithdrawValidatorCommission", reflect.TypeOf((*MockDistributionKeeper)(nil).WithdrawValidatorCommission), ctx, valAddr)
-}
-
-// MockEpochsKeeper is a mock of EpochsKeeper interface.
-type MockEpochsKeeper struct {
-	ctrl     *gomock.Controller
-	recorder *MockEpochsKeeperMockRecorder
-}
-
-// MockEpochsKeeperMockRecorder is the mock recorder for MockEpochsKeeper.
-type MockEpochsKeeperMockRecorder struct {
-	mock *MockEpochsKeeper
-}
-
-// NewMockEpochsKeeper creates a new mock instance.
-func NewMockEpochsKeeper(ctrl *gomock.Controller) *MockEpochsKeeper {
-	mock := &MockEpochsKeeper{ctrl: ctrl}
-	mock.recorder = &MockEpochsKeeperMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockEpochsKeeper) EXPECT() *MockEpochsKeeperMockRecorder {
-	return m.recorder
-}
-
-// GetEpochInfo mocks base method.
-func (m *MockEpochsKeeper) GetEpochInfo(ctx context.Context, identifier string) (types3.EpochInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEpochInfo", ctx, identifier)
-	ret0, _ := ret[0].(types3.EpochInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetEpochInfo indicates an expected call of GetEpochInfo.
-func (mr *MockEpochsKeeperMockRecorder) GetEpochInfo(ctx, identifier any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochInfo", reflect.TypeOf((*MockEpochsKeeper)(nil).GetEpochInfo), ctx, identifier)
 }

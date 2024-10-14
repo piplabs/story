@@ -20,13 +20,12 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, epochIdentifier := uint32(1), uint32(2), uint64(3), types.DefaultEpochIdentifier
-	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, epochIdentifier)
+	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount := uint32(1), uint32(2), uint64(3)
+	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount)
 	// check values are set correctly
 	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(maxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(minPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
-	require.Equal(epochIdentifier, params.EpochIdentifier)
 }
 
 func (suite *ParamsTestSuite) TestDefaultParams() {
@@ -36,7 +35,6 @@ func (suite *ParamsTestSuite) TestDefaultParams() {
 	require.Equal(types.DefaultMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(types.DefaultMaxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
-	require.Equal(types.DefaultEpochIdentifier, params.EpochIdentifier)
 }
 
 func (suite *ParamsTestSuite) TestValidateMaxWithdrawalPerBlock() {
@@ -139,38 +137,6 @@ func (suite *ParamsTestSuite) TestValidateMinPartialWithdrawatAmount() {
 	for _, tc := range tcs {
 		suite.Run(tc.name, func() {
 			err := types.ValidateMinPartialWithdrawalAmount(tc.input)
-			if tc.expectedErr == "" {
-				require.NoError(err)
-			} else {
-				require.Error(err)
-				require.Contains(err.Error(), tc.expectedErr)
-			}
-		})
-	}
-}
-
-func (suite *ParamsTestSuite) TestValidateEpochIdentifier() {
-	require := suite.Require()
-
-	tcs := []struct {
-		name        string
-		input       string
-		expectedErr string
-	}{
-		{
-			name:  "valid value",
-			input: "hour",
-		},
-		{
-			name:        "empty epoch identifier",
-			input:       "",
-			expectedErr: "cannot be empty string for identifier",
-		},
-	}
-
-	for _, tc := range tcs {
-		suite.Run(tc.name, func() {
-			err := types.ValidateEpochIdentifier(tc.input)
 			if tc.expectedErr == "" {
 				require.NoError(err)
 			} else {

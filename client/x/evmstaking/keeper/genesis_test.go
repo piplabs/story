@@ -18,7 +18,6 @@ func (s *TestSuite) TestInitGenesis() {
 		MaxWithdrawalPerBlock:      validMaxWithdrawalPerBlock,
 		MaxSweepPerBlock:           validMaxsweepPerBlock,
 		MinPartialWithdrawalAmount: validMinPartialWithdrawalAmount,
-		EpochIdentifier:            types.DefaultEpochIdentifier,
 	}
 
 	// setup addresses and keys for testing
