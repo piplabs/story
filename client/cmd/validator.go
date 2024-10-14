@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -302,6 +300,9 @@ func newValidatorKeyExportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export the EVM private key from the Tendermint key file",
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
 		RunE: runValidatorCommand(
 			func() error { return nil },
 			func(ctx context.Context) error { return exportKey(ctx, cfg) },
@@ -349,51 +350,25 @@ func runValidatorCommand(
 }
 
 func exportKey(_ context.Context, cfg exportKeyConfig) error {
-	keyFileBytes, err := os.ReadFile(cfg.ValidatorKeyFile)
+	privKeyBytes, err := loadValidatorFile(cfg.ValidatorKeyFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to read key file")
+		return errors.Wrap(err, "failed to load validator key file")
 	}
 
-	var keyData ValidatorKey
-	if err := json.Unmarshal(keyFileBytes, &keyData); err != nil {
-		return errors.Wrap(err, "failed to unmarshal key file")
-	}
-
-	privKeyBytes, err := base64.StdEncoding.DecodeString(keyData.PrivKey.Value)
+	compressedPubKeyBytes, err := privKeyToCmpPubKey(privKeyBytes)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode private key")
+		return errors.Wrap(err, "failed to decode compressed pub key")
 	}
 
-	privateKey, err := crypto.ToECDSA(privKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "invalid private key")
-	}
-
-	publicKey, ok := privateKey.Public().(*ecdsa.PublicKey)
-	if !ok {
-		return errors.New("failed to cast public key to ecdsa.PublicKey")
-	}
-	evmPublicKey := crypto.PubkeyToAddress(*publicKey).Hex()
-
-	compressedPubKeyBytes, err := base64.StdEncoding.DecodeString(keyData.PubKey.Value)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 pub key")
-	}
-	compressedPubKeyHex := hex.EncodeToString(compressedPubKeyBytes)
-
-	uncompressedPubKeyHex, err := uncompressPubKey(keyData.PubKey.Value)
-	if err != nil {
+	if err := printKeyFormats(compressedPubKeyBytes); err != nil {
 		return err
 	}
 
-	fmt.Println("------------------------------------------------------")
-	fmt.Println("EVM Public Key:", evmPublicKey)
-	fmt.Println("Compressed Public Key (base64):", keyData.PubKey.Value)
-	fmt.Println("Compressed Public Key (hex):", compressedPubKeyHex)
-	fmt.Println("Uncompressed Public Key:", uncompressedPubKeyHex)
-	fmt.Println("------------------------------------------------------")
-
 	if cfg.ExportEVMKey {
+		privateKey, err := crypto.ToECDSA(privKeyBytes)
+		if err != nil {
+			return errors.Wrap(err, "invalid private key")
+		}
 		evmPrivateKey := hex.EncodeToString(crypto.FromECDSA(privateKey))
 		keyContent := "PRIVATE_KEY=" + evmPrivateKey
 		if err := os.WriteFile(cfg.EvmKeyFile, []byte(keyContent), 0600); err != nil {
@@ -408,23 +383,14 @@ func exportKey(_ context.Context, cfg exportKeyConfig) error {
 }
 
 func createValidator(ctx context.Context, cfg createValidatorConfig) error {
-	keyFileBytes, err := os.ReadFile(cfg.ValidatorKeyFile)
+	compressedPubKeyBytes, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
 	if err != nil {
-		return errors.Wrap(err, "invalid key file")
+		return errors.Wrap(err, "failed to extract compressed pub key")
 	}
 
-	var keyFileData ValidatorKey
-	if err := json.Unmarshal(keyFileBytes, &keyFileData); err != nil {
-		return errors.Wrap(err, "failed to unmarshal priv_validator_key.json")
-	}
-
-	uncompressedPubKeyHex, err := uncompressPubKey(keyFileData.PubKey.Value)
+	uncompressedPubKeyBytes, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
 	if err != nil {
 		return err
-	}
-	uncompressedPubKeyBytes, err := hex.DecodeString(uncompressedPubKeyHex)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode uncompressed public key hex")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -523,13 +489,14 @@ func stake(ctx context.Context, cfg stakeConfig) error {
 }
 
 func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
-	uncompressedDelegatorPubKeyHex, err := uncompressPubKey(cfg.DelegatorPubKey)
+	delegatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.DelegatorPubKey)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to decode base64 delegator public key")
 	}
-	uncompressedDelegatorPubKeyBytes, err := hex.DecodeString(uncompressedDelegatorPubKeyHex)
+
+	uncompressedDelegatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(delegatorPubKeyBytes)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode uncompressed delegator public key")
+		return errors.Wrap(err, "failed to uncompress delegator public key")
 	}
 
 	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)

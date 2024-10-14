@@ -120,6 +120,14 @@ func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 }
 
+func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
+	cmd.Flags().StringVar(&cfg.ValidatorKeyFile, "validator-key-file", "", "Path to the validator key file")
+	cmd.Flags().StringVar(&cfg.PrivateKeyFile, "private-key-file", "", "Path to the EVM private key env file")
+	cmd.Flags().StringVar(&cfg.PubKeyHex, "pubkey-hex", "", "Public key in hex format")
+	cmd.Flags().StringVar(&cfg.PubKeyBase64, "pubkey-base64", "", "Public key in base64 format")
+	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
+}
+
 func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
 }
