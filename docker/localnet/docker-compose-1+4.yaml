@@ -1,0 +1,68 @@
+services:
+  bootnode1:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: bootnode
+    volumes:
+      - ./config/1+4/bootnode1:/config
+      - ./binary:/binary
+    networks:
+      - local-node-test
+  validator1:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: validator
+    volumes:
+      - ./config/1+4/validator1:/config
+      - ./binary:/binary
+    networks:
+      - local-node-test
+  validator2:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: validator
+    volumes:
+      - ./config/1+4/validator2:/config
+      - ./binary:/binary
+    networks:
+      - local-node-test
+  validator3:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: validator
+    volumes:
+      - ./config/1+4/validator3:/config
+      - ./binary:/binary
+    networks:
+      - local-node-test
+  validator4:
+    platform: linux/amd64
+    image: local-node-test
+    build:
+      context: .
+      dockerfile: ./script/Dockerfile
+    environment:
+      TYPE: validator
+    volumes:
+      - ./config/1+4/validator4:/config
+      - ./binary:/binary
+    networks:
+      - local-node-test
+networks:
+  local-node-test:
