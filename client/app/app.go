@@ -92,7 +92,6 @@ func newApp(
 		&app.Keepers.ConsensusParamsKeeper,
 		&app.Keepers.GovKeeper,
 		&app.Keepers.UpgradeKeeper,
-		&app.Keepers.EpochsKeeper,
 		&app.Keepers.EvmStakingKeeper,
 		&app.Keepers.EVMEngKeeper,
 		&app.Keepers.MintKeeper,
