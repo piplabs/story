@@ -9,8 +9,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
 	"github.com/piplabs/story/client/x/signal/types"
 	"github.com/piplabs/story/lib/log"
 )
@@ -73,33 +71,6 @@ func NewKeeper(
 	}
 }
 
-// SignalVersion is a method required by the MsgServer interface.
-func (k Keeper) SignalVersion(ctx context.Context, req *types.MsgSignalVersion) (*types.MsgSignalVersionResponse, error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-
-	if k.IsUpgradePending(sdkCtx) {
-		return &types.MsgSignalVersionResponse{}, types.ErrUpgradePending.Wrapf("can not signal version")
-	}
-
-	valAddr, err := sdk.ValAddressFromBech32(req.ValidatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	// The signaled version can not be less than the current version.
-	currentVersion := sdkCtx.BlockHeader().Version.App
-	if req.Version < currentVersion {
-		return nil, types.ErrInvalidSignalVersion.Wrapf("signaled version %d, current version %d", req.Version, currentVersion)
-	}
-
-	if _, err := k.stakingKeeper.GetValidator(sdkCtx, valAddr); err != nil {
-		return nil, stakingtypes.ErrNoValidatorFound
-	}
-
-	k.SetValidatorVersion(sdkCtx, valAddr, req.Version)
-	return &types.MsgSignalVersionResponse{}, nil
-}
-
 // TryUpgrade is a method required by the MsgServer interface. It tallies the
 // voting power that has voted on each version. If one version has reached a
 // quorum, an upgrade is persisted to the store. The upgrade is used by the
@@ -111,7 +82,6 @@ func (k *Keeper) TryUpgrade(ctx context.Context, _ *types.MsgTryUpgrade) (*types
 		return &types.MsgTryUpgradeResponse{}, types.ErrUpgradePending.Wrapf("can not try upgrade")
 	}
 
-	threshold := k.GetVotingPowerThreshold(sdkCtx)
 	hasQuorum, version := k.TallyVotingPower(sdkCtx, threshold.Int64())
 	if hasQuorum {
 		if version <= sdkCtx.BlockHeader().Version.App {
@@ -123,68 +93,14 @@ func (k *Keeper) TryUpgrade(ctx context.Context, _ *types.MsgTryUpgrade) (*types
 		}
 		k.setUpgrade(sdkCtx, upgrade)
 	}
+
 	return &types.MsgTryUpgradeResponse{}, nil
-}
-
-// VersionTally enables a client to query for the tally of voting power has
-// signaled for a particular version.
-func (k Keeper) VersionTally(ctx context.Context, req *types.QueryVersionTallyRequest) (*types.QueryVersionTallyResponse, error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	totalVotingPower, err := k.stakingKeeper.GetLastTotalPower(ctx)
-	if err != nil {
-		return &types.QueryVersionTallyResponse{}, err
-	}
-	currentVotingPower := sdkmath.NewInt(0)
-
-	stores := k.storeService.OpenKVStore(ctx)
-	iterator, err := stores.Iterator(types.FirstSignalKey, nil)
-	if err != nil {
-		return &types.QueryVersionTallyResponse{}, err
-	}
-	defer iterator.Close()
-
-	for ; iterator.Valid(); iterator.Next() {
-		valAddress := sdk.ValAddress(iterator.Key())
-		power, err := k.stakingKeeper.GetLastValidatorPower(sdkCtx, valAddress)
-		if err != nil {
-			log.Error(ctx, "Failed to get last validator power", err)
-			continue
-		}
-		version := VersionFromBytes(iterator.Value())
-		if version == req.Version {
-			currentVotingPower = currentVotingPower.AddRaw(power)
-		}
-	}
-
-	threshold := k.GetVotingPowerThreshold(sdkCtx)
-
-	return &types.QueryVersionTallyResponse{
-		VotingPower:      currentVotingPower.Uint64(),
-		ThresholdPower:   threshold.Uint64(),
-		TotalVotingPower: totalVotingPower.Uint64(),
-	}, nil
-}
-
-// SetValidatorVersion saves a signaled version for a validator.
-func (k Keeper) SetValidatorVersion(ctx sdk.Context, valAddress sdk.ValAddress, version uint64) {
-	stores := k.storeService.OpenKVStore(ctx)
-	if err := stores.Set(valAddress, VersionToBytes(version)); err != nil {
-		panic(err)
-	}
-}
-
-// DeleteValidatorVersion deletes a signaled version for a validator.
-func (k Keeper) DeleteValidatorVersion(ctx sdk.Context, valAddress sdk.ValAddress) {
-	stores := k.storeService.OpenKVStore(ctx)
-	if err := stores.Delete(valAddress); err != nil {
-		panic(err)
-	}
 }
 
 // TallyVotingPower tallies the voting power for each version and returns true
 // and the version if any version has reached the quorum in voting power.
 // Returns false and 0 otherwise.
-func (k Keeper) TallyVotingPower(ctx sdk.Context, threshold int64) (bool, uint64) {
+func (k Keeper) TallyVotingPower(ctx sdk.Context) (bool, uint64) {
 	stores := k.storeService.OpenKVStore(ctx)
 	iterator, err := stores.Iterator(types.FirstSignalKey, nil)
 	if err != nil {
@@ -224,15 +140,20 @@ func (k Keeper) TallyVotingPower(ctx sdk.Context, threshold int64) (bool, uint64
 	return false, 0
 }
 
-// GetVotingPowerThreshold returns the voting power threshold required to
-// upgrade to a new version.
-func (k Keeper) GetVotingPowerThreshold(ctx sdk.Context) sdkmath.Int {
-	totalVotingPower, err := k.stakingKeeper.GetLastTotalPower(ctx)
-	if err != nil {
+// SetValidatorVersion saves a signaled version for a validator.
+func (k Keeper) SetValidatorVersion(ctx sdk.Context, valAddress sdk.ValAddress, version uint64) {
+	stores := k.storeService.OpenKVStore(ctx)
+	if err := stores.Set(valAddress, VersionToBytes(version)); err != nil {
 		panic(err)
 	}
-	thresholdFraction := Threshold(ctx.BlockHeader().Version.App)
-	return thresholdFraction.MulInt(totalVotingPower).Ceil().TruncateInt()
+}
+
+// DeleteValidatorVersion deletes a signaled version for a validator.
+func (k Keeper) DeleteValidatorVersion(ctx sdk.Context, valAddress sdk.ValAddress) {
+	stores := k.storeService.OpenKVStore(ctx)
+	if err := stores.Delete(valAddress); err != nil {
+		panic(err)
+	}
 }
 
 // ShouldUpgrade returns whether the signaling mechanism has concluded that the
@@ -251,24 +172,6 @@ func (k *Keeper) ShouldUpgrade(ctx sdk.Context) (isQuorumVersion bool, version u
 	return false, 0
 }
 
-// ResetTally resets the tally after a version change. It iterates over the
-// store and deletes all versions. It also resets the quorumVersion and
-// upgradeHeight to 0.
-func (k *Keeper) ResetTally(ctx sdk.Context) {
-	stores := k.storeService.OpenKVStore(ctx)
-	iterator, err := stores.Iterator(nil, nil)
-	if err != nil {
-		panic(err)
-	}
-	defer iterator.Close()
-	// delete the value in the upgrade key and all signals.
-	for ; iterator.Valid(); iterator.Next() {
-		if err := stores.Delete(iterator.Key()); err != nil {
-			panic(err)
-		}
-	}
-}
-
 func VersionToBytes(version uint64) []byte {
 	return binary.BigEndian.AppendUint64(nil, version)
 }
@@ -284,6 +187,13 @@ func (k Keeper) GetUpgrade(ctx context.Context, _ *types.QueryGetUpgradeRequest)
 		return &types.QueryGetUpgradeResponse{}, nil
 	}
 	return &types.QueryGetUpgradeResponse{Upgrade: &upgrade}, nil
+}
+
+func (k Keeper) ScheduleUpgrade(ctx sdk.Context, upgrade types.Upgrade) {
+	if k.IsUpgradePending(ctx) {
+		return
+	}
+	k.setUpgrade(ctx, upgrade)
 }
 
 // IsUpgradePending returns true if an app version has reached quorum and the

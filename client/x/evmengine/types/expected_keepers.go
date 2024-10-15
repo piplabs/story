@@ -2,8 +2,7 @@ package types
 
 import (
 	"context"
-
-	upgradetypes "cosmossdk.io/x/upgrade/types"
+	signaltypes "github.com/piplabs/story/client/x/signal/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -25,8 +24,8 @@ type EvmStakingKeeper interface {
 	PeekEligibleWithdrawals(ctx context.Context) (withdrawals ethtypes.Withdrawals, err error)
 }
 
-type UpgradeKeeper interface {
-	ScheduleUpgrade(ctx context.Context, plan upgradetypes.Plan) error
+type SignalKeeper interface {
+	ScheduleUpgrade(ctx context.Context, upgrade signaltypes.Upgrade)
 }
 
 type MintKeeper interface {

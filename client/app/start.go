@@ -116,6 +116,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		newSDKLogger(ctx),
 		db,
 		engineCl,
+		nil, // traceStore
 		baseAppOpts...,
 	)
 	if err != nil {

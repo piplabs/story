@@ -28,9 +28,6 @@ message MsgSignalVersion {
   uint64 version = 2;
 }
 
-// MsgSignalVersionResponse is the response type for the SignalVersion method.
-message MsgSignalVersionResponse {}
-
 // MsgTryUpgrade tries to upgrade the chain.
 message MsgTryUpgrade { string signer = 1; }
 

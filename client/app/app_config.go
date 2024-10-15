@@ -12,10 +12,8 @@ import (
 	slashingmodulev1 "cosmossdk.io/api/cosmos/slashing/module/v1"
 	stakingmodulev1 "cosmossdk.io/api/cosmos/staking/module/v1"
 	txconfigv1 "cosmossdk.io/api/cosmos/tx/config/v1"
-	upgrademodulev1 "cosmossdk.io/api/cosmos/upgrade/module/v1"
 	"cosmossdk.io/core/appconfig"
 	"cosmossdk.io/depinject"
-	upgradetypes "cosmossdk.io/x/upgrade/types"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -84,16 +82,10 @@ var (
 		govtypes.ModuleName,
 		minttypes.ModuleName,
 		genutiltypes.ModuleName,
-		upgradetypes.ModuleName,
 		// Story modules
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
 		signaltypes.ModuleName,
-	}
-
-	// NOTE: upgrade module must come first, as upgrades might break state schema.
-	preBlockers = []string{
-		upgradetypes.ModuleName,
 	}
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -198,10 +190,6 @@ var (
 			{
 				Name:   stakingtypes.ModuleName,
 				Config: appconfig.WrapAny(&stakingmodulev1.Module{}),
-			},
-			{
-				Name:   upgradetypes.ModuleName,
-				Config: appconfig.WrapAny(&upgrademodulev1.Module{}),
 			},
 			{
 				Name:   evmstakingtypes.ModuleName,
