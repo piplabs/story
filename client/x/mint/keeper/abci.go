@@ -9,6 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/x/mint/types"
+	"github.com/piplabs/story/lib/log"
 )
 
 // BeginBlocker mints new tokens for the previous block.
@@ -18,6 +19,12 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 	params, err := k.Params.Get(ctx)
 	if err != nil {
 		return err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	if sdkCtx.BlockHeight() <= int64(params.SingularityHeight) {
+		log.Debug(ctx, "Skip minting during singularity")
+		return nil
 	}
 
 	// mint coins, update supply
@@ -37,7 +44,6 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 		defer telemetry.ModuleSetGauge(types.ModuleName, float32(mintedCoin.Amount.Int64()), "minted_tokens")
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeMint,

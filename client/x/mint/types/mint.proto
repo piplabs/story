@@ -21,4 +21,6 @@ message Params {
   ];
   // expected blocks per year
   uint64 blocks_per_year = 3;
+  // the block height until singularity is activated
+  uint64 singularity_height = 4;
 }

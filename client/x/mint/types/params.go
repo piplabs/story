@@ -13,11 +13,12 @@ import (
 )
 
 // NewParams returns Params instance with the given values.
-func NewParams(mintDenom string, inflationsPerYear math.LegacyDec, blocksPerYear uint64) Params {
+func NewParams(mintDenom string, inflationsPerYear math.LegacyDec, blocksPerYear uint64, singularityHeight uint64) Params {
 	return Params{
 		MintDenom:         mintDenom,
 		InflationsPerYear: inflationsPerYear,
 		BlocksPerYear:     blocksPerYear,
+		SingularityHeight: singularityHeight,
 	}
 }
 
@@ -26,7 +27,8 @@ func DefaultParams() Params {
 	return Params{
 		MintDenom:         sdk.DefaultBondDenom,
 		InflationsPerYear: math.LegacyNewDec(24625000000000000.000000000000000000),
-		BlocksPerYear:     uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
+		BlocksPerYear:     uint64(60 * 60 * 8766 / 5), // assuming 5 seconds block times
+		SingularityHeight: 1209600,                    // 42 days with 3 seconds block time
 	}
 }
 
@@ -39,6 +41,9 @@ func (p Params) Validate() error {
 		return err
 	}
 	if err := validateBlocksPerYear(p.BlocksPerYear); err != nil {
+		return err
+	}
+	if err := validateSingularityHeight(p.SingularityHeight); err != nil {
 		return err
 	}
 
@@ -86,6 +91,19 @@ func validateBlocksPerYear(i interface{}) error {
 
 	if v == 0 {
 		return fmt.Errorf("blocks per year must be positive: %d", v)
+	}
+
+	return nil
+}
+
+func validateSingularityHeight(i interface{}) error {
+	v, ok := i.(uint64)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v == 0 {
+		return fmt.Errorf("singularity block height must be positive: %d", v)
 	}
 
 	return nil

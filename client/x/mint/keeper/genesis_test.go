@@ -65,6 +65,7 @@ func (s *GenesisTestSuite) TestImportExportGenesis() {
 		"testDenom",
 		math.LegacyNewDec(24625000000000000.000000000000000000),
 		uint64(60*60*8766/5),
+		10,
 	)
 
 	s.keeper.InitGenesis(s.sdkCtx, s.accountKeeper, genesisState)
