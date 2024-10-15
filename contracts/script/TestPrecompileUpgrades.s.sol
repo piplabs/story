@@ -23,19 +23,10 @@ abstract contract MockNewFeatures {
 contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
     constructor(
         uint256 stakingRounding,
-        uint32 defaultCommissionRate,
-        uint32 defaultMaxCommissionRate,
-        uint32 defaultMaxCommissionChangeRate,
         uint256 defaultMinUnjailFee
-    )
-        IPTokenStaking(
-            stakingRounding,
-            defaultCommissionRate,
-            defaultMaxCommissionRate,
-            defaultMaxCommissionChangeRate,
-            defaultMinUnjailFee
-        )
-    {}
+    ) IPTokenStaking(stakingRounding, defaultMinUnjailFee) {
+
+    }
 }
 
 contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
@@ -61,15 +52,10 @@ contract TestPrecompileUpgrades is Script {
         vm.startBroadcast(upgradeKey);
 
         // ---- Staking
-        address newImpl = address(
-            new IPTokenStakingV2(
-                1 gwei, // stakingRounding
-                1000, // defaultCommissionRate, 10%
-                5000, // defaultMaxCommissionRate, 50%
-                500, // defaultMaxCommissionChangeRate, 5%
-                1 ether
-            )
-        );
+        address newImpl = address(new IPTokenStakingV2(
+            1 gwei, // stakingRounding
+            1 ether
+        ));
         ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Staking));
         console2.log("staking proxy admin", address(proxyAdmin));
         console2.log("staking proxy admin owner", proxyAdmin.owner());
