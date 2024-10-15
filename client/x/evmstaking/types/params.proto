@@ -16,4 +16,8 @@ message Params {
   uint64 min_partial_withdrawal_amount = 3 [
     (gogoproto.moretags) = "yaml:\"min_partial_withdrawal_amount\""
   ];
+  // the block height until singularity is activated
+  uint64 singularity_height = 4 [
+    (gogoproto.moretags) = "yaml:\"singularity_height\""
+  ];
 }
