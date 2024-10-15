@@ -34,8 +34,8 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorCmpPubkey: pubKey.Bytes(),
-					ExecutionAddress:   [32]byte(paddedExecAddr),
+					DelegatorUncmpPubkey: cmpToUncmp(pubKey.Bytes()),
+					ExecutionAddress:     [32]byte(paddedExecAddr),
 				}
 			},
 			expectedError: "",
@@ -46,8 +46,8 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorCmpPubkey: pubKey.Bytes(),
-					ExecutionAddress:   [32]byte(paddedExecAddr),
+					DelegatorUncmpPubkey: cmpToUncmp(pubKey.Bytes()),
+					ExecutionAddress:     [32]byte(paddedExecAddr),
 				}
 			},
 			expectedError: "",
@@ -58,11 +58,11 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorCmpPubkey: invalidPubKey,
-					ExecutionAddress:   [32]byte(paddedExecAddr),
+					DelegatorUncmpPubkey: invalidPubKey,
+					ExecutionAddress:     [32]byte(paddedExecAddr),
 				}
 			},
-			expectedError: "depositor pubkey to cosmos",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 	}
 

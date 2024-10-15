@@ -287,7 +287,10 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 
-		msgDelegate := stypes.NewMsgDelegate("delAddr", "valAddr", sdk.NewInt64Coin("stake", 100))
+		msgDelegate := stypes.NewMsgDelegate(
+			"delAddr", "valAddr", sdk.NewInt64Coin("stake", 100),
+			stypes.FlexibleDelegationID, stypes.PeriodType_FLEXIBLE,
+		)
 		resp.Txs[0] = appendMsgToTx(t, txConfig, resp.Txs[0], msgDelegate)
 
 		// decode the txn and get the messages
@@ -606,7 +609,10 @@ type mockVEProvider struct{}
 
 func (m mockVEProvider) PrepareVotes(_ context.Context, _ abci.ExtendedCommitInfo) ([]sdk.Msg, error) {
 	coin := sdk.NewInt64Coin("stake", 100)
-	msg := stypes.NewMsgDelegate("addr", "addr", coin)
+	msg := stypes.NewMsgDelegate(
+		"addr", "addr", coin,
+		stypes.FlexibleDelegationID, stypes.PeriodType_FLEXIBLE,
+	)
 
 	return []sdk.Msg{msg}, nil
 }

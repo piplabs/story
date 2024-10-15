@@ -16,12 +16,20 @@ import (
 )
 
 func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
+	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress delegator pubkey")
+	}
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
+	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUnCmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress validator pubkey")
+	}
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -38,7 +46,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "delegator pubkey to evm address")
 	}
 
-	amountCoin, amountCoins := IPTokenToBondCoin(ev.Amount)
+	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
 	// Create account if not exists
 	if !k.authKeeper.HasAccount(ctx, depositorAddr) {
@@ -80,8 +88,25 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
+	var periodType stypes.PeriodType
+	switch ev.StakingPeriod.Int64() {
+	case int64(stypes.PeriodType_FLEXIBLE):
+		periodType = stypes.PeriodType_FLEXIBLE
+	case int64(stypes.PeriodType_THREE_MONTHS):
+		periodType = stypes.PeriodType_THREE_MONTHS
+	case int64(stypes.PeriodType_ONE_YEAR):
+		periodType = stypes.PeriodType_ONE_YEAR
+	case int64(stypes.PeriodType_EIGHTEEN_MONTHS):
+		periodType = stypes.PeriodType_EIGHTEEN_MONTHS
+	default:
+		return errors.New("invalid staking period")
+	}
+
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
-	msg := stypes.NewMsgDelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
+	msg := stypes.NewMsgDelegate(
+		depositorAddr.String(), validatorAddr.String(), amountCoin,
+		ev.DelegationId.String(), periodType,
+	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
 	if err != nil {
 		return errors.Wrap(err, "delegate")

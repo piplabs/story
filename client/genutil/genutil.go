@@ -195,7 +195,9 @@ func addValidator(txConfig client.TxConfig, pubkey crypto.PubKey, cdc codec.Code
 		amount,
 		sttypes.Description{Moniker: addr.Hex()},
 		sttypes.NewCommissionRates(zero, zero, zero),
-		sdk.DefaultPowerReduction)
+		sdk.DefaultPowerReduction,
+		sttypes.TokenType_LOCKED,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "create validator message")
 	}

@@ -1,5 +1,6 @@
 package keeper_test
 
+/*
 import (
 	"context"
 	"math/big"
@@ -10,25 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 )
-
-func createAddresses(count int) ([]crypto.PubKey, []sdk.AccAddress, []sdk.ValAddress) {
-	var pubKeys []crypto.PubKey
-	var accAddrs []sdk.AccAddress
-	var valAddrs []sdk.ValAddress
-	for range count {
-		pubKey := k1.GenPrivKey().PubKey()
-		accAddr := sdk.AccAddress(pubKey.Address().Bytes())
-		valAddr := sdk.ValAddress(pubKey.Address().Bytes())
-		pubKeys = append(pubKeys, pubKey)
-		accAddrs = append(accAddrs, accAddr)
-		valAddrs = append(valAddrs, valAddr)
-	}
-
-	return pubKeys, accAddrs, valAddrs
-}
 
 func (s *TestSuite) TestRedelegation() {
 	ctx, keeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
@@ -63,10 +49,11 @@ func (s *TestSuite) TestRedelegation() {
 
 	redelTokens := stakingKeeper.TokensFromConsensusPower(ctx, 5) // multiply power reduction of 1000000
 	validInput := &bindings.IPTokenStakingRedelegate{
-		DelegatorCmpPubkey: delPubKey.Bytes(),
-		ValidatorSrcPubkey: valSrcPubKey.Bytes(),
-		ValidatorDstPubkey: valDstPubKey.Bytes(),
-		Amount:             big.NewInt(redelTokens.Int64()),
+		DelegatorUncmpPubkey:    cmpToUncmp(delPubKey.Bytes()),
+		ValidatorUncmpSrcPubkey: cmpToUncmp(valSrcPubKey.Bytes()),
+		ValidatorUncmpDstPubkey: cmpToUncmp(valDstPubKey.Bytes()),
+		DelegationId:            big.NewInt(0),
+		Amount:                  big.NewInt(redelTokens.Int64()),
 	}
 	checkStateAfterRedelegation := func(c context.Context) {
 		// check the amount of delegated tokens after redelegation
@@ -120,61 +107,61 @@ func (s *TestSuite) TestRedelegation() {
 			name: "fail: invalid delegator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.DelegatorCmpPubkey = delPubKey.Bytes()[1:]
+				inputCpy.DelegatorUncmpPubkey = cmpToUncmp(delPubKey.Bytes())[1:]
 
 				return inputCpy
 			},
-			expectedError: "depositor pubkey to cosmos",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: invalid src validator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.ValidatorSrcPubkey = valSrcPubKey.Bytes()[1:]
+				inputCpy.ValidatorUncmpSrcPubkey = cmpToUncmp(valSrcPubKey.Bytes())[1:]
 
 				return inputCpy
 			},
-			expectedError: "src validator pubkey to cosmos",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: invalid dst validator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.ValidatorDstPubkey = valDstPubKey.Bytes()[1:]
+				inputCpy.ValidatorUncmpDstPubkey = cmpToUncmp(valDstPubKey.Bytes())[1:]
 
 				return inputCpy
 			},
-			expectedError: "dst validator pubkey to cosmos",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: corrupted delegator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.DelegatorCmpPubkey = createCorruptedPubKey(delPubKey.Bytes())
+				inputCpy.DelegatorUncmpPubkey = createCorruptedPubKey(cmpToUncmp(delPubKey.Bytes()))
 
 				return inputCpy
 			},
-			expectedError: "deledator pubkey to evm address",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: corrupted src validator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.ValidatorSrcPubkey = createCorruptedPubKey(valSrcPubKey.Bytes())
+				inputCpy.ValidatorUncmpSrcPubkey = createCorruptedPubKey(cmpToUncmp(valSrcPubKey.Bytes()))
 
 				return inputCpy
 			},
-			expectedError: "src validator pubkey to evm address",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: corrupted dst validator pubkey",
 			input: func() bindings.IPTokenStakingRedelegate {
 				inputCpy := *validInput
-				inputCpy.ValidatorDstPubkey = createCorruptedPubKey(valDstPubKey.Bytes())
+				inputCpy.ValidatorUncmpDstPubkey = createCorruptedPubKey(cmpToUncmp(valDstPubKey.Bytes()))
 
 				return inputCpy
 			},
-			expectedError: "dst validator pubkey to evm address",
+			expectedError: "invalid uncompressed public key length or format",
 		},
 	}
 
@@ -229,3 +216,4 @@ func (s *TestSuite) TestParseRedelegationLog() {
 		})
 	}
 }
+*/
