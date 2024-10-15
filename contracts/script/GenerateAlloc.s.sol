@@ -161,8 +161,8 @@ contract GenerateAlloc is Script {
         InitializableHelper.disableInitializers(impl);
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
             owner: protocolAdmin,
-            minStakeAmount: 1 ether,
-            minUnstakeAmount: 1 ether,
+            minStakeAmount: 1024 ether,
+            minUnstakeAmount: 1024 ether,
             minCommissionRate: 5_00, // 5% in basis points
             shortStakingPeriod: 1 days, // TBD
             mediumStakingPeriod: 2 days, // TBD
@@ -172,7 +172,6 @@ contract GenerateAlloc is Script {
 
         // Testnet timing values
         if (block.chainid != MAINNET_CHAIN_ID) {
-            args.minCommissionRate = 5_00 seconds;
             args.shortStakingPeriod = 10 seconds;
             args.mediumStakingPeriod = 15 seconds;
             args.longStakingPeriod = 20 seconds;
