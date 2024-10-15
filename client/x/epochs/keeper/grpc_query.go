@@ -23,16 +23,16 @@ func NewQuerier(k Keeper) Querier {
 	return Querier{Keeper: k}
 }
 
-// GetEpochInfos provide running epochInfos.
-func (q Querier) GetEpochInfos(ctx context.Context, _ *types.GetEpochInfosRequest) (*types.GetEpochInfosResponse, error) {
+// EpochInfos provide running epochInfos.
+func (q Querier) EpochInfos(ctx context.Context, _ *types.QueryEpochsInfoRequest) (*types.QueryEpochsInfoResponse, error) {
 	epochs, err := q.Keeper.AllEpochInfos(ctx)
-	return &types.GetEpochInfosResponse{
+	return &types.QueryEpochsInfoResponse{
 		Epochs: epochs,
 	}, err
 }
 
-// GetEpochInfo provide epoch info of specified identifier.
-func (q Querier) GetEpochInfo(ctx context.Context, req *types.GetEpochInfoRequest) (*types.GetEpochInfoResponse, error) {
+// CurrentEpoch provides current epoch of specified identifier.
+func (q Querier) CurrentEpoch(ctx context.Context, req *types.QueryCurrentEpochRequest) (*types.QueryCurrentEpochResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -40,12 +40,12 @@ func (q Querier) GetEpochInfo(ctx context.Context, req *types.GetEpochInfoReques
 		return nil, status.Error(codes.InvalidArgument, "identifier is empty")
 	}
 
-	info, err := q.Keeper.GetEpochInfo(ctx, req.Identifier)
+	info, err := q.Keeper.EpochInfo.Get(ctx, req.Identifier)
 	if err != nil {
 		return nil, errors.New("not available identifier")
 	}
 
-	return &types.GetEpochInfoResponse{
-		Epoch: info,
+	return &types.QueryCurrentEpochResponse{
+		CurrentEpoch: info.CurrentEpoch,
 	}, nil
 }

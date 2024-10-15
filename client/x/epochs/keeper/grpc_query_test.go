@@ -9,7 +9,7 @@ func (s *KeeperTestSuite) TestQueryEpochInfos() {
 	queryClient := s.queryClient
 
 	// Check that querying epoch infos on default genesis returns the default genesis epoch infos
-	epochInfosResponse, err := queryClient.GetEpochInfos(s.Ctx, &types.GetEpochInfosRequest{})
+	epochInfosResponse, err := queryClient.EpochInfos(s.Ctx, &types.QueryEpochsInfoRequest{})
 	s.Require().NoError(err)
 	s.Require().Len(epochInfosResponse.Epochs, 4)
 	expectedEpochs := types.DefaultGenesis().Epochs

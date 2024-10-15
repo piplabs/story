@@ -9,24 +9,24 @@ option go_package = "client/x/epochs/types";
 
 // Query defines the gRPC querier service.
 service Query {
-  // GetEpochInfos provide running epochInfos
-  rpc GetEpochInfos(GetEpochInfosRequest) returns (GetEpochInfosResponse) {
+  // EpochInfos provide running epochInfos
+  rpc EpochInfos(QueryEpochsInfoRequest) returns (QueryEpochsInfoResponse) {
     option (google.api.http).get = "/client/epochs/v1/epochs";
   }
-  // GetEpochInfo provide epochInfo of specified identifier
-  rpc GetEpochInfo(GetEpochInfoRequest) returns (GetEpochInfoResponse) {
-    option (google.api.http).get = "/client/epochs/v1/epoch";
+  // CurrentEpoch provide current epoch of specified identifier
+  rpc CurrentEpoch(QueryCurrentEpochRequest) returns (QueryCurrentEpochResponse) {
+    option (google.api.http).get = "/client/epochs/v1/current_epoch";
   }
 }
 
-message GetEpochInfosRequest {}
-message GetEpochInfosResponse {
+message QueryEpochsInfoRequest {}
+message QueryEpochsInfoResponse {
   repeated EpochInfo epochs = 1 [(gogoproto.nullable) = false];
 }
 
-message GetEpochInfoRequest {
+message QueryCurrentEpochRequest {
   string identifier = 1;
 }
-message GetEpochInfoResponse {
-  EpochInfo epoch = 1 [(gogoproto.nullable) = false];
+message QueryCurrentEpochResponse {
+  int64 current_epoch = 1;
 }
