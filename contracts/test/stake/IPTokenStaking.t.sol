@@ -8,7 +8,6 @@ pragma solidity ^0.8.23;
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
-import { Secp256k1 } from "../../src/libraries/Secp256k1.sol";
 import { Errors } from "../../src/libraries/Errors.sol";
 import { Test } from "../utils/Test.sol";
 
@@ -334,7 +333,7 @@ contract IPTokenStakingTest is Test {
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegate{ value: stakeAmount }(
             delegatorUncmpPubkey,
-            hex"04e38d15ae6cc5d41cce27a2307903cb",
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
             validatorUncmpDstPubkey,
             delegationId,
             stakeAmount
@@ -346,7 +345,7 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.redelegate{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
-            hex"04e38d15ae6cc5d41cce27a2307903cb",
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
             delegationId,
             stakeAmount
         );

@@ -6,22 +6,21 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
-import { Secp256k1 } from "../libraries/Secp256k1.sol";
 import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
- * @dev This contract is a sort of "bridge" to request validator related actions on the consensus chain. The response will
- * happen on the consensus chain.
+ * @dev This contract is a sort of "bridge" to request validator related actions on the consensus chain.
+ * The response will happen on the consensus chain.
  * Since most of the validator related actions are executed on the consensus chain, the methods in this contract
  * must be considered requests and not final actions, a successful transaction here does not guarantee the success
  * of the transaction on the consensus chain.
  * NOTE: All $IP tokens staked to this contract will be burned (transferred to the zero address).
  * The flow is as follows:
  * 1. User calls a method in this contract, which will emit an event if checks pass.
- * 2. Modules on the consensus chain are listening for these events and execute the corresponding logic (e.g. staking, create
- * validator, etc.), minting tokens in CL if needed.
+ * 2. Modules on the consensus chain are listening for these events and execute the corresponding logic
+ * (e.g. staking, create validator, etc.), minting tokens in CL if needed.
  * 3. If the action fails in CL, for example staking on a validator that doesn't exist, the deposited $IP tokens will be
  * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
  * transaction of step 2 would not have reverted.
@@ -364,7 +363,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _refundRemainder(remainder);
     }
 
-
     // TODO: update validator method (next version)
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -526,7 +524,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
-
     function _unstake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -569,7 +566,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Emits the Unjail event after burning the fee and burns the fee from the caller.
     /// @param fee The fee to unjail the validator.
     /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
-    /// @param data Additional data for the unjail. 
+    /// @param data Additional data for the unjail.
     function _unjail(uint256 fee, bytes calldata validatorUncmpPubkey, bytes calldata data) private {
         if (fee != unjailFee) {
             revert Errors.IPTokenStaking__InvalidFeeAmount();
@@ -583,7 +580,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Refunds the remainder of the stake amount to the msg sender.
-    /// WARNING: Methods using this function should have nonReentrant modifier 
+    /// WARNING: Methods using this function should have nonReentrant modifier
     /// to prevent potential reentrancy attacks.
     /// @param remainder The remainder of the stake amount.
     function _refundRemainder(uint256 remainder) private {

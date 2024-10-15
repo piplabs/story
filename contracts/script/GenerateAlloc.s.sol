@@ -146,10 +146,12 @@ contract GenerateAlloc is Script {
     function setStaking() internal {
         address impl = Predeploys.getImplAddress(Predeploys.Staking);
 
-        address tmp = address(new IPTokenStaking(
-            1 gwei, // stakingRounding
-            1 ether // defaultMinUnjailFee, 1 IP
-        ));
+        address tmp = address(
+            new IPTokenStaking(
+                1 gwei, // stakingRounding
+                1 ether // defaultMinUnjailFee, 1 IP
+            )
+        );
         console2.log("tpm", tmp);
         vm.etch(impl, tmp.code);
 
