@@ -146,9 +146,6 @@ contract GenerateAlloc is Script {
 
         address tmp = address(new IPTokenStaking(
             1 gwei, // stakingRounding
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500, // defaultMaxCommissionChangeRate, 5%,
             1 ether // defaultMinUnjailFee, 1 IP
         ));
         console2.log("tpm", tmp);
@@ -164,16 +161,16 @@ contract GenerateAlloc is Script {
             accessManager: protocolAdmin,
             minStakeAmount: 1 ether,
             minUnstakeAmount: 1 ether,
-            withdrawalAddressChangeInterval: 7 days,
-            shortStakingPeriod: 10 days, // TODO: Not final numbers
-            mediumStakingPeriod: 123 days,
-            longStakingPeriod: 456 days,
+            minCommissionRate: 5_00, // 5% in basis points
+            shortStakingPeriod: 1 days, // TBD
+            mediumStakingPeriod: 2 days, // TBD
+            longStakingPeriod: 3 days, // TBD
             unjailFee: 1 ether
         });
 
         // Testnet timing values
         if (block.chainid != MAINNET_CHAIN_ID) {
-            args.withdrawalAddressChangeInterval = 5 seconds;
+            args.minCommissionRate = 5_00 seconds;
             args.shortStakingPeriod = 10 seconds;
             args.mediumStakingPeriod = 15 seconds;
             args.longStakingPeriod = 20 seconds;

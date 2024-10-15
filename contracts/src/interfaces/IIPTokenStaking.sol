@@ -13,7 +13,7 @@ interface IIPTokenStaking {
         address accessManager;
         uint256 minStakeAmount;
         uint256 minUnstakeAmount;
-        uint256 withdrawalAddressChangeInterval;
+        uint256 minCommissionRate;
         uint32 shortStakingPeriod;
         uint32 mediumStakingPeriod;
         uint32 longStakingPeriod;
@@ -51,7 +51,7 @@ interface IIPTokenStaking {
 
     /// @notice Emitted when a user deposits token into the contract.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUnCmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
     event Deposit(
         bytes delegatorUncmpPubkey,
@@ -64,8 +64,8 @@ interface IIPTokenStaking {
     );
 
     /// @notice Emitted when a user withdraws her stake and starts the unbonding period.
-    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUnCmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
     event Withdraw(
         bytes delegatorUncmpPubkey,
@@ -76,6 +76,23 @@ interface IIPTokenStaking {
         bytes data
     );
 
+    /// @notice Emitted when a user triggers redelegation of token from source validator to destination validator.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpSrcPubkey Source validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpDstPubkey Destination validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param amount Token redelegated.
+    event Redelegate(bytes delegatorUncmpPubkey, bytes validatorUncmpSrcPubkey, bytes validatorUncmpDstPubkey, uint256 amount);
+
+    /// @notice Emitted to request adding an operator address to a validator
+    /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param operator address
+    event AddOperator(bytes uncmpPubkey, address operator);
+
+    /// @notice Emitted to request removing an operator address to a validator
+    /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param operator address
+    event RemoveOperator(bytes uncmpPubkey, address operator);
+
     /// @notice Emitted when the minimum stake amount is set.
     /// @param minStakeAmount The new minimum stake amount.
     event MinStakeAmountSet(uint256 minStakeAmount);
@@ -83,6 +100,8 @@ interface IIPTokenStaking {
     /// @notice Emitted when the minimum unstake amount is set.
     /// @param minUnstakeAmount The new minimum unstake amount.
     event MinUnstakeAmountSet(uint256 minUnstakeAmount);
+
+    event MinCommissionRateChanged(uint256 minCommissionRate);
 
     /// @notice Emitted when the unbonding period is set.
     /// @param newInterval The new unbonding period.
@@ -95,10 +114,6 @@ interface IIPTokenStaking {
     /// @return amount The rounded stake amount.
     /// @return remainder The remainder of the stake amount.
     function roundedStakeAmount(uint256 rawAmount) external view returns (uint256 amount, uint256 remainder);
-
-    /// @notice Returns the operators for the delegator.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function getOperators(bytes calldata uncmpPubkey) external view returns (address[] memory);
 
     /// @notice Adds an operator for the delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
@@ -138,6 +153,10 @@ interface IIPTokenStaking {
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
     function createValidatorOnBehalf(
         bytes calldata validatorUncmpPubkey,
+        string calldata moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
         bool isLocked,
         bytes calldata data
     ) external payable;
@@ -168,6 +187,13 @@ interface IIPTokenStaking {
         IIPTokenStaking.StakingPeriod stakingPeriod,
         bytes calldata data
     ) external payable returns (uint256 delegationId);
+
+    function redelegate(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 amount
+    ) external payable;
 
     /// @notice Entry point for unstaking the previously staked token.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
