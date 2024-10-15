@@ -6,26 +6,36 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
-import { Secp256k1 } from "../libraries/Secp256k1.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
+ * @dev This contract is a sort of "bridge" to request validator related actions on the consensus chain.
+ * The response will happen on the consensus chain.
+ * Since most of the validator related actions are executed on the consensus chain, the methods in this contract
+ * must be considered requests and not final actions, a successful transaction here does not guarantee the success
+ * of the transaction on the consensus chain.
+ * NOTE: All $IP tokens staked to this contract will be burned (transferred to the zero address).
+ * The flow is as follows:
+ * 1. User calls a method in this contract, which will emit an event if checks pass.
+ * 2. Modules on the consensus chain are listening for these events and execute the corresponding logic
+ * (e.g. staking, create validator, etc.), minting tokens in CL if needed.
+ * 3. If the action fails in CL, for example staking on a validator that doesn't exist, the deposited $IP tokens will be
+ * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
+ * transaction of step 2 would not have reverted.
  */
 contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    /// @notice Default commission rate for a validator. Out of 100%, or 10_000.
-    uint32 public immutable DEFAULT_COMMISSION_RATE;
-
-    /// @notice Default maximum commission rate for a validator. Out of 100%, or 10_000.
-    uint32 public immutable DEFAULT_MAX_COMMISSION_RATE;
-
-    /// @notice Default maximum commission change rate for a validator. Out of 100%, or 10_000.
-    uint32 public immutable DEFAULT_MAX_COMMISSION_CHANGE_RATE;
-
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
+
+    /// @notice Default minimum unjail fee
+    uint256 public immutable DEFAULT_MIN_UNJAIL_FEE;
+
+    /// @notice Global minimum commission rate for validators
+    uint256 public minCommissionRate;
 
     /// @notice Minimum amount required to stake.
     uint256 public minStakeAmount;
@@ -33,110 +43,70 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Minimum amount required to unstake.
     uint256 public minUnstakeAmount;
 
-    /// @notice Minimum amount required to redelegate.
-    uint256 public minRedelegateAmount;
+    /// @notice Counter to generate delegationIds for delegations with period.
+    /// @dev Starts in 1, since 0 is reserved for flexible delegations.
+    uint256 private _delegationIdCounter;
 
-    /// @notice The interval between changing the withdrawal address for each delegator
-    uint256 public withdrawalAddressChangeInterval;
+    /// @notice The fee paid to unjail a validator.
+    uint256 public unjailFee;
 
-    /// @notice Validator's metadata.
-    /// @dev Validator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes validatorCmpPubkey => ValidatorMetadata metadata) public validatorMetadata;
-
-    /// @notice Delegator's total staked amount.
-    /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes delegatorCmpPubkey => uint256 stakedAmount) public delegatorTotalStakes;
-
-    /// @notice Delegator's staked amount for the given validator.
-    /// @dev Delegator and validator public keys are 33-byte compressed Secp256k1 public keys.
-    mapping(bytes delegatorCmpPubkey => mapping(bytes validatorCmpPubkey => uint256 stakedAmount))
-        public delegatorValidatorStakes;
-
-    /// @notice Approved operators for delegators.
-    /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes delegatorCmpPubkey => EnumerableSet.AddressSet operators) private delegatorOperators;
-
-    /// @notice The timestamp of last withdrawal address changes for each delegator.
-    /// @dev Delegator public key is a 33-byte compressed Secp256k1 public key.
-    mapping(bytes delegatorCmpPubkey => uint256 lastChange) public withdrawalAddressChange;
-
-    constructor(
-        uint256 stakingRounding,
-        uint32 defaultCommissionRate,
-        uint32 defaultMaxCommissionRate,
-        uint32 defaultMaxCommissionChangeRate
-    ) {
-        STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
-        require(defaultCommissionRate <= 10_000, "IPTokenStaking: Invalid default commission rate");
-        DEFAULT_COMMISSION_RATE = defaultCommissionRate; // Recommended: 10%, or 1_000 / 10_000
-
-        require(
-            defaultMaxCommissionRate >= DEFAULT_COMMISSION_RATE && defaultMaxCommissionRate <= 10_000,
-            "IPTokenStaking: Invalid default max commission rate"
-        );
-        DEFAULT_MAX_COMMISSION_RATE = defaultMaxCommissionRate; // Recommended: 50%, or 5_000 / 10_000
-
-        require(defaultMaxCommissionChangeRate <= 10_000, "IPTokenStaking: Invalid default max commission change rate");
-        DEFAULT_MAX_COMMISSION_CHANGE_RATE = defaultMaxCommissionChangeRate; // Recommended: 5%, or 500 / 10_000
-
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract.
-    function initialize(
-        address accessManager,
-        uint256 _minStakeAmount,
-        uint256 _minUnstakeAmount,
-        uint256 _minRedelegateAmount,
-        uint256 _withdrawalAddressChangeInterval
-    ) public initializer {
-        __ReentrancyGuard_init();
-        __Ownable_init(accessManager);
-        _setMinStakeAmount(_minStakeAmount);
-        _setMinUnstakeAmount(_minUnstakeAmount);
-        _setMinRedelegateAmount(_minRedelegateAmount);
-        _setWithdrawalAddressChangeInterval(_withdrawalAddressChangeInterval);
-    }
-
-    /// @notice Verifies that the syntax of the given public key is a 33 byte compressed secp256k1 public key.
-    modifier verifyPubkey(bytes calldata pubkey) {
-        require(pubkey.length == 33, "IPTokenStaking: Invalid pubkey length");
-        require(pubkey[0] == 0x02 || pubkey[0] == 0x03, "IPTokenStaking: Invalid pubkey prefix");
-        _;
-    }
+    /// @notice Staking periods and their corresponding durations
+    mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) public stakingDurations;
 
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
-        require(uncmpPubkey.length == 65, "IPTokenStaking: Invalid pubkey length");
-        require(uncmpPubkey[0] == 0x04, "IPTokenStaking: Invalid pubkey prefix");
+        if (uncmpPubkey.length != 65) {
+            revert Errors.IPTokenStaking__InvalidPubkeyLength();
+        }
+        if (uncmpPubkey[0] != 0x04) {
+            revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
+        }
         _;
     }
 
     /// @notice Verifies that the given 65 byte uncompressed secp256k1 public key (with 0x04 prefix) is valid and
     /// matches the expected EVM address.
     modifier verifyUncmpPubkeyWithExpectedAddress(bytes calldata uncmpPubkey, address expectedAddress) {
-        require(uncmpPubkey.length == 65, "IPTokenStaking: Invalid pubkey length");
-        require(uncmpPubkey[0] == 0x04, "IPTokenStaking: Invalid pubkey prefix");
-        require(
-            _uncmpPubkeyToAddress(uncmpPubkey) == expectedAddress,
-            "IPTokenStaking: Invalid pubkey derived address"
-        );
+        if (uncmpPubkey.length != 65) {
+            revert Errors.IPTokenStaking__InvalidPubkeyLength();
+        }
+        if (uncmpPubkey[0] != 0x04) {
+            revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
+        }
+        if (_uncmpPubkeyToAddress(uncmpPubkey) != expectedAddress) {
+            revert Errors.IPTokenStaking__InvalidPubkeyDerivedAddress();
+        }
         _;
     }
 
-    /// @notice Verifies that the validator with the given pubkey exists.
-    modifier verifyExistingValidator(bytes calldata validatorCmpPubkey) {
-        require(validatorCmpPubkey.length == 33, "IPTokenStaking: Invalid pubkey length");
-        require(
-            validatorCmpPubkey[0] == 0x02 || validatorCmpPubkey[0] == 0x03,
-            "IPTokenStaking: Invalid pubkey prefix"
-        );
-        require(validatorMetadata[validatorCmpPubkey].exists, "IPTokenStaking: Validator does not exist");
-        _;
+    constructor(uint256 stakingRounding, uint256 defaultMinUnjailFee) {
+        if (stakingRounding == 0) {
+            revert Errors.IPTokenStaking__ZeroStakingRounding();
+        }
+        STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
+        if (defaultMinUnjailFee < 1 gwei) {
+            revert Errors.IPTokenStaking__InvalidDefaultMinUnjailFee();
+        }
+        DEFAULT_MIN_UNJAIL_FEE = defaultMinUnjailFee;
+
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract.
+    /// @dev Only callable once at proxy deployment.
+    /// @param args The initializer arguments.
+    function initialize(IIPTokenStaking.InitializerArgs calldata args) public initializer {
+        __ReentrancyGuard_init();
+        __Ownable_init(args.owner);
+        _setMinStakeAmount(args.minStakeAmount);
+        _setMinUnstakeAmount(args.minUnstakeAmount);
+        _setMinCommissionRate(args.minCommissionRate);
+        _setStakingPeriods(args.shortStakingPeriod, args.mediumStakingPeriod, args.longStakingPeriod);
+        _setUnjailFee(args.unjailFee);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
-    //                             Setters/Getters                            //
+    //                       Admin Setters/Getters                            //
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Sets the minimum amount required to stake.
@@ -151,20 +121,62 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(newMinUnstakeAmount);
     }
 
-    /// @dev Sets the minimum amount required to redelegate.
-    /// @param newMinRedelegateAmount The minimum amount required to redelegate.
-    function setMinRedelegateAmount(uint256 newMinRedelegateAmount) external onlyOwner {
-        _setMinRedelegateAmount(newMinRedelegateAmount);
+    /// @dev Sets the staking periods and their corresponding durations.
+    /// @param short The duration of the short staking period.
+    /// @param medium The duration of the medium staking period.
+    /// @param long The duration of the long staking period.
+    function setStakingPeriods(uint32 short, uint32 medium, uint32 long) external onlyOwner {
+        _setStakingPeriods(short, medium, long);
     }
 
-    /// @dev Sets the interval for updating the withdrawal address.
-    /// @param newWithdrawalAddressChangeInterval The interval between updating the withdrawal address.
-    function setWithdrawalAddressChangeInterval(uint256 newWithdrawalAddressChangeInterval) external onlyOwner {
-        _setWithdrawalAddressChangeInterval(newWithdrawalAddressChangeInterval);
+    /// @notice Sets the unjail fee.
+    /// @param newUnjailFee The new unjail fee.
+    function setUnjailFee(uint256 newUnjailFee) external onlyOwner {
+        _setUnjailFee(newUnjailFee);
     }
 
+    /// @notice Sets the global minimum commission rate for validators.
+    /// @param newValue The new minimum commission rate.
+    function setMinCommissionRate(uint256 newValue) external onlyOwner {
+        _setMinCommissionRate(newValue);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                            Internal setters                            //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Sets the staking periods and their corresponding durations.
+    function _setStakingPeriods(uint32 short, uint32 medium, uint32 long) private {
+        if (short == 0) {
+            revert Errors.IPTokenStaking__ZeroShortPeriodDuration();
+        }
+        if (short >= medium) {
+            revert Errors.IPTokenStaking__ShortPeriodLongerThanMedium();
+        }
+        if (medium >= long) {
+            revert Errors.IPTokenStaking__MediumLongerThanLong();
+        }
+        stakingDurations[IIPTokenStaking.StakingPeriod.SHORT] = short;
+        stakingDurations[IIPTokenStaking.StakingPeriod.MEDIUM] = medium;
+        stakingDurations[IIPTokenStaking.StakingPeriod.LONG] = long;
+        emit StakingPeriodsChanged(short, medium, long);
+    }
+
+    /// @dev Sets the unjail fee.
+    function _setUnjailFee(uint256 newUnjailFee) private {
+        if (newUnjailFee < DEFAULT_MIN_UNJAIL_FEE) {
+            revert Errors.IPTokenStaking__InvalidMinUnjailFee();
+        }
+        unjailFee = newUnjailFee;
+        emit UnjailFeeSet(newUnjailFee);
+    }
+
+    /// @dev Sets the minimum amount required to stake.
+    /// @param newMinStakeAmount The minimum amount required to stake.
     function _setMinStakeAmount(uint256 newMinStakeAmount) private {
-        require(newMinStakeAmount > 0, "IPTokenStaking: minStakeAmount cannot be 0");
+        if (newMinStakeAmount == 0) {
+            revert Errors.IPTokenStaking__ZeroMinStakeAmount();
+        }
         minStakeAmount = newMinStakeAmount - (newMinStakeAmount % STAKE_ROUNDING);
         emit MinStakeAmountSet(minStakeAmount);
     }
@@ -172,28 +184,297 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Sets the minimum amount required to withdraw.
     /// @param newMinUnstakeAmount The minimum amount required to stake.
     function _setMinUnstakeAmount(uint256 newMinUnstakeAmount) private {
-        require(newMinUnstakeAmount > 0, "IPTokenStaking: minUnstakeAmount cannot be 0");
+        if (newMinUnstakeAmount == 0) {
+            revert Errors.IPTokenStaking__ZeroMinUnstakeAmount();
+        }
         minUnstakeAmount = newMinUnstakeAmount - (newMinUnstakeAmount % STAKE_ROUNDING);
         emit MinUnstakeAmountSet(minUnstakeAmount);
     }
 
-    /// @dev Sets the minimum amount required to redelegate.
-    /// @param newMinRedelegateAmount The minimum amount required to redelegate.
-    function _setMinRedelegateAmount(uint256 newMinRedelegateAmount) private {
-        require(newMinRedelegateAmount > 0, "IPTokenStaking: minRedelegateAmount cannot be 0");
-        minRedelegateAmount = newMinRedelegateAmount - (newMinRedelegateAmount % STAKE_ROUNDING);
-        emit MinRedelegateAmountSet(minRedelegateAmount);
+    /// @dev Sets the minimum glolbal commission rate for validators.
+    /// @param newValue The new minimum commission rate.
+    function _setMinCommissionRate(uint256 newValue) private {
+        if (newValue == 0) {
+            revert Errors.IPTokenStaking__ZeroMinCommissionRate();
+        }
+        minCommissionRate = newValue;
+        emit MinCommissionRateChanged(newValue);
     }
 
-    /// @dev Sets the interval for updating the withdrawal address.
-    /// @param newWithdrawalAddressChangeInterval The interval between updating the withdrawal address.
-    function _setWithdrawalAddressChangeInterval(uint256 newWithdrawalAddressChangeInterval) private {
-        require(
-            newWithdrawalAddressChangeInterval > 0,
-            "IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0"
+    /*//////////////////////////////////////////////////////////////////////////
+    //                            Operator functions                          //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Adds an operator for a delegator.
+    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param operator The operator address to add.
+    function addOperator(
+        bytes calldata uncmpPubkey,
+        address operator
+    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+        emit AddOperator(uncmpPubkey, operator);
+    }
+
+    /// @notice Removes an operator for a delegator.
+    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param operator The operator address to remove.
+    function removeOperator(
+        bytes calldata uncmpPubkey,
+        address operator
+    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+        emit RemoveOperator(uncmpPubkey, operator);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                     Staking Configuration functions                    //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Set/Update the withdrawal address that receives the withdrawals.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param newWithdrawalAddress EVM address to receive the  withdrawals.
+    function setWithdrawalAddress(
+        bytes calldata delegatorUncmpPubkey,
+        address newWithdrawalAddress
+    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+        emit SetWithdrawalAddress({
+            delegatorUncmpPubkey: delegatorUncmpPubkey,
+            executionAddress: bytes32(uint256(uint160(newWithdrawalAddress))) // left-padded bytes32 of the address
+        });
+    }
+
+    /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
+    /// @dev To prevent spam, only delegators with stake can call this function with cool-down time.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param newRewardsAddress EVM address to receive the stake and reward withdrawals.
+    function setRewardsAddress(
+        bytes calldata delegatorUncmpPubkey,
+        address newRewardsAddress
+    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+        emit SetRewardAddress({
+            delegatorUncmpPubkey: delegatorUncmpPubkey,
+            executionAddress: bytes32(uint256(uint160(newRewardsAddress))) // left-padded bytes32 of the address
+        });
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                          Validator Creation                            //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Entry point for creating a new validator with self delegation.
+    /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.
+    /// Use this method to make sure the caller is the owner of the validator.
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param moniker The moniker of the validator.
+    /// @param commissionRate The commission rate of the validator.
+    /// @param maxCommissionRate The maximum commission rate of the validator.
+    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
+    function createValidator(
+        bytes calldata validatorUncmpPubkey,
+        string calldata moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
+        bool supportsUnlocked,
+        bytes calldata data
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) nonReentrant {
+        _createValidator(
+            validatorUncmpPubkey,
+            moniker,
+            commissionRate,
+            maxCommissionRate,
+            maxCommissionChangeRate,
+            supportsUnlocked,
+            data
         );
-        withdrawalAddressChangeInterval = newWithdrawalAddressChangeInterval;
-        emit WithdrawalAddressChangeIntervalSet(newWithdrawalAddressChangeInterval);
+    }
+
+    /// @notice Entry point for creating a new validator on behalf of someone else.
+    /// WARNING: If validatorUncmpPubkey is wrong, the stake will go to an address that the sender
+    /// won't be able to control and unstake from, funds will be lost. If you want to make sure the
+    /// caller is the owner of the validator, use createValidator instead.
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param moniker The moniker of the validator.
+    /// @param commissionRate The commission rate of the validator.
+    /// @param maxCommissionRate The maximum commission rate of the validator.
+    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
+    function createValidatorOnBehalf(
+        bytes calldata validatorUncmpPubkey,
+        string calldata moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
+        bool supportsUnlocked,
+        bytes calldata data
+    ) external payable verifyUncmpPubkey(validatorUncmpPubkey) nonReentrant {
+        _createValidator(
+            validatorUncmpPubkey,
+            moniker,
+            commissionRate,
+            maxCommissionRate,
+            maxCommissionChangeRate,
+            supportsUnlocked,
+            data
+        );
+    }
+
+    /// @dev Validator is the delegator when creating a new validator (self-delegation).
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param moniker The moniker of the validator.
+    /// @param commissionRate The commission rate of the validator.
+    /// @param maxCommissionRate The maximum commission rate of the validator.
+    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
+    function _createValidator(
+        bytes calldata validatorUncmpPubkey,
+        string memory moniker,
+        uint32 commissionRate,
+        uint32 maxCommissionRate,
+        uint32 maxCommissionChangeRate,
+        bool supportsUnlocked,
+        bytes calldata data
+    ) internal {
+        (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
+        if (stakeAmount < minStakeAmount) {
+            revert Errors.IPTokenStaking__StakeAmountUnderMin();
+        }
+        if (commissionRate < minCommissionRate) {
+            revert Errors.IPTokenStaking__CommissionRateUnderMin();
+        }
+        if (commissionRate > maxCommissionRate) {
+            revert Errors.IPTokenStaking__CommissionRateOverMax();
+        }
+        payable(address(0)).transfer(stakeAmount);
+        emit CreateValidator(
+            validatorUncmpPubkey,
+            moniker,
+            stakeAmount,
+            commissionRate,
+            maxCommissionRate,
+            maxCommissionChangeRate,
+            supportsUnlocked ? 1 : 0,
+            msg.sender,
+            data
+        );
+        _refundRemainder(remainder);
+    }
+
+    // TODO: update validator method (next version)
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                             Token Staking                              //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Entry point to stake (delegate) to the given validator. The consensus client (CL) is notified of
+    /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
+    /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
+    /// withdrawal queue.
+    /// This method will revert if delegatorUncmpPubkey is not the sender of the validator.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
+    function stake(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
+    )
+        external
+        payable
+        override
+        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        nonReentrant
+        returns (uint256 delegationId)
+    {
+        return _stake(delegatorUncmpPubkey, validatorUncmpPubkey, stakingPeriod, data);
+    }
+
+    /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
+    /// the stake and manages the stake accounting and validator onboarding. Payer can stake on behalf of another user,
+    /// who will be the beneficiary of the stake.
+    /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
+    /// withdrawal queue.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
+    function stakeOnBehalf(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
+    ) external payable verifyUncmpPubkey(delegatorUncmpPubkey) nonReentrant returns (uint256 delegationId) {
+        return _stake(delegatorUncmpPubkey, validatorUncmpPubkey, stakingPeriod, data);
+    }
+
+    /// @dev Creates a validator (x/staking.MsgCreateValidator) if it does not exist. Then delegates the stake to the
+    /// validator (x/staking.MsgDelegate).
+    /// @param delegatorUncmpPubkey Delegator's 65 byte uncompressed secp256k1 public key (no 0x04 prefix).
+    /// @param validatorUncmpPubkey 33 byte compressed secp256k1 public key (no 0x04 prefix).
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
+    function _stake(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
+    ) internal returns (uint256) {
+        (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
+        if (stakeAmount < minStakeAmount) {
+            revert Errors.IPTokenStaking__StakeAmountUnderMin();
+        }
+        uint32 duration = 0;
+        uint256 delegationId = 0;
+        if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
+            delegationId = ++_delegationIdCounter;
+            duration = stakingDurations[stakingPeriod];
+        }
+        emit Deposit(delegatorUncmpPubkey, validatorUncmpPubkey, stakeAmount, duration, delegationId, msg.sender, data);
+        // We burn staked tokens
+        payable(address(0)).transfer(stakeAmount);
+
+        _refundRemainder(remainder);
+
+        return delegationId;
+    }
+
+    /// @notice Entry point for redelegating the stake to another validator.
+    /// @dev For non flexible staking, your staking period will continue as is.
+    /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount The amount of stake to redelegate.
+    function redelegate(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
+        uint256 amount
+    )
+        external
+        payable
+        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        verifyUncmpPubkey(validatorUncmpSrcPubkey)
+        verifyUncmpPubkey(validatorUncmpDstPubkey)
+    {
+        if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
+            revert Errors.IPTokenStaking__RedelegatingToSameValidator();
+        }
+        (uint256 stakeAmount, ) = roundedStakeAmount(msg.value);
+        if (stakeAmount < minStakeAmount) {
+            revert Errors.IPTokenStaking__StakeAmountUnderMin();
+        }
+        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
 
     /// @notice Returns the rounded stake amount and the remainder.
@@ -205,346 +486,115 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         amount = rawAmount - remainder;
     }
 
+    /*//////////////////////////////////////////////////////////////////////////
+    //                             Unstake                                    //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Entry point for unstaking the previously staked token.
+    /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount Token amount to unstake.
+    /// @param data Additional data for the unstake.
+    function unstake(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        uint256 delegationId,
+        uint256 amount,
+        bytes calldata data
+    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+        _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
+    }
+
+    /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
+    /// @dev Must be an approved operator for the delegator.
+    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount Token amount to unstake.
+    /// @param data Additional data for the unstake.
+    function unstakeOnBehalf(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        uint256 delegationId,
+        uint256 amount,
+        bytes calldata data
+    ) external verifyUncmpPubkey(delegatorUncmpPubkey) {
+        _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
+    }
+
+    function _unstake(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpPubkey,
+        uint256 delegationId,
+        uint256 amount,
+        bytes calldata data
+    ) private {
+        if (amount < minUnstakeAmount) {
+            revert Errors.IPTokenStaking__LowUnstakeAmount();
+        }
+        emit Withdraw(delegatorUncmpPubkey, validatorUncmpPubkey, amount, delegationId, msg.sender, data);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                             Unjail                                    //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Requests to unjail the validator. Caller must pay a fee to prevent spamming.
+    /// Fee must be exact amount.
+    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail.
+    function unjail(
+        bytes calldata validatorUncmpPubkey,
+        bytes calldata data
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) {
+        _unjail(msg.value, validatorUncmpPubkey, data);
+    }
+
+    /// @notice Requests to unjail a validator on behalf. Caller must pay a fee to prevent spamming.
+    /// Fee must be exact amount.
+    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail.
+    function unjailOnBehalf(
+        bytes calldata validatorUncmpPubkey,
+        bytes calldata data
+    ) external payable nonReentrant verifyUncmpPubkey(validatorUncmpPubkey) {
+        _unjail(msg.value, validatorUncmpPubkey, data);
+    }
+
+    /// @dev Emits the Unjail event after burning the fee and burns the fee from the caller.
+    /// @param fee The fee to unjail the validator.
+    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail.
+    function _unjail(uint256 fee, bytes calldata validatorUncmpPubkey, bytes calldata data) private {
+        if (fee != unjailFee) {
+            revert Errors.IPTokenStaking__InvalidFeeAmount();
+        }
+        payable(address(0x0)).transfer(fee);
+        emit Unjail(msg.sender, validatorUncmpPubkey, data);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                             Helpers                                    //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Refunds the remainder of the stake amount to the msg sender.
+    /// WARNING: Methods using this function should have nonReentrant modifier
+    /// to prevent potential reentrancy attacks.
+    /// @param remainder The remainder of the stake amount.
+    function _refundRemainder(uint256 remainder) private {
+        (bool success, ) = msg.sender.call{ value: remainder }("");
+        if (!success) {
+            revert Errors.IPTokenStaking__FailedRemainerRefund();
+        }
+    }
+
     /// @notice Converts the given public key to an EVM address.
     /// @dev Assume all calls to this function passes in the uncompressed public key.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key, with prefix 04.
     /// @return address The EVM address derived from the public key.
     function _uncmpPubkeyToAddress(bytes calldata uncmpPubkey) internal pure returns (address) {
         return address(uint160(uint256(keccak256(uncmpPubkey[1:]))));
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
-    //                            Operator functions                          //
-    //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Returns the operators for the delegator.
-    /// @param pubkey 33 bytes compressed secp256k1 public key.
-    function getOperators(bytes calldata pubkey) external view returns (address[] memory) {
-        return delegatorOperators[pubkey].values();
-    }
-
-    /// @notice Adds an operator for the delegator.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param operator The operator address to add.
-    function addOperator(
-        bytes calldata uncmpPubkey,
-        address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(uncmpPubkey);
-        require(delegatorOperators[delegatorCmpPubkey].add(operator), "IPTokenStaking: Operator already exists");
-    }
-
-    /// @notice Removes an operator for the delegator.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param operator The operator address to remove.
-    function removeOperator(
-        bytes calldata uncmpPubkey,
-        address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(uncmpPubkey);
-        require(delegatorOperators[delegatorCmpPubkey].remove(operator), "IPTokenStaking: Operator not found");
-    }
-
-    /// @dev Verifies that the caller is an operator for the delegator. This check will revert if the caller is the
-    /// delegator, which is intentional as this function should only be called in `onBehalf` functions.
-    function _verifyCallerIsOperator(bytes memory delegatorCmpPubkey, address caller) internal view {
-        require(delegatorOperators[delegatorCmpPubkey].contains(caller), "IPTokenStaking: Caller is not an operator");
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
-    //                     Staking Configuration functions                    //
-    //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
-    /// @dev To prevent spam, only delegators with stake can call this function with cool-down time.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param newWithdrawalAddress EVM address to receive the stake and reward withdrawals.
-    function setWithdrawalAddress(
-        bytes calldata delegatorUncmpPubkey,
-        address newWithdrawalAddress
-    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(delegatorUncmpPubkey);
-        require(delegatorTotalStakes[delegatorCmpPubkey] > 0, "IPTokenStaking: Delegator must have stake");
-
-        require(
-            withdrawalAddressChange[delegatorCmpPubkey] + withdrawalAddressChangeInterval < block.timestamp,
-            "IPTokenStaking: Withdrawal address change cool-down"
-        );
-        withdrawalAddressChange[delegatorCmpPubkey] = block.timestamp;
-
-        emit SetWithdrawalAddress({
-            delegatorCmpPubkey: delegatorCmpPubkey,
-            executionAddress: bytes32(uint256(uint160(newWithdrawalAddress))) // left-padded bytes32 of the address
-        });
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
-    //                         Token Staking functions                        //
-    //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Entry point for creating a new validator with self delegation.
-    /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param moniker The moniker of the validator.
-    /// @param commissionRate The commission rate of the validator.
-    /// @param maxCommissionRate The maximum commission rate of the validator.
-    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
-    function createValidator(
-        bytes calldata validatorUncmpPubkey,
-        string calldata moniker,
-        uint32 commissionRate,
-        uint32 maxCommissionRate,
-        uint32 maxCommissionChangeRate
-    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) nonReentrant {
-        _createValidator(validatorUncmpPubkey, moniker, commissionRate, maxCommissionRate, maxCommissionChangeRate);
-    }
-
-    /// @notice Entry point for creating a new validator with self delegation on behalf of the validator.
-    /// @dev There's no minimum amount required to stake when creating a new validator.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function createValidatorOnBehalf(
-        bytes calldata validatorUncmpPubkey
-    ) external payable verifyUncmpPubkey(validatorUncmpPubkey) nonReentrant {
-        _createValidator(
-            validatorUncmpPubkey,
-            "validator",
-            DEFAULT_COMMISSION_RATE,
-            DEFAULT_MAX_COMMISSION_RATE,
-            DEFAULT_MAX_COMMISSION_CHANGE_RATE
-        );
-    }
-
-    /// @dev Validator is the delegator when creating a new validator (self-delegation).
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param moniker The moniker of the validator.
-    /// @param commissionRate The commission rate of the validator.
-    /// @param maxCommissionRate The maximum commission rate of the validator.
-    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
-    function _createValidator(
-        bytes calldata validatorUncmpPubkey,
-        string memory moniker,
-        uint32 commissionRate,
-        uint32 maxCommissionRate,
-        uint32 maxCommissionChangeRate
-    ) internal {
-        // NOTE: We intentionally disable this check to circumvent the unsycned validator state between CL and EL.
-        // In particular, when a validator gets its stake withdrawn to below the minimum power-reduction, it will get
-        // removed from the validator set. If a user attempts to stake to that validator after it's removed from the
-        // set, the EL contract will allow for staking but CL will fail because the validator info doesn't exist, thus
-        // the user would lose the fund. Hence, by removing this check, user can and must first call createValidator
-        // again for a removed validator before staking to it.
-        // require(!validatorMetadata[validatorCmpPubkey].exists, "IPTokenStaking: Validator already exists");
-
-        (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        require(stakeAmount > 0, "IPTokenStaking: Stake amount too low");
-
-        bytes memory validatorCmpPubkey = Secp256k1.compressPublicKey(validatorUncmpPubkey);
-
-        // Since users can call createValidator multiple times, we need to reuse the existing metadata if it exists.
-        // The only data that monotonically increases is the totalStake. All others are selected based on whether the
-        // validator data already exists or not.
-        ValidatorMetadata storage vm = validatorMetadata[validatorCmpPubkey];
-        bool exists = vm.exists; // get before updating
-        vm.exists = true;
-        vm.moniker = exists ? vm.moniker : moniker;
-        vm.totalStake = vm.totalStake + stakeAmount;
-        vm.commissionRate = exists ? vm.commissionRate : commissionRate;
-        vm.maxCommissionRate = exists ? vm.maxCommissionRate : maxCommissionRate;
-        vm.maxCommissionChangeRate = exists ? vm.maxCommissionChangeRate : maxCommissionChangeRate;
-
-        delegatorTotalStakes[validatorCmpPubkey] += stakeAmount;
-        delegatorValidatorStakes[validatorCmpPubkey][validatorCmpPubkey] += stakeAmount;
-
-        _refundRemainder(remainder);
-
-        emit CreateValidator({
-            validatorUncmpPubkey: validatorUncmpPubkey,
-            validatorCmpPubkey: validatorCmpPubkey,
-            moniker: vm.moniker,
-            stakeAmount: stakeAmount,
-            commissionRate: vm.commissionRate,
-            maxCommissionRate: vm.maxCommissionRate,
-            maxCommissionChangeRate: vm.maxCommissionChangeRate
-        });
-    }
-
-    /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
-    /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
-    /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorCmpPubkey Validator's 33 bytes compressed secp256k1 public key.
-    function stake(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorCmpPubkey
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
-        verifyExistingValidator(validatorCmpPubkey)
-        nonReentrant
-    {
-        _stake(delegatorUncmpPubkey, validatorCmpPubkey);
-    }
-
-    /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
-    /// the stake and manages the stake accounting and validator onboarding. Payer can stake on behalf of another user,
-    /// who will be the beneficiary of the stake.
-    /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
-    /// @param delegatorUncmpPubkey Delegator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorCmpPubkey Validator's 33 bytes compressed secp256k1 public key.
-    function stakeOnBehalf(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorCmpPubkey
-    )
-        external
-        payable
-        verifyUncmpPubkey(delegatorUncmpPubkey)
-        verifyExistingValidator(validatorCmpPubkey)
-        nonReentrant
-    {
-        _stake(delegatorUncmpPubkey, validatorCmpPubkey);
-    }
-
-    /// @dev Creates a validator (x/staking.MsgCreateValidator) if it does not exist. Then delegates the stake to the
-    /// validator (x/staking.MsgDelegate).
-    /// @param delegatorUncmpPubkey Delegator's 65 byte uncompressed secp256k1 public key (no 0x04 prefix).
-    /// @param validatorCmpPubkey 33 byte compressed secp256k1 public key (no 0x04 prefix).
-    function _stake(bytes memory delegatorUncmpPubkey, bytes calldata validatorCmpPubkey) internal {
-        (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount too low");
-
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(delegatorUncmpPubkey);
-
-        unchecked {
-            validatorMetadata[validatorCmpPubkey].totalStake += stakeAmount;
-            delegatorTotalStakes[delegatorCmpPubkey] += stakeAmount;
-            delegatorValidatorStakes[delegatorCmpPubkey][validatorCmpPubkey] += stakeAmount;
-        }
-
-        _refundRemainder(remainder);
-
-        emit Deposit(delegatorUncmpPubkey, delegatorCmpPubkey, validatorCmpPubkey, stakeAmount);
-    }
-
-    // TODO: Redelegation also requires unbonding period to be executed. Should we separate storage for this for el?
-    /// @notice Entry point for redelegating the staked token.
-    /// @dev Redelegateion redelegates staked token from src validator to dst validator (x/staking.MsgBeginRedelegate)
-    /// @param p See RedelegateParams
-    function redelegate(
-        RedelegateParams calldata p
-    )
-        external
-        verifyUncmpPubkeyWithExpectedAddress(p.delegatorUncmpPubkey, msg.sender)
-        verifyExistingValidator(p.validatorCmpSrcPubkey)
-        verifyExistingValidator(p.validatorCmpDstPubkey)
-    {
-        (uint256 stakeAmount, ) = roundedStakeAmount(p.amount);
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(p.delegatorUncmpPubkey);
-
-        _redelegate(delegatorCmpPubkey, p.validatorCmpSrcPubkey, p.validatorCmpDstPubkey, stakeAmount);
-    }
-
-    /// @notice Entry point for redelegating the staked token on behalf of the delegator.
-    /// @dev Redelegateion redelegates staked token from src validator to dst validator (x/staking.MsgBeginRedelegate)
-    /// @param p See RedelegateParams
-    function redelegateOnBehalf(
-        RedelegateParams calldata p
-    )
-        external
-        verifyUncmpPubkey(p.delegatorUncmpPubkey)
-        verifyExistingValidator(p.validatorCmpSrcPubkey)
-        verifyExistingValidator(p.validatorCmpDstPubkey)
-    {
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(p.delegatorUncmpPubkey);
-
-        (uint256 stakeAmount, ) = roundedStakeAmount(p.amount);
-
-        _verifyCallerIsOperator(delegatorCmpPubkey, msg.sender);
-        _redelegate(delegatorCmpPubkey, p.validatorCmpSrcPubkey, p.validatorCmpDstPubkey, stakeAmount);
-    }
-
-    /// @dev Redelegates the given amount from the source validator to the destination validator.
-    /// @param delegatorCmpPubkey Delegator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorSrcPubkey Source validator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorDstPubkey Destination validator's 33 bytes compressed secp256k1 public key.
-    /// @param amount Token amount to redelegate.
-    function _redelegate(
-        bytes memory delegatorCmpPubkey,
-        bytes calldata validatorSrcPubkey,
-        bytes calldata validatorDstPubkey,
-        uint256 amount
-    ) internal {
-        require(
-            delegatorValidatorStakes[delegatorCmpPubkey][validatorSrcPubkey] >= amount,
-            "IPTokenStaking: Insufficient staked amount"
-        );
-
-        validatorMetadata[validatorSrcPubkey].totalStake -= amount;
-        validatorMetadata[validatorDstPubkey].totalStake += amount;
-
-        delegatorValidatorStakes[delegatorCmpPubkey][validatorSrcPubkey] -= amount;
-        delegatorValidatorStakes[delegatorCmpPubkey][validatorDstPubkey] += amount;
-
-        emit Redelegate(delegatorCmpPubkey, validatorSrcPubkey, validatorDstPubkey, amount);
-    }
-
-    /// @notice Entry point for unstaking the previously staked token.
-    /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorCmpPubkey Validator's 33 bytes compressed secp256k1 public key.
-    /// @param amount Token amount to unstake.
-    function unstake(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorCmpPubkey,
-        uint256 amount
-    )
-        external
-        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
-        verifyExistingValidator(validatorCmpPubkey)
-    {
-        bytes memory delegatorCmpPubkey = Secp256k1.compressPublicKey(delegatorUncmpPubkey);
-        _unstake(delegatorCmpPubkey, validatorCmpPubkey, amount);
-    }
-
-    /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
-    /// @dev Must be an approved operator for the delegator.
-    /// @param delegatorCmpPubkey Delegator's 33 bytes compressed secp256k1 public key.
-    /// @param validatorCmpPubkey Validator's 33 bytes compressed secp256k1 public key.
-    /// @param amount Token amount to unstake.
-    function unstakeOnBehalf(
-        bytes calldata delegatorCmpPubkey,
-        bytes calldata validatorCmpPubkey,
-        uint256 amount
-    ) external verifyPubkey(delegatorCmpPubkey) verifyExistingValidator(validatorCmpPubkey) {
-        _verifyCallerIsOperator(delegatorCmpPubkey, msg.sender);
-        _unstake(delegatorCmpPubkey, validatorCmpPubkey, amount);
-    }
-
-    /// @dev Unstakes the given amount from the validator for the delegator, where the amount is deposited to the
-    /// execution address.
-    function _unstake(bytes memory delegatorCmpPubkey, bytes calldata validatorCmpPubkey, uint256 amount) internal {
-        require(
-            delegatorValidatorStakes[delegatorCmpPubkey][validatorCmpPubkey] >= amount,
-            "IPTokenStaking: Insufficient staked amount"
-        );
-
-        validatorMetadata[validatorCmpPubkey].totalStake -= amount;
-        delegatorTotalStakes[delegatorCmpPubkey] -= amount;
-        delegatorValidatorStakes[delegatorCmpPubkey][validatorCmpPubkey] -= amount;
-
-        // If validator gets slashed and the total staked in CL is less than the total staked in EL, then the validator
-        // might not exist in CL while still existing in EL.
-        if (validatorMetadata[validatorCmpPubkey].totalStake == 0) {
-            delete validatorMetadata[validatorCmpPubkey];
-        }
-
-        emit Withdraw(delegatorCmpPubkey, validatorCmpPubkey, amount);
-    }
-
-    /// @dev Refunds the remainder of the stake amount to the msg sender.
-    /// @param remainder The remainder of the stake amount.
-    function _refundRemainder(uint256 remainder) internal {
-        (bool success, ) = msg.sender.call{ value: remainder }("");
-        require(success, "IPTokenStaking: Failed to refund remainder");
     }
 }

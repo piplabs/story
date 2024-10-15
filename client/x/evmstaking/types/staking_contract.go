@@ -14,6 +14,7 @@ var (
 	DepositEvent         = mustGetEvent(ipTokenStakingABI, "Deposit")
 	RedelegateEvent      = mustGetEvent(ipTokenStakingABI, "Redelegate")
 	WithdrawEvent        = mustGetEvent(ipTokenStakingABI, "Withdraw")
+	UnjailEvent          = mustGetEvent(ipTokenStakingABI, "Unjail")
 )
 
 // mustGetABI returns the metadata's ABI as an abi.ABI type.

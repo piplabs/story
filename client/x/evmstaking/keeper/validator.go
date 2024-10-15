@@ -19,7 +19,11 @@ import (
 
 func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) error {
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
+	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress validator pubkey")
+	}
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -75,7 +79,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	_, err = k.stakingKeeper.GetValidator(ctx, validatorAddr)
-	if err != nil { //nolint:nestif // readability
+	if err != nil {
 		// Either the validator does not exist, or unknown error.
 		if !errors.Is(err, stypes.ErrNoValidatorFound) {
 			return errors.Wrap(err, "get validator")
@@ -84,6 +88,16 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		moniker := ev.Moniker
 		if moniker == "validator" {
 			moniker = validatorAddr.String() // use validator address as moniker if not provided (ie. "validator")
+		}
+
+		var tokenType stypes.TokenType
+		switch ev.SupportsUnlocked {
+		case uint8(stypes.TokenType_LOCKED):
+			tokenType = stypes.TokenType_LOCKED
+		case uint8(stypes.TokenType_UNLOCKED):
+			tokenType = stypes.TokenType_UNLOCKED
+		default:
+			return errors.New("invalid token type")
 		}
 
 		// Validator does not exist, create validator with self-delegation.
@@ -98,7 +112,9 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 				math.LegacyNewDec(int64(ev.MaxCommissionRate)).Quo(math.LegacyNewDec(10000)),
 				math.LegacyNewDec(int64(ev.MaxCommissionChangeRate)).Quo(math.LegacyNewDec(10000)),
 			),
-			math.NewInt(1)) // Stub out minimum self delegation for now, just use 1.
+			math.NewInt(1), // Stub out minimum self delegation for now, just use 1.
+			tokenType,
+		)
 		if err != nil {
 			return errors.Wrap(err, "create validator message")
 		}
@@ -107,15 +123,8 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		if err != nil {
 			return errors.Wrap(err, "create validator")
 		}
-	} else {
-		// The validator already exists, delegate the amount to the validator.
-		// UX should prevent this, but users can theoretically call CreateValidator twice on the same validator pubkey.
-		msg := stypes.NewMsgDelegate(delegatorAddr.String(), validatorAddr.String(), amountCoin)
-		_, err = skeeperMsgServer.Delegate(ctx, msg)
-		if err != nil {
-			return errors.Wrap(err, "delegate")
-		}
 	}
+	// TODO(rayden): refund
 
 	return nil
 }

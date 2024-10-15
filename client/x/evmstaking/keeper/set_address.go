@@ -12,7 +12,11 @@ import (
 )
 
 func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IPTokenStakingSetWithdrawalAddress) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
+	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress depositor pubkey")
+	}
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}

@@ -244,12 +244,20 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 }
 
 func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
+	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress depositor pubkey")
+	}
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
+	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUnCmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress validator pubkey")
+	}
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -266,14 +274,14 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "delegator pubkey to evm address")
 	}
 
-	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
+	amountCoin, _ := IPTokenToBondCoin(ev.StakeAmount)
 
 	log.Debug(ctx, "Processing EVM staking withdraw",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
 		"val_evm_addr", valEvmAddr.String(),
-		"amount", ev.Amount.String(),
+		"amount", ev.StakeAmount.String(),
 	)
 
 	if !k.authKeeper.HasAccount(ctx, depositorAddr) {
@@ -282,7 +290,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.New("depositor account not found")
 	}
 
-	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), amountCoin)
+	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), ev.DelegationId.String(), amountCoin)
 
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(ctx, msg)

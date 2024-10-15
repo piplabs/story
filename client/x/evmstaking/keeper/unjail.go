@@ -11,8 +11,12 @@ import (
 	"github.com/piplabs/story/lib/k1util"
 )
 
-func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenSlashingUnjail) error {
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
+func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUnjail) error {
+	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress validator pubkey")
+	}
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -26,6 +30,6 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenSlashingU
 	return nil
 }
 
-func (k Keeper) ParseUnjailLog(ethlog ethtypes.Log) (*bindings.IPTokenSlashingUnjail, error) {
-	return k.ipTokenSlashingContract.ParseUnjail(ethlog)
+func (k Keeper) ParseUnjailLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingUnjail, error) {
+	return k.ipTokenStakingContract.ParseUnjail(ethlog)
 }

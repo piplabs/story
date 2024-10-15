@@ -7,21 +7,27 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 )
 
 func (s *TestSuite) TestProcessUnjail() {
 	require := s.Require()
-	ctx, slashingKeeper, keeper := s.Ctx, s.SlashingKeeper, s.EVMStakingKeeper
+	ctx, slashingKeeper, eskeeper := s.Ctx, s.SlashingKeeper, s.EVMStakingKeeper
 	pubKeys, _, valAddrs := createAddresses(1)
+
 	valAddr := valAddrs[0]
 	valPubKey := pubKeys[0]
+	valUncmpPubkey, err := keeper.CmpPubKeyToUncmpPubkey(valPubKey.Bytes())
+	require.NoError(err)
+	evmAddr, err := keeper.CmpPubKeyToEVMAddress(valPubKey.Bytes())
+	require.NoError(err)
 
 	tcs := []struct {
 		name        string
 		setupMock   func(c context.Context)
-		unjailEv    *bindings.IPTokenSlashingUnjail
+		unjailEv    *bindings.IPTokenStakingUnjail
 		expectedErr string
 	}{
 		{
@@ -29,16 +35,18 @@ func (s *TestSuite) TestProcessUnjail() {
 			setupMock: func(c context.Context) {
 				slashingKeeper.EXPECT().Unjail(c, valAddr).Return(nil)
 			},
-			unjailEv: &bindings.IPTokenSlashingUnjail{
-				ValidatorCmpPubkey: valPubKey.Bytes(),
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorUncmpPubkey: valUncmpPubkey,
+				Unjailer:             evmAddr,
 			},
 		},
 		{
 			name: "fail: invalid validator pubkey",
-			unjailEv: &bindings.IPTokenSlashingUnjail{
-				ValidatorCmpPubkey: valPubKey.Bytes()[10:],
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorUncmpPubkey: valUncmpPubkey[10:],
+				Unjailer:             evmAddr,
 			},
-			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
+			expectedErr: "invalid uncompressed public key length or format",
 		},
 		{
 			name: "fail: validator not jailed",
@@ -46,8 +54,9 @@ func (s *TestSuite) TestProcessUnjail() {
 				// MOCK Unjail to return error.
 				slashingKeeper.EXPECT().Unjail(c, valAddr).Return(slashingtypes.ErrValidatorNotJailed)
 			},
-			unjailEv: &bindings.IPTokenSlashingUnjail{
-				ValidatorCmpPubkey: valPubKey.Bytes(),
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorUncmpPubkey: valUncmpPubkey,
+				Unjailer:             evmAddr,
 			},
 			expectedErr: slashingtypes.ErrValidatorNotJailed.Error(),
 		},
@@ -59,7 +68,7 @@ func (s *TestSuite) TestProcessUnjail() {
 			if tc.setupMock != nil {
 				tc.setupMock(cachedCtx)
 			}
-			err := keeper.ProcessUnjail(cachedCtx, tc.unjailEv)
+			err := eskeeper.ProcessUnjail(cachedCtx, tc.unjailEv)
 			if tc.expectedErr != "" {
 				require.ErrorContains(err, tc.expectedErr)
 			} else {
@@ -72,8 +81,6 @@ func (s *TestSuite) TestProcessUnjail() {
 func (s *TestSuite) TestParseUnjailLog() {
 	require := s.Require()
 	keeper := s.EVMStakingKeeper
-
-	dummyEthAddr := common.HexToAddress("0x1")
 
 	tcs := []struct {
 		name      string
@@ -90,7 +97,7 @@ func (s *TestSuite) TestParseUnjailLog() {
 		{
 			name: "Valid Topic",
 			log: gethtypes.Log{
-				Topics: []common.Hash{types.UnjailEvent.ID, common.BytesToHash(dummyEthAddr.Bytes())},
+				Topics: []common.Hash{types.UnjailEvent.ID},
 			},
 			expectErr: false,
 		},

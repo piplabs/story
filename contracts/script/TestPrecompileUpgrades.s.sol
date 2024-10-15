@@ -8,7 +8,6 @@ import { console2 } from "forge-std/console2.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
-import { IPTokenSlashing } from "../src/protocol/IPTokenSlashing.sol";
 import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 import { ITransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -24,16 +23,8 @@ abstract contract MockNewFeatures {
 contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
     constructor(
         uint256 stakingRounding,
-        uint32 defaultCommissionRate,
-        uint32 defaultMaxCommissionRate,
-        uint32 defaultMaxCommissionChangeRate
-    )
-        IPTokenStaking(stakingRounding, defaultCommissionRate, defaultMaxCommissionRate, defaultMaxCommissionChangeRate)
-    {}
-}
-
-contract IPTokenSlashingV2 is IPTokenSlashing, MockNewFeatures {
-    constructor(address ipTokenStaking) IPTokenSlashing(ipTokenStaking) {}
+        uint256 defaultMinUnjailFee
+    ) IPTokenStaking(stakingRounding, defaultMinUnjailFee) {}
 }
 
 contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
@@ -62,9 +53,7 @@ contract TestPrecompileUpgrades is Script {
         address newImpl = address(
             new IPTokenStakingV2(
                 1 gwei, // stakingRounding
-                1000, // defaultCommissionRate, 10%
-                5000, // defaultMaxCommissionRate, 50%
-                500 // defaultMaxCommissionChangeRate, 5%
+                1 ether
             )
         );
         ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Staking));
@@ -75,19 +64,6 @@ contract TestPrecompileUpgrades is Script {
             revert("Staking not upgraded");
         }
         if (keccak256(abi.encode(IPTokenStakingV2(Predeploys.Staking).foo())) != keccak256(abi.encode("bar"))) {
-            revert("Upgraded to wrong iface");
-        }
-
-        // ---- Slashing
-        newImpl = address(new IPTokenSlashingV2(Predeploys.Staking));
-        proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Slashing));
-        console2.log("slashing proxy admin", address(proxyAdmin));
-        console2.log("slashing proxy admin owner", proxyAdmin.owner());
-        proxyAdmin.upgradeAndCall(ITransparentUpgradeableProxy(Predeploys.Slashing), newImpl, "");
-        if (EIP1967Helper.getImplementation(Predeploys.Slashing) != newImpl) {
-            revert("Slashing not upgraded");
-        }
-        if (keccak256(abi.encode(IPTokenSlashingV2(Predeploys.Slashing).foo())) != keccak256(abi.encode("bar"))) {
             revert("Upgraded to wrong iface");
         }
 
