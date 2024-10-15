@@ -84,15 +84,39 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	}
 
 	for _, entry := range unbondedEntries {
+		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.delegatorAddress)
+		if err != nil {
+			return nil, errors.Wrap(err, "delegator address from bech32")
+		}
+
+		spendableAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount
+		if spendableAmount.IsZero() {
+			log.Warn(ctx, "No spendable coins for undelegation",
+				errors.New("no spendable coins for undelegation"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"original_amount", entry.amount.String())
+
+			continue
+		}
+
+		// If the requested undelegation amount is greater than the spendable amount, set the real undelegation amount to
+		// the total spendable amount.
+		if entry.amount.GT(spendableAmount) {
+			entry.amount = spendableAmount
+			log.Warn(ctx, "Spendable amount is less than the requested undelegation amount",
+				errors.New("spendable amount is less than the requested undelegation amount"),
+				"delegator", entry.delegatorAddress,
+				"validator", entry.validatorAddress,
+				"requested_amount", entry.amount.String(),
+				"spendable_amount", spendableAmount.String())
+		}
+
 		log.Debug(ctx, "Adding undelegation to withdrawal queue",
 			"delegator", entry.delegatorAddress,
 			"validator", entry.validatorAddress,
 			"amount", entry.amount.String())
 
-		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.delegatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "delegator address from bech32")
-		}
 		// Burn tokens from the delegator
 		_, coins := IPTokenToBondCoin(entry.amount.BigInt())
 		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)

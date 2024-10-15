@@ -9,23 +9,36 @@ import (
 	"os"
 	"strings"
 
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
 	_ "embed"
 )
 
+type ContractType int
+
 const (
-	contractAddressHex = "0xCCcCcC0000000000000000000000000000000001"
+	STAKING ContractType = iota
+	SLASHING
 )
+
+type ContractInfo struct {
+	AddressHex string
+	ABI        []byte
+}
 
 //go:embed abi/IPTokenStaking.abi.json
 var ipTokenStakingABI []byte
+
+//go:embed abi/IPTokenSlashing.abi.json
+var ipTokenSlashingABI []byte
 
 type baseConfig struct {
 	RPC        string
@@ -39,6 +52,11 @@ type stakeConfig struct {
 	DelegatorPubKey string
 	ValidatorPubKey string
 	StakeAmount     string
+}
+
+type unjailConfig struct {
+	baseConfig
+	ValidatorPubKey string
 }
 
 type operatorConfig struct {
@@ -61,6 +79,17 @@ type exportKeyConfig struct {
 	ValidatorKeyFile string
 	EvmKeyFile       string
 	ExportEVMKey     bool
+}
+
+var contracts = map[ContractType]ContractInfo{
+	STAKING: {
+		AddressHex: predeploys.IPTokenStaking,
+		ABI:        ipTokenStakingABI,
+	},
+	SLASHING: {
+		AddressHex: predeploys.IPTokenSlashing,
+		ABI:        ipTokenSlashingABI,
+	},
 }
 
 func loadEnv() {
@@ -87,6 +116,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorAddOperatorCmd(),
 		newValidatorRemoveOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
+		newValidatorUnjailCmd(),
 	)
 
 	return cmd
@@ -284,6 +314,27 @@ func newValidatorKeyExportCmd() *cobra.Command {
 	return cmd
 }
 
+func newValidatorUnjailCmd() *cobra.Command {
+	var cfg unjailConfig
+
+	cmd := &cobra.Command{
+		Use:   "unjail",
+		Short: "Unjail the validator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return loadAndValidatePrivateKey(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func() error { return validateValidatorUnjailFlags(cfg) },
+			func(ctx context.Context) error { return unjail(ctx, cfg) },
+		),
+	}
+
+	bindValidatorUnjailFlags(cmd, &cfg)
+
+	return cmd
+}
+
 func runValidatorCommand(
 	validate func() error,
 	execute func(ctx context.Context) error,
@@ -347,7 +398,7 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "createValidatorOnBehalf", stakeAmount, uncompressedPubKeyBytes)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "createValidatorOnBehalf", stakeAmount, uncompressedPubKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -365,7 +416,7 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 
 	withdrawalAddress := common.HexToAddress(cfg.WithdrawalAddress)
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setWithdrawalAddress", big.NewInt(0), uncompressedPubKey, withdrawalAddress)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "setWithdrawalAddress", big.NewInt(0), uncompressedPubKey, withdrawalAddress)
 	if err != nil {
 		return err
 	}
@@ -383,7 +434,7 @@ func addOperator(ctx context.Context, cfg operatorConfig) error {
 
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "addOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "addOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -401,7 +452,7 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "removeOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -427,7 +478,7 @@ func stake(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedPubKey, validatorPubKeyBytes)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedPubKey, validatorPubKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -458,7 +509,7 @@ func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedDelegatorPubKeyBytes, validatorPubKeyBytes)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedDelegatorPubKeyBytes, validatorPubKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -484,7 +535,7 @@ func unstake(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unstake", big.NewInt(0), uncompressedPubKey, validatorPubKeyBytes, unstakeAmount)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unstake", big.NewInt(0), uncompressedPubKey, validatorPubKeyBytes, unstakeAmount)
 	if err != nil {
 		return err
 	}
@@ -510,7 +561,7 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unstakeOnBehalf", big.NewInt(0), delegatorPubKeyBytes, validatorPubKeyBytes, unstakeAmount)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unstakeOnBehalf", big.NewInt(0), delegatorPubKeyBytes, validatorPubKeyBytes, unstakeAmount)
 	if err != nil {
 		return err
 	}
@@ -520,9 +571,64 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 	return nil
 }
 
-func prepareAndExecuteTransaction(ctx context.Context, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {
-	contractAddress := common.HexToAddress(contractAddressHex)
-	contractABI, err := abi.JSON(strings.NewReader(string(ipTokenStakingABI)))
+func unjail(ctx context.Context, cfg unjailConfig) error {
+	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode base64 validator public key")
+	}
+
+	if len(validatorPubKeyBytes) != secp256k1.PubKeyBytesLenCompressed {
+		return fmt.Errorf("invalid compressed public key length: %d", len(validatorPubKeyBytes))
+	}
+
+	contractABI, err := abi.JSON(strings.NewReader(string(contracts[SLASHING].ABI)))
+	if err != nil {
+		return err
+	}
+
+	result, err := prepareAndReadContract(ctx, SLASHING, &cfg.baseConfig, "unjailFee")
+	if err != nil {
+		return err
+	}
+
+	var unjailFee *big.Int
+	err = contractABI.UnpackIntoInterface(&unjailFee, "unjailFee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack unjailFee")
+	}
+
+	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
+
+	err = prepareAndExecuteTransaction(ctx, SLASHING, &cfg.baseConfig, "unjailOnBehalf", unjailFee, validatorPubKeyBytes)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Validator successfully unjailed!")
+
+	return nil
+}
+
+func prepareAndReadContract(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, args ...any) ([]byte, error) {
+	contractInfo := contracts[contractType]
+	contractAddress := common.HexToAddress(contractInfo.AddressHex)
+	contractABI, err := abi.JSON(strings.NewReader(string(contractInfo.ABI)))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse ABI")
+	}
+
+	data, err := contractABI.Pack(methodName, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack data")
+	}
+
+	return readContract(ctx, *cfg, contractAddress, data)
+}
+
+func prepareAndExecuteTransaction(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {
+	contractInfo := contracts[contractType]
+	contractAddress := common.HexToAddress(contractInfo.AddressHex)
+	contractABI, err := abi.JSON(strings.NewReader(string(contractInfo.ABI)))
 	if err != nil {
 		return errors.Wrap(err, "failed to parse ABI")
 	}

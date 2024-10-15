@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
+
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -245,6 +247,7 @@ func (s *TestSuite) TestEndBlock() {
 				// Mock staking.EndBlocker
 				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
 				// Mock evmstaking.EndBlocker
+				s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10)))
 				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(errors.New("failed to send coins to module"))
 
 				return nil, []abcitypes.ValidatorUpdate{
@@ -271,6 +274,7 @@ func (s *TestSuite) TestEndBlock() {
 				// Mock staking.EndBlocker
 				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
 				// Mock evmstaking.EndBlocker
+				s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10)))
 				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(nil)
 				s.BankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New("failed to burn coins"))
 
@@ -363,6 +367,7 @@ func compareValUpdates(t *testing.T, expected, actual abcitypes.ValidatorUpdates
 
 // setupMaturedUnbonding creates matured unbondings for testing.
 func (s *TestSuite) setupMatureUnbondingDelegation(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt string, duration time.Duration) {
+	require := s.Require()
 	pastHeader := ctx.BlockHeader()
 	pastHeader.Time = pastHeader.Time.Add(-duration).Add(-time.Minute)
 	pastCtx := ctx.WithBlockHeader(pastHeader)
@@ -372,6 +377,9 @@ func (s *TestSuite) setupMatureUnbondingDelegation(ctx sdk.Context, delAddr sdk.
 	// Mock staking.EndBlocker
 	s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
 	// Mock evmstaking.EndBlocker
+	amtInt, ok := sdkmath.NewIntFromString(amt)
+	require.True(ok)
+	s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, amtInt))
 	s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(nil)
 	s.BankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
 }
