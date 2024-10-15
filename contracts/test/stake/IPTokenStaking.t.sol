@@ -44,7 +44,7 @@ contract IPTokenStakingTest is Test {
         );
 
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
-            accessManager: admin,
+            owner: admin,
             minStakeAmount: 0,
             minUnstakeAmount: 1 ether,
             minCommissionRate: 5_00,
