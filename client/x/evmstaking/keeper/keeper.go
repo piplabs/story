@@ -37,8 +37,7 @@ type Keeper struct {
 	stakingKeeper      types.StakingKeeper
 	distributionKeeper types.DistributionKeeper
 
-	ipTokenStakingContract  *bindings.IPTokenStaking
-	ipTokenSlashingContract *bindings.IPTokenSlashing
+	ipTokenStakingContract *bindings.IPTokenStaking
 
 	WithdrawalQueue addcollections.Queue[types.Withdrawal]
 	DelegatorMap    collections.Map[string, string] // bech32 to evm address (TODO: confirm that it's one-to-one or many-bech32-to-one-evm)
@@ -74,25 +73,19 @@ func NewKeeper(
 		panic(fmt.Sprintf("failed to bind to the IPTokenStaking contract: %s", err))
 	}
 
-	ipTokenSlashingContract, err := bindings.NewIPTokenSlashing(common.HexToAddress(predeploys.IPTokenSlashing), ethCl)
-	if err != nil {
-		panic(fmt.Sprintf("failed to bind to the IPTokenSlashing contract: %s", err))
-	}
-
 	return &Keeper{
-		cdc:                     cdc,
-		storeService:            storeService,
-		authKeeper:              ak,
-		bankKeeper:              bk,
-		slashingKeeper:          slk,
-		stakingKeeper:           stk,
-		distributionKeeper:      dk,
-		authority:               authority,
-		validatorAddressCodec:   validatorAddressCodec,
-		ipTokenStakingContract:  ipTokenStakingContract,
-		ipTokenSlashingContract: ipTokenSlashingContract,
-		WithdrawalQueue:         addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
-		DelegatorMap:            collections.NewMap(sb, types.DelegatorMapKey, "delegator_map", collections.StringKey, collections.StringValue),
+		cdc:                    cdc,
+		storeService:           storeService,
+		authKeeper:             ak,
+		bankKeeper:             bk,
+		slashingKeeper:         slk,
+		stakingKeeper:          stk,
+		distributionKeeper:     dk,
+		authority:              authority,
+		validatorAddressCodec:  validatorAddressCodec,
+		ipTokenStakingContract: ipTokenStakingContract,
+		WithdrawalQueue:        addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
+		DelegatorMap:           collections.NewMap(sb, types.DelegatorMapKey, "delegator_map", collections.StringKey, collections.StringValue),
 	}
 }
 
@@ -154,7 +147,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Deposit log", err)
 				continue
 			}
-			ev.Amount.Div(ev.Amount, gwei)
+			ev.StakeAmount.Div(ev.StakeAmount, gwei)
 			if err = k.ProcessDeposit(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process deposit", err)
 				continue
@@ -176,7 +169,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Withdraw log", err)
 				continue
 			}
-			ev.Amount.Div(ev.Amount, gwei)
+			ev.StakeAmount.Div(ev.StakeAmount, gwei)
 			if err = k.ProcessWithdraw(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process withdraw", err)
 				continue

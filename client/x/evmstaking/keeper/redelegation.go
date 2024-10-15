@@ -15,17 +15,29 @@ import (
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(ev.DelegatorCmpPubkey)
+	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress depositor pubkey")
+	}
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorSrcPubkey)
+	valSrcCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpSrcPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress src validator pubkey")
+	}
+	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(valSrcCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to cosmos")
 	}
 
-	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorDstPubkey)
+	valDstCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpDstPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress dst validator pubkey")
+	}
+	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(valDstCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to cosmos")
 	}
@@ -59,7 +71,10 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		"amount_coin", amountCoin.String(),
 	)
 
-	msg := stypes.NewMsgBeginRedelegate(depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(), amountCoin)
+	msg := stypes.NewMsgBeginRedelegate(
+		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
+		ev.DelegationId.String(), amountCoin,
+	)
 	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(ctx, msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to begin redelegation")
