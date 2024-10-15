@@ -16,7 +16,7 @@ import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
 import { Predeploys } from "../src/libraries/Predeploys.sol";
 
 abstract contract MockNewFeatures {
-    function foo() external pure returns(string memory) {
+    function foo() external pure returns (string memory) {
         return "bar";
     }
 }
@@ -27,17 +27,16 @@ contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
         uint32 defaultCommissionRate,
         uint32 defaultMaxCommissionRate,
         uint32 defaultMaxCommissionChangeRate
-    ) IPTokenStaking(stakingRounding, defaultCommissionRate, defaultMaxCommissionRate, defaultMaxCommissionChangeRate) {
-
-    }
+    )
+        IPTokenStaking(stakingRounding, defaultCommissionRate, defaultMaxCommissionRate, defaultMaxCommissionChangeRate)
+    {}
 }
 
 contract IPTokenSlashingV2 is IPTokenSlashing, MockNewFeatures {
     constructor(address ipTokenStaking) IPTokenSlashing(ipTokenStaking) {}
 }
 
-contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {
-}
+contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
 
 /**
  * @title TestPrecompileUpgrades
@@ -60,22 +59,18 @@ contract TestPrecompileUpgrades is Script {
         vm.startBroadcast(upgradeKey);
 
         // ---- Staking
-        address newImpl = address(new IPTokenStakingV2(
-            1 gwei, // stakingRounding
-            1000, // defaultCommissionRate, 10%
-            5000, // defaultMaxCommissionRate, 50%
-            500 // defaultMaxCommissionChangeRate, 5%
-        ));
-        ProxyAdmin proxyAdmin = ProxyAdmin(
-            EIP1967Helper.getAdmin(Predeploys.Staking)
+        address newImpl = address(
+            new IPTokenStakingV2(
+                1 gwei, // stakingRounding
+                1000, // defaultCommissionRate, 10%
+                5000, // defaultMaxCommissionRate, 50%
+                500 // defaultMaxCommissionChangeRate, 5%
+            )
         );
+        ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Staking));
         console2.log("staking proxy admin", address(proxyAdmin));
         console2.log("staking proxy admin owner", proxyAdmin.owner());
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(Predeploys.Staking),
-            newImpl,
-            ""
-        );
+        proxyAdmin.upgradeAndCall(ITransparentUpgradeableProxy(Predeploys.Staking), newImpl, "");
         if (EIP1967Helper.getImplementation(Predeploys.Staking) != newImpl) {
             revert("Staking not upgraded");
         }
@@ -84,19 +79,11 @@ contract TestPrecompileUpgrades is Script {
         }
 
         // ---- Slashing
-        newImpl = address(new IPTokenSlashingV2(
-            Predeploys.Staking
-        ));
-        proxyAdmin = ProxyAdmin(
-            EIP1967Helper.getAdmin(Predeploys.Slashing)
-        );
+        newImpl = address(new IPTokenSlashingV2(Predeploys.Staking));
+        proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Slashing));
         console2.log("slashing proxy admin", address(proxyAdmin));
         console2.log("slashing proxy admin owner", proxyAdmin.owner());
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(Predeploys.Slashing),
-            newImpl,
-            ""
-        );
+        proxyAdmin.upgradeAndCall(ITransparentUpgradeableProxy(Predeploys.Slashing), newImpl, "");
         if (EIP1967Helper.getImplementation(Predeploys.Slashing) != newImpl) {
             revert("Slashing not upgraded");
         }
@@ -106,17 +93,11 @@ contract TestPrecompileUpgrades is Script {
 
         // ---- Upgrades
         newImpl = address(new UpgradeEntrypointV2());
-        proxyAdmin = ProxyAdmin(
-            EIP1967Helper.getAdmin(Predeploys.Upgrades)
-        );
+        proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Upgrades));
         console2.log("upgrades proxy admin", address(proxyAdmin));
         console2.log("upgrades proxy admin owner", proxyAdmin.owner());
 
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(Predeploys.Upgrades),
-            newImpl,
-            ""
-        );
+        proxyAdmin.upgradeAndCall(ITransparentUpgradeableProxy(Predeploys.Upgrades), newImpl, "");
         if (keccak256(abi.encode(UpgradeEntrypointV2(Predeploys.Upgrades).foo())) != keccak256(abi.encode("bar"))) {
             revert("Upgraded to wrong iface");
         }

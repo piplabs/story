@@ -3,8 +3,8 @@ repos:
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
-    -   id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
         exclude: "(pnpm-lock.yaml|testdata|static|config.json|genesis.json)"
 
   # Then run code formatters
@@ -27,16 +27,16 @@ repos:
       - id: go-mod-tidy # Run go mod tidy when go.mod changes
         files: go.mod
       - id: go-fmt
-        args: [ -w, -s ] # simplify code and write result to (source) file instead of stdout
+        args: [-w, -s] # simplify code and write result to (source) file instead of stdout
 
   - repo: local
     hooks:
-     - id: run-solidity-lint
-       name: run-solidity-lint
-       language: script
-       entry: .pre-commit/run_solidity_lint.sh
-       types: [ file, solidity ]
-       require_serial: true
+      - id: run-solidity-lint
+        name: run-solidity-lint
+        language: script
+        entry: .pre-commit/run_solidity_lint.sh
+        types: [file, solidity]
+        require_serial: true
 
   # Then run code validators (on the formatted code)
 
@@ -54,7 +54,7 @@ repos:
         name: run-buf
         language: script
         entry: .pre-commit/run_buf.sh
-        types: [ file, proto ]
+        types: [file, proto]
         pass_filenames: false
 
       - id: run-go-tests
@@ -62,20 +62,20 @@ repos:
         language: script
         require_serial: true # Don't run this in parallel
         entry: .pre-commit/run_go_tests.sh
-        types: [ file, go ]
+        types: [file, go]
 
       - id: run-forge-tests
         name: run-forge-tests
         language: script
         entry: .pre-commit/run_forge_tests.sh
-        types: [ file, solidity ]
+        types: [file, solidity]
         require_serial: true
 
       - id: run-regexp
         name: run-regexp
         language: script
         entry: .pre-commit/run_regexp.sh
-        types: [ file, go ]
+        types: [file, go]
         exclude: "(_test.go|contracts/bindings/.*|scripts/)"
 
       - id: run-goversion
@@ -83,11 +83,4 @@ repos:
         language: script
         entry: .pre-commit/run_goversion.sh
         pass_filenames: false
-        types: [ file, go ]
-
-      - id: run-solhint
-        name: run-solhint
-        language: script
-        entry: .pre-commit/run_solhint.sh
-        types: [ file, solidity ]
-        require_serial: true
+        types: [file, go]
