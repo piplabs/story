@@ -8,6 +8,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Secp256k1 } from "../libraries/Secp256k1.sol";
 import { Errors } from "../libraries/Errors.sol";
+import { console2 } from "forge-std/console2.sol";
 
 /**
  * @title IPTokenStaking
@@ -40,10 +41,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
-        if (uncmpPubkey.length == 65) {
+        if (uncmpPubkey.length != 65) {
             revert Errors.IPTokenStaking__InvalidPubkeyLength();
         }
-        if (uncmpPubkey[0] == 0x04) {
+        if (uncmpPubkey[0] != 0x04) {
             revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
         }
         _;
@@ -52,13 +53,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Verifies that the given 65 byte uncompressed secp256k1 public key (with 0x04 prefix) is valid and
     /// matches the expected EVM address.
     modifier verifyUncmpPubkeyWithExpectedAddress(bytes calldata uncmpPubkey, address expectedAddress) {
-        if (uncmpPubkey.length == 65) {
+        if (uncmpPubkey.length != 65) {
             revert Errors.IPTokenStaking__InvalidPubkeyLength();
         }
-        if (uncmpPubkey[0] == 0x04) {
+        if (uncmpPubkey[0] != 0x04) {
             revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
         }
-        if (_uncmpPubkeyToAddress(uncmpPubkey) == expectedAddress) {
+        if (_uncmpPubkeyToAddress(uncmpPubkey) != expectedAddress) {
             revert Errors.IPTokenStaking__InvalidPubkeyDerivedAddress();
         }
         _;
@@ -196,10 +197,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                     Staking Configuration functions                    //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
-    /// @dev To prevent spam, only delegators with stake can call this function with cool-down time.
+    /// @notice Set/Update the withdrawal address that receives the withdrawals.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param newWithdrawalAddress EVM address to receive the stake and reward withdrawals.
+    /// @param newWithdrawalAddress EVM address to receive the  withdrawals.
     function setWithdrawalAddress(
         bytes calldata delegatorUncmpPubkey,
         address newWithdrawalAddress
@@ -207,6 +207,20 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit SetWithdrawalAddress({
             delegatorUncmpPubkey: delegatorUncmpPubkey,
             executionAddress: bytes32(uint256(uint160(newWithdrawalAddress))) // left-padded bytes32 of the address
+        });
+    }
+
+    /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
+    /// @dev To prevent spam, only delegators with stake can call this function with cool-down time.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param newRewardsAddress EVM address to receive the stake and reward withdrawals.
+    function setRewardsAddress(
+        bytes calldata delegatorUncmpPubkey,
+        address newRewardsAddress
+    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+        emit SetRewardAddress({
+            delegatorUncmpPubkey: delegatorUncmpPubkey,
+            executionAddress: bytes32(uint256(uint160(newRewardsAddress))) // left-padded bytes32 of the address
         });
     }
 
@@ -228,7 +242,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint32 commissionRate,
         uint32 maxCommissionRate,
         uint32 maxCommissionChangeRate,
-        bool isLocked,
+        bool supportsUnlocked,
         bytes calldata data
     ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) nonReentrant {
         _createValidator(
@@ -237,7 +251,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             commissionRate,
             maxCommissionRate,
             maxCommissionChangeRate,
-            isLocked,
+            supportsUnlocked,
             data
         );
     }
@@ -252,7 +266,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint32 commissionRate,
         uint32 maxCommissionRate,
         uint32 maxCommissionChangeRate,
-        bool isLocked,
+        bool supportsUnlocked,
         bytes calldata data
     ) external payable verifyUncmpPubkey(validatorUncmpPubkey) nonReentrant {
         _createValidator(
@@ -261,7 +275,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             commissionRate,
             maxCommissionRate,
             maxCommissionChangeRate,
-            isLocked,
+            supportsUnlocked,
             data
         );
     }
@@ -278,7 +292,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint32 commissionRate,
         uint32 maxCommissionRate,
         uint32 maxCommissionChangeRate,
-        bool isLocked,
+        bool supportsUnlocked,
         bytes calldata data
     ) internal {
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
@@ -299,7 +313,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             commissionRate,
             maxCommissionRate,
             maxCommissionChangeRate,
-            isLocked ? 1 : 0,
+            supportsUnlocked ? 1 : 0,
+            msg.sender,
             data
         );
         _refundRemainder(remainder);
@@ -309,14 +324,23 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpSrcPubkey,
         bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
         uint256 amount
-    ) external payable verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+    )
+        external
+        payable
+        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        verifyUncmpPubkey(validatorUncmpSrcPubkey)
+        verifyUncmpPubkey(validatorUncmpDstPubkey)
+    {
+        if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
+            revert Errors.IPTokenStaking__RedelegatingToSameValidator();
+        }
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
         if (stakeAmount < minStakeAmount) {
             revert Errors.IPTokenStaking__StakeAmountUnderMin();
         }
-
-        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, amount);
+        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
 
     // TODO: update validator method (next version)
@@ -441,6 +465,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount,
         bytes calldata data
     ) private {
+        console2.log("unstakkkk");
+        console2.log(amount);
+        console2.log(minUnstakeAmount);
         if (amount < minUnstakeAmount) {
             revert Errors.IPTokenStaking__LowUnstakeAmount();
         }
@@ -471,7 +498,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Emits the Unjail event after burning the fee.
     function _unjail(uint256 fee, bytes calldata validatorUncmpPubkey, bytes calldata data) private {
         if (fee != unjailFee) {
-            revert Errors.IPTokenStaking__InsufficientFee();
+            revert Errors.IPTokenStaking__InvalidFeeAmount();
         }
         payable(address(0x0)).transfer(fee);
         emit Unjail(msg.sender, validatorUncmpPubkey, data);
