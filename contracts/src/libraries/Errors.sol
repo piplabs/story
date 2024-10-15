@@ -26,7 +26,8 @@ library Errors {
 
     error IPTokenStaking__StakeAmountUnderMin();
     error IPTokenStaking__LowUnstakeAmount();
+    error IPTokenStaking__RedelegatingToSameValidator();
 
     error IPTokenStaking__FailedRemainerRefund();
-    error IPTokenStaking__InsufficientFee();
+    error IPTokenStaking__InvalidFeeAmount();
 }

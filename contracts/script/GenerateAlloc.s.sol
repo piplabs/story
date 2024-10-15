@@ -85,15 +85,17 @@ contract GenerateAlloc is Script {
 
         setPredeploys();
         setAllocations();
+        // Necessary to skip for tests
+        if (saveState) {
+            // Reset so its not included state dump
+            vm.etch(msg.sender, "");
+            vm.resetNonce(msg.sender);
+            vm.deal(msg.sender, 0);
 
-        // Reset so its not included state dump
-        vm.etch(msg.sender, "");
-        vm.resetNonce(msg.sender);
-        vm.deal(msg.sender, 0);
-
-        vm.etch(deployer, "");
-        // Not resetting nonce
-        vm.deal(deployer, 0);
+            vm.etch(deployer, "");
+            // Not resetting nonce
+            vm.deal(deployer, 0);
+        }
 
         vm.stopPrank();
         if (saveState) {
