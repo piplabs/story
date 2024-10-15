@@ -8,11 +8,23 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Secp256k1 } from "../libraries/Secp256k1.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { console2 } from "forge-std/console2.sol";
 
 /**
  * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
+ * @dev This contract is a sort of "bridge" to request validator related actions on the consensus chain. The response will
+ * happen on the consensus chain.
+ * Since most of the validator related actions are executed on the consensus chain, the methods in this contract
+ * must be considered requests and not final actions, a successful transaction here does not guarantee the success
+ * of the transaction on the consensus chain.
+ * NOTE: All $IP tokens staked to this contract will be burned (transferred to the zero address).
+ * The flow is as follows:
+ * 1. User calls a method in this contract, which will emit an event if checks pass.
+ * 2. Modules on the consensus chain are listening for these events and execute the corresponding logic (e.g. staking, create
+ * validator, etc.), minting tokens in CL if needed.
+ * 3. If the action fails in CL, for example staking on a validator that doesn't exist, the deposited $IP tokens will be
+ * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
+ * transaction of step 2 would not have reverted.
  */
 contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -20,8 +32,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
 
+    /// @notice Default minimum unjail fee
     uint256 public immutable DEFAULT_MIN_UNJAIL_FEE;
 
+    /// @notice Global minimum commission rate for validators
     uint256 public minCommissionRate;
 
     /// @notice Minimum amount required to stake.
@@ -37,7 +51,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice The fee paid to unjail a validator.
     uint256 public unjailFee;
 
-    mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) stakingDurations;
+    /// @notice Staking periods and their corresponding durations
+    mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) public stakingDurations;
 
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
@@ -79,9 +94,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     }
 
     /// @notice Initializes the contract.
+    /// @dev Only callable once at proxy deployment.
+    /// @param args The initializer arguments.
     function initialize(IIPTokenStaking.InitializerArgs calldata args) public initializer {
         __ReentrancyGuard_init();
-        __Ownable_init(args.accessManager);
+        __Ownable_init(args.owner);
         _setMinStakeAmount(args.minStakeAmount);
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setMinCommissionRate(args.minCommissionRate);
@@ -105,6 +122,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(newMinUnstakeAmount);
     }
 
+    /// @dev Sets the staking periods and their corresponding durations.
+    /// @param short The duration of the short staking period.
+    /// @param medium The duration of the medium staking period.
+    /// @param long The duration of the long staking period.
     function setStakingPeriods(uint32 short, uint32 medium, uint32 long) external onlyOwner {
         _setStakingPeriods(short, medium, long);
     }
@@ -115,6 +136,34 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setUnjailFee(newUnjailFee);
     }
 
+    /// @notice Sets the global minimum commission rate for validators.
+    /// @param newValue The new minimum commission rate.
+    function setMinCommissionRate(uint256 newValue) external onlyOwner {
+        _setMinCommissionRate(newValue);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                            Internal setters                            //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Sets the staking periods and their corresponding durations.
+    function _setStakingPeriods(uint32 short, uint32 medium, uint32 long) private {
+        if (short == 0) {
+            revert Errors.IPTokenStaking__ZeroShortPeriodDuration();
+        }
+        if (short >= medium) {
+            revert Errors.IPTokenStaking__ShortPeriodLongerThanMedium();
+        }
+        if (medium >= long) {
+            revert Errors.IPTokenStaking__MediumLongerThanLong();
+        }
+        stakingDurations[IIPTokenStaking.StakingPeriod.SHORT] = short;
+        stakingDurations[IIPTokenStaking.StakingPeriod.MEDIUM] = medium;
+        stakingDurations[IIPTokenStaking.StakingPeriod.LONG] = long;
+        emit StakingPeriodsChanged(short, medium, long);
+    }
+
+    /// @dev Sets the unjail fee.
     function _setUnjailFee(uint256 newUnjailFee) private {
         if (newUnjailFee < DEFAULT_MIN_UNJAIL_FEE) {
             revert Errors.IPTokenStaking__InvalidMinUnjailFee();
@@ -123,6 +172,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit UnjailFeeSet(newUnjailFee);
     }
 
+    /// @dev Sets the minimum amount required to stake.
+    /// @param newMinStakeAmount The minimum amount required to stake.
     function _setMinStakeAmount(uint256 newMinStakeAmount) private {
         if (newMinStakeAmount == 0) {
             revert Errors.IPTokenStaking__ZeroMinStakeAmount();
@@ -141,26 +192,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit MinUnstakeAmountSet(minUnstakeAmount);
     }
 
-    function _setStakingPeriods(uint32 short, uint32 medium, uint32 long) private {
-        if (short == 0) {
-            revert Errors.IPTokenStaking__ZeroShortPeriodDuration();
-        }
-        if (short >= medium) {
-            revert Errors.IPTokenStaking__ShortPeriodLongerThanMedium();
-        }
-        if (medium >= long) {
-            revert Errors.IPTokenStaking__MediumLongerThanLong();
-        }
-        stakingDurations[IIPTokenStaking.StakingPeriod.SHORT] = short;
-        stakingDurations[IIPTokenStaking.StakingPeriod.MEDIUM] = medium;
-        stakingDurations[IIPTokenStaking.StakingPeriod.LONG] = long;
-        emit StakingPeriodsChanged(short, medium, long);
-    }
-
-    function setMinCommissionRate(uint256 newValue) external onlyOwner {
-        _setMinCommissionRate(newValue);
-    }
-
+    /// @dev Sets the minimum glolbal commission rate for validators.
+    /// @param newValue The new minimum commission rate.
     function _setMinCommissionRate(uint256 newValue) private {
         if (newValue == 0) {
             revert Errors.IPTokenStaking__ZeroMinCommissionRate();
@@ -173,7 +206,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                            Operator functions                          //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Adds an operator for the delegator.
+    /// @notice Adds an operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param operator The operator address to add.
     function addOperator(
@@ -183,7 +216,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit AddOperator(uncmpPubkey, operator);
     }
 
-    /// @notice Removes an operator for the delegator.
+    /// @notice Removes an operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param operator The operator address to remove.
     function removeOperator(
@@ -230,12 +263,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Entry point for creating a new validator with self delegation.
     /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.
+    /// Use this method to make sure the caller is the owner of the validator.
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param moniker The moniker of the validator.
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
     /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
-    // TODO: explain refund if fail
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
     function createValidator(
         bytes calldata validatorUncmpPubkey,
         string calldata moniker,
@@ -256,10 +291,17 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         );
     }
 
-    /// @notice Entry point for creating a new validator with self delegation on behalf of the validator.
-    /// @dev There's no minimum amount required to stake when creating a new validator.
+    /// @notice Entry point for creating a new validator on behalf of someone else.
+    /// WARNING: If validatorUncmpPubkey is wrong, the stake will go to an address that the sender
+    /// won't be able to control and unstake from, funds will be lost. If you want to make sure the
+    /// caller is the owner of the validator, use createValidator instead.
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    // TODO: Explain reasoning
+    /// @param moniker The moniker of the validator.
+    /// @param commissionRate The commission rate of the validator.
+    /// @param maxCommissionRate The maximum commission rate of the validator.
+    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
     function createValidatorOnBehalf(
         bytes calldata validatorUncmpPubkey,
         string calldata moniker,
@@ -286,6 +328,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
     /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
+    /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
     function _createValidator(
         bytes calldata validatorUncmpPubkey,
         string memory moniker,
@@ -320,28 +364,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _refundRemainder(remainder);
     }
 
-    function redelegate(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpSrcPubkey,
-        bytes calldata validatorUncmpDstPubkey,
-        uint256 delegationId,
-        uint256 amount
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
-        verifyUncmpPubkey(validatorUncmpSrcPubkey)
-        verifyUncmpPubkey(validatorUncmpDstPubkey)
-    {
-        if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
-            revert Errors.IPTokenStaking__RedelegatingToSameValidator();
-        }
-        (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        if (stakeAmount < minStakeAmount) {
-            revert Errors.IPTokenStaking__StakeAmountUnderMin();
-        }
-        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
-    }
 
     // TODO: update validator method (next version)
 
@@ -349,11 +371,16 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                             Token Staking                              //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
+    /// @notice Entry point to stake (delegate) to the given validator. The consensus client (CL) is notified of
     /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
-    /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
+    /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
+    /// withdrawal queue.
+    /// This method will revert if delegatorUncmpPubkey is not the sender of the validator.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -373,9 +400,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
     /// the stake and manages the stake accounting and validator onboarding. Payer can stake on behalf of another user,
     /// who will be the beneficiary of the stake.
-    /// @dev When staking, consider it as BURNING. Unstaking (withdrawal) will trigger native minting.
-    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
+    /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
+    /// withdrawal queue.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stakeOnBehalf(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -389,6 +420,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// validator (x/staking.MsgDelegate).
     /// @param delegatorUncmpPubkey Delegator's 65 byte uncompressed secp256k1 public key (no 0x04 prefix).
     /// @param validatorUncmpPubkey 33 byte compressed secp256k1 public key (no 0x04 prefix).
+    /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
+    /// @return delegationId The delegation ID, always 0 for flexible staking.
     function _stake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -414,6 +448,37 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         return delegationId;
     }
 
+    /// @notice Entry point for redelegating the stake to another validator.
+    /// @dev For non flexible staking, your staking period will continue as is.
+    /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount The amount of stake to redelegate.
+    function redelegate(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
+        uint256 amount
+    )
+        external
+        payable
+        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        verifyUncmpPubkey(validatorUncmpSrcPubkey)
+        verifyUncmpPubkey(validatorUncmpDstPubkey)
+    {
+        if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
+            revert Errors.IPTokenStaking__RedelegatingToSameValidator();
+        }
+        (uint256 stakeAmount, ) = roundedStakeAmount(msg.value);
+        if (stakeAmount < minStakeAmount) {
+            revert Errors.IPTokenStaking__StakeAmountUnderMin();
+        }
+        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
+    }
+
     /// @notice Returns the rounded stake amount and the remainder.
     /// @param rawAmount The raw stake amount.
     /// @return amount The rounded stake amount.
@@ -431,7 +496,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
+    /// @param data Additional data for the unstake.
     function unstake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -446,8 +513,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Must be an approved operator for the delegator.
     /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
-    // TODO: explain operator needed in CL
+    /// @param data Additional data for the unstake.
     function unstakeOnBehalf(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -458,6 +526,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
+
     function _unstake(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpPubkey,
@@ -465,9 +534,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount,
         bytes calldata data
     ) private {
-        console2.log("unstakkkk");
-        console2.log(amount);
-        console2.log(minUnstakeAmount);
         if (amount < minUnstakeAmount) {
             revert Errors.IPTokenStaking__LowUnstakeAmount();
         }
@@ -478,16 +544,21 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                             Unjail                                    //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Requests to unjail the validator. Must pay fee on the execution side to prevent spamming.
+    /// @notice Requests to unjail the validator. Caller must pay a fee to prevent spamming.
+    /// Fee must be exact amount.
+    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail.
     function unjail(
         bytes calldata validatorUncmpPubkey,
         bytes calldata data
-    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) nonReentrant {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) {
         _unjail(msg.value, validatorUncmpPubkey, data);
     }
 
-    /// @notice Requests to unjail a validator on behalf. Must pay fee on the execution side to prevent spamming.
+    /// @notice Requests to unjail a validator on behalf. Caller must pay a fee to prevent spamming.
+    /// Fee must be exact amount.
     /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail.
     function unjailOnBehalf(
         bytes calldata validatorUncmpPubkey,
         bytes calldata data
@@ -495,7 +566,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _unjail(msg.value, validatorUncmpPubkey, data);
     }
 
-    /// @dev Emits the Unjail event after burning the fee.
+    /// @dev Emits the Unjail event after burning the fee and burns the fee from the caller.
+    /// @param fee The fee to unjail the validator.
+    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param data Additional data for the unjail. 
     function _unjail(uint256 fee, bytes calldata validatorUncmpPubkey, bytes calldata data) private {
         if (fee != unjailFee) {
             revert Errors.IPTokenStaking__InvalidFeeAmount();
@@ -509,6 +583,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Refunds the remainder of the stake amount to the msg sender.
+    /// WARNING: Methods using this function should have nonReentrant modifier 
+    /// to prevent potential reentrancy attacks.
     /// @param remainder The remainder of the stake amount.
     function _refundRemainder(uint256 remainder) private {
         (bool success, ) = msg.sender.call{ value: remainder }("");

@@ -160,7 +160,7 @@ contract GenerateAlloc is Script {
 
         InitializableHelper.disableInitializers(impl);
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
-            accessManager: protocolAdmin,
+            owner: protocolAdmin,
             minStakeAmount: 1 ether,
             minUnstakeAmount: 1 ether,
             minCommissionRate: 5_00, // 5% in basis points

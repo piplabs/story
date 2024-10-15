@@ -15,9 +15,9 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable {
     }
 
     /// @notice Initializes the contract.
-    function initialize(address accessManager) public initializer {
-        require(accessManager != address(0), "UpgradeEntrypoint: accessManager cannot be zero address");
-        __Ownable_init(accessManager);
+    function initialize(address owner) public initializer {
+        require(owner != address(0), "UpgradeEntrypoint: owner cannot be zero address");
+        __Ownable_init(owner);
     }
 
     /// @notice Submits an upgrade plan.
