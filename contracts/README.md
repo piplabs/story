@@ -53,7 +53,7 @@ ADMIN_ADDRESS=0x123...
 UPGRADE_ADMIN_ADDRESS=0x234...
 ```
 - `ADMIN_ADDRESS` will be the owner of `IPTokenStaking` and `UpgradeEntryPoint`, able to execute admin methods.
-- `UPGRADE_ADMIN_ADDRESS` will be the owner of the [ProxyAdmin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/ProxyAdmin.sol) for each upgradeable predeploy. 
+- `UPGRADE_ADMIN_ADDRESS` will be the owner of the [ProxyAdmin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/ProxyAdmin.sol) for each upgradeable predeploy.
 
 2. Run
 ```
