@@ -116,8 +116,8 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_Parameters() public view {
-        assertEq(ipTokenStaking.minStakeAmount(), 1 ether);
-        assertEq(ipTokenStaking.minUnstakeAmount(), 1 ether);
+        assertEq(ipTokenStaking.minStakeAmount(), 1024 ether);
+        assertEq(ipTokenStaking.minUnstakeAmount(), 1024 ether);
         assertEq(ipTokenStaking.STAKE_ROUNDING(), 1 gwei);
         assertEq(ipTokenStaking.minCommissionRate(), 5_00);
         assertEq(ipTokenStaking.DEFAULT_MIN_UNJAIL_FEE(), 1 ether);
@@ -157,7 +157,7 @@ contract IPTokenStakingTest is Test {
         });
 
         // Network shall allow anyone to create a new validator by staking validator’s own tokens (self-delegation)
-        stakeAmount = 1 ether;
+        stakeAmount = ipTokenStaking.minStakeAmount();
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
@@ -186,7 +186,7 @@ contract IPTokenStakingTest is Test {
         // Note that the operation stakes sender’s tokens to the validator, and the delegator will still be the validator itself.
         bytes
             memory validator2UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
-        stakeAmount = 1000 ether;
+        stakeAmount = ipTokenStaking.minStakeAmount();
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
@@ -214,7 +214,6 @@ contract IPTokenStakingTest is Test {
         // Network shall not allow anyone to create a new validator if the provided public key doesn’t match sender’s address.
         bytes
             memory delegatorUncmpPubkeyChanged = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
-        stakeAmount = 1 ether;
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
@@ -229,27 +228,12 @@ contract IPTokenStakingTest is Test {
         });
     }
 
-    modifier withDefaultValidator() {
-        vm.deal(delegatorAddr, 1 ether);
-        vm.prank(delegatorAddr);
-        ipTokenStaking.createValidator{ value: 1 ether }({
-            validatorUncmpPubkey: delegatorUncmpPubkey,
-            moniker: "delegator's validator",
-            commissionRate: 1000,
-            maxCommissionRate: 5000,
-            maxCommissionChangeRate: 100,
-            supportsUnlocked: false,
-            data: ""
-        });
-        _;
-    }
-
     function testIPTokenStaking_Stake_Flexible() public {
         bytes memory validatorPubkey = delegatorUncmpPubkey;
         IIPTokenStaking.StakingPeriod stkPeriod = IIPTokenStaking.StakingPeriod.FLEXIBLE;
-        vm.deal(delegatorAddr, 100 ether);
+        vm.deal(delegatorAddr, 10000 ether);
         vm.prank(delegatorAddr);
-        uint256 delegationId = ipTokenStaking.stake{ value: 50 ether }(
+        uint256 delegationId = ipTokenStaking.stake{ value: 1024 ether }(
             delegatorUncmpPubkey,
             validatorPubkey,
             stkPeriod,
