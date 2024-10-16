@@ -315,7 +315,7 @@ contract IPTokenStakingTest is Test {
         bytes memory validatorPubkey = delegatorUncmpPubkey;
         uint256 stakeAmount = 1024 ether;
         uint256 predeployInitialBalance = 1; // 1 wei, needed to have predeploy at genesis
-        
+
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         ipTokenStaking.stake{ value: stakeAmount }(
@@ -324,7 +324,11 @@ contract IPTokenStakingTest is Test {
             IIPTokenStaking.StakingPeriod.FLEXIBLE,
             ""
         );
-        assertEq(address(ipTokenStaking).balance, predeployInitialBalance, "IPTokenStaking: Stake amount should be burned");
+        assertEq(
+            address(ipTokenStaking).balance,
+            predeployInitialBalance,
+            "IPTokenStaking: Stake amount should be burned"
+        );
         assertEq(address(delegatorAddr).balance, 0, "Delegator: No remainder should be sent back");
 
         // Remainder if the stake amount has values under STAKE_ROUNDING
