@@ -414,6 +414,7 @@ contract IPTokenStakingTest is Test {
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
             delegationId,
+            delegatorAddr,
             stakeAmount
         );
         vm.deal(delegatorAddr, stakeAmount);
@@ -488,6 +489,99 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidDelegationId.selector);
         ipTokenStaking.redelegate{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount
+        );
+    }
+
+    function testIPTokenStaking_RedelegationOnBehalf() public {
+        uint256 stakeAmount = ipTokenStaking.minStakeAmount();
+        uint256 delegationId = 1;
+        // Use VM setStorage to set the counter to delegationId == 1
+        vm.store(
+            address(ipTokenStaking),
+            bytes32(uint256(3)), // _delegationIdCounter
+            bytes32(uint256(1))
+        );
+        bytes
+            memory validatorUncmpSrcPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
+        bytes
+            memory validatorUncmpDstPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
+
+        address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+
+        vm.expectEmit(true, true, true, true);
+        emit IIPTokenStaking.Redelegate(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            operator,
+            stakeAmount
+        );
+        vm.deal(operator, stakeAmount);
+        vm.prank(operator);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount
+        );
+
+        // Redelegating to same validator
+        vm.deal(operator, stakeAmount);
+        vm.prank(operator);
+        vm.expectRevert(Errors.IPTokenStaking__RedelegatingToSameValidator.selector);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpSrcPubkey,
+            delegationId,
+            stakeAmount
+        );
+        // Malformed Src
+        vm.deal(operator, stakeAmount);
+        vm.prank(operator);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount
+        );
+        // Malformed Dst
+        vm.deal(operator, stakeAmount);
+        vm.prank(operator);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
+            delegationId,
+            stakeAmount
+        );
+        // Stake < Min
+        vm.deal(operator, stakeAmount);
+        vm.prank(operator);
+        vm.expectRevert(Errors.IPTokenStaking__StakeAmountUnderMin.selector);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount - 1 }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount + 100
+        );
+
+        // Revert if delegationId is invalid
+        delegationId++;
+        vm.prank(operator);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidDelegationId.selector);
+        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,

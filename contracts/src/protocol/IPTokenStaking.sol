@@ -493,6 +493,40 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
     {
+        _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
+    }
+
+    /// @notice Entry point for redelegating the stake to another validator on behalf of the delegator.
+    /// @dev For non flexible staking, your staking period will continue as is.
+    /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount The amount of stake to redelegate.
+    function redelegateOnBehalf(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
+        uint256 amount
+    )
+        external
+        payable
+        verifyUncmpPubkey(delegatorUncmpPubkey)
+        verifyUncmpPubkey(validatorUncmpSrcPubkey)
+        verifyUncmpPubkey(validatorUncmpDstPubkey)
+    {
+        _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
+    }
+
+    function _redelegate(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
+        uint256 amount
+    ) private {
         if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
             revert Errors.IPTokenStaking__RedelegatingToSameValidator();
         }
@@ -503,7 +537,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (delegationId > _delegationIdCounter) {
             revert Errors.IPTokenStaking__InvalidDelegationId();
         }
-        emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
+        emit Redelegate(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            msg.sender,
+            amount
+        );
     }
 
     /// @notice Returns the rounded stake amount and the remainder.

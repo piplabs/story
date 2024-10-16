@@ -121,12 +121,14 @@ interface IIPTokenStaking {
     /// @param validatorUncmpSrcPubkey Source validator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUncmpDstPubkey Destination validator's 65 bytes uncompressed secp256k1 public key.
     /// @param delegationId if delegation has staking period, 0 if flexible
+    /// @param operatorAddress The caller's address
     /// @param amount Token redelegated.
     event Redelegate(
         bytes delegatorUncmpPubkey,
         bytes validatorUncmpSrcPubkey,
         bytes validatorUncmpDstPubkey,
         uint256 delegationId,
+        address operatorAddress,
         uint256 amount
     );
 
@@ -273,6 +275,22 @@ interface IIPTokenStaking {
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount The amount of stake to redelegate.
     function redelegate(
+        bytes calldata delegatorUncmpPubkey,
+        bytes calldata validatorUncmpSrcPubkey,
+        bytes calldata validatorUncmpDstPubkey,
+        uint256 delegationId,
+        uint256 amount
+    ) external payable;
+
+    /// @notice Entry point for redelegating the stake to another validator on behalf of the delegator.
+    /// @dev For non flexible staking, your staking period will continue as is.
+    /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
+    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegationId The delegation ID, 0 for flexible staking.
+    /// @param amount The amount of stake to redelegate.
+    function redelegateOnBehalf(
         bytes calldata delegatorUncmpPubkey,
         bytes calldata validatorUncmpSrcPubkey,
         bytes calldata validatorUncmpDstPubkey,
