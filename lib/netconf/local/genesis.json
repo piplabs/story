@@ -69,13 +69,13 @@
     },
     "distribution": {
       "params": {
-        "community_tax": "0.000000000000000000",
+        "ubi": "0.000000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true
       },
       "fee_pool": {
-        "community_pool": []
+        "ubi": []
       },
       "delegator_withdraw_infos": [],
       "previous_proposer": "",
@@ -88,7 +88,7 @@
     },
     "evmengine": {
       "params": {
-				"execution_block_hash": "jz/Faw3DoAnmdx2pn/c3kA2oS5rq4V0briJcyLTbvcM="
+        "execution_block_hash": "jz/Faw3DoAnmdx2pn/c3kA2oS5rq4V0briJcyLTbvcM="
       }
     },
     "genutil": {
@@ -120,7 +120,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "1000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -168,7 +169,43 @@
       "delegations": [],
       "unbonding_delegations": [],
       "redelegations": [],
-      "exported": false
+      "exported": false,
+      "token_types": {
+        "token_type_info_map": {
+          "0": {
+            "rewards_multiplier": "0.500000000000000000",
+            "token_type": 0
+          },
+          "1": {
+            "rewards_multiplier": "1.000000000000000000",
+            "token_type": 1
+          }
+        }
+      },
+      "periods": {
+        "period_map": {
+          "0": {
+            "period_type": 0,
+            "duration": "0s",
+            "rewards_multiplier": "1"
+          },
+          "1": {
+            "period_type": 1,
+            "duration": "60s",
+            "rewards_multiplier": "1.051"
+          },
+          "2": {
+            "period_type": 2,
+            "duration": "120s",
+            "rewards_multiplier": "1.16"
+          },
+          "3": {
+            "period_type": 3,
+            "duration": "180s",
+            "rewards_multiplier": "1.34"
+          }
+        }
+      }
     },
     "valsync": {},
     "evmstaking": {
