@@ -80,10 +80,7 @@ interface IIPTokenStaking {
     /// @notice Emitted when the validator commission is updated
     /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param commissionRate The new commission rate of the validator.
-    event UpdateValidatorCommssion(
-        bytes validatorUncmpPubkey,
-        uint32 commissionRate
-    );
+    event UpdateValidatorCommssion(bytes validatorUncmpPubkey, uint32 commissionRate);
 
     /// @notice Emitted when a user deposits token into the contract.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
