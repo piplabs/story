@@ -69,3 +69,22 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 
 	return nil
 }
+
+func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenStakingRemoveOperator) error {
+	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "compress depositor pubkey")
+	}
+	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
+	if err != nil {
+		return errors.Wrap(err, "depositor pubkey to cosmos")
+	}
+
+	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+
+	if err := k.DelegatorOperatorAddress.Remove(ctx, depositorAddr.String()); err != nil {
+		return errors.Wrap(err, "delegator operator address map remove")
+	}
+
+	return nil
+}

@@ -59,6 +59,8 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return errors.Wrap(err, "dst validator pubkey to evm address")
 	}
 
+	// TODO(rayden): redelegateOnBehalf txn, need to check if it's from the operator
+
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
 	log.Info(ctx, "EVM staking relegation detected",
