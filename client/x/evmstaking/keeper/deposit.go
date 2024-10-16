@@ -84,12 +84,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "set delegator reward address map")
 	}
 
-	// TODO: Check if we can instantiate the msgServer without type assertion
-	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
+	delID := ev.DelegationId.String()
 
 	var periodType stypes.PeriodType
 	switch ev.StakingPeriod.Int64() {
@@ -105,10 +100,28 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.New("invalid staking period")
 	}
 
+	val, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.New("validator not exists")
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+	// locked tokens can only be staked with flexible period
+	if val.SupportTokenType == stypes.TokenType_LOCKED {
+		periodType = stypes.PeriodType_FLEXIBLE
+		delID = stypes.FlexibleDelegationID
+	}
+
+	// TODO: Check if we can instantiate the msgServer without type assertion
+	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
 		depositorAddr.String(), validatorAddr.String(), amountCoin,
-		ev.DelegationId.String(), periodType,
+		delID, periodType,
 	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
 	if err != nil {
