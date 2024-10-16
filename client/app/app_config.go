@@ -28,8 +28,6 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	epochsmodule "github.com/piplabs/story/client/x/epochs/module"
-	epochstypes "github.com/piplabs/story/client/x/epochs/types"
 	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
@@ -86,7 +84,6 @@ var (
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
 		// Story modules
-		epochstypes.ModuleName,
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
 	}
@@ -101,7 +98,6 @@ var (
 	// CanWithdrawInvariant invariant.
 	// NOTE: staking module is required if HistoricalEntries param > 0.
 	beginBlockers = []string{
-		epochstypes.ModuleName,
 		minttypes.ModuleName,
 		distrtypes.ModuleName, // Note: slashing happens after distr.BeginBlocker
 		slashingtypes.ModuleName,
@@ -121,7 +117,6 @@ var (
 		stakingtypes.BondedPoolName,
 		stakingtypes.NotBondedPoolName,
 		evmstakingtypes.ModuleName,
-		epochstypes.ModuleName,
 	}
 
 	moduleAccPerms = []*authmodulev1.ModuleAccountPermission{
@@ -200,10 +195,6 @@ var (
 			{
 				Name:   upgradetypes.ModuleName,
 				Config: appconfig.WrapAny(&upgrademodulev1.Module{}),
-			},
-			{
-				Name:   epochstypes.ModuleName,
-				Config: appconfig.WrapAny(&epochsmodule.Module{}),
 			},
 			{
 				Name:   evmstakingtypes.ModuleName,
