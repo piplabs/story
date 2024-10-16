@@ -15,8 +15,10 @@ const (
 
 // KVStore keys.
 var (
-	ParamsKey              = collections.NewPrefix(0)
-	WithdrawalQueueKey     = collections.NewPrefix(1)
-	DelegatorMapKey        = collections.NewPrefix(2)
-	ValidatorSweepIndexKey = collections.NewPrefix(3)
+	ParamsKey                      = collections.NewPrefix(0)
+	ValidatorSweepIndexKey         = collections.NewPrefix(1)
+	DelegatorWithdrawAddressMapKey = collections.NewPrefix(2)
+	DelegatorRewardAddressMapKey   = collections.NewPrefix(3)
+	DelegatorOperatorAddressMapKey = collections.NewPrefix(4)
+	WithdrawalQueueKey             = collections.NewPrefix(5)
 )

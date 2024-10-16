@@ -10,6 +10,8 @@ import (
 var (
 	ipTokenStakingABI    = mustGetABI(bindings.IPTokenStakingMetaData)
 	SetWithdrawalAddress = mustGetEvent(ipTokenStakingABI, "SetWithdrawalAddress")
+	SetRewardAddress     = mustGetEvent(ipTokenStakingABI, "SetRewardAddress")
+	AddOperator          = mustGetEvent(ipTokenStakingABI, "AddOperator")
 	CreateValidatorEvent = mustGetEvent(ipTokenStakingABI, "CreateValidator")
 	DepositEvent         = mustGetEvent(ipTokenStakingABI, "Deposit")
 	RedelegateEvent      = mustGetEvent(ipTokenStakingABI, "Redelegate")

@@ -126,9 +126,9 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			bondDenomAmount := delRewardsTruncated.AmountOf(sdk.DefaultBondDenom).Uint64()
 
 			if bondDenomAmount >= minPartialWithdrawalAmount {
-				delEvmAddr, err := k.DelegatorMap.Get(ctx, nextDelegators[i].DelegatorAddress)
+				delEvmAddr, err := k.DelegatorRewardAddress.Get(ctx, nextDelegators[i].DelegatorAddress)
 				if err != nil {
-					return nil, errors.Wrap(err, "map delegator pubkey to evm address")
+					return nil, errors.Wrap(err, "map delegator pubkey to evm reward address")
 				}
 
 				withdrawals = append(withdrawals, estypes.NewWithdrawal(
