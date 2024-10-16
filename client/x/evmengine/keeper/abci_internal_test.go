@@ -236,7 +236,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
 				populateGenesisHead(ctx, t, k)
 				// Set an optimistic payload
-				k.setOptimisticPayload(&eengine.PayloadID{}, optimisticPayloadHeight)
+				k.setOptimisticPayload(eengine.PayloadID{}, optimisticPayloadHeight)
 
 				_, err = k.PrepareProposal(withRandomErrs(t, ctx), tt.req)
 				if (err != nil) != tt.wantErr {
@@ -308,10 +308,10 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 
 func TestKeeper_PostFinalize(t *testing.T) {
 	t.Parallel()
-	payloadID := &eengine.PayloadID{0x1}
+	payloadID := eengine.PayloadID{0x1}
 	payloadFailedToSet := func(k *Keeper) {
 		id, _, _ := k.getOptimisticPayload()
-		require.Nil(t, id)
+		require.Equal(t, eengine.PayloadID{}, id)
 	}
 	payloadWellSet := func(k *Keeper) {
 		id, _, _ := k.getOptimisticPayload()
@@ -357,7 +357,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 							LatestValidHash: nil,
 							ValidationError: nil,
 						},
-						PayloadID: payloadID,
+						PayloadID: &payloadID,
 					}, nil
 				},
 			},
@@ -380,7 +380,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 							LatestValidHash: nil,
 							ValidationError: nil,
 						},
-						PayloadID: payloadID,
+						PayloadID: &payloadID,
 					}, nil
 				},
 			},
@@ -403,7 +403,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 							LatestValidHash: nil,
 							ValidationError: nil,
 						},
-						PayloadID: payloadID,
+						PayloadID: &payloadID,
 					}, nil
 				},
 			},
