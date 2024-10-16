@@ -27,7 +27,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
-	epochskeeper "github.com/piplabs/story/client/x/epochs/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 )
@@ -42,7 +41,6 @@ type Store interface {
 	GetDistrKeeper() distrkeeper.Keeper
 	GetUpgradeKeeper() *upgradekeeper.Keeper
 	GetMintKeeper() mintkeeper.Keeper
-	GetEpochsKeeper() *epochskeeper.Keeper
 }
 
 type Server struct {
@@ -126,7 +124,6 @@ func (s *Server) registerHandle() {
 	s.initStakingRoute()
 	s.initUpgradeRoute()
 	s.initMintRoute()
-	s.initEpochsRoute()
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {

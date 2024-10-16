@@ -184,19 +184,6 @@
         "inflations_per_year": "24625000000000000.000000000000000000",
         "blocks_per_year": "6311520"
       }
-    },
-    "epochs": {
-      "epochs": [
-        {
-          "identifier": "minute",
-          "start_time": "1970-01-01T00:00:00Z",
-          "duration": "60s",
-          "current_epoch": "0",
-          "current_epoch_start_time": "1970-01-01T00:00:00Z",
-          "epoch_counting_started": false,
-          "current_epoch_start_height": "10"
-        }
-      ]
     }
   }
 }

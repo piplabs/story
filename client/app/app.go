@@ -23,7 +23,6 @@ import (
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
-	epochskeeper "github.com/piplabs/story/client/x/epochs/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 	"github.com/piplabs/story/lib/errors"
@@ -93,7 +92,6 @@ func newApp(
 		&app.Keepers.ConsensusParamsKeeper,
 		&app.Keepers.GovKeeper,
 		&app.Keepers.UpgradeKeeper,
-		&app.Keepers.EpochsKeeper,
 		&app.Keepers.EvmStakingKeeper,
 		&app.Keepers.EVMEngKeeper,
 		&app.Keepers.MintKeeper,
@@ -212,8 +210,4 @@ func (a App) GetUpgradeKeeper() *upgradekeeper.Keeper {
 
 func (a App) GetMintKeeper() mintkeeper.Keeper {
 	return a.Keepers.MintKeeper
-}
-
-func (a App) GetEpochsKeeper() *epochskeeper.Keeper {
-	return a.Keepers.EpochsKeeper
 }
