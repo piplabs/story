@@ -569,21 +569,29 @@ contract IPTokenStakingTest is Test {
 
     function testIPTokenStaking_updateValidatorCommission() public {
         uint32 commissionRate = 100000000;
+        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
+        vm.deal(delegatorAddr, feeAmount * 10);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.UpdateValidatorCommssion(delegatorUncmpPubkey, commissionRate);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, commissionRate);
 
         // Network shall not allow anyone to update the commission rate of a validator if it is not the validator itself.
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        vm.deal(otherAddress, feeAmount * 10);
         vm.prank(otherAddress);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, commissionRate);
 
         // Network shall not allow anyone to update the commission rate of a validator if it is less than minCommissionRate.
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__CommissionRateUnderMin.selector);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, 0);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, 0);
+
+        // Network shall not allow anyone to update the commission rate of a validator if the fee is not paid.
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount - 1 }(delegatorUncmpPubkey, commissionRate);
     }
 
     function testIPTokenStaking_addOperator() public {
