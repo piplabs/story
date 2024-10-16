@@ -227,7 +227,8 @@ contract IPTokenStakingTest is Test {
         });
     }
 
-    function testIPTokenStaking_Stake_Flexible() public {
+    function testIPTokenStaking_Stake_Periods() public {
+        // Flexible should produce 0 delegationId
         bytes memory validatorPubkey = delegatorUncmpPubkey;
         IIPTokenStaking.StakingPeriod stkPeriod = IIPTokenStaking.StakingPeriod.FLEXIBLE;
         vm.deal(delegatorAddr, 10000 ether);
@@ -238,8 +239,106 @@ contract IPTokenStakingTest is Test {
             stkPeriod,
             ""
         );
-
         assertEq(delegationId, 0);
+        // Staking for short period should produce incremented delegationId and correct duration
+        // emitted event
+        uint32 shortDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.SHORT);
+        uint256 stakeAmount = ipTokenStaking.minUnstakeAmount();
+        uint256 expectedDelegationId = 1;
+        vm.deal(delegatorAddr, 10000000000 ether);
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.Deposit(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            stakeAmount,
+            shortDuration,
+            expectedDelegationId,
+            delegatorAddr,
+            ""
+        );
+        delegationId = ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.SHORT,
+            ""
+        );
+        assertEq(delegationId, expectedDelegationId);
+        expectedDelegationId++;
+        // Staking for medium period should produce incremented delegationId and correct duration
+        // emitted event
+        uint32 mediumDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.MEDIUM);
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.Deposit(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            stakeAmount,
+            mediumDuration,
+            expectedDelegationId,
+            delegatorAddr,
+            ""
+        );
+        delegationId = ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.MEDIUM,
+            ""
+        );
+        assertEq(delegationId, expectedDelegationId);
+        expectedDelegationId++;
+        // Staking for long period should produce incremented delegationId and correct duration
+        // emitted event
+        uint32 longDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.LONG);
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.Deposit(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            stakeAmount,
+            longDuration,
+            expectedDelegationId,
+            delegatorAddr,
+            ""
+        );
+        delegationId = ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.LONG,
+            ""
+        );
+        assertEq(delegationId, expectedDelegationId);
+    }
+
+    function testIPTokenStaking_stake_remainder() public {
+        // No remainder if the stake amount has no values under STAKE_ROUNDING
+        bytes memory validatorPubkey = delegatorUncmpPubkey;
+        uint256 stakeAmount = 1024 ether;
+        uint256 predeployInitialBalance = 1; // 1 wei, needed to have predeploy at genesis
+        
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
+        assertEq(address(ipTokenStaking).balance, predeployInitialBalance, "IPTokenStaking: Stake amount should be burned");
+        assertEq(address(delegatorAddr).balance, 0, "Delegator: No remainder should be sent back");
+
+        // Remainder if the stake amount has values under STAKE_ROUNDING
+        stakeAmount = 1024 ether + 1 wei;
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
+        assertEq(address(ipTokenStaking).balance, predeployInitialBalance);
+        assertEq(address(delegatorAddr).balance, 1 wei);
     }
 
     function testIPTokenStaking_Unstake_Flexible() public {
@@ -248,6 +347,12 @@ contract IPTokenStakingTest is Test {
         // Network shall only allow the stake owner to withdraw from their stake pubkey
         uint256 stakeAmount = ipTokenStaking.minUnstakeAmount();
         uint256 delegationId = 1337;
+        // Use VM setStorage to set the counter to delegationId + 1
+        vm.store(
+            address(ipTokenStaking),
+            bytes32(uint256(3)), // _delegationIdCounter
+            bytes32(uint256(1338))
+        );
 
         vm.startPrank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
@@ -276,11 +381,24 @@ contract IPTokenStakingTest is Test {
         emit IIPTokenStaking.Withdraw(delegatorUncmpPubkey, validatorPubkey, stakeAmount, delegationId, operator, "");
         ipTokenStaking.unstakeOnBehalf(delegatorUncmpPubkey, validatorPubkey, delegationId, stakeAmount, "");
         vm.stopPrank();
+
+        // Revert if delegationId is invalid
+        delegationId++;
+        vm.startPrank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidDelegationId.selector);
+        ipTokenStaking.unstake(delegatorUncmpPubkey, validatorPubkey, delegationId + 2, stakeAmount, "");
+        vm.stopPrank();
     }
 
     function testIPTokenStaking_Redelegation() public {
         uint256 stakeAmount = ipTokenStaking.minStakeAmount();
-        uint256 delegationId = 1337;
+        uint256 delegationId = 1;
+        // Use VM setStorage to set the counter to delegationId == 1
+        vm.store(
+            address(ipTokenStaking),
+            bytes32(uint256(3)), // _delegationIdCounter
+            bytes32(uint256(1))
+        );
         bytes
             memory validatorUncmpSrcPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
         bytes
@@ -360,6 +478,18 @@ contract IPTokenStakingTest is Test {
             delegationId,
             stakeAmount + 100
         );
+
+        // Revert if delegationId is invalid
+        delegationId++;
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidDelegationId.selector);
+        ipTokenStaking.redelegate{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount
+        );
     }
 
     function testIPTokenStaking_SetWithdrawalAddress() public {
@@ -396,6 +526,25 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.setRewardsAddress(delegatorUncmpPubkey1, address(0xb0b));
+    }
+
+    function testIPTokenStaking_updateValidatorCommission() public {
+        uint32 commissionRate = 100000000;
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.UpdateValidatorCommssion(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+
+        // Network shall not allow anyone to update the commission rate of a validator if it is not the validator itself.
+        address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        vm.prank(otherAddress);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+
+        // Network shall not allow anyone to update the commission rate of a validator if it is less than minCommissionRate.
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__CommissionRateUnderMin.selector);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, 0);
     }
 
     function testIPTokenStaking_addOperator() public {

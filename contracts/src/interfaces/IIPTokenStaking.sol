@@ -77,6 +77,14 @@ interface IIPTokenStaking {
     /// @param executionAddress Left-padded 32 bytes of the EVM address to receive stake and reward withdrawals.
     event SetRewardAddress(bytes delegatorUncmpPubkey, bytes32 executionAddress);
 
+    /// @notice Emitted when the validator commission is updated
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param commissionRate The new commission rate of the validator.
+    event UpdateValidatorCommssion(
+        bytes validatorUncmpPubkey,
+        uint32 commissionRate
+    );
+
     /// @notice Emitted when a user deposits token into the contract.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
@@ -147,10 +155,6 @@ interface IIPTokenStaking {
     /// @param minCommissionRate The new global minimum commission rate.
     event MinCommissionRateChanged(uint256 minCommissionRate);
 
-    /// @notice Emitted when the unbonding period is set.
-    /// @param newInterval The new unbonding period.
-    event WithdrawalAddressChangeIntervalSet(uint256 newInterval);
-
     /// @notice Emitted when a validator is unjailed.
     event Unjail(address unjailer, bytes validatorUncmpPubkey, bytes data);
 
@@ -180,6 +184,11 @@ interface IIPTokenStaking {
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param newRewardsAddress EVM address to receive the stake and reward withdrawals.
     function setRewardsAddress(bytes calldata delegatorUncmpPubkey, address newRewardsAddress) external;
+
+    /// @notice Update the commission rate of a validator.
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param commissionRate The new commission rate of the validator.
+    function updateValidatorCommission(bytes calldata validatorUncmpPubkey, uint32 commissionRate) external;
 
     /// @notice Entry point for creating a new validator with self delegation.
     /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.

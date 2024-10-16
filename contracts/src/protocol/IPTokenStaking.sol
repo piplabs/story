@@ -360,10 +360,27 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             msg.sender,
             data
         );
-        _refundRemainder(remainder);
+        if (remainder > 0) {
+            _refundRemainder(remainder);
+        }
     }
 
-    // TODO: update validator method (next version)
+    /*//////////////////////////////////////////////////////////////////////////
+    //                           Validator Config                             //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Update the commission rate of a validator.
+    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param commissionRate The new commission rate of the validator.
+    function updateValidatorCommission(
+        bytes calldata validatorUncmpPubkey,
+        uint32 commissionRate
+    ) external verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) {
+        if (commissionRate < minCommissionRate) {
+            revert Errors.IPTokenStaking__CommissionRateUnderMin();
+        }
+        emit UpdateValidatorCommssion(validatorUncmpPubkey, commissionRate);
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
     //                             Token Staking                              //
@@ -387,7 +404,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     )
         external
         payable
-        override
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         nonReentrant
         returns (uint256 delegationId)
@@ -441,7 +457,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         // We burn staked tokens
         payable(address(0)).transfer(stakeAmount);
 
-        _refundRemainder(remainder);
+        if (remainder > 0) {
+            _refundRemainder(remainder);
+        }
 
         return delegationId;
     }
@@ -474,6 +492,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (stakeAmount < minStakeAmount) {
             revert Errors.IPTokenStaking__StakeAmountUnderMin();
         }
+        if (delegationId > _delegationIdCounter) {
+            revert Errors.IPTokenStaking__InvalidDelegationId();
+        }
         emit Redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
 
@@ -503,7 +524,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) {
+    )
+        external
+        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        verifyUncmpPubkey(validatorUncmpPubkey)
+    {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
@@ -520,7 +545,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external verifyUncmpPubkey(delegatorUncmpPubkey) {
+    ) external verifyUncmpPubkey(delegatorUncmpPubkey) verifyUncmpPubkey(validatorUncmpPubkey) {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
@@ -531,6 +556,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount,
         bytes calldata data
     ) private {
+        if (delegationId > _delegationIdCounter) {
+            revert Errors.IPTokenStaking__InvalidDelegationId();
+        }
         if (amount < minUnstakeAmount) {
             revert Errors.IPTokenStaking__LowUnstakeAmount();
         }
