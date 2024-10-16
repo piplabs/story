@@ -64,6 +64,7 @@ type StakingKeeper interface {
 	GetUnbondingDelegationsFromValidator(ctx context.Context, valAddr sdk.ValAddress) (ubds []stakingtypes.UnbondingDelegation, err error)
 
 	EndBlocker(ctx context.Context) ([]abci.ValidatorUpdate, error)
+	EndBlockerWithUnbondedEntries(ctx context.Context) ([]abci.ValidatorUpdate, []stakingtypes.UnbondedEntry, error)
 }
 
 // SlashingKeeper defines the expected interface for the slashing module.
