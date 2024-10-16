@@ -289,7 +289,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 
 		msgDelegate := stypes.NewMsgDelegate(
 			"delAddr", "valAddr", sdk.NewInt64Coin("stake", 100),
-			stypes.FlexibleDelegationID, stypes.PeriodType_FLEXIBLE,
+			stypes.FlexiblePeriodDelegationID, stypes.PeriodType_FLEXIBLE,
 		)
 		resp.Txs[0] = appendMsgToTx(t, txConfig, resp.Txs[0], msgDelegate)
 
@@ -611,7 +611,7 @@ func (m mockVEProvider) PrepareVotes(_ context.Context, _ abci.ExtendedCommitInf
 	coin := sdk.NewInt64Coin("stake", 100)
 	msg := stypes.NewMsgDelegate(
 		"addr", "addr", coin,
-		stypes.FlexibleDelegationID, stypes.PeriodType_FLEXIBLE,
+		stypes.FlexiblePeriodDelegationID, stypes.PeriodType_FLEXIBLE,
 	)
 
 	return []sdk.Msg{msg}, nil

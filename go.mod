@@ -295,7 +295,7 @@ replace (
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/story/v0.50.7, current branch: story/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.2
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.3
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
