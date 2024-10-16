@@ -158,8 +158,6 @@ func (s *TestSuite) SetupTest() {
 	)
 	s.StakingKeeper = stakingKeeper
 	s.Require().NoError(s.StakingKeeper.SetParams(s.Ctx, stypes.DefaultParams()))
-	s.Require().NoError(s.StakingKeeper.SetPeriods(s.Ctx, stypes.DefaultPeriods()))
-	s.Require().NoError(s.StakingKeeper.SetTokenTypes(s.Ctx, stypes.DefaultTokenTypes()))
 
 	// emvstaking keeper
 	ethCl, err := ethclient.NewEngineMock(evmstakingKey)
