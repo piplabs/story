@@ -26,6 +26,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 
 	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
@@ -511,7 +512,7 @@ func MockPayloadID(params engine.ExecutableData, beaconRoot *common.Hash) (engin
 	_, _ = h.Write(beaconRoot.Bytes())
 	hash := h.Sum(nil)
 
-	return engine.PayloadID(hash[:8]), nil
+	return cast.Array8(hash[:8])
 }
 
 // verifyChild returns an error if child is not a valid child of parent.
