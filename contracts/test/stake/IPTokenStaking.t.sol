@@ -29,7 +29,7 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_Constructor() public {
-        vm.expectRevert(Errors.IPTokenStaking__InvalidDefaultMinUnjailFee.selector);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidDefaultMinValidatorUpdateFee.selector);
         new IPTokenStaking(
             1 gwei, // stakingRounding
             0 ether
@@ -38,7 +38,7 @@ contract IPTokenStakingTest is Test {
         address impl = address(
             new IPTokenStaking(
                 0, // stakingRounding
-                1 ether // Default min unjail fee, 1 eth
+                1 ether // Default min validator update fee, 1 eth
             )
         );
 
@@ -50,12 +50,12 @@ contract IPTokenStakingTest is Test {
             shortStakingPeriod: 1,
             mediumStakingPeriod: 2,
             longStakingPeriod: 3,
-            unjailFee: 1 ether
+            validatorUpdateFee: 1 ether
         });
         impl = address(
             new IPTokenStaking(
                 1 gwei, // stakingRounding
-                1 ether // Default min unjail fee, 1 eth
+                1 ether // Default min validator update fee, 1 eth
             )
         );
         // IPTokenStaking: minStakeAmount cannot be 0
@@ -110,7 +110,7 @@ contract IPTokenStakingTest is Test {
         args.shortStakingPeriod = 1;
         args.mediumStakingPeriod = 2;
         args.longStakingPeriod = 3;
-        args.unjailFee = 10;
+        args.validatorUpdateFee = 10;
         new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
     }
 
@@ -493,6 +493,7 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_SetWithdrawalAddress() public {
+        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
         // Network shall allow the delegators to set their withdrawal address
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.SetWithdrawalAddress(
@@ -500,17 +501,23 @@ contract IPTokenStakingTest is Test {
             0x0000000000000000000000000000000000000000000000000000000000000b0b
         );
         vm.prank(delegatorAddr);
-        ipTokenStaking.setWithdrawalAddress(delegatorUncmpPubkey, address(0xb0b));
+        ipTokenStaking.setWithdrawalAddress{ value: feeAmount }(delegatorUncmpPubkey, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address for other delegators
         bytes
             memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
-        ipTokenStaking.setWithdrawalAddress(delegatorUncmpPubkey1, address(0xb0b));
+        ipTokenStaking.setWithdrawalAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
+
+        // Network shall not allow anyone to set withdrawal address with insufficient fee
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.setWithdrawalAddress{ value: feeAmount - 1 }(delegatorUncmpPubkey, address(0xb0b));
     }
 
     function testIPTokenStaking_SetRewardsAddress() public {
+        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
         // Network shall allow the delegators to set their withdrawal address
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.SetRewardAddress(
@@ -518,33 +525,46 @@ contract IPTokenStakingTest is Test {
             0x0000000000000000000000000000000000000000000000000000000000000b0b
         );
         vm.prank(delegatorAddr);
-        ipTokenStaking.setRewardsAddress(delegatorUncmpPubkey, address(0xb0b));
+        ipTokenStaking.setRewardsAddress{ value: feeAmount }(delegatorUncmpPubkey, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address for other delegators
         bytes
             memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
-        ipTokenStaking.setRewardsAddress(delegatorUncmpPubkey1, address(0xb0b));
+        ipTokenStaking.setRewardsAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
+
+        // Network shall not allow anyone to set withdrawal address with insufficient fee
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.setRewardsAddress{ value: feeAmount - 1 }(delegatorUncmpPubkey, address(0xb0b));
     }
 
     function testIPTokenStaking_updateValidatorCommission() public {
         uint32 commissionRate = 100000000;
+        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
+        vm.deal(delegatorAddr, feeAmount * 10);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.UpdateValidatorCommssion(delegatorUncmpPubkey, commissionRate);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, commissionRate);
 
         // Network shall not allow anyone to update the commission rate of a validator if it is not the validator itself.
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        vm.deal(otherAddress, feeAmount * 10);
         vm.prank(otherAddress);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, commissionRate);
 
         // Network shall not allow anyone to update the commission rate of a validator if it is less than minCommissionRate.
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__CommissionRateUnderMin.selector);
-        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, 0);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, 0);
+
+        // Network shall not allow anyone to update the commission rate of a validator if the fee is not paid.
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.updateValidatorCommission{ value: feeAmount - 1 }(delegatorUncmpPubkey, commissionRate);
     }
 
     function testIPTokenStaking_addOperator() public {
@@ -713,23 +733,23 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.unjailOnBehalf{ value: feeAmount }(delegatorUncmpPubkey, "");
     }
 
-    function testIPTokenStaking_SetUnjailFee() public {
-        // Network shall allow the owner to set the unjail fee.
-        uint256 newUnjailFee = 2 ether;
+    function testIPTokenStaking_SetValidatorUpdateFee() public {
+        // Network shall allow the owner to set the validator update fee.
+        uint256 newValidatorUpdateFee = 2 ether;
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.UnjailFeeSet(newUnjailFee);
+        emit IIPTokenStaking.ValidatorUpdateFeeSet(newValidatorUpdateFee);
         vm.prank(admin);
-        ipTokenStaking.setUnjailFee(newUnjailFee);
-        assertEq(ipTokenStaking.unjailFee(), newUnjailFee);
+        ipTokenStaking.setValidatorUpdateFee(newValidatorUpdateFee);
+        assertEq(ipTokenStaking.validatorUpdateFee(), newValidatorUpdateFee);
 
-        // Network shall not allow non-owner to set the unjail fee.
+        // Network shall not allow non-owner to set the validator update fee.
         vm.prank(address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA));
         vm.expectRevert();
-        ipTokenStaking.setUnjailFee(1 ether);
-        assertEq(ipTokenStaking.unjailFee(), newUnjailFee);
+        ipTokenStaking.setValidatorUpdateFee(1 ether);
+        assertEq(ipTokenStaking.validatorUpdateFee(), newValidatorUpdateFee);
 
         // Network shall not allow fees < default
         vm.expectRevert();
-        ipTokenStaking.setUnjailFee(1);
+        ipTokenStaking.setValidatorUpdateFee(1);
     }
 }

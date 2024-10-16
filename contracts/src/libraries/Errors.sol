@@ -7,7 +7,7 @@ pragma solidity ^0.8.23;
  */
 library Errors {
     error IPTokenStaking__ZeroStakingRounding();
-    error IPTokenStaking__InvalidDefaultMinUnjailFee();
+    error IPTokenStaking__InvalidDefaultMinValidatorUpdateFee();
     error IPTokenStaking__CommissionRateUnderMin();
     error IPTokenStaking__CommissionRateOverMax();
 
@@ -16,7 +16,7 @@ library Errors {
     error IPTokenStaking__InvalidPubkeyDerivedAddress();
     error IPTokenStaking__InvalidDelegationId();
 
-    error IPTokenStaking__InvalidMinUnjailFee();
+    error IPTokenStaking__InvalidMinValidatorUpdateFee();
     error IPTokenStaking__ZeroMinStakeAmount();
     error IPTokenStaking__ZeroMinUnstakeAmount();
     error IPTokenStaking__ZeroMinCommissionRate();
