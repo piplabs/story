@@ -315,7 +315,7 @@ contract IPTokenStakingTest is Test {
         bytes memory validatorPubkey = delegatorUncmpPubkey;
         uint256 stakeAmount = 1024 ether;
         uint256 predeployInitialBalance = 1; // 1 wei, needed to have predeploy at genesis
-
+        
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         ipTokenStaking.stake{ value: stakeAmount }(
@@ -324,11 +324,7 @@ contract IPTokenStakingTest is Test {
             IIPTokenStaking.StakingPeriod.FLEXIBLE,
             ""
         );
-        assertEq(
-            address(ipTokenStaking).balance,
-            predeployInitialBalance,
-            "IPTokenStaking: Stake amount should be burned"
-        );
+        assertEq(address(ipTokenStaking).balance, predeployInitialBalance, "IPTokenStaking: Stake amount should be burned");
         assertEq(address(delegatorAddr).balance, 0, "Delegator: No remainder should be sent back");
 
         // Remainder if the stake amount has values under STAKE_ROUNDING
@@ -569,6 +565,25 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
         ipTokenStaking.updateValidatorCommission{ value: feeAmount - 1 }(delegatorUncmpPubkey, commissionRate);
+    }
+
+    function testIPTokenStaking_updateValidatorCommission() public {
+        uint32 commissionRate = 100000000;
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.UpdateValidatorCommssion(delegatorUncmpPubkey, commissionRate);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+
+        // Network shall not allow anyone to update the commission rate of a validator if it is not the validator itself.
+        address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        vm.prank(otherAddress);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, commissionRate);
+
+        // Network shall not allow anyone to update the commission rate of a validator if it is less than minCommissionRate.
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__CommissionRateUnderMin.selector);
+        ipTokenStaking.updateValidatorCommission(delegatorUncmpPubkey, 0);
     }
 
     function testIPTokenStaking_addOperator() public {
