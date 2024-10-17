@@ -149,7 +149,7 @@ contract GenerateAlloc is Script {
         address tmp = address(
             new IPTokenStaking(
                 1 gwei, // stakingRounding
-                1 ether // defaultMinValidatorUpdateFee, 1 IP
+                1 ether // defaultMinFee, 1 IP
             )
         );
         console2.log("tpm", tmp);
@@ -169,7 +169,7 @@ contract GenerateAlloc is Script {
             shortStakingPeriod: 1 days, // TBD
             mediumStakingPeriod: 2 days, // TBD
             longStakingPeriod: 3 days, // TBD
-            validatorUpdateFee: 1 ether // 1 IP
+            fee: 1 ether // 1 IP
         });
 
         // Testnet timing values

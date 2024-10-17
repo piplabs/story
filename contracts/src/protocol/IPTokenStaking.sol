@@ -31,8 +31,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
 
-    /// @notice Default minimum validator update fee
-    uint256 public immutable DEFAULT_MIN_UNJAIL_FEE;
+    /// @notice Default minimum fee charged for adding to CL storage
+    uint256 public immutable DEFAULT_MIN_FEE;
 
     /// @notice Global minimum commission rate for validators
     uint256 public minCommissionRate;
@@ -48,7 +48,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     uint256 private _delegationIdCounter;
 
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
-    uint256 public validatorUpdateFee;
+    uint256 public fee;
 
     /// @notice Staking periods and their corresponding durations
     mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) public stakingDurations;
@@ -79,23 +79,23 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _;
     }
 
-    modifier chargesValidatorUpdateFee() {
-        if (msg.value != validatorUpdateFee) {
+    modifier chargesFee() {
+        if (msg.value != fee) {
             revert Errors.IPTokenStaking__InvalidFeeAmount();
         }
         payable(address(0x0)).transfer(msg.value);
         _;
     }
 
-    constructor(uint256 stakingRounding, uint256 defaultMinValidatorUpdateFee) {
+    constructor(uint256 stakingRounding, uint256 defaultMinFee) {
         if (stakingRounding == 0) {
             revert Errors.IPTokenStaking__ZeroStakingRounding();
         }
         STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
-        if (defaultMinValidatorUpdateFee < 1 gwei) {
-            revert Errors.IPTokenStaking__InvalidDefaultMinValidatorUpdateFee();
+        if (defaultMinFee < 1 gwei) {
+            revert Errors.IPTokenStaking__InvalidDefaultMinFee();
         }
-        DEFAULT_MIN_UNJAIL_FEE = defaultMinValidatorUpdateFee;
+        DEFAULT_MIN_FEE = defaultMinFee;
 
         _disableInitializers();
     }
@@ -110,7 +110,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setMinCommissionRate(args.minCommissionRate);
         _setStakingPeriods(args.shortStakingPeriod, args.mediumStakingPeriod, args.longStakingPeriod);
-        _setValidatorUpdateFee(args.validatorUpdateFee);
+        _setFee(args.fee);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -137,10 +137,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setStakingPeriods(short, medium, long);
     }
 
-    /// @notice Sets the validator update fee.
-    /// @param newValidatorUpdateFee The new validator update fee.
-    function setValidatorUpdateFee(uint256 newValidatorUpdateFee) external onlyOwner {
-        _setValidatorUpdateFee(newValidatorUpdateFee);
+    /// @notice Sets the fee charged for adding to CL storage.
+    /// @param newFee The new fee
+    function setFee(uint256 newFee) external onlyOwner {
+        _setFee(newFee);
     }
 
     /// @notice Sets the global minimum commission rate for validators.
@@ -170,13 +170,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit StakingPeriodsChanged(short, medium, long);
     }
 
-    /// @dev Sets the validator update fee.
-    function _setValidatorUpdateFee(uint256 newValidatorUpdateFee) private {
-        if (newValidatorUpdateFee < DEFAULT_MIN_UNJAIL_FEE) {
-            revert Errors.IPTokenStaking__InvalidMinValidatorUpdateFee();
+    /// @dev Sets the fee charged for adding to CL storage.
+    function _setFee(uint256 newFee) private {
+        if (newFee < DEFAULT_MIN_FEE) {
+            revert Errors.IPTokenStaking__InvalidMinFee();
         }
-        validatorUpdateFee = newValidatorUpdateFee;
-        emit ValidatorUpdateFeeSet(newValidatorUpdateFee);
+        fee = newFee;
+        emit FeeSet(newFee);
     }
 
     /// @dev Sets the minimum amount required to stake.
@@ -219,7 +219,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function addOperator(
         bytes calldata uncmpPubkey,
         address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) chargesFee {
         emit AddOperator(uncmpPubkey, operator);
     }
 
@@ -243,12 +243,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function setWithdrawalAddress(
         bytes calldata delegatorUncmpPubkey,
         address newWithdrawalAddress
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
-        chargesValidatorUpdateFee
-    {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) chargesFee {
         emit SetWithdrawalAddress({
             delegatorUncmpPubkey: delegatorUncmpPubkey,
             executionAddress: bytes32(uint256(uint160(newWithdrawalAddress))) // left-padded bytes32 of the address
@@ -262,12 +257,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function setRewardsAddress(
         bytes calldata delegatorUncmpPubkey,
         address newRewardsAddress
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
-        chargesValidatorUpdateFee
-    {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender) chargesFee {
         emit SetRewardAddress({
             delegatorUncmpPubkey: delegatorUncmpPubkey,
             executionAddress: bytes32(uint256(uint160(newRewardsAddress))) // left-padded bytes32 of the address
@@ -393,12 +383,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function updateValidatorCommission(
         bytes calldata validatorUncmpPubkey,
         uint32 commissionRate
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender)
-        chargesValidatorUpdateFee
-    {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) chargesFee {
         if (commissionRate < minCommissionRate) {
             revert Errors.IPTokenStaking__CommissionRateUnderMin();
         }
@@ -599,12 +584,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function unjail(
         bytes calldata validatorUncmpPubkey,
         bytes calldata data
-    )
-        external
-        payable
-        verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender)
-        chargesValidatorUpdateFee
-    {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) chargesFee {
         emit Unjail(msg.sender, validatorUncmpPubkey, data);
     }
 
@@ -615,7 +595,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function unjailOnBehalf(
         bytes calldata validatorUncmpPubkey,
         bytes calldata data
-    ) external payable nonReentrant verifyUncmpPubkey(validatorUncmpPubkey) chargesValidatorUpdateFee {
+    ) external payable nonReentrant verifyUncmpPubkey(validatorUncmpPubkey) chargesFee {
         emit Unjail(msg.sender, validatorUncmpPubkey, data);
     }
 

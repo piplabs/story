@@ -29,7 +29,7 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_Constructor() public {
-        vm.expectRevert(Errors.IPTokenStaking__InvalidDefaultMinValidatorUpdateFee.selector);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidDefaultMinFee.selector);
         new IPTokenStaking(
             1 gwei, // stakingRounding
             0 ether
@@ -38,7 +38,7 @@ contract IPTokenStakingTest is Test {
         address impl = address(
             new IPTokenStaking(
                 0, // stakingRounding
-                1 ether // Default min validator update fee, 1 eth
+                1 ether // Default min fee charged for adding to CL storage, 1 eth
             )
         );
 
@@ -50,12 +50,12 @@ contract IPTokenStakingTest is Test {
             shortStakingPeriod: 1,
             mediumStakingPeriod: 2,
             longStakingPeriod: 3,
-            validatorUpdateFee: 1 ether
+            fee: 1 ether
         });
         impl = address(
             new IPTokenStaking(
                 1 gwei, // stakingRounding
-                1 ether // Default min validator update fee, 1 eth
+                1 ether // Default min fee charged for adding to CL storage, 1 eth
             )
         );
         // IPTokenStaking: minStakeAmount cannot be 0
@@ -110,7 +110,7 @@ contract IPTokenStakingTest is Test {
         args.shortStakingPeriod = 1;
         args.mediumStakingPeriod = 2;
         args.longStakingPeriod = 3;
-        args.validatorUpdateFee = 10;
+        args.fee = 10;
         new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
     }
 
@@ -119,7 +119,7 @@ contract IPTokenStakingTest is Test {
         assertEq(ipTokenStaking.minUnstakeAmount(), 1024 ether);
         assertEq(ipTokenStaking.STAKE_ROUNDING(), 1 gwei);
         assertEq(ipTokenStaking.minCommissionRate(), 5_00);
-        assertEq(ipTokenStaking.DEFAULT_MIN_UNJAIL_FEE(), 1 ether);
+        assertEq(ipTokenStaking.DEFAULT_MIN_FEE(), 1 ether);
     }
 
     function testIPTokenStaking_CreateValidator() public {
@@ -497,7 +497,7 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_SetWithdrawalAddress() public {
-        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
+        uint256 feeAmount = ipTokenStaking.fee();
         // Network shall allow the delegators to set their withdrawal address
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.SetWithdrawalAddress(
@@ -521,7 +521,7 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_SetRewardsAddress() public {
-        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
+        uint256 feeAmount = ipTokenStaking.fee();
         // Network shall allow the delegators to set their withdrawal address
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.SetRewardAddress(
@@ -546,7 +546,7 @@ contract IPTokenStakingTest is Test {
 
     function testIPTokenStaking_updateValidatorCommission() public {
         uint32 commissionRate = 100000000;
-        uint256 feeAmount = ipTokenStaking.validatorUpdateFee();
+        uint256 feeAmount = ipTokenStaking.fee();
         vm.deal(delegatorAddr, feeAmount * 10);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
@@ -579,13 +579,33 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.addOperator(otherDelegatorUncmpPubkey, operator);
+
+        // Network shall not allow anyone to add operators for a delegator if the fee is not paid.
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.addOperator(delegatorUncmpPubkey, operator);
+
+        // Network shall not allow anyone to add operators for a delegator if the fee is wrong
+        uint256 feeAmount = 1 ether;
+        vm.deal(delegatorAddr, feeAmount + 1);
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.addOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
+        vm.prank(delegatorAddr);
+        vm.expectRevert(Errors.IPTokenStaking__InvalidFeeAmount.selector);
+        ipTokenStaking.addOperator{ value: feeAmount + 1 }(delegatorUncmpPubkey, operator);
+
+        // Network should allow delegators to add operators for themselves
+        feeAmount = 1 ether;
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.AddOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.addOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
     }
 
     function testIPTokenStaking_removeOperator() public {
         address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
-        vm.prank(delegatorAddr);
-        ipTokenStaking.addOperator(delegatorUncmpPubkey, operator);
-
         // Network shall not allow others to remove operators for a delegator
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         vm.prank(otherAddress);
@@ -737,23 +757,23 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.unjailOnBehalf{ value: feeAmount }(delegatorUncmpPubkey, "");
     }
 
-    function testIPTokenStaking_SetValidatorUpdateFee() public {
-        // Network shall allow the owner to set the validator update fee.
-        uint256 newValidatorUpdateFee = 2 ether;
+    function testIPTokenStaking_SetFee() public {
+        // Network shall allow the owner to set the fee charged for adding to CL storage.
+        uint256 newFee = 2 ether;
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.ValidatorUpdateFeeSet(newValidatorUpdateFee);
+        emit IIPTokenStaking.FeeSet(newFee);
         vm.prank(admin);
-        ipTokenStaking.setValidatorUpdateFee(newValidatorUpdateFee);
-        assertEq(ipTokenStaking.validatorUpdateFee(), newValidatorUpdateFee);
+        ipTokenStaking.setFee(newFee);
+        assertEq(ipTokenStaking.fee(), newFee);
 
-        // Network shall not allow non-owner to set the validator update fee.
+        // Network shall not allow non-owner to set the fee charged for adding to CL storage.
         vm.prank(address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA));
         vm.expectRevert();
-        ipTokenStaking.setValidatorUpdateFee(1 ether);
-        assertEq(ipTokenStaking.validatorUpdateFee(), newValidatorUpdateFee);
+        ipTokenStaking.setFee(1 ether);
+        assertEq(ipTokenStaking.fee(), newFee);
 
         // Network shall not allow fees < default
         vm.expectRevert();
-        ipTokenStaking.setValidatorUpdateFee(1);
+        ipTokenStaking.setFee(1);
     }
 }
