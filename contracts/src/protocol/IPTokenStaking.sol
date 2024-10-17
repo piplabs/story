@@ -125,7 +125,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(newMinUnstakeAmount);
     }
 
-
     /// @notice Sets the fee charged for adding to CL storage.
     /// @param newFee The new fee
     function setFee(uint256 newFee) external onlyOwner {
@@ -141,7 +140,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /*//////////////////////////////////////////////////////////////////////////
     //                            Internal setters                            //
     //////////////////////////////////////////////////////////////////////////*/
-
 
     /// @dev Sets the fee charged for adding to CL storage.
     function _setFee(uint256 newFee) private {
@@ -432,7 +430,15 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
             delegationId = ++_delegationIdCounter;
         }
-        emit Deposit(delegatorUncmpPubkey, validatorUncmpPubkey, stakeAmount, uint8(stakingPeriod), delegationId, msg.sender, data);
+        emit Deposit(
+            delegatorUncmpPubkey,
+            validatorUncmpPubkey,
+            stakeAmount,
+            uint8(stakingPeriod),
+            delegationId,
+            msg.sender,
+            data
+        );
         // We burn staked tokens
         payable(address(0)).transfer(stakeAmount);
 
