@@ -21,10 +21,7 @@ abstract contract MockNewFeatures {
 }
 
 contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
-    constructor(
-        uint256 stakingRounding,
-        uint256 defaultMinUnjailFee
-    ) IPTokenStaking(stakingRounding, defaultMinUnjailFee) {}
+    constructor(uint256 stakingRounding, uint256 defaultMinFee) IPTokenStaking(stakingRounding, defaultMinFee) {}
 }
 
 contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
