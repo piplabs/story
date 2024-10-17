@@ -108,6 +108,8 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	switch {
 	case network == netconf.Iliad:
 		cfg = storycfg.IliadConfig
+	case network == netconf.Odyssey:
+		cfg = storycfg.OdysseyConfig
 	case network == netconf.Local:
 		cfg = storycfg.LocalConfig
 	default:

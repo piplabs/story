@@ -32,14 +32,18 @@ const (
 
 	// Used for local network testing.
 	Local ID = "local"
+
+	// Odyssey is the official Story Protocol public testnet.
+	Odyssey ID = "odyssey"
 )
 
 // supported is a map of supported networks.
 //
 //nolint:gochecknoglobals // Global state here is fine.
 var supported = map[ID]bool{
-	Iliad: true,
-	Local: true,
+	Iliad:   true,
+	Odyssey: true,
+	Local:   true,
 }
 
 // IsAny returns true if the `ID` matches any of the provided targets.
