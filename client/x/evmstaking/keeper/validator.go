@@ -78,53 +78,57 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	}
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
-	_, err = k.stakingKeeper.GetValidator(ctx, validatorAddr)
-	if err != nil {
+	if _, err = k.stakingKeeper.GetValidator(ctx, validatorAddr); err == nil {
+		// TODO(rayden): refund
+		return errors.New("validator already exists")
+	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
 		// Either the validator does not exist, or unknown error.
-		if !errors.Is(err, stypes.ErrNoValidatorFound) {
-			return errors.Wrap(err, "get validator")
-		}
-
-		moniker := ev.Moniker
-		if moniker == "validator" {
-			moniker = validatorAddr.String() // use validator address as moniker if not provided (ie. "validator")
-		}
-
-		var tokenType stypes.TokenType
-		switch ev.SupportsUnlocked {
-		case uint8(stypes.TokenType_LOCKED):
-			tokenType = stypes.TokenType_LOCKED
-		case uint8(stypes.TokenType_UNLOCKED):
-			tokenType = stypes.TokenType_UNLOCKED
-		default:
-			return errors.New("invalid token type")
-		}
-
-		// Validator does not exist, create validator with self-delegation.
-		msg, err := stypes.NewMsgCreateValidator(
-			validatorAddr.String(),
-			validatorPubkey,
-			amountCoin,
-			stypes.Description{Moniker: moniker},
-			stypes.NewCommissionRates(
-				// Divide these decimals by 100 to convert from basis points to decimal. Will cut off decimal as the rates are integers.
-				math.LegacyNewDec(int64(ev.CommissionRate)).Quo(math.LegacyNewDec(10000)),
-				math.LegacyNewDec(int64(ev.MaxCommissionRate)).Quo(math.LegacyNewDec(10000)),
-				math.LegacyNewDec(int64(ev.MaxCommissionChangeRate)).Quo(math.LegacyNewDec(10000)),
-			),
-			math.NewInt(1), // Stub out minimum self delegation for now, just use 1.
-			tokenType,
-		)
-		if err != nil {
-			return errors.Wrap(err, "create validator message")
-		}
-
-		_, err = skeeperMsgServer.CreateValidator(ctx, msg)
-		if err != nil {
-			return errors.Wrap(err, "create validator")
-		}
+		return errors.Wrap(err, "get validator")
 	}
-	// TODO(rayden): refund
+
+	moniker := ev.Moniker
+	if moniker == "validator" {
+		moniker = validatorAddr.String() // use validator address as moniker if not provided (ie. "validator")
+	}
+
+	var tokenType stypes.TokenType
+	switch ev.SupportsUnlocked {
+	case uint8(stypes.TokenType_LOCKED):
+		tokenType = stypes.TokenType_LOCKED
+	case uint8(stypes.TokenType_UNLOCKED):
+		tokenType = stypes.TokenType_UNLOCKED
+	default:
+		return errors.New("invalid token type")
+	}
+
+	minSelfDelegation, err := k.stakingKeeper.MinDelegation(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get min self delegation")
+	}
+
+	// Validator does not exist, create validator with self-delegation.
+	msg, err := stypes.NewMsgCreateValidator(
+		validatorAddr.String(),
+		validatorPubkey,
+		amountCoin,
+		stypes.Description{Moniker: moniker},
+		stypes.NewCommissionRates(
+			// Divide these decimals by 100 to convert from basis points to decimal. Will cut off decimal as the rates are integers.
+			math.LegacyNewDec(int64(ev.CommissionRate)).Quo(math.LegacyNewDec(10000)),
+			math.LegacyNewDec(int64(ev.MaxCommissionRate)).Quo(math.LegacyNewDec(10000)),
+			math.LegacyNewDec(int64(ev.MaxCommissionChangeRate)).Quo(math.LegacyNewDec(10000)),
+		),
+		minSelfDelegation, // make minimum self delegation align with minimum delegation amount
+		tokenType,
+	)
+	if err != nil {
+		return errors.Wrap(err, "create validator message")
+	}
+
+	_, err = skeeperMsgServer.CreateValidator(ctx, msg)
+	if err != nil {
+		return errors.Wrap(err, "create validator")
+	}
 
 	return nil
 }
