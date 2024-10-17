@@ -35,7 +35,7 @@ type ModuleInputs struct {
 	EthCl            ethclient.Client
 	AccountKeeper    types.AccountKeeper
 	EvmStakingKeeper types.EvmStakingKeeper
-	UpgradeKeeper    types.UpgradeKeeper
+	SignalKeeper     types.SignalKeeper
 	MintKeeper       types.MintKeeper
 }
 
@@ -56,8 +56,8 @@ func ProvideModule(in ModuleInputs) (ModuleOutputs, error) {
 		in.TXConfig,
 		in.AccountKeeper,
 		in.EvmStakingKeeper,
-		in.UpgradeKeeper,
 		in.MintKeeper,
+		in.SignalKeeper,
 	)
 	if err != nil {
 		return ModuleOutputs{}, err

@@ -40,8 +40,8 @@ type Keeper struct {
 
 	accountKeeper    types.AccountKeeper
 	evmstakingKeeper types.EvmStakingKeeper
-	upgradeKeeper    types.UpgradeKeeper
 	mintKeeper       types.MintKeeper
+	signalKeeper     types.SignalKeeper
 
 	upgradeContract *bindings.UpgradeEntrypoint
 
@@ -64,8 +64,8 @@ func NewKeeper(
 	txConfig client.TxConfig,
 	ak types.AccountKeeper,
 	esk types.EvmStakingKeeper,
-	uk types.UpgradeKeeper,
 	mk types.MintKeeper,
+	sk types.SignalKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
 		{Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
@@ -94,7 +94,7 @@ func NewKeeper(
 		txConfig:         txConfig,
 		accountKeeper:    ak,
 		evmstakingKeeper: esk,
-		upgradeKeeper:    uk,
+		signalKeeper:     sk,
 		upgradeContract:  upgradeContract,
 		mintKeeper:       mk,
 	}, nil

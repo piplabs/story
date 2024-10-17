@@ -5,8 +5,6 @@ package keepers
 // When performing `ignite scaffold` the keeper will be added to `app.go`. Please move them here.
 
 import (
-	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
-
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	consensuskeeper "github.com/cosmos/cosmos-sdk/x/consensus/keeper"
@@ -18,6 +16,7 @@ import (
 	evmengkeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	signalkeeper "github.com/piplabs/story/client/x/signal/keeper"
 )
 
 // Keepers includes all possible keepers. We separated it into a separate struct to make it easier to scaffold upgrades.
@@ -30,10 +29,10 @@ type Keepers struct {
 	DistrKeeper           distrkeeper.Keeper
 	ConsensusParamsKeeper consensuskeeper.Keeper
 	GovKeeper             *govkeeper.Keeper
-	UpgradeKeeper         *upgradekeeper.Keeper
 
 	// Story
 	EvmStakingKeeper *evmstakingkeeper.Keeper
 	EVMEngKeeper     *evmengkeeper.Keeper
 	MintKeeper       mintkeeper.Keeper
+	SignalKeeper     *signalkeeper.Keeper
 }

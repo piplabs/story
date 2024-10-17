@@ -1,0 +1,25 @@
+syntax = "proto3";
+package client.x.signal.types;
+
+import "google/api/annotations.proto";
+import "client/x/signal/types/upgrade.proto";
+
+option go_package = "client/x/signal/types";
+
+// Query defines the signal Query service.
+service Query {
+  // GetUpgrade enables a client to query for upgrade information if an upgrade is pending.
+  // The response will be empty if no upgrade is pending.
+  rpc GetUpgrade(QueryGetUpgradeRequest)
+      returns (QueryGetUpgradeResponse) {
+    option (google.api.http).get = "/signal/upgrade";
+  }
+}
+
+// QueryGetUpgradeRequest is the request type for the GetUpgrade query.
+message QueryGetUpgradeRequest {}
+
+// QueryGetUpgradeResponse is the response type for the GetUpgrade query.
+message QueryGetUpgradeResponse {
+  Upgrade upgrade = 1;
+}

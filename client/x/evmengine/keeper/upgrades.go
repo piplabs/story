@@ -3,9 +3,8 @@ package keeper
 import (
 	"context"
 
-	upgradetypes "cosmossdk.io/x/upgrade/types"
-
 	"github.com/piplabs/story/client/x/evmengine/types"
+	signaltypes "github.com/piplabs/story/client/x/signal/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	clog "github.com/piplabs/story/lib/log"
@@ -42,11 +41,12 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 }
 
 func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade) error {
-	err := k.upgradeKeeper.ScheduleUpgrade(ctx, upgradetypes.Plan{
-		Name:   ev.Name,
-		Info:   ev.Info,
-		Height: ev.Height,
-	})
+	upgrade := &signaltypes.Upgrade{
+		AppVersion:    ev.AppVersion,
+		UpgradeHeight: int64(ev.UpgradeHeight),
+	}
+	// TODO: signer
+	_, err := k.signalKeeper.ScheduleUpgrade(ctx, &signaltypes.MsgScheduleUpgrade{Upgrade: upgrade})
 	if err != nil {
 		return errors.Wrap(err, "process software upgrade: schedule upgrade")
 	}

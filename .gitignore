@@ -26,3 +26,6 @@ dist
 
 # Local Alloc file
 local-alloc.json
+
+# Binary builds
+client/client

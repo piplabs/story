@@ -1,0 +1,29 @@
+syntax = "proto3";
+package client.x.signal.types;
+
+import "cosmos/msg/v1/msg.proto";
+import "google/api/annotations.proto";
+import "client/x/signal/types/upgrade.proto";
+
+option go_package = "client/x/signal/types";
+
+// MsgService defines the signal Msg service.
+service MsgService {
+  option (cosmos.msg.v1.service) = true;
+
+  // TryUpgrade tallies all the votes for all the versions to determine if a
+  // quorum has been reached for a version.
+  rpc ScheduleUpgrade(MsgScheduleUpgrade) returns (MsgScheduleUpgradeResponse) {
+    option (google.api.http).post = "/signal/upgrade";
+  }
+}
+
+// MsgScheduleUpgrade schedules an upgrade for the chain.
+message MsgScheduleUpgrade {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Upgrade upgrade = 2;
+}
+
+// MsgScheduleUpgradeResponse is the response type for the ScheduleUpgrade method.
+message MsgScheduleUpgradeResponse {}
