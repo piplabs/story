@@ -109,7 +109,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	// locked tokens can only be staked with flexible period
 	if val.SupportTokenType == stypes.TokenType_LOCKED {
 		periodType = stypes.PeriodType_FLEXIBLE
-		delID = stypes.FlexibleDelegationID
+		delID = stypes.FlexiblePeriodDelegationID
 	}
 
 	// TODO: Check if we can instantiate the msgServer without type assertion

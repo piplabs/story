@@ -107,7 +107,7 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 	return k.validatorAddressCodec
 }
 
-// TODO: Return log event results to properly manage failures.
+//nolint:gocyclo // TODO
 func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
