@@ -408,6 +408,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					cmpToUncmp(valPubKey1.Bytes()),
 					cmpToUncmp(valPubKey2.Bytes()),
 					big.NewInt(0),
+					cmpToEVM(delPubKey.Bytes()),
 					delAmtGwei,
 				)
 				require.NoError(err)
