@@ -29,18 +29,15 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 
 	valUpdates, unbondedEntries, err := k.stakingKeeper.EndBlockerWithUnbondedEntries(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if err := k.ProcessUnbondingWithdrawals(ctx, unbondedEntries); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "process staking EndBlocker")
 	}
 
-	partialWithdrawals, err := k.ExpectedPartialWithdrawals(ctx)
-	if err != nil {
-		return nil, err
+	if err := k.ProcessUnbondingWithdrawals(ctx, unbondedEntries); err != nil {
+		return nil, errors.Wrap(err, "process unbonding withdrawals")
 	}
-	if err := k.EnqueueEligiblePartialWithdrawal(ctx, partialWithdrawals); err != nil {
-		return nil, err
+
+	if err := k.ProcessRewardWithdrawals(ctx); err != nil {
+		return nil, errors.Wrap(err, "process reward withdrawals")
 	}
 
 	if err := k.ProcessUbiWithdrawal(ctx); err != nil {

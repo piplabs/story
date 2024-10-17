@@ -44,8 +44,6 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 	// Add withdrawal entry to the withdrawal queue.
 	if err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 		uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-		"",
-		"",
 		params.UbiWithdrawAddress,
 		ubiBalance.Uint64(),
 	)); err != nil {

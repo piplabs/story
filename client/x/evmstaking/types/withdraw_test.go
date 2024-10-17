@@ -39,23 +39,23 @@ func (suite *WithdrawTestSuite) TestString() {
 	}{
 		{
 			name:           "Normal values",
-			withdrawal:     types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 100),
-			expectedString: fmt.Sprintf("creation_height:1 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:100 ", suite.delAddr, suite.valAddr, suite.evmAddr.String()),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 100),
+			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" amount:100 ", suite.evmAddr.String()),
 		},
 		{
 			name:           "Empty addresses",
-			withdrawal:     types.NewWithdrawal(1, "", "", "", 1),
+			withdrawal:     types.NewWithdrawal(1, "", 1),
 			expectedString: "creation_height:1 amount:1 ",
 		},
 		{
 			name:           "Large amount",
-			withdrawal:     types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), math.MaxUint64),
-			expectedString: fmt.Sprintf("creation_height:1 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:%s ", suite.delAddr, suite.valAddr, suite.evmAddr.String(), new(big.Int).SetUint64(math.MaxUint64).String()),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), math.MaxUint64),
+			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" amount:%s ", suite.evmAddr.String(), new(big.Int).SetUint64(math.MaxUint64).String()),
 		},
 		{
 			name:           "Zero amount",
-			withdrawal:     types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 0),
-			expectedString: fmt.Sprintf("creation_height:1 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" ", suite.delAddr, suite.valAddr, suite.evmAddr.String()),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 0),
+			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" ", suite.evmAddr.String()),
 		},
 	}
 
@@ -72,16 +72,16 @@ func (suite *WithdrawTestSuite) TestWithdrawalsString() {
 	require := suite.Require()
 	ws := types.Withdrawals{
 		Withdrawals: []types.Withdrawal{
-			types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
-			types.NewWithdrawal(2, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 2),
+			types.NewWithdrawal(1, suite.evmAddr.String(), 1),
+			types.NewWithdrawal(2, suite.evmAddr.String(), 2),
 		},
 	}
 
 	expectedString := fmt.Sprintf(
-		"creation_height:1 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:1 \n"+
-			"creation_height:2 delegator_address:\"%s\" validator_address:\"%s\" execution_address:\"%s\" amount:2",
-		suite.delAddr, suite.valAddr, suite.evmAddr.String(),
-		suite.delAddr, suite.valAddr, suite.evmAddr.String(),
+		"creation_height:1 execution_address:\"%s\" amount:1 \n"+
+			"creation_height:2 execution_address:\"%s\" amount:2",
+		suite.evmAddr.String(),
+		suite.evmAddr.String(),
 	)
 	require.Equal(expectedString, ws.String())
 }
@@ -90,23 +90,12 @@ func (suite *WithdrawTestSuite) TestWithdrawalsLen() {
 	require := suite.Require()
 	ws := types.Withdrawals{
 		Withdrawals: []types.Withdrawal{
-			types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1),
-			types.NewWithdrawal(2, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 2),
+			types.NewWithdrawal(1, suite.evmAddr.String(), 1),
+			types.NewWithdrawal(2, suite.evmAddr.String(), 2),
 		},
 	}
 
 	require.Equal(2, ws.Len())
-}
-
-func (suite *WithdrawTestSuite) TestNewWithdrawalFromMsg() {
-	require := suite.Require()
-	withdrawal := types.NewWithdrawal(1, suite.delAddr, suite.valAddr, suite.evmAddr.String(), 1)
-	msgAddwithdrawal := types.MsgAddWithdrawal{
-		Authority:  "gov",
-		Withdrawal: &withdrawal,
-	}
-	w := types.NewWithdrawalFromMsg(&msgAddwithdrawal)
-	require.Equal(withdrawal, w, "NewWithdrawalFromMsg should return the same withdrawal")
 }
 
 func TestWithdrawalTestSuite(t *testing.T) {
