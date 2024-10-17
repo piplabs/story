@@ -212,7 +212,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "9evG8Jgui/f9Uys/lZ+E0Ss97dKCevjTH1OJRHvtr8Y="
+        "execution_block_hash": "SKN77ZT8Hkr0IgtlckPZ0cAC94Pzu5FU/EYuAYtEqKM="
       }
     },
     "genutil": {
@@ -613,7 +613,42 @@
         "max_entries": 7,
         "historical_entries": 10000,
         "bond_denom": "stake",
-        "min_commission_rate": "0.000000000000000000"
+        "min_commission_rate": "0.000000000000000000",
+        "min_delegation": "1024",
+        "flexible_period_type": 0,
+        "periods": [
+          {
+            "period_type": 0,
+            "duration": "0s",
+            "rewards_multiplier": "1.000000000000000000"
+          },
+          {
+            "period_type": 1,
+            "duration": "60s",
+            "rewards_multiplier": "1.051000000000000000"
+          },
+          {
+            "period_type": 2,
+            "duration": "120s",
+            "rewards_multiplier": "1.160000000000000000"
+          },
+          {
+            "period_type": 3,
+            "duration": "180s",
+            "rewards_multiplier": "1.340000000000000000"
+          }
+        ],
+        "locked_token_type": 0,
+        "token_types": [
+          {
+            "token_type": 0,
+            "rewards_multiplier": "0.500000000000000000"
+          },
+          {
+            "token_type": 1,
+            "rewards_multiplier": "1.000000000000000000"
+          }
+        ]
       },
       "last_total_power": "0",
       "last_validator_powers": [],
@@ -627,7 +662,8 @@
       "params": {
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
-        "min_partial_withdrawal_amount": 100000000
+        "min_partial_withdrawal_amount": 100000000,
+        "ubi_withdraw_address": "0x09a4A605bed3369Bc161B93922f0fd3Ff08bfC33"
       }
     },
     "mint": {
