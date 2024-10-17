@@ -74,7 +74,7 @@ interface IIPTokenStaking {
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
-    /// @param stakingPeriod of the deposit 
+    /// @param stakingPeriod of the deposit
     /// @param delegationId The ID of the delegation
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
