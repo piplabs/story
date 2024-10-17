@@ -112,7 +112,10 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 		if err := evmLog.Verify(); err != nil {
 			return errors.Wrap(err, "verify log [BUG]") // This shouldn't happen
 		}
-		ethlog := evmLog.ToEthLog()
+		ethlog, err := evmLog.ToEthLog()
+		if err != nil {
+			return err
+		}
 
 		// TODO: handle when each event processing fails.
 

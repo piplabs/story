@@ -86,7 +86,8 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			result := tc.evmEvent.ToEthLog()
+			result, err := tc.evmEvent.ToEthLog()
+			require.NoError(t, err)
 			require.Equal(t, tc.expectedResult, result)
 		})
 	}

@@ -16,7 +16,10 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 		if err := evmLog.Verify(); err != nil {
 			return errors.Wrap(err, "verify log [BUG]") // This shouldn't happen
 		}
-		ethlog := evmLog.ToEthLog()
+		ethlog, err := evmLog.ToEthLog()
+		if err != nil {
+			return err
+		}
 
 		//nolint:gocritic,revive // more cases later
 		switch ethlog.Topics[0] {

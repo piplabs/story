@@ -279,13 +279,13 @@ func TestKeeper_setOptimisticPayload(t *testing.T) {
 	})
 
 	// check existing values
-	require.Nil(t, keeper.mutablePayload.ID)
+	require.Equal(t, engine.PayloadID{}, keeper.mutablePayload.ID)
 	require.Zero(t, keeper.mutablePayload.Height)
 
 	// set new values
-	keeper.setOptimisticPayload(&engine.PayloadID{1}, 1)
+	keeper.setOptimisticPayload(engine.PayloadID{1}, 1)
 	require.Equal(t, uint64(1), keeper.mutablePayload.Height)
-	require.Equal(t, engine.PayloadID{1}, *keeper.mutablePayload.ID)
+	require.Equal(t, engine.PayloadID{1}, keeper.mutablePayload.ID)
 }
 
 func TestKeeper_isNextProposer(t *testing.T) {
