@@ -87,8 +87,8 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	}
 
 	moniker := ev.Moniker
-	if moniker == "validator" {
-		moniker = validatorAddr.String() // use validator address as moniker if not provided (ie. "validator")
+	if moniker == "" {
+		moniker = validatorAddr.String() // use validator address as moniker if not provided
 	}
 
 	var tokenType stypes.TokenType
