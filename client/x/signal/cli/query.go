@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/piplabs/story/client/x/signal/types"
@@ -20,39 +18,7 @@ func GetQueryCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	cmd.AddCommand(CmdQueryTally())
 	cmd.AddCommand(CmdGetUpgrade())
-	return cmd
-}
-
-func CmdQueryTally() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "tally version",
-		Short:   "Query for the tally of voting power that has signalled for a particular version",
-		Args:    cobra.ExactArgs(1),
-		Example: "tally 3",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			version, err := strconv.ParseUint(args[0], 10, 64)
-			if err != nil {
-				return err
-			}
-
-			upgradeQueryClient := types.NewQueryClient(clientCtx)
-			resp, err := upgradeQueryClient.VersionTally(cmd.Context(), &types.QueryVersionTallyRequest{Version: version})
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintProto(resp)
-		},
-	}
-
-	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
 

@@ -41,10 +41,12 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 }
 
 func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade) error {
-	err := k.signalKeeper.ScheduleUpgrade(ctx, signaltypes.Upgrade{
+	upgrade := &signaltypes.Upgrade{
 		AppVersion:    ev.AppVersion,
-		UpgradeHeight: ev.UpgradeHeight,
-	})
+		UpgradeHeight: int64(ev.UpgradeHeight),
+	}
+	// TODO: signer
+	_, err := k.signalKeeper.ScheduleUpgrade(ctx, &signaltypes.MsgScheduleUpgrade{Upgrade: upgrade})
 	if err != nil {
 		return errors.Wrap(err, "process software upgrade: schedule upgrade")
 	}

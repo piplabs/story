@@ -62,30 +62,6 @@ func NewBasicManager(modules ...AppModuleBasic) BasicManager {
 	return moduleMap
 }
 
-// NewBasicManagerFromManager creates a new BasicManager from a Manager
-// The BasicManager will contain all AppModuleBasic from the AppModule Manager
-// Module's AppModuleBasic can be overridden by passing a custom AppModuleBasic map.
-func NewBasicManagerFromManager(manager *Manager, version uint64, customModuleBasics map[string]AppModuleBasic) BasicManager {
-	moduleMap := make(map[string]AppModuleBasic)
-	for name, module := range manager.versionedModules[version] {
-		if customBasicMod, ok := customModuleBasics[name]; ok {
-			moduleMap[name] = customBasicMod
-			continue
-		}
-
-		if appModule, ok := module.(appmodule.AppModule); ok {
-			moduleMap[name] = sdkmodule.CoreAppModuleBasicAdaptor(name, appModule)
-			continue
-		}
-
-		if basicMod, ok := module.(AppModuleBasic); ok {
-			moduleMap[name] = basicMod
-		}
-	}
-
-	return moduleMap
-}
-
 // RegisterLegacyAminoCodec registers all module codecs.
 func (bm BasicManager) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	for _, b := range bm {
@@ -342,35 +318,6 @@ func NewManager(modules []VersionedModule) (*Manager, error) {
 	return m, nil
 }
 
-// NewManagerFromMap creates a new Manager object from a map of module names to module implementations.
-// This method should be used for apps and modules which have migrated to the cosmossdk.io/core.appmodule.AppModule API.
-func NewManagerFromMap(moduleMap map[string]appmodule.AppModule) *Manager {
-	simpleModuleMap := make(map[string]interface{})
-	modulesStr := make([]string, 0, len(simpleModuleMap))
-	preBlockModulesStr := make([]string, 0)
-	for name, module := range moduleMap {
-		simpleModuleMap[name] = module
-		modulesStr = append(modulesStr, name)
-		if _, ok := module.(appmodule.HasPreBlocker); ok {
-			preBlockModulesStr = append(preBlockModulesStr, name)
-		}
-	}
-
-	// Sort the modules by name. Given that we are using a map above we can't guarantee the order.
-	sort.Strings(modulesStr)
-
-	return &Manager{
-		Modules:                  simpleModuleMap,
-		OrderInitGenesis:         modulesStr,
-		OrderExportGenesis:       modulesStr,
-		OrderPreBlockers:         preBlockModulesStr,
-		OrderBeginBlockers:       modulesStr,
-		OrderEndBlockers:         modulesStr,
-		OrderPrecommiters:        modulesStr,
-		OrderPrepareCheckStaters: modulesStr,
-	}
-}
-
 // SetOrderInitGenesis sets the order of init genesis calls.
 func (m *Manager) SetOrderInitGenesis(moduleNames ...string) {
 	m.assertNoForgottenModules("SetOrderInitGenesis", moduleNames, func(moduleName string) bool {
@@ -520,7 +467,7 @@ func (m *Manager) RegisterServices(cfg Configurator) error {
 		fromVersion, toVersion := m.getAppVersionsForModule(module.Name(), module.ConsensusVersion())
 
 		if module, ok := module.(appmodule.HasServices); ok {
-			err := module.RegisterServices(cfg.WithVersions(fromVersion, toVersion))
+			err := module.RegisterServices(cfg.(*configurator).WithVersions(fromVersion, toVersion))
 			if err != nil {
 				return err
 			}
@@ -541,11 +488,10 @@ func (m *Manager) getAppVersionsForModule(moduleName string, moduleVersion uint6
 // InitGenesis performs init genesis functionality for modules. Exactly one
 // module must return a non-empty validator set update to correctly initialize
 // the chain.
-func (m *Manager) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, genesisData map[string]json.RawMessage) (*abci.ResponseInitChain, error) {
+func (m *Manager) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, genesisData map[string]json.RawMessage, appVersion uint64) (*abci.ResponseInitChain, error) {
 	var validatorUpdates []abci.ValidatorUpdate
 	ctx.Logger().Info("initializing blockchain state from genesis.json")
 
-	appVersion := ctx.BlockHeader().Version.App
 	modules, versionSupported := m.versionedModules[appVersion]
 	if !versionSupported {
 		panic(fmt.Sprintf("version %d not supported", appVersion))
@@ -676,7 +622,7 @@ func (m *Manager) ExportGenesisForModules(ctx sdk.Context, cdc codec.JSONCodec, 
 	for moduleName := range channels {
 		res := <-channels[moduleName]
 		if res.err != nil {
-			return nil, fmt.Errorf("genesis export error in %s: %w", moduleName, res.err)
+			return nil, fmt.Errorf("genesis export error in %s: %v", moduleName, res.err)
 		}
 
 		genesisData[moduleName] = res.bz
@@ -732,9 +678,9 @@ type VersionMap map[string]uint64
 // RunMigrations performs in-place store migrations for all modules. This
 // function MUST be called when the state machine changes appVersion.
 func (m Manager) RunMigrations(ctx sdk.Context, cfg sdkmodule.Configurator, fromVersion, toVersion uint64) error {
-	c, ok := cfg.(Configurator)
+	c, ok := cfg.(*configurator)
 	if !ok {
-		return sdkerrors.ErrInvalidType.Wrapf("expected %T, got %T", Configurator{}, cfg)
+		return sdkerrors.ErrInvalidType.Wrapf("expected %T, got %T", &configurator{}, cfg)
 	}
 	modules := m.OrderMigrations
 	if modules == nil {

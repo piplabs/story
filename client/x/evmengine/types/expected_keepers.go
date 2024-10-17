@@ -25,7 +25,7 @@ type EvmStakingKeeper interface {
 }
 
 type SignalKeeper interface {
-	ScheduleUpgrade(ctx context.Context, upgrade signaltypes.Upgrade)
+	ScheduleUpgrade(ctx context.Context, msg *signaltypes.MsgScheduleUpgrade) (*signaltypes.MsgScheduleUpgradeResponse, error)
 }
 
 type MintKeeper interface {

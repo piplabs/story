@@ -1,13 +1,15 @@
 package app
 
 import (
+	"fmt"
 	"io"
 
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
-	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 
+	abcitypes "github.com/cometbft/cometbft/abci/types"
+	cmtjson "github.com/cometbft/cometbft/libs/json"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -16,6 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkmodule "github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
@@ -30,11 +33,11 @@ import (
 	appv1 "github.com/piplabs/story/client/pkg/appconsts/v1"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	signalkeeper "github.com/piplabs/story/client/x/signal/keeper"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
 	_ "cosmossdk.io/api/cosmos/tx/config/v1"          // import for side-effects
-	_ "cosmossdk.io/x/upgrade"                        // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/auth"           // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config" // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/bank"           // import for side-effects
@@ -109,7 +112,6 @@ func newApp(
 		&interfaceRegistry,
 		&app.Keepers.AccountKeeper,
 		&app.Keepers.BankKeeper,
-		&app.Keepers.SignalKeeper,
 		&app.Keepers.StakingKeeper,
 		&app.Keepers.SlashingKeeper,
 		&app.Keepers.DistrKeeper,
@@ -155,6 +157,13 @@ func newApp(
 	// override module orders after DI
 	app.setModuleOrder()
 
+	app.SetInitChainer(app.InitChainer)
+	app.SetBeginBlocker(app.BeginBlocker)
+	app.SetEndBlocker(app.EndBlocker)
+
+	// assert that keys are present for all supported versions
+	app.assertAllKeysArePresent()
+
 	if err := app.Load(true); err != nil {
 		return nil, errors.Wrap(err, "load app")
 	}
@@ -174,6 +183,7 @@ func (a *App) EndBlocker(ctx sdk.Context) (sdk.EndBlock, error) {
 		// Version changes must be increasing. Downgrades are not permitted
 		if newVersion > currentVersion {
 			a.SetProtocolVersion(newVersion)
+			// reset tally
 		}
 	}
 
@@ -188,7 +198,7 @@ func (App) ExportAppStateAndValidators(_ bool, _, _ []string) (servertypes.Expor
 	return servertypes.ExportedApp{}, errors.New("not implemented")
 }
 
-func (App) SimulationManager() *module.SimulationManager {
+func (App) SimulationManager() *sdkmodule.SimulationManager {
 	return nil
 }
 
@@ -196,6 +206,69 @@ func (App) SimulationManager() *module.SimulationManager {
 // TODO: Figure out how to use depinject to set this.
 func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
+}
+
+// InitChain implements the ABCI interface. This method is a wrapper around
+// baseapp's InitChain so we can take the app version and setup the multicommit
+// store.
+//
+// Side-effect: calls baseapp.Init().
+func (a *App) InitChain(req *abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
+	mreq := setDefaultAppVersion(*req)
+	appVersion := mreq.ConsensusParams.Version.App
+	// mount the stores for the provided app version if it has not already been mounted
+	if a.AppVersion() == 0 && !a.IsSealed() {
+		a.mountKeysAndInit(appVersion)
+	}
+
+	resp, err := a.BaseApp.InitChain(&mreq)
+	if err != nil {
+		return nil, errors.Wrap(err, "init chain")
+	}
+
+	if appVersion != v1 {
+		//a.SetInitialAppVersionInConsensusParams(ctx, appVersion)
+		a.SetProtocolVersion(appVersion)
+	}
+	return resp, nil
+}
+
+// setDefaultAppVersion sets the default app version in the consensus params if
+// it was 0. This is needed because chains (e.x. mocha-4) did not explicitly set
+// an app version in genesis.json.
+func setDefaultAppVersion(req abcitypes.RequestInitChain) abcitypes.RequestInitChain {
+	if req.ConsensusParams == nil {
+		panic("no consensus params set")
+	}
+	if req.ConsensusParams.Version == nil {
+		panic("no version set in consensus params")
+	}
+	if req.ConsensusParams.Version.App == 0 {
+		req.ConsensusParams.Version.App = v1
+	}
+	return req
+}
+
+// mountKeysAndInit mounts the keys for the provided app version and then
+// invokes baseapp.Init().
+func (a *App) mountKeysAndInit(appVersion uint64) {
+	a.Logger().Info(fmt.Sprintf("mounting KV stores for app version %v", appVersion))
+	a.MountKVStores(a.versionedKeys(appVersion))
+
+	// Invoke load latest version for its side-effect of invoking baseapp.Init()
+	if err := a.LoadLatestVersion(); err != nil {
+		panic(fmt.Sprintf("loading latest version: %s", err.Error()))
+	}
+}
+
+// InitChainer is middleware that gets invoked part-way through the baseapp's InitChain invocation.
+func (a *App) InitChainer(ctx sdk.Context, req *abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
+	var genesisState GenesisState
+	if err := cmtjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
+		panic(err)
+	}
+	appVersion := req.ConsensusParams.Version.App
+	return a.ModuleManager.InitGenesis(ctx, a.appCodec, genesisState, appVersion)
 }
 
 // LoadHeight loads a particular height.
@@ -262,8 +335,8 @@ func (a App) GetDistrKeeper() distrkeeper.Keeper {
 	return a.Keepers.DistrKeeper
 }
 
-func (a App) GetUpgradeKeeper() *upgradekeeper.Keeper {
-	return a.Keepers.UpgradeKeeper
+func (a App) GetSignalKeeper() signalkeeper.Keeper {
+	return a.Keepers.SignalKeeper
 }
 
 func (a App) GetMintKeeper() mintkeeper.Keeper {

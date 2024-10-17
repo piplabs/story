@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"cosmossdk.io/x/tx/signing"
-	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -29,6 +28,7 @@ import (
 
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	signalkeeper "github.com/piplabs/story/client/x/signal/keeper"
 )
 
 type Store interface {
@@ -39,8 +39,8 @@ type Store interface {
 	GetAccountKeeper() authkeeper.AccountKeeper
 	GetBankKeeper() bankkeeper.Keeper
 	GetDistrKeeper() distrkeeper.Keeper
-	GetUpgradeKeeper() *upgradekeeper.Keeper
 	GetMintKeeper() mintkeeper.Keeper
+	GetSignalKeeper() signalkeeper.Keeper
 }
 
 type Server struct {
@@ -122,8 +122,8 @@ func (s *Server) registerHandle() {
 	s.initEvmStakingRoute()
 	s.initSlashingRoute()
 	s.initStakingRoute()
-	s.initUpgradeRoute()
 	s.initMintRoute()
+	s.initSignalRoute()
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {

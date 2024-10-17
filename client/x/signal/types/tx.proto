@@ -3,6 +3,7 @@ package client.x.signal.types;
 
 import "cosmos/msg/v1/msg.proto";
 import "google/api/annotations.proto";
+import "client/x/signal/types/upgrade.proto";
 
 option go_package = "client/x/signal/types";
 
@@ -10,26 +11,19 @@ option go_package = "client/x/signal/types";
 service MsgService {
   option (cosmos.msg.v1.service) = true;
 
-  // SignalVersion allows a validator to signal for a version.
-  rpc SignalVersion(MsgSignalVersion) returns (MsgSignalVersionResponse) {
-    option (google.api.http).post = "/signal/signal";
-  }
-
   // TryUpgrade tallies all the votes for all the versions to determine if a
   // quorum has been reached for a version.
-  rpc TryUpgrade(MsgTryUpgrade) returns (MsgTryUpgradeResponse) {
+  rpc ScheduleUpgrade(MsgScheduleUpgrade) returns (MsgScheduleUpgradeResponse) {
     option (google.api.http).post = "/signal/upgrade";
   }
 }
 
-// MsgSignalVersion signals for an upgrade.
-message MsgSignalVersion {
-  string validator_address = 1;
-  uint64 version = 2;
+// MsgScheduleUpgrade schedules an upgrade for the chain.
+message MsgScheduleUpgrade {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Upgrade upgrade = 2;
 }
 
-// MsgTryUpgrade tries to upgrade the chain.
-message MsgTryUpgrade { string signer = 1; }
-
-// MsgTryUpgradeResponse is the response type for the TryUpgrade method.
-message MsgTryUpgradeResponse {}
+// MsgScheduleUpgradeResponse is the response type for the ScheduleUpgrade method.
+message MsgScheduleUpgradeResponse {}

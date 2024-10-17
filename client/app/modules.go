@@ -61,10 +61,13 @@ var (
 )
 
 func (a *App) setupModuleManager() error {
+	//evmstakingStakingkeeper := a.Keepers.StakingKeeper.(*evmstakingtypes.StakingKeeper)
+	//signalStakingkeeper := a.Keepers.StakingKeeper.(*signaltypes.StakingKeeper)
+
 	var err error
 	a.ModuleManager, err = module.NewManager([]module.VersionedModule{
 		{
-			Module:      genutil.NewAppModule(a.Keepers.AccountKeeper, a.Keepers.StakingKeeper, a.BaseApp.DeliverTx, a.txConfig),
+			Module:      genutil.NewAppModule(a.Keepers.AccountKeeper, a.Keepers.StakingKeeper, a, a.txConfig),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
@@ -76,33 +79,46 @@ func (a *App) setupModuleManager() error {
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      bank.NewAppModule(a.appCodec, a.Keepers.BankKeeper, a.Keepers.AccountKeeper),
+			Module:      bank.NewAppModule(a.appCodec, a.Keepers.BankKeeper, a.Keepers.AccountKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      gov.NewAppModule(a.appCodec, a.Keepers.GovKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper),
+			Module:      gov.NewAppModule(a.appCodec, a.Keepers.GovKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      mint.NewAppModule(a.appCodec, a.Keepers.MintKeeper, a.Keepers.AccountKeeper),
+			Module:      mint.NewAppModule(a.appCodec, a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      slashing.NewAppModule(a.appCodec, a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper),
+			Module:      slashing.NewAppModule(a.appCodec, a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      distribution.NewAppModule(a.appCodec, a.Keepers.DistrKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper),
+			Module:      distribution.NewAppModule(a.appCodec, a.Keepers.DistrKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      staking.NewAppModule(a.appCodec, a.Keepers.StakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper),
+			Module:      staking.NewAppModule(a.appCodec, a.Keepers.StakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		// Story modules
+		{
+			Module:      epochsmodule.NewAppModule(a.appCodec, a.Keepers.EpochsKeeper),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      signalmodule.NewAppModule(a.Keepers.SignalKeeper),
+			Module:      evmenginemodule.NewAppModule(a.appCodec, a.Keepers.EVMEngKeeper),
 			FromVersion: v1, ToVersion: v1,
 		},
+		//{
+		//	Module:      evmstakingmodule.NewAppModule(a.appCodec, a.Keepers.EvmStakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.SlashingKeeper, evmstakingStakingkeeper),
+		//	FromVersion: v1, ToVersion: v1,
+		//},
+		//{
+		//	Module:      signalmodule.NewAppModule(a.appCodec, &a.Keepers.SignalKeeper, a.Keepers.AccountKeeper, signalStakingkeeper),
+		//	FromVersion: v1, ToVersion: v1,
+		//},
 	})
 	if err != nil {
 		return err
