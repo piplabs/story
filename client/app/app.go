@@ -335,7 +335,7 @@ func (a App) GetDistrKeeper() distrkeeper.Keeper {
 	return a.Keepers.DistrKeeper
 }
 
-func (a App) GetSignalKeeper() signalkeeper.Keeper {
+func (a App) GetSignalKeeper() *signalkeeper.Keeper {
 	return a.Keepers.SignalKeeper
 }
 

@@ -40,7 +40,7 @@ type Store interface {
 	GetBankKeeper() bankkeeper.Keeper
 	GetDistrKeeper() distrkeeper.Keeper
 	GetMintKeeper() mintkeeper.Keeper
-	GetSignalKeeper() signalkeeper.Keeper
+	GetSignalKeeper() *signalkeeper.Keeper
 }
 
 type Server struct {

@@ -14,8 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
@@ -24,12 +22,12 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/piplabs/story/client/app/module"
-	epochsmodule "github.com/piplabs/story/client/x/epochs/module"
-	epochstypes "github.com/piplabs/story/client/x/epochs/types"
 	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	mint "github.com/piplabs/story/client/x/mint/module"
+	minttypes "github.com/piplabs/story/client/x/mint/types"
 	signalmodule "github.com/piplabs/story/client/x/signal/module"
 	signaltypes "github.com/piplabs/story/client/x/signal/types"
 )
@@ -49,7 +47,6 @@ var (
 		slashing.AppModule{},
 		vesting.AppModuleBasic{},
 		// Story modules
-		epochsmodule.AppModuleBasic{},
 		evmenginemodule.AppModuleBasic{},
 		evmstakingmodule.AppModuleBasic{},
 		signalmodule.AppModuleBasic{},
@@ -87,10 +84,6 @@ func (a *App) setupModuleManager() error {
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      mint.NewAppModule(a.appCodec, a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil, nil),
-			FromVersion: v1, ToVersion: v1,
-		},
-		{
 			Module:      slashing.NewAppModule(a.appCodec, a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
@@ -104,7 +97,7 @@ func (a *App) setupModuleManager() error {
 		},
 		// Story modules
 		{
-			Module:      epochsmodule.NewAppModule(a.appCodec, a.Keepers.EpochsKeeper),
+			Module:      mint.NewAppModule(a.appCodec, a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
@@ -145,7 +138,6 @@ func allStoreKeys() []string {
 		slashingtypes.StoreKey,
 		stakingtypes.StoreKey,
 		// Story modules
-		epochstypes.StoreKey,
 		evmenginetypes.StoreKey,
 		evmstakingtypes.StoreKey,
 		signaltypes.StoreKey,
@@ -165,7 +157,6 @@ func versionedStoreKeys() map[uint64][]string {
 			slashingtypes.StoreKey,
 			stakingtypes.StoreKey,
 			// Story modules
-			epochstypes.StoreKey,
 			evmenginetypes.StoreKey,
 			evmstakingtypes.StoreKey,
 			signaltypes.StoreKey,

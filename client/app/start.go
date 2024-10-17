@@ -212,6 +212,7 @@ func CreateApp(ctx context.Context, cfg Config) *App {
 		newSDKLogger(ctx),
 		db,
 		engineCl,
+		nil, // traceStore
 		baseAppOpts...,
 	)
 	if err != nil {

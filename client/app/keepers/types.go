@@ -10,7 +10,6 @@ import (
 	consensuskeeper "github.com/cosmos/cosmos-sdk/x/consensus/keeper"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
-	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
@@ -35,5 +34,5 @@ type Keepers struct {
 	EvmStakingKeeper *evmstakingkeeper.Keeper
 	EVMEngKeeper     *evmengkeeper.Keeper
 	MintKeeper       mintkeeper.Keeper
-	SignalKeeper     signalkeeper.Keeper
+	SignalKeeper     *signalkeeper.Keeper
 }
