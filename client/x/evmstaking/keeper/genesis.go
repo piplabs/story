@@ -53,9 +53,11 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 			"del_addr", delAddr.String(),
 		)
 
-		err = k.DelegatorMap.Set(ctx, delAddr.String(), evmAddr.String())
-		if err != nil {
-			return errors.Wrap(err, "set delegator map")
+		if err = k.DelegatorWithdrawAddress.Set(ctx, delAddr.String(), evmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator withdraw address map")
+		}
+		if err = k.DelegatorRewardAddress.Set(ctx, delAddr.String(), evmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator reward address map")
 		}
 	}
 

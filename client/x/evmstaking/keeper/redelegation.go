@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	"cosmossdk.io/collections"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -57,6 +59,19 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	valDstEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorDstPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to evm address")
+	}
+
+	// redelegateOnBehalf txn, need to check if it's from the operator
+	if delEvmAddr.String() != ev.OperatorAddress.String() {
+		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
+		if errors.Is(err, collections.ErrNotFound) {
+			return errors.New("invalid redelegateOnBehalf txn, no operator for delegator")
+		} else if err != nil {
+			return errors.Wrap(err, "get delegator's operator address failed")
+		}
+		if operatorAddr != ev.OperatorAddress.String() {
+			return errors.New("invalid redelegateOnBehalf txn, not from operator")
+		}
 	}
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)

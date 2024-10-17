@@ -54,7 +54,7 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 
 		// This should not produce error, as all delegations are done via the evmstaking module via EL.
 		// However, we should gracefully handle in case Get fails.
-		delEvmAddr, err := k.DelegatorMap.Get(ctx, entry.DelegatorAddress)
+		delEvmAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
 		if err != nil {
 			return nil, errors.Wrap(err, "map delegator pubkey to evm address")
 		}

@@ -39,8 +39,10 @@ type Keeper struct {
 
 	ipTokenStakingContract *bindings.IPTokenStaking
 
-	WithdrawalQueue addcollections.Queue[types.Withdrawal]
-	DelegatorMap    collections.Map[string, string] // bech32 to evm address (TODO: confirm that it's one-to-one or many-bech32-to-one-evm)
+	WithdrawalQueue          addcollections.Queue[types.Withdrawal]
+	DelegatorWithdrawAddress collections.Map[string, string]
+	DelegatorRewardAddress   collections.Map[string, string]
+	DelegatorOperatorAddress collections.Map[string, string]
 }
 
 // NewKeeper creates a new evmstaking Keeper instance.
@@ -74,18 +76,20 @@ func NewKeeper(
 	}
 
 	return &Keeper{
-		cdc:                    cdc,
-		storeService:           storeService,
-		authKeeper:             ak,
-		bankKeeper:             bk,
-		slashingKeeper:         slk,
-		stakingKeeper:          stk,
-		distributionKeeper:     dk,
-		authority:              authority,
-		validatorAddressCodec:  validatorAddressCodec,
-		ipTokenStakingContract: ipTokenStakingContract,
-		WithdrawalQueue:        addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
-		DelegatorMap:           collections.NewMap(sb, types.DelegatorMapKey, "delegator_map", collections.StringKey, collections.StringValue),
+		cdc:                      cdc,
+		storeService:             storeService,
+		authKeeper:               ak,
+		bankKeeper:               bk,
+		slashingKeeper:           slk,
+		stakingKeeper:            stk,
+		distributionKeeper:       dk,
+		authority:                authority,
+		validatorAddressCodec:    validatorAddressCodec,
+		ipTokenStakingContract:   ipTokenStakingContract,
+		WithdrawalQueue:          addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
+		DelegatorWithdrawAddress: collections.NewMap(sb, types.DelegatorWithdrawAddressMapKey, "delegator_withdraw_address_map", collections.StringKey, collections.StringValue),
+		DelegatorRewardAddress:   collections.NewMap(sb, types.DelegatorRewardAddressMapKey, "delegator_reward_address_map", collections.StringKey, collections.StringValue),
+		DelegatorOperatorAddress: collections.NewMap(sb, types.DelegatorOperatorAddressMapKey, "delegator_operator_address_map", collections.StringKey, collections.StringValue),
 	}
 }
 
@@ -103,7 +107,7 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 	return k.validatorAddressCodec
 }
 
-// TODO: Return log event results to properly manage failures.
+//nolint:gocyclo // TODO
 func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
@@ -122,7 +126,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 		// Convert the amount from wei to gwei (Eth2 spec withdrawal is specified in gwei) by dividing by 10^9.
 		// TODO: consider rounding and decimal precision when dividing bigint.
 
-		switch ethlog.Topics[0] {
+		switch ethlog.Topics[0] { // TODO(rayden): update validator commission
 		case types.SetWithdrawalAddress.ID:
 			ev, err := k.ipTokenStakingContract.ParseSetWithdrawalAddress(ethlog)
 			if err != nil {
@@ -131,6 +135,36 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 			}
 			if err = k.ProcessSetWithdrawalAddress(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process set withdrawal address", err)
+				continue
+			}
+		case types.SetRewardAddress.ID:
+			ev, err := k.ipTokenStakingContract.ParseSetRewardAddress(ethlog)
+			if err != nil {
+				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
+				continue
+			}
+			if err = k.ProcessSetRewardAddress(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process set reward address", err)
+				continue
+			}
+		case types.AddOperator.ID:
+			ev, err := k.ipTokenStakingContract.ParseAddOperator(ethlog)
+			if err != nil {
+				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
+				continue
+			}
+			if err = k.ProcessAddOperator(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process add operator", err)
+				continue
+			}
+		case types.RemoveOperator.ID:
+			ev, err := k.ipTokenStakingContract.ParseRemoveOperator(ethlog)
+			if err != nil {
+				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
+				continue
+			}
+			if err = k.ProcessRemoveOperator(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process add operator", err)
 				continue
 			}
 		case types.CreateValidatorEvent.ID:

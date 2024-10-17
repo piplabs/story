@@ -81,13 +81,13 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 				require.Contains(err.Error(), tc.expectedError)
 
 				// Ensure no state change occurred
-				addr, _ := keeper.DelegatorMap.Get(cachedCtx, delAddr.String())
+				addr, _ := keeper.DelegatorWithdrawAddress.Get(cachedCtx, delAddr.String())
 				require.Empty(addr)
 			} else {
 				require.NoError(err)
 
 				// check result
-				addr, err := keeper.DelegatorMap.Get(cachedCtx, delAddr.String())
+				addr, err := keeper.DelegatorWithdrawAddress.Get(cachedCtx, delAddr.String())
 				require.NoError(err)
 				require.Equal(evmAddr.String(), addr)
 			}

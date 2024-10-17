@@ -77,8 +77,36 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
 	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
 	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
-	if err := k.DelegatorMap.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator map")
+	if err := k.DelegatorWithdrawAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+		return errors.Wrap(err, "set delegator withdraw address map")
+	}
+	if err := k.DelegatorRewardAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+		return errors.Wrap(err, "set delegator reward address map")
+	}
+
+	delID := ev.DelegationId.String()
+	periodType := int32(ev.StakingPeriod.Int64())
+
+	val, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.New("validator not exists")
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
+	// locked tokens can only be staked with flexible period
+	if val.SupportTokenType == lockedTokenType {
+		flexPeriodType, err := k.stakingKeeper.GetFlexiblePeriodType(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get flexible period type")
+		}
+		periodType = flexPeriodType
+		delID = stypes.FlexiblePeriodDelegationID
 	}
 
 	// TODO: Check if we can instantiate the msgServer without type assertion
@@ -87,25 +115,10 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.New("type assertion failed")
 	}
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
-
-	var periodType stypes.PeriodType
-	switch ev.StakingPeriod.Int64() {
-	case int64(stypes.PeriodType_FLEXIBLE):
-		periodType = stypes.PeriodType_FLEXIBLE
-	case int64(stypes.PeriodType_THREE_MONTHS):
-		periodType = stypes.PeriodType_THREE_MONTHS
-	case int64(stypes.PeriodType_ONE_YEAR):
-		periodType = stypes.PeriodType_ONE_YEAR
-	case int64(stypes.PeriodType_EIGHTEEN_MONTHS):
-		periodType = stypes.PeriodType_EIGHTEEN_MONTHS
-	default:
-		return errors.New("invalid staking period")
-	}
-
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
 		depositorAddr.String(), validatorAddr.String(), amountCoin,
-		ev.DelegationId.String(), periodType,
+		delID, periodType,
 	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
 	if err != nil {

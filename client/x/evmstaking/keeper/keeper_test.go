@@ -408,6 +408,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					cmpToUncmp(valPubKey1.Bytes()),
 					cmpToUncmp(valPubKey2.Bytes()),
 					big.NewInt(0),
+					cmpToEVM(delPubKey.Bytes()),
 					delAmtGwei,
 				)
 				require.NoError(err)
@@ -478,11 +479,11 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				return evmEvents, nil
 			},
 			stateCheck: func(c context.Context) {
-				_, err := evmstakingKeeper.DelegatorMap.Get(c, delPubKey.Address().String())
+				_, err := evmstakingKeeper.DelegatorWithdrawAddress.Get(c, delPubKey.Address().String())
 				require.ErrorContains(err, "not found")
 			},
 			postStateCheck: func(c context.Context) {
-				evmDelAddr, err := evmstakingKeeper.DelegatorMap.Get(c, delAddr.String())
+				evmDelAddr, err := evmstakingKeeper.DelegatorWithdrawAddress.Get(c, delAddr.String())
 				require.NoError(err)
 				require.Equal(delEvmAddr.String(), evmDelAddr)
 			},

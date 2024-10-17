@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	"cosmossdk.io/collections"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -126,9 +128,9 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 			bondDenomAmount := delRewardsTruncated.AmountOf(sdk.DefaultBondDenom).Uint64()
 
 			if bondDenomAmount >= minPartialWithdrawalAmount {
-				delEvmAddr, err := k.DelegatorMap.Get(ctx, nextDelegators[i].DelegatorAddress)
+				delEvmAddr, err := k.DelegatorRewardAddress.Get(ctx, nextDelegators[i].DelegatorAddress)
 				if err != nil {
-					return nil, errors.Wrap(err, "map delegator pubkey to evm address")
+					return nil, errors.Wrap(err, "map delegator pubkey to evm reward address")
 				}
 
 				withdrawals = append(withdrawals, estypes.NewWithdrawal(
@@ -265,13 +267,26 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
 	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
 
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(valCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
+	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "delegator pubkey to evm address")
+	}
+
+	// unstakeOnBehalf txn, need to check if it's from the operator
+	if delEvmAddr.String() != ev.OperatorAddress.String() {
+		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
+		if errors.Is(err, collections.ErrNotFound) {
+			return errors.New("invalid unstakeOnBehalf txn, no operator for delegator")
+		} else if err != nil {
+			return errors.Wrap(err, "get delegator's operator address failed")
+		}
+		if operatorAddr != ev.OperatorAddress.String() {
+			return errors.New("invalid unstakeOnBehalf txn, not from operator")
+		}
 	}
 
 	amountCoin, _ := IPTokenToBondCoin(ev.StakeAmount)
