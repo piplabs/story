@@ -66,7 +66,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	log.Info(ctx, "EVM staking deposit detected, delegating to validator",
+	log.Debug(ctx, "EVM staking deposit detected, delegating to validator",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),

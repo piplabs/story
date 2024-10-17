@@ -252,7 +252,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	}
 
 	if isInSingularity {
-		log.Info(ctx, "Withdraw event detected, but it is not processed since current block is singularity")
+		log.Debug(ctx, "Withdraw event detected, but it is not processed since current block is singularity")
 		return nil
 	}
 
@@ -323,7 +323,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "undelegate")
 	}
 
-	log.Info(ctx, "EVM staking withdraw detected, undelegating from validator",
+	log.Debug(ctx, "EVM staking withdraw detected, undelegating from validator",
 		"delegator", depositorAddr.String(),
 		"validator", validatorAddr.String(),
 		"amount", resp.Amount.String(),
