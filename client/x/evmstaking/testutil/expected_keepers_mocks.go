@@ -16,6 +16,7 @@ import (
 
 	address "cosmossdk.io/core/address"
 	store "cosmossdk.io/core/store"
+	math "cosmossdk.io/math"
 	types "github.com/cometbft/cometbft/abci/types"
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -438,6 +439,22 @@ func (mr *MockStakingKeeperMockRecorder) EndBlocker(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndBlocker", reflect.TypeOf((*MockStakingKeeper)(nil).EndBlocker), ctx)
 }
 
+// EndBlockerWithUnbondedEntries mocks base method.
+func (m *MockStakingKeeper) EndBlockerWithUnbondedEntries(ctx context.Context) ([]types.ValidatorUpdate, []types2.UnbondedEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EndBlockerWithUnbondedEntries", ctx)
+	ret0, _ := ret[0].([]types.ValidatorUpdate)
+	ret1, _ := ret[1].([]types2.UnbondedEntry)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// EndBlockerWithUnbondedEntries indicates an expected call of EndBlockerWithUnbondedEntries.
+func (mr *MockStakingKeeperMockRecorder) EndBlockerWithUnbondedEntries(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndBlockerWithUnbondedEntries", reflect.TypeOf((*MockStakingKeeper)(nil).EndBlockerWithUnbondedEntries), ctx)
+}
+
 // GetAllDelegations mocks base method.
 func (m *MockStakingKeeper) GetAllDelegations(ctx context.Context) ([]types2.Delegation, error) {
 	m.ctrl.T.Helper()
@@ -466,6 +483,66 @@ func (m *MockStakingKeeper) GetAllValidators(ctx context.Context) ([]types2.Vali
 func (mr *MockStakingKeeperMockRecorder) GetAllValidators(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllValidators", reflect.TypeOf((*MockStakingKeeper)(nil).GetAllValidators), ctx)
+}
+
+// GetFlexiblePeriodType mocks base method.
+func (m *MockStakingKeeper) GetFlexiblePeriodType(ctx context.Context) (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFlexiblePeriodType", ctx)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFlexiblePeriodType indicates an expected call of GetFlexiblePeriodType.
+func (mr *MockStakingKeeperMockRecorder) GetFlexiblePeriodType(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFlexiblePeriodType", reflect.TypeOf((*MockStakingKeeper)(nil).GetFlexiblePeriodType), ctx)
+}
+
+// GetLockedTokenType mocks base method.
+func (m *MockStakingKeeper) GetLockedTokenType(ctx context.Context) (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLockedTokenType", ctx)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLockedTokenType indicates an expected call of GetLockedTokenType.
+func (mr *MockStakingKeeperMockRecorder) GetLockedTokenType(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLockedTokenType", reflect.TypeOf((*MockStakingKeeper)(nil).GetLockedTokenType), ctx)
+}
+
+// GetPeriodInfo mocks base method.
+func (m *MockStakingKeeper) GetPeriodInfo(ctx context.Context, periodType int32) (types2.Period, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPeriodInfo", ctx, periodType)
+	ret0, _ := ret[0].(types2.Period)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPeriodInfo indicates an expected call of GetPeriodInfo.
+func (mr *MockStakingKeeperMockRecorder) GetPeriodInfo(ctx, periodType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPeriodInfo", reflect.TypeOf((*MockStakingKeeper)(nil).GetPeriodInfo), ctx, periodType)
+}
+
+// GetTokenTypeInfo mocks base method.
+func (m *MockStakingKeeper) GetTokenTypeInfo(ctx context.Context, tokenType int32) (types2.TokenTypeInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTokenTypeInfo", ctx, tokenType)
+	ret0, _ := ret[0].(types2.TokenTypeInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTokenTypeInfo indicates an expected call of GetTokenTypeInfo.
+func (mr *MockStakingKeeperMockRecorder) GetTokenTypeInfo(ctx, tokenType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenTypeInfo", reflect.TypeOf((*MockStakingKeeper)(nil).GetTokenTypeInfo), ctx, tokenType)
 }
 
 // GetUnbondingDelegation mocks base method.
@@ -541,6 +618,21 @@ func (m *MockStakingKeeper) GetValidatorDelegations(ctx context.Context, valAddr
 func (mr *MockStakingKeeperMockRecorder) GetValidatorDelegations(ctx, valAddr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidatorDelegations", reflect.TypeOf((*MockStakingKeeper)(nil).GetValidatorDelegations), ctx, valAddr)
+}
+
+// MinDelegation mocks base method.
+func (m *MockStakingKeeper) MinDelegation(ctx context.Context) (math.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MinDelegation", ctx)
+	ret0, _ := ret[0].(math.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MinDelegation indicates an expected call of MinDelegation.
+func (mr *MockStakingKeeperMockRecorder) MinDelegation(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MinDelegation", reflect.TypeOf((*MockStakingKeeper)(nil).MinDelegation), ctx)
 }
 
 // UBDQueueIterator mocks base method.
@@ -647,6 +739,21 @@ func (mr *MockDistributionKeeperMockRecorder) CalculateDelegationRewards(ctx, va
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CalculateDelegationRewards", reflect.TypeOf((*MockDistributionKeeper)(nil).CalculateDelegationRewards), ctx, val, del, endingPeriod)
 }
 
+// GetUbiBalanceByDenom mocks base method.
+func (m *MockDistributionKeeper) GetUbiBalanceByDenom(ctx context.Context, denom string) (math.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUbiBalanceByDenom", ctx, denom)
+	ret0, _ := ret[0].(math.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUbiBalanceByDenom indicates an expected call of GetUbiBalanceByDenom.
+func (mr *MockDistributionKeeperMockRecorder) GetUbiBalanceByDenom(ctx, denom any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUbiBalanceByDenom", reflect.TypeOf((*MockDistributionKeeper)(nil).GetUbiBalanceByDenom), ctx, denom)
+}
+
 // GetValidatorAccumulatedCommission mocks base method.
 func (m *MockDistributionKeeper) GetValidatorAccumulatedCommission(ctx context.Context, val types0.ValAddress) (types1.ValidatorAccumulatedCommission, error) {
 	m.ctrl.T.Helper()
@@ -705,6 +812,21 @@ func (m *MockDistributionKeeper) WithdrawDelegationRewards(ctx context.Context, 
 func (mr *MockDistributionKeeperMockRecorder) WithdrawDelegationRewards(ctx, delAddr, valAddr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithdrawDelegationRewards", reflect.TypeOf((*MockDistributionKeeper)(nil).WithdrawDelegationRewards), ctx, delAddr, valAddr)
+}
+
+// WithdrawUbiByDenomToModule mocks base method.
+func (m *MockDistributionKeeper) WithdrawUbiByDenomToModule(ctx context.Context, denom, recipientModule string) (types0.Coin, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithdrawUbiByDenomToModule", ctx, denom, recipientModule)
+	ret0, _ := ret[0].(types0.Coin)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithdrawUbiByDenomToModule indicates an expected call of WithdrawUbiByDenomToModule.
+func (mr *MockDistributionKeeperMockRecorder) WithdrawUbiByDenomToModule(ctx, denom, recipientModule any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithdrawUbiByDenomToModule", reflect.TypeOf((*MockDistributionKeeper)(nil).WithdrawUbiByDenomToModule), ctx, denom, recipientModule)
 }
 
 // WithdrawValidatorCommission mocks base method.

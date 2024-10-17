@@ -37,6 +37,42 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, err
 	}
 
+	// Check if the ubi balance is enough to be withdrawn.
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get params")
+	}
+	ubiBalance, err := k.distributionKeeper.GetUbiBalanceByDenom(ctx, sdk.DefaultBondDenom)
+	if err != nil {
+		return nil, errors.Wrap(err, "get ubi balance by denom")
+	}
+	if ubiBalance.Uint64() >= params.MinPartialWithdrawalAmount {
+		// Withdraw ubi coins to evmstaking module.
+		ubiCoin, err := k.distributionKeeper.WithdrawUbiByDenomToModule(
+			ctx, sdk.DefaultBondDenom, types.ModuleName,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "withdraw ubi by denom to module")
+		}
+		// Burn tokens from the ubi.
+		if err = k.bankKeeper.BurnCoins(
+			ctx, types.ModuleName,
+			sdk.NewCoins(ubiCoin),
+		); err != nil {
+			return nil, errors.Wrap(err, "burn ubi coins")
+		}
+		// Add withdrawal entry to the withdrawal queue.
+		if err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+			uint64(blockHeight),
+			"",
+			"",
+			params.UbiWithdrawAddress,
+			ubiBalance.Uint64(),
+		)); err != nil {
+			return nil, err
+		}
+	}
+
 	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
 
 	for _, entry := range unbondedEntries {
