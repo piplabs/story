@@ -50,9 +50,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
     uint256 public fee;
 
-    /// @notice Staking periods and their corresponding durations
-    mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) public stakingDurations;
-
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
         if (uncmpPubkey.length != 65) {
@@ -109,7 +106,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinStakeAmount(args.minStakeAmount);
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setMinCommissionRate(args.minCommissionRate);
-        _setStakingPeriods(args.shortStakingPeriod, args.mediumStakingPeriod, args.longStakingPeriod);
         _setFee(args.fee);
     }
 
@@ -129,13 +125,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _setMinUnstakeAmount(newMinUnstakeAmount);
     }
 
-    /// @dev Sets the staking periods and their corresponding durations.
-    /// @param short The duration of the short staking period.
-    /// @param medium The duration of the medium staking period.
-    /// @param long The duration of the long staking period.
-    function setStakingPeriods(uint32 short, uint32 medium, uint32 long) external onlyOwner {
-        _setStakingPeriods(short, medium, long);
-    }
 
     /// @notice Sets the fee charged for adding to CL storage.
     /// @param newFee The new fee
@@ -153,22 +142,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                            Internal setters                            //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Sets the staking periods and their corresponding durations.
-    function _setStakingPeriods(uint32 short, uint32 medium, uint32 long) private {
-        if (short == 0) {
-            revert Errors.IPTokenStaking__ZeroShortPeriodDuration();
-        }
-        if (short >= medium) {
-            revert Errors.IPTokenStaking__ShortPeriodLongerThanMedium();
-        }
-        if (medium >= long) {
-            revert Errors.IPTokenStaking__MediumLongerThanLong();
-        }
-        stakingDurations[IIPTokenStaking.StakingPeriod.SHORT] = short;
-        stakingDurations[IIPTokenStaking.StakingPeriod.MEDIUM] = medium;
-        stakingDurations[IIPTokenStaking.StakingPeriod.LONG] = long;
-        emit StakingPeriodsChanged(short, medium, long);
-    }
 
     /// @dev Sets the fee charged for adding to CL storage.
     function _setFee(uint256 newFee) private {
@@ -455,13 +428,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (stakeAmount < minStakeAmount) {
             revert Errors.IPTokenStaking__StakeAmountUnderMin();
         }
-        uint32 duration = 0;
         uint256 delegationId = 0;
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
             delegationId = ++_delegationIdCounter;
-            duration = stakingDurations[stakingPeriod];
         }
-        emit Deposit(delegatorUncmpPubkey, validatorUncmpPubkey, stakeAmount, duration, delegationId, msg.sender, data);
+        emit Deposit(delegatorUncmpPubkey, validatorUncmpPubkey, stakeAmount, uint8(stakingPeriod), delegationId, msg.sender, data);
         // We burn staked tokens
         payable(address(0)).transfer(stakeAmount);
 

@@ -20,26 +20,14 @@ interface IIPTokenStaking {
     /// @param minStakeAmount Global minimum amount required to stake
     /// @param minUnstakeAmount Global minimum amount required to unstake
     /// @param minCommissionRate Global minimum commission rate for validators
-    /// @param shortStakingPeriod The staking duration for short staking, in seconds
-    /// @param mediumStakingPeriod The staking duration for medium staking, in seconds
-    /// @param longStakingPeriod The staking duration for long staking, in seconds
     /// @param fee The fee charged for adding to CL storage
     struct InitializerArgs {
         address owner;
         uint256 minStakeAmount;
         uint256 minUnstakeAmount;
         uint256 minCommissionRate;
-        uint32 shortStakingPeriod;
-        uint32 mediumStakingPeriod;
-        uint32 longStakingPeriod;
         uint256 fee;
     }
-
-    /// @notice Emitted when the staking periods are updated
-    /// @param short The new staking duration for short staking, in seconds
-    /// @param medium The new staking duration for medium staking, in seconds
-    /// @param long The new staking duration for long staking, in seconds
-    event StakingPeriodsChanged(uint32 short, uint32 medium, uint32 long);
 
     /// @notice Emitted when the fee charged for adding to CL storage is updated
     /// @param newFee The new fee
@@ -86,7 +74,7 @@ interface IIPTokenStaking {
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
-    /// @param stakingPeriod The staking period of the deposit in seconds, 0 if flexible
+    /// @param stakingPeriod of the deposit 
     /// @param delegationId The ID of the delegation
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
