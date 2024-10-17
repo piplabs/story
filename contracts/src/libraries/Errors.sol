@@ -11,9 +11,9 @@ library Errors {
     error IPTokenStaking__CommissionRateUnderMin();
     error IPTokenStaking__CommissionRateOverMax();
 
-    error IPTokenStaking__InvalidPubkeyLength();
-    error IPTokenStaking__InvalidPubkeyPrefix();
-    error IPTokenStaking__InvalidPubkeyDerivedAddress();
+    error PubKeyVerifier__InvalidPubkeyLength();
+    error PubKeyVerifier__InvalidPubkeyPrefix();
+    error PubKeyVerifier__InvalidPubkeyDerivedAddress();
     error IPTokenStaking__InvalidDelegationId();
 
     error IPTokenStaking__InvalidMinFee();

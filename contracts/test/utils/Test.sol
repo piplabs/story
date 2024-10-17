@@ -7,6 +7,7 @@ import { Test as ForgeTest } from "forge-std/Test.sol";
 
 import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
+import { UBIPool } from "../../src/protocol/UBIPool.sol";
 import { Predeploys } from "../../src/libraries/Predeploys.sol";
 
 import { GenerateAlloc } from "../../script/GenerateAlloc.s.sol";
@@ -17,6 +18,7 @@ contract Test is ForgeTest {
 
     IPTokenStaking internal ipTokenStaking;
     UpgradeEntrypoint internal upgradeEntrypoint;
+    UBIPool internal ubiPool;
 
     function setUp() public virtual {
         GenerateAlloc initializer = new GenerateAlloc();
@@ -25,5 +27,6 @@ contract Test is ForgeTest {
         initializer.run();
         ipTokenStaking = IPTokenStaking(Predeploys.Staking);
         upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
+        ubiPool = UBIPool(Predeploys.UBIPool);
     }
 }
