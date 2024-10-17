@@ -8,12 +8,12 @@ interface IUpgradeEntrypoint {
     /// @param upgradeHeight The height at which the upgrade must be performed.
     /// @param info Any application specific upgrade info to be included on-chain such as a git commit that validators
     /// could automatically upgrade to.
-    event SoftwareUpgrade(string appVersion, int64 upgradeHeight, string info);
+    event SoftwareUpgrade(uint64 appVersion, uint64 upgradeHeight, string info);
 
     /// @notice Submits an upgrade plan.
     /// @param appVersion Sets the app version for the upgrade.
     /// @param upgradeHeight The height at which the upgrade must be performed.
     /// @param info Any application specific upgrade info to be included on-chain such as a git commit that validators
     /// could automatically upgrade to.
-    function planUpgrade(string calldata appVersion, int64 upgradeHeight, string calldata info) external;
+    function planUpgrade(uint64 appVersion, uint64 upgradeHeight, string calldata info) external;
 }

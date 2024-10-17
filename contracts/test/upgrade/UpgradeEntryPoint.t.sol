@@ -12,19 +12,19 @@ import { Test } from "../utils/Test.sol";
 contract UpgradeEntrypointTest is Test {
     function testUpgradeEntrypoint_planUpgrade() public {
         // Network shall allow the protocol owner to submit an upgrade plan.
-        string memory name = "upgrade";
-        int64 height = 1;
+        uint64 version = 1;
+        uint64 height = 1;
         string memory info = "info";
 
         vm.expectEmit(address(upgradeEntrypoint));
-        emit IUpgradeEntrypoint.SoftwareUpgrade(name, height, info);
+        emit IUpgradeEntrypoint.SoftwareUpgrade(version, height, info);
         vm.prank(admin);
-        upgradeEntrypoint.planUpgrade(name, height, info);
+        upgradeEntrypoint.planUpgrade(version, height, info);
 
         // Network shall not allow non-protocol owner to submit an upgrade plan.
         address otherAddr = address(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab);
         vm.prank(otherAddr);
         vm.expectRevert();
-        upgradeEntrypoint.planUpgrade(name, height, info);
+        upgradeEntrypoint.planUpgrade(version, height, info);
     }
 }

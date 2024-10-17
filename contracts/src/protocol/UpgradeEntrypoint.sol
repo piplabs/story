@@ -25,7 +25,7 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable {
     /// @param upgradeHeight The height at which the upgrade must be performed.
     /// @param info Any application specific upgrade info to be included on-chain such as a git commit that validators
     /// could automatically upgrade to.
-    function planUpgrade(string calldata appVersion, int64 upgradeHeight, string calldata info) external onlyOwner {
+    function planUpgrade(uint64 appVersion, uint64 upgradeHeight, string calldata info) external onlyOwner {
         emit SoftwareUpgrade({ appVersion: appVersion, upgradeHeight: upgradeHeight, info: info });
     }
 }
