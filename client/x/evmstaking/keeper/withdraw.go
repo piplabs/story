@@ -246,6 +246,16 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 }
 
 func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
+	isInSingularity, err := k.IsSingularity(ctx)
+	if err != nil {
+		return errors.Wrap(err, "check if it is singularity")
+	}
+
+	if isInSingularity {
+		log.Debug(ctx, "Withdraw event detected, but it is not processed since current block is singularity")
+		return nil
+	}
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")
@@ -313,7 +323,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "undelegate")
 	}
 
-	log.Info(ctx, "EVM staking withdraw detected, undelegating from validator",
+	log.Debug(ctx, "EVM staking withdraw detected, undelegating from validator",
 		"delegator", depositorAddr.String(),
 		"validator", validatorAddr.String(),
 		"amount", resp.Amount.String(),

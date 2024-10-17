@@ -11,14 +11,17 @@ const (
 	DefaultMaxSweepPerBlock uint32 = 64
 
 	DefaultMinPartialWithdrawalAmount uint64 = 600_000
+
+	DefaultSingularityHeight uint64 = 1209600 // 42 days with 35 seconds block time
 )
 
 // NewParams creates a new Params instance.
-func NewParams(maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64) Params {
+func NewParams(maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount, singularityHeight uint64) Params {
 	return Params{
 		MaxWithdrawalPerBlock:      maxWithdrawalPerBlock,
 		MaxSweepPerBlock:           maxSweepPerBlock,
 		MinPartialWithdrawalAmount: minPartialWithdrawalAmount,
+		SingularityHeight:          singularityHeight,
 	}
 }
 
@@ -28,6 +31,7 @@ func DefaultParams() Params {
 		DefaultMaxWithdrawalPerBlock,
 		DefaultMaxSweepPerBlock,
 		DefaultMinPartialWithdrawalAmount,
+		DefaultSingularityHeight,
 	)
 }
 
@@ -54,6 +58,14 @@ func ValidateMaxSweepPerBlock(maxSweepPerBlock uint32, maxWithdrawalPerBlock uin
 func ValidateMinPartialWithdrawalAmount(v uint64) error {
 	if v == 0 {
 		return fmt.Errorf("min partial withdrawal amount must be positive: %d", v)
+	}
+
+	return nil
+}
+
+func ValidateSingularityHeight(v uint64) error {
+	if v == 0 {
+		return fmt.Errorf("singularity height must be positive: %d", v)
 	}
 
 	return nil

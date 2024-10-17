@@ -23,6 +23,15 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	blockHeight := sdkCtx.BlockHeader().Height
 
+	isSingularity, err := k.IsSingularity(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if isSingularity {
+		return nil, nil
+	}
+
 	valUpdates, unbondedEntries, err := k.stakingKeeper.EndBlockerWithUnbondedEntries(ctx)
 	if err != nil {
 		return nil, err

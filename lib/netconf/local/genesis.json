@@ -175,14 +175,16 @@
       "params": {
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
-        "min_partial_withdrawal_amount": 100000000
+        "min_partial_withdrawal_amount": 100000000,
+        "singularity_height": "30"
       }
     },
     "mint": {
       "params": {
         "mint_denom": "stake",
         "inflations_per_year": "24625000000000000.000000000000000000",
-        "blocks_per_year": "6311520"
+        "blocks_per_year": "6311520",
+        "singularity_height": "30"
       }
     }
   }
