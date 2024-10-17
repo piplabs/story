@@ -19,6 +19,54 @@ import (
 	"github.com/piplabs/story/lib/promutil"
 )
 
+func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
+	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
+
+	for _, entry := range unbondedEntries {
+		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "delegator address from bech32")
+		}
+
+		log.Debug(ctx, "Adding undelegation to withdrawal queue",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", entry.Amount.String())
+
+		// Burn tokens from the delegator
+		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
+		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, estypes.ModuleName, coins)
+		if err != nil {
+			return errors.Wrap(err, "send coins from account to module")
+		}
+		err = k.bankKeeper.BurnCoins(ctx, estypes.ModuleName, coins)
+		if err != nil {
+			return errors.Wrap(err, "burn coins")
+		}
+
+		// This should not produce error, as all delegations are done via the evmstaking module via EL.
+		// However, we should gracefully handle in case Get fails.
+		delEvmAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "map delegator pubkey to evm address")
+		}
+
+		// push the undelegation to the withdrawal queue
+		err = k.AddWithdrawalToQueue(ctx, estypes.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+			entry.DelegatorAddress,
+			entry.ValidatorAddress,
+			delEvmAddr,
+			entry.Amount.Uint64(),
+		))
+		if err != nil {
+			return errors.Wrap(err, "add unbonding withdrawal to queue")
+		}
+	}
+
+	return nil
+}
+
 func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withdrawal, error) {
 	nextValIndex, nextValDelIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {

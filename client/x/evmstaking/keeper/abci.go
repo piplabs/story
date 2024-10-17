@@ -6,7 +6,6 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
@@ -20,14 +19,10 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	log.Debug(ctx, "EndBlock.evmstaking")
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	blockHeight := sdkCtx.BlockHeader().Height
-
 	isSingularity, err := k.IsSingularity(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	if isSingularity {
 		return nil, nil
 	}
@@ -36,85 +31,8 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Check if the ubi balance is enough to be withdrawn.
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get params")
-	}
-	ubiBalance, err := k.distributionKeeper.GetUbiBalanceByDenom(ctx, sdk.DefaultBondDenom)
-	if err != nil {
-		return nil, errors.Wrap(err, "get ubi balance by denom")
-	}
-	if ubiBalance.Uint64() >= params.MinPartialWithdrawalAmount {
-		// Withdraw ubi coins to evmstaking module.
-		ubiCoin, err := k.distributionKeeper.WithdrawUbiByDenomToModule(
-			ctx, sdk.DefaultBondDenom, types.ModuleName,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "withdraw ubi by denom to module")
-		}
-		// Burn tokens from the ubi.
-		if err = k.bankKeeper.BurnCoins(
-			ctx, types.ModuleName,
-			sdk.NewCoins(ubiCoin),
-		); err != nil {
-			return nil, errors.Wrap(err, "burn ubi coins")
-		}
-		// Add withdrawal entry to the withdrawal queue.
-		if err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
-			uint64(blockHeight),
-			"",
-			"",
-			params.UbiWithdrawAddress,
-			ubiBalance.Uint64(),
-		)); err != nil {
-			return nil, err
-		}
-	}
-
-	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
-
-	for _, entry := range unbondedEntries {
-		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.DelegatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "delegator address from bech32")
-		}
-
-		log.Debug(ctx, "Adding undelegation to withdrawal queue",
-			"delegator", entry.DelegatorAddress,
-			"validator", entry.ValidatorAddress,
-			"amount", entry.Amount.String())
-
-		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
-		if err != nil {
-			return nil, errors.Wrap(err, "send coins from account to module")
-		}
-		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
-		if err != nil {
-			return nil, errors.Wrap(err, "burn coins")
-		}
-
-		// This should not produce error, as all delegations are done via the evmstaking module via EL.
-		// However, we should gracefully handle in case Get fails.
-		delEvmAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
-		if err != nil {
-			return nil, errors.Wrap(err, "map delegator pubkey to evm address")
-		}
-
-		// push the undelegation to the withdrawal queue
-		err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
-			uint64(blockHeight),
-			entry.DelegatorAddress,
-			entry.ValidatorAddress,
-			delEvmAddr,
-			entry.Amount.Uint64(),
-		))
-		if err != nil {
-			return nil, err
-		}
+	if err := k.ProcessUnbondingWithdrawals(ctx, unbondedEntries); err != nil {
+		return nil, err
 	}
 
 	partialWithdrawals, err := k.ExpectedPartialWithdrawals(ctx)
@@ -123,6 +41,10 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	}
 	if err := k.EnqueueEligiblePartialWithdrawal(ctx, partialWithdrawals); err != nil {
 		return nil, err
+	}
+
+	if err := k.ProcessUbiWithdrawal(ctx); err != nil {
+		return nil, errors.Wrap(err, "process ubi withdrawal")
 	}
 
 	return valUpdates, nil
