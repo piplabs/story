@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/core/address"
 	corestore "cosmossdk.io/core/store"
+	"cosmossdk.io/math"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -65,6 +66,8 @@ type StakingKeeper interface {
 
 	EndBlocker(ctx context.Context) ([]abci.ValidatorUpdate, error)
 	EndBlockerWithUnbondedEntries(ctx context.Context) ([]abci.ValidatorUpdate, []stakingtypes.UnbondedEntry, error)
+
+	MinDelegation(ctx context.Context) (math.Int, error)
 }
 
 // SlashingKeeper defines the expected interface for the slashing module.
