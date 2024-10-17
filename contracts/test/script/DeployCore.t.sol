@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.23;
 // /* solhint-disable no-console */
 // /* solhint-disable max-line-length */
