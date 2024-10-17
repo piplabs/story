@@ -20,4 +20,7 @@ message Params {
   uint64 singularity_height = 4 [
     (gogoproto.moretags) = "yaml:\"singularity_height\""
   ];
+  string ubi_withdraw_address = 5 [
+    (gogoproto.moretags) = "yaml:\"ubi_withdraw_address\""
+  ];
 }

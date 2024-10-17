@@ -33,9 +33,9 @@ func (s *TestSuite) TestGetWithdrawalQueue() {
 	valAddr = "storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0"
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 	withdrawals := []types.Withdrawal{
-		types.NewWithdrawal(1, delAddr, valAddr, evmAddr.String(), 100),
-		types.NewWithdrawal(2, delAddr, valAddr, evmAddr.String(), 200),
-		types.NewWithdrawal(3, delAddr, valAddr, evmAddr.String(), 300),
+		types.NewWithdrawal(1, evmAddr.String(), 100),
+		types.NewWithdrawal(2, evmAddr.String(), 200),
+		types.NewWithdrawal(3, evmAddr.String(), 300),
 	}
 	require.Len(withdrawals, 3)
 	for _, w := range withdrawals {

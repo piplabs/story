@@ -94,7 +94,6 @@ type TestSuite struct {
 	StakingKeeper    *skeeper.Keeper
 	SlashingKeeper   *estestutil.MockSlashingKeeper
 	EVMStakingKeeper *keeper.Keeper
-	msgServer        types.MsgServiceServer
 	queryClient      types.QueryClient
 
 	encCfg moduletestutil.TestEncodingConfig
@@ -176,7 +175,6 @@ func (s *TestSuite) SetupTest() {
 	)
 	s.Require().NoError(evmstakingKeeper.SetParams(s.Ctx, types.DefaultParams()))
 	s.EVMStakingKeeper = evmstakingKeeper
-	s.msgServer = keeper.NewMsgServerImpl(evmstakingKeeper)
 	queryHelper := baseapp.NewQueryServerTestHelper(s.Ctx, s.encCfg.InterfaceRegistry)
 	types.RegisterQueryServer(queryHelper, evmstakingKeeper)
 	s.queryClient = types.NewQueryClient(queryHelper)

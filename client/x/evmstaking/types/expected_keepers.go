@@ -89,4 +89,7 @@ type DistributionKeeper interface {
 	WithdrawValidatorCommission(ctx context.Context, valAddr sdk.ValAddress) (sdk.Coins, error)
 
 	IncrementValidatorPeriod(ctx context.Context, val stakingtypes.ValidatorI) (uint64, error)
+
+	GetUbiBalanceByDenom(ctx context.Context, denom string) (math.Int, error)
+	WithdrawUbiByDenomToModule(ctx context.Context, denom string, recipientModule string) (sdk.Coin, error)
 }

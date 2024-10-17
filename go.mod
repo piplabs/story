@@ -9,7 +9,7 @@ require (
 	// (Replace is done below)
 	cosmossdk.io/core v0.12.0
 	cosmossdk.io/depinject v1.0.0-alpha.4
-	cosmossdk.io/errors v1.0.1
+	cosmossdk.io/errors v1.0.1 // indirect
 	cosmossdk.io/log v1.3.1
 	cosmossdk.io/math v1.3.0
 	cosmossdk.io/orm v1.0.0-beta.3
@@ -295,7 +295,7 @@ replace (
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.6
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.8
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
