@@ -294,8 +294,8 @@ replace (
 	// should use v0.11.0. The Cosmos build fails with types/context.go:65:29: undefined: comet.BlockInfo otherwise.
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
-	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/story/v0.50.7, current branch: story/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.4
+	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.6
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12

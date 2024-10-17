@@ -68,6 +68,10 @@ type StakingKeeper interface {
 	EndBlockerWithUnbondedEntries(ctx context.Context) ([]abci.ValidatorUpdate, []stakingtypes.UnbondedEntry, error)
 
 	MinDelegation(ctx context.Context) (math.Int, error)
+	GetFlexiblePeriodType(ctx context.Context) (int32, error)
+	GetPeriodInfo(ctx context.Context, periodType int32) (stakingtypes.Period, error)
+	GetLockedTokenType(ctx context.Context) (int32, error)
+	GetTokenTypeInfo(ctx context.Context, tokenType int32) (stakingtypes.TokenTypeInfo, error)
 }
 
 // SlashingKeeper defines the expected interface for the slashing module.

@@ -94,19 +94,14 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		moniker = validatorAddr.String() // use validator address as moniker if not provided
 	}
 
-	var tokenType stypes.TokenType
-	switch ev.SupportsUnlocked {
-	case uint8(stypes.TokenType_LOCKED):
-		tokenType = stypes.TokenType_LOCKED
-	case uint8(stypes.TokenType_UNLOCKED):
-		tokenType = stypes.TokenType_UNLOCKED
-	default:
-		return errors.New("invalid token type")
-	}
-
 	minSelfDelegation, err := k.stakingKeeper.MinDelegation(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get min self delegation")
+	}
+
+	tokenType := int32(ev.SupportsUnlocked)
+	if _, err := k.stakingKeeper.GetTokenTypeInfo(ctx, tokenType); err != nil {
+		return errors.Wrap(err, "invalid token type")
 	}
 
 	// Validator does not exist, create validator with self-delegation.

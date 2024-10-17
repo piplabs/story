@@ -85,20 +85,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 
 	delID := ev.DelegationId.String()
-
-	var periodType stypes.PeriodType
-	switch ev.StakingPeriod.Int64() {
-	case int64(stypes.PeriodType_FLEXIBLE):
-		periodType = stypes.PeriodType_FLEXIBLE
-	case int64(stypes.PeriodType_THREE_MONTHS):
-		periodType = stypes.PeriodType_THREE_MONTHS
-	case int64(stypes.PeriodType_ONE_YEAR):
-		periodType = stypes.PeriodType_ONE_YEAR
-	case int64(stypes.PeriodType_EIGHTEEN_MONTHS):
-		periodType = stypes.PeriodType_EIGHTEEN_MONTHS
-	default:
-		return errors.New("invalid staking period")
-	}
+	periodType := int32(ev.StakingPeriod.Int64())
 
 	val, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
@@ -106,9 +93,19 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
+
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
 	// locked tokens can only be staked with flexible period
-	if val.SupportTokenType == stypes.TokenType_LOCKED {
-		periodType = stypes.PeriodType_FLEXIBLE
+	if val.SupportTokenType == lockedTokenType {
+		flexPeriodType, err := k.stakingKeeper.GetFlexiblePeriodType(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get flexible period type")
+		}
+		periodType = flexPeriodType
 		delID = stypes.FlexiblePeriodDelegationID
 	}
 
