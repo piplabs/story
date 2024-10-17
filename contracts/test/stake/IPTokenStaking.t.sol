@@ -47,9 +47,6 @@ contract IPTokenStakingTest is Test {
             minStakeAmount: 0,
             minUnstakeAmount: 1 ether,
             minCommissionRate: 5_00,
-            shortStakingPeriod: 1,
-            mediumStakingPeriod: 2,
-            longStakingPeriod: 3,
             fee: 1 ether
         });
         impl = address(
@@ -68,49 +65,15 @@ contract IPTokenStakingTest is Test {
         args.minUnstakeAmount = 0;
         new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
 
-        // IPTokenStaking: newWithdrawalAddressChangeInterval cannot be 0
+        // IPTokenStaking:   cannot be 0
         vm.expectRevert(Errors.IPTokenStaking__ZeroMinCommissionRate.selector);
         args.minUnstakeAmount = 1 ether;
         args.minCommissionRate = 0;
         new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
 
-        // TODO test short
-        vm.expectRevert(Errors.IPTokenStaking__ZeroShortPeriodDuration.selector);
-        args.minCommissionRate = 5_00;
-        args.shortStakingPeriod = 0;
-        args.mediumStakingPeriod = 10;
-        args.longStakingPeriod = 100;
-        new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
-
-        vm.expectRevert(Errors.IPTokenStaking__ShortPeriodLongerThanMedium.selector);
-        args.shortStakingPeriod = 1;
-        args.mediumStakingPeriod = 1;
-        args.longStakingPeriod = 100;
-        new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
-
-        vm.expectRevert(Errors.IPTokenStaking__ShortPeriodLongerThanMedium.selector);
-        args.shortStakingPeriod = 2;
-        args.mediumStakingPeriod = 1;
-        args.longStakingPeriod = 100;
-        new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
-
-        vm.expectRevert(Errors.IPTokenStaking__MediumLongerThanLong.selector);
-        args.shortStakingPeriod = 2;
-        args.mediumStakingPeriod = 100;
-        args.longStakingPeriod = 100;
-        new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
-
-        vm.expectRevert(); // todo
-        args.shortStakingPeriod = 2;
-        args.mediumStakingPeriod = 3;
-        args.longStakingPeriod = 2;
-        new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
-
-        vm.expectRevert(); // todo
-        args.shortStakingPeriod = 1;
-        args.mediumStakingPeriod = 2;
-        args.longStakingPeriod = 3;
-        args.fee = 10;
+        vm.expectRevert(Errors.IPTokenStaking__InvalidMinFee.selector);
+        args.minCommissionRate = 10;
+        args.fee = 0;
         new ERC1967Proxy(impl, abi.encodeCall(IPTokenStaking.initialize, (args)));
     }
 
@@ -242,7 +205,6 @@ contract IPTokenStakingTest is Test {
         assertEq(delegationId, 0);
         // Staking for short period should produce incremented delegationId and correct duration
         // emitted event
-        uint32 shortDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.SHORT);
         uint256 stakeAmount = ipTokenStaking.minUnstakeAmount();
         uint256 expectedDelegationId = 1;
         vm.deal(delegatorAddr, 10000000000 ether);
@@ -252,7 +214,7 @@ contract IPTokenStakingTest is Test {
             delegatorUncmpPubkey,
             validatorPubkey,
             stakeAmount,
-            shortDuration,
+            uint32(uint8(IIPTokenStaking.StakingPeriod.SHORT)),
             expectedDelegationId,
             delegatorAddr,
             ""
@@ -267,14 +229,13 @@ contract IPTokenStakingTest is Test {
         expectedDelegationId++;
         // Staking for medium period should produce incremented delegationId and correct duration
         // emitted event
-        uint32 mediumDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.MEDIUM);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.Deposit(
             delegatorUncmpPubkey,
             validatorPubkey,
             stakeAmount,
-            mediumDuration,
+            uint32(uint8(IIPTokenStaking.StakingPeriod.MEDIUM)),
             expectedDelegationId,
             delegatorAddr,
             ""
@@ -289,14 +250,13 @@ contract IPTokenStakingTest is Test {
         expectedDelegationId++;
         // Staking for long period should produce incremented delegationId and correct duration
         // emitted event
-        uint32 longDuration = ipTokenStaking.stakingDurations(IIPTokenStaking.StakingPeriod.LONG);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.Deposit(
             delegatorUncmpPubkey,
             validatorPubkey,
             stakeAmount,
-            longDuration,
+            uint32(uint8(IIPTokenStaking.StakingPeriod.LONG)),
             expectedDelegationId,
             delegatorAddr,
             ""

@@ -21,10 +21,6 @@ library Errors {
     error IPTokenStaking__ZeroMinUnstakeAmount();
     error IPTokenStaking__ZeroMinCommissionRate();
 
-    error IPTokenStaking__ZeroShortPeriodDuration();
-    error IPTokenStaking__ShortPeriodLongerThanMedium();
-    error IPTokenStaking__MediumLongerThanLong();
-
     error IPTokenStaking__StakeAmountUnderMin();
     error IPTokenStaking__LowUnstakeAmount();
     error IPTokenStaking__RedelegatingToSameValidator();

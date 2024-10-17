@@ -166,18 +166,8 @@ contract GenerateAlloc is Script {
             minStakeAmount: 1024 ether,
             minUnstakeAmount: 1024 ether,
             minCommissionRate: 5_00, // 5% in basis points
-            shortStakingPeriod: 1 days, // TBD
-            mediumStakingPeriod: 2 days, // TBD
-            longStakingPeriod: 3 days, // TBD
             fee: 1 ether // 1 IP
         });
-
-        // Devnet timing values
-        if (block.chainid == 1315) {
-            args.shortStakingPeriod = 60 seconds;
-            args.mediumStakingPeriod = 120 seconds;
-            args.longStakingPeriod = 180 seconds;
-        }
 
         IPTokenStaking(Predeploys.Staking).initialize(args);
 
