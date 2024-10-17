@@ -16,8 +16,8 @@ func (k *Keeper) IsSingularity(ctx context.Context) (bool, error) {
 	blockHeight := sdkCtx.BlockHeader().Height
 
 	if blockHeight < int64(params.SingularityHeight) {
-		return false, nil
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
