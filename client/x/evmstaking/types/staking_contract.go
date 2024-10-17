@@ -8,16 +8,17 @@ import (
 )
 
 var (
-	ipTokenStakingABI    = mustGetABI(bindings.IPTokenStakingMetaData)
-	SetWithdrawalAddress = mustGetEvent(ipTokenStakingABI, "SetWithdrawalAddress")
-	SetRewardAddress     = mustGetEvent(ipTokenStakingABI, "SetRewardAddress")
-	AddOperator          = mustGetEvent(ipTokenStakingABI, "AddOperator")
-	RemoveOperator       = mustGetEvent(ipTokenStakingABI, "RemoveOperator")
-	CreateValidatorEvent = mustGetEvent(ipTokenStakingABI, "CreateValidator")
-	DepositEvent         = mustGetEvent(ipTokenStakingABI, "Deposit")
-	RedelegateEvent      = mustGetEvent(ipTokenStakingABI, "Redelegate")
-	WithdrawEvent        = mustGetEvent(ipTokenStakingABI, "Withdraw")
-	UnjailEvent          = mustGetEvent(ipTokenStakingABI, "Unjail")
+	ipTokenStakingABI         = mustGetABI(bindings.IPTokenStakingMetaData)
+	UpdateValidatorCommission = mustGetEvent(ipTokenStakingABI, "UpdateValidatorCommssion")
+	SetWithdrawalAddress      = mustGetEvent(ipTokenStakingABI, "SetWithdrawalAddress")
+	SetRewardAddress          = mustGetEvent(ipTokenStakingABI, "SetRewardAddress")
+	AddOperator               = mustGetEvent(ipTokenStakingABI, "AddOperator")
+	RemoveOperator            = mustGetEvent(ipTokenStakingABI, "RemoveOperator")
+	CreateValidatorEvent      = mustGetEvent(ipTokenStakingABI, "CreateValidator")
+	DepositEvent              = mustGetEvent(ipTokenStakingABI, "Deposit")
+	RedelegateEvent           = mustGetEvent(ipTokenStakingABI, "Redelegate")
+	WithdrawEvent             = mustGetEvent(ipTokenStakingABI, "Withdraw")
+	UnjailEvent               = mustGetEvent(ipTokenStakingABI, "Unjail")
 )
 
 // mustGetABI returns the metadata's ABI as an abi.ABI type.

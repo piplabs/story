@@ -127,6 +127,16 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 		// TODO: consider rounding and decimal precision when dividing bigint.
 
 		switch ethlog.Topics[0] { // TODO(rayden): update validator commission
+		case types.UpdateValidatorCommission.ID:
+			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommssion(ethlog)
+			if err != nil {
+				clog.Error(ctx, "Failed to parse UpdateValidatorCommission log", err)
+				continue
+			}
+			if err = k.ProcessUpdateValidatorCommission(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process update validator commission", err)
+				continue
+			}
 		case types.SetWithdrawalAddress.ID:
 			ev, err := k.ipTokenStakingContract.ParseSetWithdrawalAddress(ethlog)
 			if err != nil {
