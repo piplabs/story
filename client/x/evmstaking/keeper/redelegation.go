@@ -17,6 +17,16 @@ import (
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
+	isInSingularity, err := k.IsSingularity(ctx)
+	if err != nil {
+		return errors.Wrap(err, "check if it is singularity")
+	}
+
+	if isInSingularity {
+		log.Info(ctx, "Relegation event detected, but it is not processed since current block is singularity")
+		return nil
+	}
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")

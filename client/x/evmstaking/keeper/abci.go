@@ -20,16 +20,15 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	log.Debug(ctx, "EndBlock.evmstaking")
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
-	params, err := k.GetParams(ctx)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	blockHeight := sdkCtx.BlockHeader().Height
+
+	isSingularity, err := k.IsSingularity(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	blockHeight := sdkCtx.BlockHeader().Height
-
-	if blockHeight < int64(params.SingularityHeight) {
-		log.Debug(ctx, "In singularity period")
+	if isSingularity {
 		return nil, nil
 	}
 
