@@ -6,8 +6,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
-import { Errors } from "../libraries/Errors.sol";
-import { PubKeyVerification } from "./PubKeyVerification.sol";
+import { PubKeyVerifier } from "./PubKeyVerifier.sol";
 
 /**
  * @title IPTokenStaking
@@ -26,7 +25,7 @@ import { PubKeyVerification } from "./PubKeyVerification.sol";
  * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
  * transaction of step 2 would not have reverted.
  */
-contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PubKeyVerification {
+contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PubKeyVerifier {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
@@ -52,23 +51,16 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     uint256 public fee;
 
     modifier chargesFee() {
-        if (msg.value != fee) {
-            revert Errors.IPTokenStaking__InvalidFeeAmount();
-        }
+        require(msg.value == fee, "IPTokenStaking: Invalid fee amount");
         payable(address(0x0)).transfer(msg.value);
         _;
     }
 
     constructor(uint256 stakingRounding, uint256 defaultMinFee) {
-        if (stakingRounding == 0) {
-            revert Errors.IPTokenStaking__ZeroStakingRounding();
-        }
+        require(stakingRounding > 0, "IPTokenStaking: Zero staking rounding");
         STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
-        if (defaultMinFee < 1 gwei) {
-            revert Errors.IPTokenStaking__InvalidDefaultMinFee();
-        }
+        require(defaultMinFee >= 1 gwei, "IPTokenStaking: Invalid default min fee");
         DEFAULT_MIN_FEE = defaultMinFee;
-
         _disableInitializers();
     }
 
@@ -118,9 +110,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @dev Sets the fee charged for adding to CL storage.
     function _setFee(uint256 newFee) private {
-        if (newFee < DEFAULT_MIN_FEE) {
-            revert Errors.IPTokenStaking__InvalidMinFee();
-        }
+        require(newFee >= DEFAULT_MIN_FEE, "IPTokenStaking: Invalid min fee");
         fee = newFee;
         emit FeeSet(newFee);
     }
@@ -128,9 +118,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Sets the minimum amount required to stake.
     /// @param newMinStakeAmount The minimum amount required to stake.
     function _setMinStakeAmount(uint256 newMinStakeAmount) private {
-        if (newMinStakeAmount == 0) {
-            revert Errors.IPTokenStaking__ZeroMinStakeAmount();
-        }
+        require(newMinStakeAmount > 0, "IPTokenStaking: Zero min stake amount");
         minStakeAmount = newMinStakeAmount - (newMinStakeAmount % STAKE_ROUNDING);
         emit MinStakeAmountSet(minStakeAmount);
     }
@@ -138,9 +126,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Sets the minimum amount required to withdraw.
     /// @param newMinUnstakeAmount The minimum amount required to stake.
     function _setMinUnstakeAmount(uint256 newMinUnstakeAmount) private {
-        if (newMinUnstakeAmount == 0) {
-            revert Errors.IPTokenStaking__ZeroMinUnstakeAmount();
-        }
+        require(newMinUnstakeAmount > 0, "IPTokenStaking: Zero min unstake amount");
         minUnstakeAmount = newMinUnstakeAmount - (newMinUnstakeAmount % STAKE_ROUNDING);
         emit MinUnstakeAmountSet(minUnstakeAmount);
     }
@@ -148,9 +134,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Sets the minimum glolbal commission rate for validators.
     /// @param newValue The new minimum commission rate.
     function _setMinCommissionRate(uint256 newValue) private {
-        if (newValue == 0) {
-            revert Errors.IPTokenStaking__ZeroMinCommissionRate();
-        }
+        require(newValue > 0, "IPTokenStaking: Zero min commission rate");
         minCommissionRate = newValue;
         emit MinCommissionRateChanged(newValue);
     }
@@ -293,15 +277,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     ) internal {
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        if (stakeAmount < minStakeAmount) {
-            revert Errors.IPTokenStaking__StakeAmountUnderMin();
-        }
-        if (commissionRate < minCommissionRate) {
-            revert Errors.IPTokenStaking__CommissionRateUnderMin();
-        }
-        if (commissionRate > maxCommissionRate) {
-            revert Errors.IPTokenStaking__CommissionRateOverMax();
-        }
+        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
+        require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
+        require(commissionRate <= maxCommissionRate, "IPTokenStaking: Commission rate over max");
         payable(address(0)).transfer(stakeAmount);
         emit CreateValidator(
             validatorUncmpPubkey,
@@ -330,9 +308,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata validatorUncmpPubkey,
         uint32 commissionRate
     ) external payable verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) chargesFee {
-        if (commissionRate < minCommissionRate) {
-            revert Errors.IPTokenStaking__CommissionRateUnderMin();
-        }
+        require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         emit UpdateValidatorCommssion(validatorUncmpPubkey, commissionRate);
     }
 
@@ -400,9 +376,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         // This can't be tested from Foundry (Solidity), but can be triggered from js/rpc
         require(stakingPeriod <= IIPTokenStaking.StakingPeriod.LONG, "IPTokenStaking: Invalid staking period");
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        if (stakeAmount < minStakeAmount) {
-            revert Errors.IPTokenStaking__StakeAmountUnderMin();
-        }
+        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
+
         uint256 delegationId = 0;
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
             delegationId = ++_delegationIdCounter;
@@ -481,16 +456,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 delegationId,
         uint256 amount
     ) private {
-        if (keccak256(validatorUncmpSrcPubkey) == keccak256(validatorUncmpDstPubkey)) {
-            revert Errors.IPTokenStaking__RedelegatingToSameValidator();
-        }
+        require(
+            keccak256(validatorUncmpSrcPubkey) != keccak256(validatorUncmpDstPubkey),
+            "IPTokenStaking: Redelegating to same validator"
+        );
         (uint256 stakeAmount, ) = roundedStakeAmount(msg.value);
-        if (stakeAmount < minStakeAmount) {
-            revert Errors.IPTokenStaking__StakeAmountUnderMin();
-        }
-        if (delegationId > _delegationIdCounter) {
-            revert Errors.IPTokenStaking__InvalidDelegationId();
-        }
+        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
+        require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
+
         emit Redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
@@ -559,12 +532,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount,
         bytes calldata data
     ) private {
-        if (delegationId > _delegationIdCounter) {
-            revert Errors.IPTokenStaking__InvalidDelegationId();
-        }
-        if (amount < minUnstakeAmount) {
-            revert Errors.IPTokenStaking__LowUnstakeAmount();
-        }
+        require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
+        require(amount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
         emit Withdraw(delegatorUncmpPubkey, validatorUncmpPubkey, amount, delegationId, msg.sender, data);
     }
 
@@ -604,8 +573,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param remainder The remainder of the stake amount.
     function _refundRemainder(uint256 remainder) private {
         (bool success, ) = msg.sender.call{ value: remainder }("");
-        if (!success) {
-            revert Errors.IPTokenStaking__FailedRemainerRefund();
-        }
+        require(success, "IPTokenStaking: Failed to refund remainder");
     }
 }
