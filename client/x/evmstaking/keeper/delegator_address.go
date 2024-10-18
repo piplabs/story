@@ -1,17 +1,35 @@
+//nolint:dupl // event log.
 package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 )
 
-func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IPTokenStakingSetWithdrawalAddress) error {
+func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IPTokenStakingSetWithdrawalAddress) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeSetWithdrawalAddressFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")
@@ -31,7 +49,21 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 	return nil
 }
 
-func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPTokenStakingSetRewardAddress) error {
+func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPTokenStakingSetRewardAddress) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeSetRewardAddressFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")
@@ -51,7 +83,21 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 	return nil
 }
 
-func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStakingAddOperator) error {
+func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStakingAddOperator) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeAddOperatorFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")
@@ -70,7 +116,21 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 	return nil
 }
 
-func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenStakingRemoveOperator) error {
+func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenStakingRemoveOperator) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeRemoveOperatorFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress depositor pubkey")

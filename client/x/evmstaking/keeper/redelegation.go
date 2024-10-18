@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	"cosmossdk.io/collections"
 
@@ -10,13 +12,32 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) error {
+func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeRedelegateFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeySrcValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpSrcPubkey)),
+					sdk.NewAttribute(types.AttributeKeyDstValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpDstPubkey)),
+					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				),
+			})
+		}
+	}()
+
 	isInSingularity, err := k.IsSingularity(ctx)
 	if err != nil {
 		return errors.Wrap(err, "check if it is singularity")

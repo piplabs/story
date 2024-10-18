@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -17,12 +19,18 @@ import (
 
 func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) (err error) {
 	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		if err != nil {
-			sdk.UnwrapSDKContext(ctx).EventManager().EmitEvents(sdk.Events{
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
 				sdk.NewEvent(
 					types.EventTypeDelegateFailure,
-					sdk.NewAttribute("", ""),
-					sdk.NewAttribute("", ""),
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUnCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+					sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
 				),
 			})
 		}

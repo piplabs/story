@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	"cosmossdk.io/collections"
 
@@ -11,7 +13,7 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	estypes "github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
@@ -22,7 +24,7 @@ import (
 type RewardWithdrawal struct {
 	DelegatorAddress string
 	ValidatorAddress string
-	WithdrawalEntry  estypes.Withdrawal
+	WithdrawalEntry  types.Withdrawal
 }
 
 func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
@@ -41,11 +43,11 @@ func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries
 
 		// Burn tokens from the delegator
 		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, estypes.ModuleName, coins)
+		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
 		if err != nil {
 			return errors.Wrap(err, "send coins from account to module")
 		}
-		err = k.bankKeeper.BurnCoins(ctx, estypes.ModuleName, coins)
+		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
 		if err != nil {
 			return errors.Wrap(err, "burn coins")
 		}
@@ -58,7 +60,7 @@ func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries
 		}
 
 		// push the undelegation to the withdrawal queue
-		err = k.AddWithdrawalToQueue(ctx, estypes.NewWithdrawal(
+		err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			delEvmAddr,
 			entry.Amount.Uint64(),
@@ -203,7 +205,7 @@ func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdraw
 				withdrawals = append(withdrawals, RewardWithdrawal{
 					DelegatorAddress: nextDelegators[i].DelegatorAddress,
 					ValidatorAddress: valAddr.String(),
-					WithdrawalEntry: estypes.NewWithdrawal(
+					WithdrawalEntry: types.NewWithdrawal(
 						uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 						delEvmAddr,
 						bondDenomAmount,
@@ -289,17 +291,17 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 		)
 
 		// Burn tokens from the delegator
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delAddr, estypes.ModuleName, delRewards)
+		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delAddr, types.ModuleName, delRewards)
 		if err != nil {
 			return err
 		}
-		err = k.bankKeeper.BurnCoins(ctx, estypes.ModuleName, delRewards)
+		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, delRewards)
 		if err != nil {
 			return err
 		}
 
 		// Enqueue to the global withdrawal queue.
-		if err := k.AddWithdrawalToQueue(ctx, estypes.NewWithdrawal(
+		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			rewardWithdrawals[i].WithdrawalEntry.ExecutionAddress,
 			curBondDenomAmount,
@@ -314,7 +316,24 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 	return nil
 }
 
-func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error {
+func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeUndelegateFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUnCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				),
+			})
+		}
+	}()
+
 	isInSingularity, err := k.IsSingularity(ctx)
 	if err != nil {
 		return errors.Wrap(err, "check if it is singularity")
