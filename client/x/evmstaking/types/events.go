@@ -6,8 +6,10 @@ const (
 	EventTypeAddWithdrawal    = "add_withdrawal"
 	EventTypeRemoveWithdrawal = "remove_withdrawal"
 
-	AttributeKeyValidator        = "validator"
-	AttributeKeyDelegator        = "delegator"
-	AttributeKeyExecutionAddress = "execution_address"
-	AttributeKeyCreationHeight   = "creation_height"
+	AttributeKeyDelegatorUncmpPubKey = "delegator"
+	AttributeKeyValidatorUncmpPubKey = "validator"
+	AttributeKeyAmount               = "amount"
+	AttributeKeyPeriodType           = "staking_period"
+	AttributeKeyDelegateID           = "delegation_id"
+	AttributeKeyOperatorAddress      = "operator_address"
 )
