@@ -1,0 +1,194 @@
+package app
+
+import (
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/consensus"
+	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
+	"github.com/piplabs/story/client/app/encoding"
+
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/piplabs/story/client/app/module"
+	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
+	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
+	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
+	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
+	mint "github.com/piplabs/story/client/x/mint/module"
+	minttypes "github.com/piplabs/story/client/x/mint/types"
+	signalmodule "github.com/piplabs/story/client/x/signal/module"
+	signaltypes "github.com/piplabs/story/client/x/signal/types"
+)
+
+// TODO: handle HasConsensusVersion type casts
+var (
+	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
+	// non-dependant module elements, such as codec registration and genesis verification.
+	ModuleBasics = module.NewBasicManager(
+		auth.AppModuleBasic{},
+		genutil.AppModuleBasic{},
+		bank.AppModuleBasic{},
+		staking.AppModuleBasic{},
+		mint.AppModuleBasic{},
+		distribution.AppModuleBasic{},
+		gov.AppModuleBasic{},
+		params.AppModuleBasic{},
+		consensus.AppModuleBasic{},
+		slashing.AppModule{},
+		// Story modules
+		evmenginemodule.AppModuleBasic{},
+		evmstakingmodule.AppModuleBasic{},
+		signalmodule.AppModuleBasic{},
+	)
+
+	// ModuleEncodingRegisters keeps track of all the module methods needed to
+	// register interfaces and specific type to encoding config.
+	ModuleEncodingRegisters = extractRegisters(ModuleBasics)
+)
+
+func (a *App) setupModuleManager() error {
+	var err error
+	a.manager, err = module.NewManager([]module.VersionedModule{
+		{
+			Module:      genutil.NewAppModule(a.Keepers.AccountKeeper, a.Keepers.StakingKeeper, a, a.txConfig),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      auth.NewAppModule(a.appCodec, *a.Keepers.AccountKeeper, nil, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      bank.NewAppModule(a.appCodec, a.Keepers.BankKeeper, a.Keepers.AccountKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      gov.NewAppModule(a.appCodec, a.Keepers.GovKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      slashing.NewAppModule(a.appCodec, *a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      distribution.NewAppModule(a.appCodec, *a.Keepers.DistrKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      staking.NewAppModule(a.appCodec, a.Keepers.StakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      consensus.NewAppModule(a.appCodec, *a.Keepers.ConsensusParamsKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
+		// Story modules
+		{
+			Module:      mint.NewAppModule(a.appCodec, *a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      evmenginemodule.NewAppModule(a.appCodec, a.Keepers.EVMEngKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      evmstakingmodule.NewAppModule(a.appCodec, a.Keepers.EvmStakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.SlashingKeeper, a.StakingKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      signalmodule.NewAppModule(a.appCodec, a.Keepers.SignalKeeper, a.Keepers.AccountKeeper, a.StakingKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return a.manager.AssertMatchingModules(ModuleBasics)
+}
+
+func allStoreKeys() []string {
+	return []string{
+		authtypes.StoreKey,
+		banktypes.StoreKey,
+		distrtypes.StoreKey,
+		govtypes.StoreKey,
+		//crisistypes.StoreKey,
+		minttypes.StoreKey,
+		paramstypes.StoreKey,
+		consensusparamtypes.StoreKey,
+		slashingtypes.StoreKey,
+		stakingtypes.StoreKey,
+		// Story modules
+		evmenginetypes.StoreKey,
+		evmstakingtypes.StoreKey,
+		signaltypes.StoreKey,
+	}
+}
+
+// versionedStoreKeys returns the store keys for each app version.
+func versionedStoreKeys() map[uint64][]string {
+	return map[uint64][]string{
+		1: {
+			authtypes.StoreKey,
+			banktypes.StoreKey,
+			distrtypes.StoreKey,
+			govtypes.StoreKey,
+			minttypes.StoreKey,
+			consensusparamtypes.StoreKey,
+			slashingtypes.StoreKey,
+			stakingtypes.StoreKey,
+			// Story modules
+			evmenginetypes.StoreKey,
+			evmstakingtypes.StoreKey,
+			signaltypes.StoreKey,
+		},
+	}
+}
+
+// assertAllKeysArePresent performs a couple sanity checks on startup to ensure each versions key names have
+// a key and that all versions supported by the module manager have a respective versioned key.
+func (a *App) assertAllKeysArePresent() {
+	supportedAppVersions := a.SupportedVersions()
+	supportedVersionsMap := make(map[uint64]bool, len(supportedAppVersions))
+	for _, version := range supportedAppVersions {
+		supportedVersionsMap[version] = false
+	}
+
+	for appVersion, keys := range a.keyVersions {
+		if _, exists := supportedVersionsMap[appVersion]; exists {
+			supportedVersionsMap[appVersion] = true
+		} else {
+			panic(fmt.Sprintf("keys %v for app version %d are not supported by the module manager", keys, appVersion))
+		}
+		for _, key := range keys {
+			if _, ok := a.keys[key]; !ok {
+				panic(fmt.Sprintf("key %s is not present", key))
+			}
+		}
+	}
+	for appVersion, supported := range supportedVersionsMap {
+		if !supported {
+			panic(fmt.Sprintf("app version %d is supported by the module manager but has no keys", appVersion))
+		}
+	}
+}
+
+// extractRegisters returns the encoding module registers from the basic manager.
+func extractRegisters(manager module.BasicManager) (modules []encoding.ModuleRegister) {
+	for _, m := range manager {
+		modules = append(modules, m)
+	}
+	return modules
+}

@@ -34,7 +34,7 @@ func initializeABI(t *testing.T) *abi.ABI {
 func TestEVMEvent_ToEthLog(t *testing.T) {
 	t.Parallel()
 	upgradeAbi := initializeABI(t)
-	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
+	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(1), "test-info")
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -96,7 +96,7 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 func TestEVMEvent_Verify(t *testing.T) {
 	t.Parallel()
 	upgradeAbi := initializeABI(t)
-	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
+	data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(1), "test-info")
 	require.NoError(t, err)
 
 	tcs := []struct {

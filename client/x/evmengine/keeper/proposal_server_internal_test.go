@@ -33,7 +33,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	mockClient := mock.NewMockClient(ctrl)
 	ak := moduletestutil.NewMockAccountKeeper(ctrl)
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
-	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
+	sk := moduletestutil.NewMockSignalKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
 	esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
 
@@ -41,7 +41,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	sdkCtx = sdkCtx.WithExecMode(sdk.ExecModeFinalize)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, mk, sk)
 	require.NoError(t, err)
 	populateGenesisHead(sdkCtx, t, keeper)
 	propSrv := NewProposalServer(keeper)

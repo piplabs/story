@@ -21,11 +21,12 @@ import (
 )
 
 var (
-	_ module.AppModuleBasic  = AppModule{}
-	_ module.HasName         = AppModule{}
-	_ module.HasGenesis      = AppModule{}
-	_ module.HasServices     = AppModule{}
-	_ module.HasABCIEndBlock = AppModule{}
+	_ module.AppModuleBasic      = AppModule{}
+	_ module.HasName             = AppModule{}
+	_ module.HasConsensusVersion = AppModule{}
+	_ module.HasGenesis          = AppModule{}
+	_ module.HasServices         = AppModule{}
+	_ module.HasABCIEndBlock     = AppModule{}
 
 	_ appmodule.AppModule = AppModule{}
 )
@@ -84,7 +85,7 @@ func NewAppModule(
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
 	slashingKeeper types.SlashingKeeper,
-	stakingKeeper *types.StakingKeeper,
+	stakingKeeper types.StakingKeeper,
 ) AppModule {
 	return AppModule{
 		AppModuleBasic: NewAppModuleBasic(cdc),
@@ -92,7 +93,7 @@ func NewAppModule(
 		accountKeeper:  accountKeeper,
 		bankKeeper:     bankKeeper,
 		slashingKeeper: slashingKeeper,
-		stakingKeeper:  stakingKeeper,
+		stakingKeeper:  &stakingKeeper,
 	}
 }
 

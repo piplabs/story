@@ -19,7 +19,7 @@ func (s *Server) GetMintParams(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetMintKeeper()).Params(queryContext, &minttypes.QueryParamsRequest{})
+	queryResp, err := keeper.NewQuerier(*s.store.GetMintKeeper()).Params(queryContext, &minttypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}

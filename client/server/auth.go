@@ -27,7 +27,7 @@ func (s *Server) GetAuthParams(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQueryServer(s.store.GetAccountKeeper()).Params(queryContext, &authtypes.QueryParamsRequest{})
+	queryResp, err := keeper.NewQueryServer(*s.store.GetAccountKeeper()).Params(queryContext, &authtypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (s *Server) GetAccounts(req *getAccountsRequest, r *http.Request) (resp any
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQueryServer(s.store.GetAccountKeeper()).Accounts(queryContext, &authtypes.QueryAccountsRequest{
+	queryResp, err := keeper.NewQueryServer(*s.store.GetAccountKeeper()).Accounts(queryContext, &authtypes.QueryAccountsRequest{
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -71,7 +71,7 @@ func (s *Server) GetBech32Prefix(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQueryServer(s.store.GetAccountKeeper()).Bech32Prefix(queryContext, &authtypes.Bech32PrefixRequest{})
+	queryResp, err := keeper.NewQueryServer(*s.store.GetAccountKeeper()).Bech32Prefix(queryContext, &authtypes.Bech32PrefixRequest{})
 	if err != nil {
 		return nil, err
 	}
