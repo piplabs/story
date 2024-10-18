@@ -10,12 +10,7 @@ import { Errors } from "../libraries/Errors.sol";
 abstract contract PubKeyVerification {
     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
-        if (uncmpPubkey.length != 65) {
-            revert Errors.PubKeyVerifier__InvalidPubkeyLength();
-        }
-        if (uncmpPubkey[0] != 0x04) {
-            revert Errors.PubKeyVerifier__InvalidPubkeyPrefix();
-        }
+        _verifyUncmpPubkey(uncmpPubkey);
         _;
     }
 
@@ -32,6 +27,16 @@ abstract contract PubKeyVerification {
             revert Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress();
         }
         _;
+    }
+
+    /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
+    function _verifyUncmpPubkey(bytes calldata uncmpPubkey) internal pure {
+        if (uncmpPubkey.length != 65) {
+            revert Errors.PubKeyVerifier__InvalidPubkeyLength();
+        }
+        if (uncmpPubkey[0] != 0x04) {
+            revert Errors.PubKeyVerifier__InvalidPubkeyPrefix();
+        }
     }
 
     /// @notice Converts the given public key to an EVM address.

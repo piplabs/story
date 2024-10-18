@@ -9,6 +9,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { IUBIPool } from "../../src/interfaces/IUBIPool.sol";
 import { Test } from "../utils/Test.sol";
 import { ValidatorData } from "../data/ValidatorData.sol";
+import { Errors } from "../../src/libraries/Errors.sol";
 
 contract UBIPoolTest is Test, ValidatorData {
     function setUp() public virtual override {
@@ -84,18 +85,33 @@ contract UBIPoolTest is Test, ValidatorData {
         // Fail if amounts do not sum to totalUBI
         vm.expectRevert("UBIPool: total amount mismatch");
         uint256[] memory amounts = new uint256[](1);
+        bytes[] memory validatorUncmpPubKeys = new bytes[](1);
+        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
         amounts[0] = 1 ether;
         vm.deal(address(ubiPool), 100 ether);
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), amounts);
+        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
 
         // Fail if one amount is zero
         vm.deal(address(ubiPool), 100 ether);
         amounts = new uint256[](1);
         amounts[0] = 0;
-        bytes[] memory validatorUncmpPubKeys = new bytes[](1);
+        validatorUncmpPubKeys = new bytes[](1);
         validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
         vm.expectRevert("UBIPool: amounts cannot be zero");
+        vm.prank(admin);
+        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
+
+        // Fail if pubkey is not valid
+        vm.deal(address(ubiPool), 100 ether);
+        amounts = new uint256[](1);
+        amounts[0] = 100 ether;
+        validatorUncmpPubKeys = new bytes[](1);
+        // Invalid pubkey
+        validatorUncmpPubKeys[
+            0
+        ] = hex"0482782124bc9cd03c38aa4cac234dc4e4e3cecf04d57914371baf7fa78ffb975f6d58e245bea952dd039f0fec4e9db418c3b00000"; // pragma: allowlist secret
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         vm.prank(admin);
         ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
     }

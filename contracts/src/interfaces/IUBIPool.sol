@@ -12,8 +12,8 @@ interface IUBIPool {
     /// @param month The month of the distribution (counter, starting from 1, not timestamp or month of year)
     /// @param totalUBI The total amount of UBI
     /// @param validatorUncmpPubKeys The validator uncompressed public keys
-    /// @param percentages The percentages of the UBI for each validator
-    event UBIDistributionSet(uint256 month, uint256 totalUBI, bytes[] validatorUncmpPubKeys, uint256[] percentages);
+    /// @param amounts The amounts of the UBI for each validator
+    event UBIDistributionSet(uint256 month, uint256 totalUBI, bytes[] validatorUncmpPubKeys, uint256[] amounts);
 
     /// @notice Sets the UBI percentage
     /// @param percentage The percentage of the UBI
@@ -23,12 +23,12 @@ interface IUBIPool {
     /// @param month The month of the distribution (counter, starting from 1, not timestamp or month of year)
     /// @param totalUBI The total amount of UBI
     /// @param validatorUncmpPubKeys The validator uncompressed public keys
-    /// @param percentages The percentages of the UBI for each validator
+    /// @param amounts The amounts of the UBI for each validator
     function setUBIDistribution(
         uint256 month,
         uint256 totalUBI,
         bytes[] calldata validatorUncmpPubKeys,
-        uint256[] calldata percentages
+        uint256[] calldata amounts
     ) external;
 
     /// @notice Claims the UBI for a validator

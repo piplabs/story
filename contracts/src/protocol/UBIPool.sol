@@ -53,10 +53,10 @@ contract UBIPool is IUBIPool, Ownable2StepUpgradeable, ReentrancyGuardUpgradeabl
         require(validatorUncmpPubKeys.length > 0, "UBIPool: validatorUncmpPubKeys cannot be empty");
         require(validatorUncmpPubKeys.length == amounts.length, "UBIPool: length mismatch");
         require(totalUBI <= address(this).balance, "UBIPool: not enough balance");
-        uint256 totalPercent;
         uint256 accAmount;
         for (uint256 i = 0; i < amounts.length; i++) {
             require(amounts[i] > 0, "UBIPool: amounts cannot be zero");
+            _verifyUncmpPubkey(validatorUncmpPubKeys[i]);
             validatorUBIAmounts[month][validatorUncmpPubKeys[i]] = amounts[i];
             accAmount += amounts[i];
         }
