@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -15,7 +17,25 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
+func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeDelegateFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUnCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+					sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress delegator pubkey")

@@ -2,18 +2,35 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	"cosmossdk.io/collections"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 )
 
-func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUnjail) error {
+func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUnjail) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeUnjailFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
+				),
+			})
+		}
+	}()
+
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress validator pubkey")

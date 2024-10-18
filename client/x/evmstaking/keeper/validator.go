@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"strconv"
 
 	"cosmossdk.io/math"
 
@@ -17,7 +19,27 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) error {
+func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeCreateValidatorFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyMoniker, ev.Moniker),
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
+					sdk.NewAttribute(types.AttributeKeyMaxCommissionRate, strconv.FormatUint(uint64(ev.MaxCommissionRate), 10)),
+					sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
+					sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				),
+			})
+		}
+	}()
+
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
