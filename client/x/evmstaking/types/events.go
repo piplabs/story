@@ -2,12 +2,11 @@ package types
 
 // evmstaking module event types.
 const (
-	EventTypeDelegateFailure  = "delegate_failure"
-	EventTypeAddWithdrawal    = "add_withdrawal"
-	EventTypeRemoveWithdrawal = "remove_withdrawal"
+	EventTypeDelegateFailure = "delegate_failure"
 
-	AttributeKeyDelegatorUncmpPubKey = "delegator"
-	AttributeKeyValidatorUncmpPubKey = "validator"
+	AttributeKeyBlockHeight          = "block_height"
+	AttributeKeyDelegatorUncmpPubKey = "delegator_uncmp_pubkey"
+	AttributeKeyValidatorUncmpPubKey = "validator_uncmp_pubkey"
 	AttributeKeyAmount               = "amount"
 	AttributeKeyPeriodType           = "staking_period"
 	AttributeKeyDelegateID           = "delegation_id"
