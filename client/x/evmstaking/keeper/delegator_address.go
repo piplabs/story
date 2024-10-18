@@ -1,4 +1,4 @@
-//nolint:dupl // event log.
+//nolint:dupl // event log
 package keeper
 
 import (
