@@ -50,12 +50,13 @@ func createTestKeeper(t *testing.T) (context.Context, *Keeper) {
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
+	dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
 
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk, dk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
 
@@ -80,11 +81,12 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
+	dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk, dk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
 	keeper.SetValidatorAddress(nxtAddr)

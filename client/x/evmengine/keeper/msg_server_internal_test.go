@@ -41,6 +41,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
+	dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 	cmtAPI := newMockCometAPI(t, nil)
 	// set the header and proposer so we have the correct next proposer
@@ -54,7 +55,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
 	mockEngine, err := newMockEngineAPI(storeKey, 2)
 	require.NoError(t, err)
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk, dk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
 	keeper.SetValidatorAddress(nxtAddr)

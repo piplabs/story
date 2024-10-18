@@ -23,7 +23,7 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 		// only IPTokenStaking contract
 		Addresses: []common.Address{
 			common.HexToAddress(predeploys.IPTokenStaking),
-			common.HexToAddress(predeploys.IPTokenSlashing),
+			common.HexToAddress(predeploys.UBIPool),
 			common.HexToAddress(predeploys.UpgradeEntrypoint),
 		},
 	})

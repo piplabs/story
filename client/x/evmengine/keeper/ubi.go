@@ -42,7 +42,7 @@ func (k *Keeper) ProcessUbiEvents(ctx context.Context, height uint64, logs []*ty
 }
 
 func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPoolUBIPercentageSet) error {
-	newUBI := math.LegacyNewDecWithPrec(int64(ev.Percentage), 2)
+	newUBI := math.LegacyNewDecWithPrec(int64(ev.Percentage), 4)
 	if err := k.distrKeeper.SetUbi(ctx, newUBI); err != nil {
 		return errors.Wrap(err, "set new UBI percentage")
 	}
