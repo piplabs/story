@@ -88,7 +88,7 @@
     },
     "evmengine": {
       "params": {
-				"execution_block_hash": "MtGd+Hzb4VnGm+PGTXDJhSkChm+iUjUGCX7LUS8o754="
+				"execution_block_hash": "iRNkS71nsvEdk1YbDntwiTV61iSSxe9RNKmOgVkZSPQ="
       }
     },
     "genutil": {
@@ -110,7 +110,7 @@
                   "max_rate": "0.000000000000000000",
                   "max_change_rate": "0.000000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "{{LOCAL_ACCOUNT_ADDRESS}}",
                 "validator_address": "{{LOCAL_VALIDATOR_ADDRESS}}",
                 "pubkey": {
