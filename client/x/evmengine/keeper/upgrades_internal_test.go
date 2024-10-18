@@ -31,7 +31,7 @@ var (
 
 func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 	t.Parallel()
-	keeper, ctx, ctrl, uk := setupTestEnvironment(t)
+	keeper, ctx, ctrl, sk := setupTestEnvironment(t)
 	t.Cleanup(ctrl.Finish)
 
 	tcs := []struct {
@@ -44,13 +44,13 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			name: "pass: valid software upgrade event",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
-					Name:   "test-upgrade",
-					Height: 1,
-					Info:   "test-info",
+					AppVersion:    1,
+					UpgradeHeight: 1,
+					Info:          "test-info",
 				}
 			},
 			setupMock: func() {
-				uk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(nil)
+				sk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
 		// Fail cases: The following test cases simulate basic error scenarios.
@@ -60,29 +60,15 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			name: "fail: invalid upgrade event - height is 0",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
-					Name:   "test upgrade",
-					Height: 0,
-					Info:   "test-info",
+					AppVersion:    1,
+					UpgradeHeight: 0,
+					Info:          "test-info",
 				}
 			},
 			setupMock: func() {
-				uk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(errors.New("height must be greater than 0"))
+				sk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(errors.New("height must be greater than 0"))
 			},
 			expectedErr: "height must be greater than 0",
-		},
-		{
-			name: "fail: invalid upgrade event - name is empty",
-			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
-				return &bindings.UpgradeEntrypointSoftwareUpgrade{
-					Name:   "",
-					Height: 1,
-					Info:   "test-info",
-				}
-			},
-			setupMock: func() {
-				uk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(errors.New("name cannot be empty"))
-			},
-			expectedErr: "name cannot be empty",
 		},
 	}
 
@@ -126,7 +112,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 		{
 			name: "pass: one valid upgrade event",
 			evmEvents: func() []*types.EVMEvent {
-				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
+				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(1), "test-info")
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -144,9 +130,9 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 		{
 			name: "pass: multiple valid upgrade events",
 			evmEvents: func() []*types.EVMEvent {
-				data1, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade1", int64(2), "test-info")
+				data1, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(2), "test-info")
 				require.NoError(t, err)
-				data2, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade2", int64(3), "test-info")
+				data2, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(2), uint64(3), "test-info")
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -172,7 +158,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 		{
 			name: "pass(failed but continue): invalid upgrade event - height is 0",
 			evmEvents: func() []*types.EVMEvent {
-				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
+				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(0), "test-info")
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -190,7 +176,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 		{
 			name: "pass(failed but continue): invalid upgrade event - name is empty",
 			evmEvents: func() []*types.EVMEvent {
-				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("", int64(5), "test-info")
+				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack(uint64(1), uint64(5), "test-info")
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -250,7 +236,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 	}
 }
 
-func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controller, *moduletestutil.MockUpgradeKeeper) {
+func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controller, *moduletestutil.MockSignalKeeper) {
 	t.Helper()
 	cdc := getCodec(t)
 	txConfig := authtx.NewTxConfig(cdc, nil)
@@ -261,14 +247,14 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	mockClient := mock.NewMockClient(ctrl)
 	ak := moduletestutil.NewMockAccountKeeper(ctrl)
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
-	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
+	sk := moduletestutil.NewMockSignalKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
 
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, mk, sk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
 	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
@@ -276,5 +262,5 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	keeper.SetValidatorAddress(nxtAddr)
 	populateGenesisHead(ctx, t, keeper)
 
-	return keeper, ctx, ctrl, uk
+	return keeper, ctx, ctrl, sk
 }
