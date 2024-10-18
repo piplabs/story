@@ -24,6 +24,8 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
 	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
+	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
 
 	s.httpMux.HandleFunc("/staking/delegations/{delegator_addr}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
@@ -359,4 +361,46 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 	}
 
 	return queryResp, nil
+}
+
+// GetPeriodDelegationsByDelegatorAddress queries period delegations info for given validator delegator pair.
+func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	muxVars := mux.Vars(r)
+	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	if err != nil {
+		return nil, err
+	}
+
+	return s.store.GetStakingKeeper().GetAllPeriodDelegation(queryContext, delAddr, valAddr)
+}
+
+// GetPeriodDelegationByDelegatorAddressAndID queries period delegation info for given validator delegator pair and period delegation id.
+func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	muxVars := mux.Vars(r)
+	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	if err != nil {
+		return nil, err
+	}
+
+	return s.store.GetStakingKeeper().GetPeriodDelegation(queryContext, delAddr, valAddr, muxVars["period_delegation_id"])
 }
