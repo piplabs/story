@@ -71,11 +71,11 @@ func (k Keeper) GetParams(ctx context.Context) (params types.Params, err error) 
 	return params, nil
 }
 
-func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex uint64, nextValDelIndex uint64) error {
+func (k Keeper) SetValidatorSweepIndex(ctx context.Context, validatorSweepIndex types.ValidatorSweepIndex) error {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := k.cdc.Marshal(&types.ValidatorSweepIndex{
-		NextValIndex:    nextValIndex,
-		NextValDelIndex: nextValDelIndex,
+		NextValIndex:    validatorSweepIndex.NextValIndex,
+		NextValDelIndex: validatorSweepIndex.NextValDelIndex,
 	})
 	if err != nil {
 		return errors.Wrap(err, "marshal validator sweep index")
@@ -89,24 +89,24 @@ func (k Keeper) SetValidatorSweepIndex(ctx context.Context, nextValIndex uint64,
 	return nil
 }
 
-func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (nextValIndex uint64, nextValDelIndex uint64, err error) {
+func (k Keeper) GetValidatorSweepIndex(ctx context.Context) (types.ValidatorSweepIndex, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.ValidatorSweepIndexKey)
 	if err != nil {
-		return nextValIndex, nextValDelIndex, errors.Wrap(err, "get validator sweep index")
+		return types.ValidatorSweepIndex{}, errors.Wrap(err, "get validator sweep index")
 	}
 
 	if bz == nil {
-		return nextValIndex, nextValDelIndex, nil
+		return types.ValidatorSweepIndex{}, nil
 	}
 
 	var sweepIndex types.ValidatorSweepIndex
 	err = k.cdc.Unmarshal(bz, &sweepIndex)
 	if err != nil {
-		return nextValIndex, nextValDelIndex, errors.Wrap(err, "unmarshal validator sweep index")
+		return types.ValidatorSweepIndex{}, errors.Wrap(err, "unmarshal validator sweep index")
 	}
 
-	return sweepIndex.NextValIndex, sweepIndex.NextValDelIndex, nil
+	return sweepIndex, nil
 }
 
 func (k Keeper) GetOldValidatorSweepIndex(ctx context.Context) (nextValIndex uint64, err error) {

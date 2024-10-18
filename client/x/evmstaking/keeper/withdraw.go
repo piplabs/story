@@ -89,10 +89,12 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 }
 
 func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdrawal, error) {
-	nextValIndex, nextValDelIndex, err := k.GetValidatorSweepIndex(ctx)
+	validatorSweepIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	nextValIndex, nextValDelIndex := validatorSweepIndex.NextValIndex, validatorSweepIndex.NextValDelIndex
 
 	// Get all validators first, and then do a circular sweep
 	validatorSet, err := (k.stakingKeeper.(*skeeper.Keeper)).GetAllValidators(ctx)
@@ -231,11 +233,7 @@ func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdraw
 	}
 
 	// Update the validator sweep index.
-	if err := k.SetValidatorSweepIndex(
-		ctx,
-		nextValIndex,
-		nextValDelIndex,
-	); err != nil {
+	if err := k.SetValidatorSweepIndex(ctx, types.NewValidatorSweepIndex(nextValIndex, nextValDelIndex)); err != nil {
 		return nil, err
 	}
 
