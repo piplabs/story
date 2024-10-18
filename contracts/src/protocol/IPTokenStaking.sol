@@ -422,6 +422,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         IIPTokenStaking.StakingPeriod stakingPeriod,
         bytes calldata data
     ) internal returns (uint256) {
+        // This can't be tested from Foundry (Solidity), but can be triggered from js/rpc
+        require(stakingPeriod <= IIPTokenStaking.StakingPeriod.LONG, "IPTokenStaking: Invalid staking period");
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
         if (stakeAmount < minStakeAmount) {
             revert Errors.IPTokenStaking__StakeAmountUnderMin();
