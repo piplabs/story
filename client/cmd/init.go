@@ -235,6 +235,7 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		// Derive the various addresses from the public key
 		accAddr := sdk.AccAddress(pubKey.Address().Bytes()).String()
 		valAddr := sdk.ValAddress(pubKey.Address().Bytes()).String()
+		consAddr := sdk.ConsAddress(pubKey.Address().Bytes()).String()
 		pubKeyBase64 := base64.StdEncoding.EncodeToString(pubKey.Bytes())
 		fmt.Println("Base64 Encoded Public Key:", pubKeyBase64)
 
@@ -242,6 +243,7 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_ACCOUNT_ADDRESS}}", accAddr)
 		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_ADDRESS}}", valAddr)
 		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_KEY}}", pubKeyBase64)
+		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_CONS_ADDRESS}}", consAddr)
 
 		err = os.WriteFile(genFile, []byte(genesisJSON), 0o644)
 
