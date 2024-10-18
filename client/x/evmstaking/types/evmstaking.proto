@@ -11,20 +11,12 @@ message Withdrawal {
   option (gogoproto.goproto_getters) = false;
 
   uint64 creation_height = 1;
-  string delegator_address = 2 [
-    (cosmos_proto.scalar) = "cosmos.AddressString",
-    (gogoproto.moretags) = "yaml:\"delegator_address\""
-  ];
-  string validator_address = 3 [
-    (cosmos_proto.scalar) = "cosmos.ValidatorAddressString",
-    (gogoproto.moretags) = "yaml:\"validator_address\""
-  ];
   // TODO: use ethcommon.Address type
-  string execution_address = 4 [
+  string execution_address = 2 [
     (cosmos_proto.scalar) = "cosmos.AddressString",
     (gogoproto.moretags) = "yaml:\"execution_address\""
   ];
-  uint64 amount = 5 [
+  uint64 amount = 3 [
     // TODO: use custom Int type, need to resolve issue in auto-generated pb.go
     // (cosmos_proto.scalar)  = "cosmos.Int",
     // (gogoproto.customtype) = "cosmossdk.io/math.Int",

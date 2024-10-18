@@ -53,8 +53,6 @@ func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetW
 	for _, w := range withdrawals {
 		ws = append(ws, &types.Withdrawal{
 			CreationHeight:   w.CreationHeight,
-			DelegatorAddress: w.DelegatorAddress,
-			ValidatorAddress: w.ValidatorAddress,
 			ExecutionAddress: w.ExecutionAddress,
 			Amount:           w.Amount,
 		})

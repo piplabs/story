@@ -19,7 +19,74 @@ import (
 	"github.com/piplabs/story/lib/promutil"
 )
 
-func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withdrawal, error) {
+type RewardWithdrawal struct {
+	DelegatorAddress string
+	ValidatorAddress string
+	WithdrawalEntry  estypes.Withdrawal
+}
+
+func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
+	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
+
+	for _, entry := range unbondedEntries {
+		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "delegator address from bech32")
+		}
+
+		log.Debug(ctx, "Adding undelegation to withdrawal queue",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", entry.Amount.String())
+
+		// Burn tokens from the delegator
+		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
+		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, estypes.ModuleName, coins)
+		if err != nil {
+			return errors.Wrap(err, "send coins from account to module")
+		}
+		err = k.bankKeeper.BurnCoins(ctx, estypes.ModuleName, coins)
+		if err != nil {
+			return errors.Wrap(err, "burn coins")
+		}
+
+		// This should not produce error, as all delegations are done via the evmstaking module via EL.
+		// However, we should gracefully handle in case Get fails.
+		delEvmAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "map delegator pubkey to evm address")
+		}
+
+		// push the undelegation to the withdrawal queue
+		err = k.AddWithdrawalToQueue(ctx, estypes.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+			delEvmAddr,
+			entry.Amount.Uint64(),
+		))
+		if err != nil {
+			return errors.Wrap(err, "add unbonding withdrawal to queue")
+		}
+	}
+
+	return nil
+}
+
+func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
+	log.Debug(ctx, "Processing reward withdrawals")
+
+	rewardWithdrawals, err := k.ExpectedRewardWithdrawals(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get expected reward withdrawals")
+	}
+
+	if err := k.EnqueueEligibleRewardWithdrawal(ctx, rewardWithdrawals); err != nil {
+		return errors.Wrap(err, "enqueue eligible reward withdrawals")
+	}
+
+	return nil
+}
+
+func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdrawal, error) {
 	nextValIndex, nextValDelIndex, err := k.GetValidatorSweepIndex(ctx)
 	if err != nil {
 		return nil, err
@@ -46,7 +113,7 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 	// Iterate all validators from `nextValidatorIndex` to find out eligible partial withdrawals.
 	var (
 		swept       uint32
-		withdrawals []estypes.Withdrawal
+		withdrawals []RewardWithdrawal
 	)
 
 	// Get sweep limit per block.
@@ -133,13 +200,15 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 					return nil, errors.Wrap(err, "map delegator pubkey to evm reward address")
 				}
 
-				withdrawals = append(withdrawals, estypes.NewWithdrawal(
-					uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-					nextDelegators[i].DelegatorAddress,
-					valAddr.String(),
-					delEvmAddr,
-					bondDenomAmount,
-				))
+				withdrawals = append(withdrawals, RewardWithdrawal{
+					DelegatorAddress: nextDelegators[i].DelegatorAddress,
+					ValidatorAddress: valAddr.String(),
+					WithdrawalEntry: estypes.NewWithdrawal(
+						uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+						delEvmAddr,
+						bondDenomAmount,
+					),
+				})
 			}
 
 			nextValDelIndex++
@@ -178,9 +247,9 @@ func (k Keeper) ExpectedPartialWithdrawals(ctx context.Context) ([]estypes.Withd
 	return withdrawals, nil
 }
 
-func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawals []estypes.Withdrawal) error {
-	for i := range withdrawals {
-		valAddr, err := sdk.ValAddressFromBech32(withdrawals[i].ValidatorAddress)
+func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithdrawals []RewardWithdrawal) error {
+	for i := range rewardWithdrawals {
+		valAddr, err := sdk.ValAddressFromBech32(rewardWithdrawals[i].ValidatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "validator address from bech32")
 		}
@@ -188,19 +257,19 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 		valAccAddr := sdk.AccAddress(valAddr).String()
 
 		// Withdraw delegation rewards.
-		delAddr := sdk.MustAccAddressFromBech32(withdrawals[i].DelegatorAddress)
+		delAddr := sdk.MustAccAddressFromBech32(rewardWithdrawals[i].DelegatorAddress)
 		delRewards, err := k.distributionKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 		if err != nil {
 			return err
 		}
 
 		// Withdraw commission if it is a self delegation.
-		if withdrawals[i].DelegatorAddress == valAccAddr {
+		if rewardWithdrawals[i].DelegatorAddress == valAccAddr {
 			commissionRewards, err := k.distributionKeeper.WithdrawValidatorCommission(ctx, valAddr)
 			if errors.Is(err, dtypes.ErrNoValidatorCommission) {
 				log.Debug(
 					ctx, "No validator commission",
-					"validator_addr", withdrawals[i].ValidatorAddress,
+					"validator_addr", rewardWithdrawals[i].ValidatorAddress,
 					"validator_account_addr", valAccAddr,
 				)
 			} else if err != nil {
@@ -212,10 +281,10 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 		curBondDenomAmount := delRewards.AmountOf(sdk.DefaultBondDenom).Uint64()
 		log.Debug(
 			ctx, "Withdraw delegator rewards",
-			"validator_addr", withdrawals[i].ValidatorAddress,
+			"validator_addr", rewardWithdrawals[i].ValidatorAddress,
 			"validator_account_addr", valAccAddr,
-			"delegator_addr", withdrawals[i].DelegatorAddress,
-			"amount_calculate", withdrawals[i].Amount,
+			"delegator_addr", rewardWithdrawals[i].DelegatorAddress,
+			"amount_calculate", rewardWithdrawals[i].WithdrawalEntry.Amount,
 			"amount_withdraw", curBondDenomAmount,
 		)
 
@@ -232,7 +301,7 @@ func (k Keeper) EnqueueEligiblePartialWithdrawal(ctx context.Context, withdrawal
 		// Enqueue to the global withdrawal queue.
 		if err := k.AddWithdrawalToQueue(ctx, estypes.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-			withdrawals[i].DelegatorAddress, withdrawals[i].ValidatorAddress, withdrawals[i].ExecutionAddress,
+			rewardWithdrawals[i].WithdrawalEntry.ExecutionAddress,
 			curBondDenomAmount,
 		)); err != nil {
 			return err
