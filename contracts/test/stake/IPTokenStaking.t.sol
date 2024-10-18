@@ -506,7 +506,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Src
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
             delegatorUncmpPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
@@ -517,7 +517,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Dst
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
