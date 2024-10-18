@@ -15,7 +15,19 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error {
+func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) (err error) {
+	defer func() {
+		if err != nil {
+			sdk.UnwrapSDKContext(ctx).EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeDelegateFailure,
+					sdk.NewAttribute("", ""),
+					sdk.NewAttribute("", ""),
+				),
+			})
+		}
+	}()
+
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "compress delegator pubkey")

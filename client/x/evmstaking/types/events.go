@@ -2,6 +2,7 @@ package types
 
 // evmstaking module event types.
 const (
+	EventTypeDelegateFailure  = "delegate_failure"
 	EventTypeAddWithdrawal    = "add_withdrawal"
 	EventTypeRemoveWithdrawal = "remove_withdrawal"
 
