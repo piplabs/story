@@ -12,9 +12,8 @@ library Predeploys {
     /// @notice Predeploys
     address internal constant WIP = 0x1513000000000000000000000000000000000000;
     address internal constant Staking = 0xCCcCcC0000000000000000000000000000000001;
-    address internal constant Slashing = 0xCccCCC0000000000000000000000000000000002;
+    address internal constant UBIPool = 0xCccCCC0000000000000000000000000000000002;
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;
-    address internal constant UBIPool = 0xCcCcCC0000000000000000000000000000000004;
 
     /// @notice Return true if `addr` is not proxied
     function notProxied(address addr) internal pure returns (bool) {
@@ -32,7 +31,7 @@ library Predeploys {
 
     /// @notice Return true if `addr` is an active predeploy
     function isActivePredeploy(address addr) internal pure returns (bool) {
-        return addr == WIP || addr == Staking || addr == Slashing || addr == Upgrades;
+        return addr == WIP || addr == Staking || addr == UBIPool || addr == Upgrades;
     }
 
     /// @notice Return true if `addr` is in some predeploy namespace
