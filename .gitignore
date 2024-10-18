@@ -26,3 +26,5 @@ dist
 
 # Local Alloc file
 local-alloc.json
+go.work
+go.work.sum
