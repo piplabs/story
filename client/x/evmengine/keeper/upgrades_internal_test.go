@@ -263,12 +263,13 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	mk := moduletestutil.NewMockMintKeeper(ctrl)
+	dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
 
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk, dk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
 	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)

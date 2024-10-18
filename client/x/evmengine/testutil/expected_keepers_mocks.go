@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	math "cosmossdk.io/math"
 	types "cosmossdk.io/x/upgrade/types"
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/ethereum/go-ethereum/core/types"
@@ -255,4 +256,41 @@ func (m *MockMintKeeper) ProcessInflationEvents(ctx context.Context, height uint
 func (mr *MockMintKeeperMockRecorder) ProcessInflationEvents(ctx, height, logs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessInflationEvents", reflect.TypeOf((*MockMintKeeper)(nil).ProcessInflationEvents), ctx, height, logs)
+}
+
+// MockDistrKeeper is a mock of DistrKeeper interface.
+type MockDistrKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockDistrKeeperMockRecorder
+}
+
+// MockDistrKeeperMockRecorder is the mock recorder for MockDistrKeeper.
+type MockDistrKeeperMockRecorder struct {
+	mock *MockDistrKeeper
+}
+
+// NewMockDistrKeeper creates a new mock instance.
+func NewMockDistrKeeper(ctrl *gomock.Controller) *MockDistrKeeper {
+	mock := &MockDistrKeeper{ctrl: ctrl}
+	mock.recorder = &MockDistrKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDistrKeeper) EXPECT() *MockDistrKeeperMockRecorder {
+	return m.recorder
+}
+
+// SetUbi mocks base method.
+func (m *MockDistrKeeper) SetUbi(ctx context.Context, newUbi math.LegacyDec) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUbi", ctx, newUbi)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUbi indicates an expected call of SetUbi.
+func (mr *MockDistrKeeperMockRecorder) SetUbi(ctx, newUbi any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUbi", reflect.TypeOf((*MockDistrKeeper)(nil).SetUbi), ctx, newUbi)
 }

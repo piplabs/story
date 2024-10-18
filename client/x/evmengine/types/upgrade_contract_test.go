@@ -18,8 +18,13 @@ func Test_mustGetABI(t *testing.T) {
 		expectPanic bool
 	}{
 		{
-			name:        "No Panic with valid metadata",
+			name:        "No Panic with valid UpgradeEntrypoint metadata",
 			input:       bindings.UpgradeEntrypointMetaData,
+			expectPanic: false,
+		},
+		{
+			name:        "No Panic with valid UBIPool metadata",
+			input:       bindings.UBIPoolMetaData,
 			expectPanic: false,
 		},
 		{
@@ -46,7 +51,7 @@ func Test_mustGetABI(t *testing.T) {
 	}
 }
 
-func Test_mustGetEvent(t *testing.T) {
+func Test_mustGetUpgradeEvent(t *testing.T) {
 	t.Parallel()
 	abi := mustGetABI(bindings.UpgradeEntrypointMetaData)
 	testCases := []struct {
@@ -57,6 +62,43 @@ func Test_mustGetEvent(t *testing.T) {
 		{
 			name:        "No Panic for valid event SoftwareUpgrade",
 			eventName:   "SoftwareUpgrade",
+			expectPanic: false,
+		},
+		{
+			name:        "Panics for non-existent event",
+			eventName:   "NonExistentEvent",
+			expectPanic: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if tc.expectPanic {
+				require.Panics(t, func() {
+					mustGetEvent(abi, tc.eventName)
+				})
+			} else {
+				require.NotPanics(t, func() {
+					mustGetEvent(abi, tc.eventName)
+				})
+			}
+		})
+	}
+}
+
+func Test_mustGetUBIPoolEvent(t *testing.T) {
+	t.Parallel()
+	abi := mustGetABI(bindings.UBIPoolMetaData)
+	testCases := []struct {
+		name        string
+		eventName   string
+		expectPanic bool
+	}{
+		{
+			name:        "No Panic for valid event UBIPercentageSet",
+			eventName:   "UBIPercentageSet",
 			expectPanic: false,
 		},
 		{

@@ -118,6 +118,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.mintKeeper.ProcessInflationEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver inflation-related event logs")
 	}
+	if err := s.ProcessUbiEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+		return nil, errors.Wrap(err, "deliver ubi-related event logs")
+	}
 
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")
