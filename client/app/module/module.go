@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	sdkmodule "github.com/cosmos/cosmos-sdk/types/module"
+	v1 "github.com/piplabs/story/client/pkg/appconsts/v1"
 	"slices"
 	"sort"
 
@@ -20,7 +22,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	sdkmodule "github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
@@ -30,7 +31,6 @@ import (
 // AppModuleBasic is the standard form for basic non-dependant elements of an application module.
 type AppModuleBasic interface {
 	HasName
-	HasConsensusVersion
 
 	RegisterLegacyAminoCodec(*codec.LegacyAmino)
 	RegisterInterfaces(types.InterfaceRegistry)
@@ -262,11 +262,17 @@ func NewManager(modules []VersionedModule) (*Manager, error) {
 	preBlockModulesStr := make([]string, 0)
 	uniqueModuleVersions := make(map[string]map[uint64][2]uint64)
 	for idx, module := range modules {
-		name := module.Name()
-		moduleVersion := module.ConsensusVersion()
+		if _, ok := module.Module.(HasName); !ok {
+			panic(fmt.Sprintf("module %s does not implement HasName", module.Name()))
+		}
+		if _, ok := module.Module.(HasConsensusVersion); !ok {
+			panic(fmt.Sprintf("module %s does not implement HasConsensusVersion", module.Name()))
+		}
+		name := module.Module.Name()
+		moduleVersion := module.Module.(HasConsensusVersion).ConsensusVersion()
 
-		if _, ok := module.Module.(sdkmodule.AppModule); !ok {
-			panic(fmt.Sprintf("module %s does not implement sdkmodule.AppModule", name))
+		if _, ok := module.Module.(AppModule); !ok {
+			panic(fmt.Sprintf("module %s does not implement AppModule", name))
 		}
 
 		if module.FromVersion == 0 {
@@ -460,11 +466,24 @@ func (m *Manager) RegisterInvariants(ir sdk.InvariantRegistry) {
 // RegisterServices registers all module services.
 func (m *Manager) RegisterServices(cfg Configurator) error {
 	for _, module := range m.allModules {
+		// Both HasServices and sdkmodule.HasServices checks are needed.
 		if module, ok := module.(HasServices); ok {
 			module.RegisterServices(cfg)
 		}
+		if module, ok := module.(sdkmodule.HasServices); ok {
+			module.RegisterServices(cfg)
+		}
 
-		fromVersion, toVersion := m.getAppVersionsForModule(module.Name(), module.ConsensusVersion())
+		if _, ok := module.(HasName); !ok {
+			panic(fmt.Sprintf("module %s does not implement HasName", module.Name()))
+		}
+		if _, ok := module.(HasConsensusVersion); !ok {
+			panic(fmt.Sprintf("module %s does not implement HasConsensusVersion", module.Name()))
+		}
+		name := module.Name()
+		moduleVersion := module.(HasConsensusVersion).ConsensusVersion()
+
+		fromVersion, toVersion := m.getAppVersionsForModule(name, moduleVersion)
 
 		if module, ok := module.(appmodule.HasServices); ok {
 			err := module.RegisterServices(cfg.(*configurator).WithVersions(fromVersion, toVersion))
@@ -677,7 +696,7 @@ type VersionMap map[string]uint64
 
 // RunMigrations performs in-place store migrations for all modules. This
 // function MUST be called when the state machine changes appVersion.
-func (m Manager) RunMigrations(ctx sdk.Context, cfg sdkmodule.Configurator, fromVersion, toVersion uint64) error {
+func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVersion, toVersion uint64) error {
 	c, ok := cfg.(*configurator)
 	if !ok {
 		return sdkerrors.ErrInvalidType.Wrapf("expected %T, got %T", &configurator{}, cfg)
@@ -706,8 +725,8 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg sdkmodule.Configurator, from
 			// app version to module version. Now, using go.mod, each module will have only a single
 			// consensus version and each breaking upgrade will result in a new module and a new consensus
 			// version.
-			fromModuleVersion := currentModule.ConsensusVersion()
-			toModuleVersion := nextModule.ConsensusVersion()
+			fromModuleVersion := currentModule.(HasConsensusVersion).ConsensusVersion()
+			toModuleVersion := nextModule.(HasConsensusVersion).ConsensusVersion()
 			err := c.runModuleMigrations(ctx, moduleName, fromModuleVersion, toModuleVersion)
 			if err != nil {
 				return err
@@ -848,14 +867,14 @@ func (m *Manager) PrepareCheckState(ctx sdk.Context) error {
 }
 
 // GetVersionMap gets consensus version from all modules.
-func (m *Manager) GetVersionMap(version uint64) sdkmodule.VersionMap {
-	vermap := make(sdkmodule.VersionMap)
+func (m *Manager) GetVersionMap(version uint64) map[string]uint64 {
+	vermap := make(map[string]uint64)
 	if version > m.lastVersion || version < m.firstVersion {
 		return vermap
 	}
 
 	for _, v := range m.versionedModules[version] {
-		version := v.ConsensusVersion()
+		version := v.(HasConsensusVersion).ConsensusVersion()
 		name := v.Name()
 		vermap[name] = version
 	}
@@ -918,7 +937,7 @@ func (m *Manager) checkUpgradeSchedule() error {
 			if !exists {
 				continue
 			}
-			moduleVersion := module.ConsensusVersion()
+			moduleVersion := module.(HasConsensusVersion).ConsensusVersion()
 			if moduleVersion < lastConsensusVersion {
 				return fmt.Errorf("error: module %s in appVersion %d goes from moduleVersion %d to %d", moduleName, appVersion, lastConsensusVersion, moduleVersion)
 			}
@@ -930,7 +949,7 @@ func (m *Manager) checkUpgradeSchedule() error {
 
 // assertMatchingModules performs a sanity check that the basic module manager
 // contains all the same modules present in the module manager.
-func (m *Manager) AssertMatchingModules(basicModuleManager sdkmodule.BasicManager) error {
+func (m *Manager) AssertMatchingModules(basicModuleManager BasicManager) error {
 	for _, module := range m.allModules {
 		if _, exists := basicModuleManager[module.Name()]; !exists {
 			return fmt.Errorf("module %s not found in basic module manager", module.Name())
@@ -940,12 +959,19 @@ func (m *Manager) AssertMatchingModules(basicModuleManager sdkmodule.BasicManage
 }
 
 func (m *Manager) MustGetCurrentVersionModules(ctx sdk.Context) map[string]AppModule {
-	modules := m.versionedModules[ctx.BlockHeader().Version.App]
+	modules := m.versionedModules[m.CurrentBlockVersion(ctx)]
 	if modules == nil {
-		panic(fmt.Sprintf("no modules for version %d", ctx.BlockHeader().Version.App))
+		panic(fmt.Sprintf("no modules for version %d", m.CurrentBlockVersion(ctx)))
 	}
 
 	return modules
+}
+
+func (m *Manager) CurrentBlockVersion(ctx sdk.Context) uint64 {
+	// TODO: Once SetAppVersion is used (newer Cosmos SDK version) where we set and get the version from ConsensusParams,
+	// then we can properly get the version. For now, we just return the version from the block header, starting from 1.
+	// NOTE: https://github.com/cosmos/cosmos-sdk/pull/16244
+	return max(ctx.BlockHeader().Version.App, v1.Version)
 }
 
 func (m *Manager) FindModule(moduleName string) (AppModule, bool) {

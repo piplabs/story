@@ -2,44 +2,25 @@ package app
 
 import (
 	runtimev1alpha1 "cosmossdk.io/api/cosmos/app/runtime/v1alpha1"
-	appv1alpha1 "cosmossdk.io/api/cosmos/app/v1alpha1"
-	authmodulev1 "cosmossdk.io/api/cosmos/auth/module/v1"
-	bankmodulev1 "cosmossdk.io/api/cosmos/bank/module/v1"
-	consensusmodulev1 "cosmossdk.io/api/cosmos/consensus/module/v1"
-	distrmodulev1 "cosmossdk.io/api/cosmos/distribution/module/v1"
-	genutilmodulev1 "cosmossdk.io/api/cosmos/genutil/module/v1"
-	govmodulev1 "cosmossdk.io/api/cosmos/gov/module/v1"
-	slashingmodulev1 "cosmossdk.io/api/cosmos/slashing/module/v1"
-	stakingmodulev1 "cosmossdk.io/api/cosmos/staking/module/v1"
-	txconfigv1 "cosmossdk.io/api/cosmos/tx/config/v1"
-	"cosmossdk.io/core/appconfig"
-	"cosmossdk.io/depinject"
-
-	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	consensustypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
+	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/piplabs/story/client/app/encoding"
 
-	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
-	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
-	mintmodule "github.com/piplabs/story/client/x/mint/module"
 	minttypes "github.com/piplabs/story/client/x/mint/types"
-	signalmodule "github.com/piplabs/story/client/x/signal/module"
 	signaltypes "github.com/piplabs/story/client/x/signal/types"
 )
 
-// Bech32HRP is the human-readable-part of the Bech32 address format.
 const (
-	Bech32HRP = "story"
-
 	defaultPruningKeep     = 72_000 // Keep 1 day's of application state by default (given period of 1.2s).
 	defaultPruningInterval = 300    // Prune every 5 minutes or so.
 )
@@ -48,45 +29,36 @@ const (
 //
 //nolint:gochecknoinits // Cosmos-style
 func init() {
-	// Set prefixes
-	accountPubKeyPrefix := Bech32HRP + "pub"
-	validatorAddressPrefix := Bech32HRP + "valoper"
-	validatorPubKeyPrefix := Bech32HRP + "valoperpub"
-	consNodeAddressPrefix := Bech32HRP + "valcons"
-	consNodePubKeyPrefix := Bech32HRP + "valconspub"
-
 	// Set and seal config
 	cfg := sdk.GetConfig()
-	cfg.SetBech32PrefixForAccount(Bech32HRP, accountPubKeyPrefix)
-	cfg.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
-	cfg.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
+	cfg.SetBech32PrefixForAccount(encoding.AccountAddressPrefix, encoding.AccountPubKeyPrefix)
+	cfg.SetBech32PrefixForValidator(encoding.ValidatorAddressPrefix, encoding.ValidatorPubKeyPrefix)
+	cfg.SetBech32PrefixForConsensusNode(encoding.ConsNodeAddressPrefix, encoding.ConsNodePubKeyPrefix)
 	cfg.Seal()
 }
 
-// DepConfig returns the default app depinject config.
-func DepConfig() depinject.Config {
-	return depinject.Configs(
-		appConfig,
-		depinject.Supply(),
-	)
-}
-
-//nolint:gochecknoglobals // Cosmos-style
 var (
+	// NOTE: The genutils module must occur after staking so that pools are
+	// properly initialized with tokens from genesis accounts.
+	// NOTE: The genutils module must also occur after auth so that it can access the params from auth.
 	genesisModuleOrder = []string{
 		authtypes.ModuleName,
 		banktypes.ModuleName,
 		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
+		evmstakingtypes.ModuleName,
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
 		minttypes.ModuleName,
+		consensusparamtypes.ModuleName,
+		//crisistypes.ModuleName,
 		genutiltypes.ModuleName,
-		// Story modules
-		evmenginetypes.ModuleName,
-		evmstakingtypes.ModuleName,
+		paramstypes.ModuleName,
 		signaltypes.ModuleName,
+		evmenginetypes.ModuleName,
 	}
+
+	// TODO: signaltypes.ModuleName should be in preblocker like the new upgrade module in 0.50.x
 
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
@@ -98,115 +70,46 @@ var (
 		slashingtypes.ModuleName,
 		stakingtypes.ModuleName,
 		signaltypes.ModuleName,
+		authtypes.ModuleName,
+		banktypes.ModuleName,
+		//crisistypes.ModuleName,
+		govtypes.ModuleName,
+		genutiltypes.ModuleName,
+		paramstypes.ModuleName,
+		signaltypes.ModuleName,
 	}
 
 	endBlockers = []string{
 		govtypes.ModuleName,
-		evmstakingtypes.ModuleName, // Must be before staking module removes mature unbonding delegations & validators.
 		signaltypes.ModuleName,
-	}
-
-	// blocked account addresses.
-	blockAccAddrs = []string{
-		authtypes.FeeCollectorName,
+		//crisistypes.ModuleName,
+		govtypes.ModuleName,
+		evmstakingtypes.ModuleName, // Must be before staking module removes mature unbonding delegations & validators.
 		minttypes.ModuleName,
 		distrtypes.ModuleName,
-		stakingtypes.BondedPoolName,
-		stakingtypes.NotBondedPoolName,
-		evmstakingtypes.ModuleName,
+		slashingtypes.ModuleName,
+		authtypes.ModuleName,
+		banktypes.ModuleName,
+		genutiltypes.ModuleName,
+		paramstypes.ModuleName,
 		signaltypes.ModuleName,
 	}
 
-	moduleAccPerms = []*authmodulev1.ModuleAccountPermission{
-		{Account: authtypes.FeeCollectorName},
-		{Account: minttypes.ModuleName, Permissions: []string{authtypes.Minter}},
-		{Account: distrtypes.ModuleName},
-		{Account: stakingtypes.BondedPoolName, Permissions: []string{authtypes.Burner, authtypes.Staking}},
-		{Account: stakingtypes.NotBondedPoolName, Permissions: []string{authtypes.Burner, authtypes.Staking}},
-		{Account: evmstakingtypes.ModuleName, Permissions: []string{authtypes.Burner, authtypes.Minter}},
-		{Account: govtypes.ModuleName, Permissions: []string{authtypes.Burner}},
-		{Account: signaltypes.ModuleName},
+	moduleAccPerms = map[string][]string{
+		authtypes.FeeCollectorName:     nil,
+		distrtypes.ModuleName:          nil,
+		minttypes.ModuleName:           {authtypes.Minter, authtypes.Burner},
+		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
+		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
+		evmstakingtypes.ModuleName:     {authtypes.Burner, authtypes.Minter},
+		govtypes.ModuleName:            {authtypes.Burner},
+		signaltypes.ModuleName:         nil,
 	}
 
-	// appConfig application configuration (used by depinject).
-	appConfig = appconfig.Compose(&appv1alpha1.Config{
-		Modules: []*appv1alpha1.ModuleConfig{
-			{
-				Name: runtime.ModuleName,
-				Config: appconfig.WrapAny(&runtimev1alpha1.Module{
-					AppName: Name,
-					// NOTE: "PreBlockers" is set in app.go to override the ABCI++ PreBlocker.
-					BeginBlockers: beginBlockers,
-					// NOTE: "EndBlockers" is set in app.go since evmstaking endblocker replaces the staking endblocker.
-					InitGenesis: genesisModuleOrder,
-					OverrideStoreKeys: []*runtimev1alpha1.StoreKeyConfig{
-						{
-							ModuleName: authtypes.ModuleName,
-							KvStoreKey: "acc",
-						},
-					},
-				}),
-			},
-			{
-				Name: authtypes.ModuleName,
-				Config: appconfig.WrapAny(&authmodulev1.Module{
-					ModuleAccountPermissions: moduleAccPerms,
-					Bech32Prefix:             Bech32HRP,
-				}),
-			},
-			{
-				Name: "tx",
-				Config: appconfig.WrapAny(&txconfigv1.Config{
-					SkipAnteHandler: true, // Disable ante handler (since we don't have proper txs).
-					SkipPostHandler: true,
-				}),
-			},
-			{
-				Name: banktypes.ModuleName,
-				Config: appconfig.WrapAny(&bankmodulev1.Module{
-					BlockedModuleAccountsOverride: blockAccAddrs,
-				}),
-			},
-			{
-				Name:   consensustypes.ModuleName,
-				Config: appconfig.WrapAny(&consensusmodulev1.Module{}),
-			},
-			{
-				Name:   distrtypes.ModuleName,
-				Config: appconfig.WrapAny(&distrmodulev1.Module{}),
-			},
-			{
-				Name:   slashingtypes.ModuleName,
-				Config: appconfig.WrapAny(&slashingmodulev1.Module{}),
-			},
-			{
-				Name:   genutiltypes.ModuleName,
-				Config: appconfig.WrapAny(&genutilmodulev1.Module{}),
-			},
-			{
-				Name:   govtypes.ModuleName,
-				Config: appconfig.WrapAny(&govmodulev1.Module{}),
-			},
-			{
-				Name:   stakingtypes.ModuleName,
-				Config: appconfig.WrapAny(&stakingmodulev1.Module{}),
-			},
-			{
-				Name:   evmstakingtypes.ModuleName,
-				Config: appconfig.WrapAny(&evmstakingmodule.Module{}),
-			},
-			{
-				Name:   evmenginetypes.ModuleName,
-				Config: appconfig.WrapAny(&evmenginemodule.Module{}),
-			},
-			{
-				Name:   signaltypes.ModuleName,
-				Config: appconfig.WrapAny(&signalmodule.Module{}),
-			},
-			{
-				Name:   minttypes.ModuleName,
-				Config: appconfig.WrapAny(&mintmodule.Module{}),
-			},
+	overrideStoreKeys = []*runtimev1alpha1.StoreKeyConfig{
+		{
+			ModuleName: authtypes.ModuleName,
+			KvStoreKey: "acc",
 		},
-	})
+	}
 )

@@ -36,7 +36,7 @@ func (s *Server) GetDistributionParams(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).Params(queryContext, &distributiontypes.QueryParamsRequest{})
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).Params(queryContext, &distributiontypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorDistributionInfo(queryContext, &distributiontypes.QueryValidatorDistributionInfoRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).ValidatorDistributionInfo(queryContext, &distributiontypes.QueryValidatorDistributionInfoRequest{
 		ValidatorAddress: mux.Vars(r)["validator_address"],
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *Server) GetValidatorCommissionByValidatorAddress(r *http.Request) (resp
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorCommission(queryContext, &distributiontypes.QueryValidatorCommissionRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).ValidatorCommission(queryContext, &distributiontypes.QueryValidatorCommissionRequest{
 		ValidatorAddress: mux.Vars(r)["validator_address"],
 	})
 
@@ -86,7 +86,7 @@ func (s *Server) GetValidatorOutstandingRewardsByValidatorAddress(r *http.Reques
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorOutstandingRewards(queryContext, &distributiontypes.QueryValidatorOutstandingRewardsRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).ValidatorOutstandingRewards(queryContext, &distributiontypes.QueryValidatorOutstandingRewardsRequest{
 		ValidatorAddress: mux.Vars(r)["validator_address"],
 	})
 
@@ -108,7 +108,7 @@ func (s *Server) GetAllValidatorOutstandingRewards(req *getAllValidatorOutstandi
 		return nil, errors.Join(errors.New("curbock fetch fail"), err)
 	}
 
-	querier := keeper.NewQuerier(s.store.GetDistrKeeper())
+	querier := keeper.NewQuerier(*s.store.GetDistrKeeper())
 	result := make([]*getAllValidatorOutstandingRewardsRequestBlockResults, 0)
 
 	for i := req.From; i < min(req.To, curBlock.Block.Height); i++ {
@@ -145,7 +145,7 @@ func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesB
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorSlashes(queryContext, &distributiontypes.QueryValidatorSlashesRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).ValidatorSlashes(queryContext, &distributiontypes.QueryValidatorSlashesRequest{
 		ValidatorAddress: mux.Vars(r)["validator_address"],
 		StartingHeight:   req.StartingHeight,
 		EndingHeight:     req.EndingHeight,
@@ -172,7 +172,7 @@ func (s *Server) GetDistributionValidatorsByDelegatorAddress(r *http.Request) (r
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorValidators(queryContext, &distributiontypes.QueryDelegatorValidatorsRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).DelegatorValidators(queryContext, &distributiontypes.QueryDelegatorValidatorsRequest{
 		DelegatorAddress: mux.Vars(r)["delegator_address"],
 	})
 
@@ -190,7 +190,7 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddress(r *http.Request) (resp an
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationTotalRewards(queryContext, &distributiontypes.QueryDelegationTotalRewardsRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).DelegationTotalRewards(queryContext, &distributiontypes.QueryDelegationTotalRewardsRequest{
 		DelegatorAddress: mux.Vars(r)["delegator_address"],
 	})
 
@@ -209,7 +209,7 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddressValidatorAddress(r *http.R
 	}
 
 	muxVars := mux.Vars(r)
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationRewards(queryContext, &distributiontypes.QueryDelegationRewardsRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).DelegationRewards(queryContext, &distributiontypes.QueryDelegationRewardsRequest{
 		DelegatorAddress: muxVars["delegator_address"],
 		ValidatorAddress: muxVars["validator_address"],
 	})
@@ -228,7 +228,7 @@ func (s *Server) GetDelegatorWithdrawAddressByDelegatorAddress(r *http.Request) 
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorWithdrawAddress(queryContext, &distributiontypes.QueryDelegatorWithdrawAddressRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetDistrKeeper()).DelegatorWithdrawAddress(queryContext, &distributiontypes.QueryDelegatorWithdrawAddressRequest{
 		DelegatorAddress: mux.Vars(r)["delegator_address"],
 	})
 

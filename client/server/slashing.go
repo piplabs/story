@@ -25,7 +25,7 @@ func (s *Server) GetSlashingParams(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetSlashingKeeper()).Params(queryContext, &slashingtypes.QueryParamsRequest{})
+	queryResp, err := keeper.NewQuerier(*s.store.GetSlashingKeeper()).Params(queryContext, &slashingtypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (s *Server) GetSigningInfos(req *getSigningInfosRequest, r *http.Request) (
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetSlashingKeeper()).SigningInfos(queryContext, &slashingtypes.QuerySigningInfosRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetSlashingKeeper()).SigningInfos(queryContext, &slashingtypes.QuerySigningInfosRequest{
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -63,7 +63,7 @@ func (s *Server) GetSigningInfo(r *http.Request) (resp any, err error) {
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetSlashingKeeper()).SigningInfo(queryContext, &slashingtypes.QuerySigningInfoRequest{
+	queryResp, err := keeper.NewQuerier(*s.store.GetSlashingKeeper()).SigningInfo(queryContext, &slashingtypes.QuerySigningInfoRequest{
 		ConsAddress: mux.Vars(r)["cons_address"],
 	})
 	if err != nil {

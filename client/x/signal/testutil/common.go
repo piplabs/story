@@ -182,7 +182,7 @@ func NewTestMsgCreateValidator(
 			Website:         "",
 			SecurityContact: "",
 			Details:         "",
-		}, commission, sdkmath.OneInt(),
+		}, commission, sdkmath.OneInt(), 0,
 	)
 	if err != nil {
 		panic(err)

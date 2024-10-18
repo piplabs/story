@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/consensus"
+	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
+	"github.com/piplabs/story/client/app/encoding"
 
-	sdkmodule "github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution"
@@ -32,10 +33,11 @@ import (
 	signaltypes "github.com/piplabs/story/client/x/signal/types"
 )
 
+// TODO: handle HasConsensusVersion type casts
 var (
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration and genesis verification.
-	ModuleBasics = sdkmodule.NewBasicManager(
+	ModuleBasics = module.NewBasicManager(
 		auth.AppModuleBasic{},
 		genutil.AppModuleBasic{},
 		bank.AppModuleBasic{},
@@ -44,8 +46,8 @@ var (
 		distribution.AppModuleBasic{},
 		gov.AppModuleBasic{},
 		params.AppModuleBasic{},
+		consensus.AppModuleBasic{},
 		slashing.AppModule{},
-		vesting.AppModuleBasic{},
 		// Story modules
 		evmenginemodule.AppModuleBasic{},
 		evmstakingmodule.AppModuleBasic{},
@@ -58,21 +60,14 @@ var (
 )
 
 func (a *App) setupModuleManager() error {
-	//evmstakingStakingkeeper := a.Keepers.StakingKeeper.(*evmstakingtypes.StakingKeeper)
-	//signalStakingkeeper := a.Keepers.StakingKeeper.(*signaltypes.StakingKeeper)
-
 	var err error
-	a.ModuleManager, err = module.NewManager([]module.VersionedModule{
+	a.manager, err = module.NewManager([]module.VersionedModule{
 		{
 			Module:      genutil.NewAppModule(a.Keepers.AccountKeeper, a.Keepers.StakingKeeper, a, a.txConfig),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      auth.NewAppModule(a.appCodec, a.Keepers.AccountKeeper, nil, nil),
-			FromVersion: v1, ToVersion: v1,
-		},
-		{
-			Module:      vesting.NewAppModule(a.Keepers.AccountKeeper, a.Keepers.BankKeeper),
+			Module:      auth.NewAppModule(a.appCodec, *a.Keepers.AccountKeeper, nil, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
@@ -84,47 +79,43 @@ func (a *App) setupModuleManager() error {
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      slashing.NewAppModule(a.appCodec, a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil, nil),
+			Module:      slashing.NewAppModule(a.appCodec, *a.Keepers.SlashingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
-			Module:      distribution.NewAppModule(a.appCodec, a.Keepers.DistrKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil),
+			Module:      distribution.NewAppModule(a.appCodec, *a.Keepers.DistrKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.StakingKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
 			Module:      staking.NewAppModule(a.appCodec, a.Keepers.StakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
+		{
+			Module:      consensus.NewAppModule(a.appCodec, *a.Keepers.ConsensusParamsKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
 		// Story modules
 		{
-			Module:      mint.NewAppModule(a.appCodec, a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil),
+			Module:      mint.NewAppModule(a.appCodec, *a.Keepers.MintKeeper, a.Keepers.AccountKeeper, nil),
 			FromVersion: v1, ToVersion: v1,
 		},
 		{
 			Module:      evmenginemodule.NewAppModule(a.appCodec, a.Keepers.EVMEngKeeper),
 			FromVersion: v1, ToVersion: v1,
 		},
-		//{
-		//	Module:      evmstakingmodule.NewAppModule(a.appCodec, a.Keepers.EvmStakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.SlashingKeeper, evmstakingStakingkeeper),
-		//	FromVersion: v1, ToVersion: v1,
-		//},
-		//{
-		//	Module:      signalmodule.NewAppModule(a.appCodec, &a.Keepers.SignalKeeper, a.Keepers.AccountKeeper, signalStakingkeeper),
-		//	FromVersion: v1, ToVersion: v1,
-		//},
+		{
+			Module:      evmstakingmodule.NewAppModule(a.appCodec, a.Keepers.EvmStakingKeeper, a.Keepers.AccountKeeper, a.Keepers.BankKeeper, a.Keepers.SlashingKeeper, a.StakingKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
+		{
+			Module:      signalmodule.NewAppModule(a.appCodec, a.Keepers.SignalKeeper, a.Keepers.AccountKeeper, a.StakingKeeper),
+			FromVersion: v1, ToVersion: v1,
+		},
 	})
 	if err != nil {
 		return err
 	}
-	return a.ModuleManager.AssertMatchingModules(ModuleBasics)
-}
-
-func (a *App) setModuleOrder() {
-	// Set "OrderEndBlockers" directly instead of using "SetOrderEndBlockers," which will panic since the staking module
-	// is missing in the "endBlockers", which is an intended behavior in Story. The panic message is:
-	// `panic: all modules must be defined when setting SetOrderEndBlockers, missing: [staking]`
-	a.ModuleManager.OrderEndBlockers = endBlockers
-	a.SetEndBlocker(a.EndBlocker)
+	return a.manager.AssertMatchingModules(ModuleBasics)
 }
 
 func allStoreKeys() []string {
@@ -133,8 +124,10 @@ func allStoreKeys() []string {
 		banktypes.StoreKey,
 		distrtypes.StoreKey,
 		govtypes.StoreKey,
+		//crisistypes.StoreKey,
 		minttypes.StoreKey,
 		paramstypes.StoreKey,
+		consensusparamtypes.StoreKey,
 		slashingtypes.StoreKey,
 		stakingtypes.StoreKey,
 		// Story modules
@@ -153,7 +146,7 @@ func versionedStoreKeys() map[uint64][]string {
 			distrtypes.StoreKey,
 			govtypes.StoreKey,
 			minttypes.StoreKey,
-			paramstypes.StoreKey,
+			consensusparamtypes.StoreKey,
 			slashingtypes.StoreKey,
 			stakingtypes.StoreKey,
 			// Story modules
@@ -193,7 +186,7 @@ func (a *App) assertAllKeysArePresent() {
 }
 
 // extractRegisters returns the encoding module registers from the basic manager.
-func extractRegisters(manager sdkmodule.BasicManager) (modules []ModuleRegister) {
+func extractRegisters(manager module.BasicManager) (modules []encoding.ModuleRegister) {
 	for _, m := range manager {
 		modules = append(modules, m)
 	}

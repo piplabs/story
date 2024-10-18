@@ -21,9 +21,10 @@ func init() {
 }
 
 var (
-	_ module.AppModuleBasic = AppModule{}
-	_ module.HasName        = AppModule{}
-	_ module.HasServices    = AppModule{}
+	_ module.AppModuleBasic      = AppModule{}
+	_ module.HasName             = AppModule{}
+	_ module.HasConsensusVersion = AppModule{}
+	_ module.HasServices         = AppModule{}
 
 	_ appmodule.AppModule = AppModule{}
 )
@@ -80,13 +81,13 @@ func NewAppModule(
 	cdc codec.Codec,
 	keeper *keeper.Keeper,
 	accountKeeper types.AccountKeeper,
-	stakingKeeper *types.StakingKeeper,
+	stakingKeeper types.StakingKeeper,
 ) AppModule {
 	return AppModule{
 		AppModuleBasic: NewAppModuleBasic(cdc),
 		keeper:         keeper,
 		accountKeeper:  accountKeeper,
-		stakingKeeper:  stakingKeeper,
+		stakingKeeper:  &stakingKeeper,
 	}
 }
 

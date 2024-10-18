@@ -35,11 +35,11 @@ type Store interface {
 	CreateQueryContext(height int64, prove bool) (sdk.Context, error)
 	GetEvmStakingKeeper() *evmstakingkeeper.Keeper
 	GetStakingKeeper() *stakingkeeper.Keeper
-	GetSlashingKeeper() slashingkeeper.Keeper
-	GetAccountKeeper() authkeeper.AccountKeeper
+	GetSlashingKeeper() *slashingkeeper.Keeper
+	GetAccountKeeper() *authkeeper.AccountKeeper
 	GetBankKeeper() bankkeeper.Keeper
-	GetDistrKeeper() distrkeeper.Keeper
-	GetMintKeeper() mintkeeper.Keeper
+	GetDistrKeeper() *distrkeeper.Keeper
+	GetMintKeeper() *mintkeeper.Keeper
 	GetSignalKeeper() *signalkeeper.Keeper
 }
 
