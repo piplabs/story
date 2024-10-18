@@ -69,13 +69,13 @@
     },
     "distribution": {
       "params": {
-        "community_tax": "0.000000000000000000",
+        "ubi": "0.000000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true
       },
       "fee_pool": {
-        "community_pool": []
+        "ubi": []
       },
       "delegator_withdraw_infos": [],
       "previous_proposer": "",
@@ -212,7 +212,7 @@
         "max_sweep_per_block": 128,
         "min_partial_withdrawal_amount": 100000000,
         "singularity_height": "30",
-        "ubi_withdraw_address": "0x09a4A605bed3369Bc161B93922f0fd3Ff08bfC33"
+        "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
     },
     "mint": {
