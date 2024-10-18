@@ -20,8 +20,7 @@ var (
 	ipTokenStaking = common.HexToAddress(predeploys.IPTokenStaking)
 
 	// Predeploy bytecodes.
-	ipTokenStakingCode  = mustDecodeHex(bindings.IPTokenStakingDeployedBytecode)
-	ipTokenSlashingCode = mustDecodeHex(bindings.IPTokenSlashingDeployedBytecode)
+	ipTokenStakingCode = mustDecodeHex(bindings.IPTokenStakingDeployedBytecode)
 )
 
 func TestAlloc(t *testing.T) {

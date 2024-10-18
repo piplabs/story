@@ -222,6 +222,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 				uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 				mk := moduletestutil.NewMockMintKeeper(ctrl)
+				dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 				if tt.setupMocks != nil {
 					tt.setupMocks(esk)
@@ -231,7 +232,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 				require.NoError(t, err)
 
-				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, mk)
+				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, mk, dk)
 				require.NoError(t, err)
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
 				populateGenesisHead(ctx, t, k)
@@ -263,10 +264,11 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 		uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 		mk := moduletestutil.NewMockMintKeeper(ctrl)
+		dk := moduletestutil.NewMockDistrKeeper(ctrl)
 		// Expected call for PeekEligibleWithdrawals
 		esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
 
-		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk)
+		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, mk, dk)
 		require.NoError(t, err)
 		keeper.SetValidatorAddress(common.BytesToAddress([]byte("test")))
 		populateGenesisHead(ctx, t, keeper)
@@ -451,6 +453,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 			uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 			mk := moduletestutil.NewMockMintKeeper(ctrl)
+			dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
 			if tt.setupMocks != nil {
 				tt.setupMocks(esk)
@@ -469,7 +472,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 			require.NoError(t, err)
 
-			k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, mk)
+			k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, mk, dk)
 			require.NoError(t, err)
 			k.SetCometAPI(cmtAPI)
 			k.SetValidatorAddress(nxtAddr)
