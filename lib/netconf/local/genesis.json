@@ -212,7 +212,7 @@
         "max_sweep_per_block": 128,
         "min_partial_withdrawal_amount": 100000000,
         "singularity_height": "30",
-        "ubi_withdraw_address": ""
+        "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
     },
     "mint": {
