@@ -16,6 +16,31 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
+func getUint256(ctx context.Context, cfg *baseConfig, getter string) (*big.Int, error) {
+	result, err := prepareAndReadContract(ctx, cfg, getter)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch uint256")
+	}
+
+	value := new(big.Int).SetBytes(result)
+
+	return value, nil
+}
+
+func prepareAndReadContract(ctx context.Context, cfg *baseConfig, methodName string) ([]byte, error) {
+	selector := crypto.Keccak256([]byte(methodName + "()"))[:4]
+	return readContract(ctx, *cfg, cfg.ContractAddr, selector)
+}
+
+func prepareAndExecuteTransaction(ctx context.Context, cfg *baseConfig, methodName string, value *big.Int, args ...any) (*types.Receipt, error) {
+	data, err := cfg.ABI.Pack(methodName, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack data")
+	}
+
+	return sendTransaction(ctx, *cfg, cfg.ContractAddr, value, data)
+}
+
 func readContract(ctx context.Context, cfg baseConfig, contractAddress common.Address, data []byte) ([]byte, error) {
 	client, err := ethclient.Dial(cfg.RPC)
 	if err != nil {
@@ -35,38 +60,38 @@ func readContract(ctx context.Context, cfg baseConfig, contractAddress common.Ad
 	return result, nil
 }
 
-func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddress common.Address, value *big.Int, data []byte) error {
+func sendTransaction(ctx context.Context, cfg baseConfig, contractAddress common.Address, value *big.Int, data []byte) (*types.Receipt, error) {
 	client, err := ethclient.Dial(cfg.RPC)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to Ethereum client")
+		return nil, errors.Wrap(err, "failed to connect to Ethereum client")
 	}
 
 	evmPrivKey, err := crypto.HexToECDSA(cfg.PrivateKey)
 	if err != nil {
-		return errors.Wrap(err, "invalid EVM private key")
+		return nil, errors.Wrap(err, "invalid EVM private key")
 	}
 
 	publicKey, ok := evmPrivKey.Public().(*ecdsa.PublicKey)
 	if !ok {
-		return errors.New("failed to assert type to *ecdsa.PublicKey")
+		return nil, errors.New("failed to assert type to *ecdsa.PublicKey")
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKey)
 
 	nonce, err := client.PendingNonceAt(ctx, fromAddress)
 	if err != nil {
-		return errors.Wrap(err, "failed to get nonce")
+		return nil, errors.Wrap(err, "failed to get nonce")
 	}
 
 	gasPrice, err := client.SuggestGasPrice(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to suggest gas price")
+		return nil, errors.Wrap(err, "failed to suggest gas price")
 	}
 
 	gasPrice.Mul(gasPrice, big.NewInt(120)).Div(gasPrice, big.NewInt(100))
 
 	gasLimit, err := estimateGas(ctx, client, fromAddress, contractAddress, gasPrice, value, data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	gasTipCap := gasPrice
@@ -77,11 +102,11 @@ func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddr
 
 	balance, err := client.BalanceAt(ctx, fromAddress, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to fetch balance")
+		return nil, errors.Wrap(err, "failed to fetch balance")
 	}
 
 	if balance.Cmp(totalTxCost) < 0 {
-		return errors.New("insufficient funds for gas * price + value", "balance", balance.String(), "totalTxCost", totalTxCost.String())
+		return nil, errors.New("insufficient funds for gas * price + value", "balance", balance.String(), "totalTxCost", totalTxCost.String())
 	}
 
 	tx := types.NewTx(&types.DynamicFeeTx{
@@ -97,7 +122,7 @@ func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddr
 
 	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(big.NewInt(cfg.ChainID)), evmPrivKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to sign transaction")
+		return nil, errors.Wrap(err, "failed to sign transaction")
 	}
 
 	txHash := signedTx.Hash().Hex()
@@ -105,23 +130,23 @@ func prepareAndSendTransaction(ctx context.Context, cfg baseConfig, contractAddr
 	fmt.Printf("Explorer URL: %s/tx/%s\n", cfg.Explorer, txHash)
 
 	if err = client.SendTransaction(ctx, signedTx); err != nil {
-		return errors.Wrap(err, "failed to send transaction")
+		return nil, errors.Wrap(err, "failed to send transaction")
 	}
 
 	fmt.Println("Transaction sent, waiting for confirmation...")
 
 	receipt, err := bind.WaitMined(ctx, client, signedTx)
 	if err != nil {
-		return errors.Wrap(err, "transaction failed")
+		return nil, errors.Wrap(err, "transaction failed")
 	}
 
 	if receipt.Status == types.ReceiptStatusFailed {
-		return errors.New("transaction failed", "status", receipt.Status)
+		return nil, errors.New("transaction failed", "status", receipt.Status)
 	}
 
 	fmt.Println("Transaction confirmed successfully!")
 
-	return nil
+	return receipt, nil
 }
 
 func estimateGas(ctx context.Context, client *ethclient.Client, fromAddress, contractAddress common.Address, gasPrice, value *big.Int, data []byte) (uint64, error) {

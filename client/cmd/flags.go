@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"math/big"
 	"path/filepath"
 	"strings"
 
@@ -10,6 +12,7 @@ import (
 
 	"github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
 
@@ -47,20 +50,24 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.StringVar(&cfg.ExternalAddress, "external-address", "", "Override the P2P external address")
 	flags.StringVar(&cfg.Seeds, "seeds", "", "Override the P2P seeds (comma-separated)")
 	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
-	flags.StringVar(&cfg.Moniker, "moniker", cfg.Moniker, "Custom moniker name for this node")
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
-	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://testnet.storyrpc.io", "RPC URL to connect to the testnet")
+	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://odyssey.storyrpc.io", "RPC URL to connect to the testnet")
 	cmd.Flags().StringVar(&cfg.PrivateKey, "private-key", "", "Private key used for the transaction")
-	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://testnet.storyscan.xyz", "URL of the blockchain explorer")
-	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1513, "Chain ID to use for the transaction (default 1513)")
+	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://odyssey.storyscan.xyz", "URL of the blockchain explorer")
+	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1516, "Chain ID to use for the transaction")
 }
 
 func bindValidatorCreateFlags(cmd *cobra.Command, cfg *createValidatorConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
-	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "1024000000000000000000", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().Uint32Var(&cfg.CommissionRate, "commission-rate", 1000, "The validator commission rate in bips (e.g. 1000 for 10%)")
+	cmd.Flags().Uint32Var(&cfg.MaxCommissionRate, "max-commission-rate", 5000, "The maximum validator commission rate in bips, e.g. 5000 for 50%")
+	cmd.Flags().Uint32Var(&cfg.MaxCommissionChangeRate, "max-commission-change-rate", 1000, "The maximum validator commission change rate in bips, e.g. 100 for 1%")
+	cmd.Flags().BoolVar(&cfg.Unlocked, "unlocked", true, "Whether to support unlocked token staking (true for unlocked staking, false for locked staking)")
+	cmd.Flags().StringVar(&cfg.Moniker, "moniker", "", "Custom moniker name for this node")
 }
 
 func bindAddOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
@@ -80,28 +87,32 @@ func bindSetWithdrawalAddressFlags(cmd *cobra.Command, cfg *withdrawalConfig) {
 
 func bindValidatorStakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount to stake on behalf of the delegator in wei")
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().Var(&cfg.StakePeriod, "staking-period", `Staking period (options: "flexible", "short", "medium", "long")`)
 }
 
 func bindValidatorStakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount to stake on behalf of the delegator in wei")
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().Var(&cfg.StakePeriod, "staking-period", `Staking period (options: "flexible", "short", "medium", "long")`)
 }
 
-func bindValidatorUnstakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
+func bindValidatorUnstakeFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake on behalf of the delegator in wei")
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().Uint32Var(&cfg.DelegationID, "delegation-id", 0, "The delegation ID (0 for flexible staking)")
 }
 
-func bindValidatorUnstakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
+func bindValidatorUnstakeOnBehalfFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's base64-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake on behalf of the delegator in wei")
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().Uint32Var(&cfg.DelegationID, "delegation-id", 0, "The delegation ID (0 for flexible staking)")
 }
 
 func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
@@ -134,16 +145,16 @@ func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 
 func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's base64-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
 }
 
 // Flag Validation
 
-func validateFlags(flags map[string]string) error {
+func validateFlags(cmd *cobra.Command, flags []string) error {
 	var missingFlags []string
 
-	for flag, value := range flags {
-		if value == "" {
+	for _, flag := range flags {
+		if !cmd.Flags().Changed(flag) {
 			missingFlags = append(missingFlags, flag)
 		}
 	}
@@ -155,80 +166,123 @@ func validateFlags(flags map[string]string) error {
 	return nil
 }
 
-func validateValidatorCreateFlags(cfg createValidatorConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":     cfg.RPC,
-		"keyfile": cfg.ValidatorKeyFile,
-		"stake":   cfg.StakeAmount,
-	})
-}
-
-func validateOperatorFlags(cfg operatorConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":      cfg.RPC,
-		"operator": cfg.Operator,
-	})
-}
-
-func validateWithdrawalFlags(cfg withdrawalConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":                cfg.RPC,
-		"withdrawal-address": cfg.WithdrawalAddress,
-	})
-}
-
-func validateValidatorStakeFlags(cfg stakeConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":              cfg.RPC,
-		"validator-pubkey": cfg.ValidatorPubKey,
-		"stake":            cfg.StakeAmount,
-	})
-}
-
-func validateValidatorStakeOnBehalfFlags(cfg stakeConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":              cfg.RPC,
-		"validator-pubkey": cfg.ValidatorPubKey,
-		"delegator-pubkey": cfg.DelegatorPubKey,
-		"stake":            cfg.StakeAmount,
-	})
-}
-
-func validateValidatorUnstakeOnBehalfFlags(cfg stakeConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":              cfg.RPC,
-		"validator-pubkey": cfg.ValidatorPubKey,
-		"delegator-pubkey": cfg.DelegatorPubKey,
-		"unstake":          cfg.StakeAmount,
-	})
-}
-
-func validateKeyConvertFlags(cfg keyConfig) error {
-	flagMap := map[string]string{
-		"validator-key-file":      cfg.ValidatorKeyFile,
-		"private-key-file":        cfg.PrivateKeyFile,
-		"pubkey-hex":              cfg.PubKeyHex,
-		"pubkey-base64":           cfg.PubKeyBase64,
-		"pubkey-hex-uncompressed": cfg.PubKeyHexUncompressed,
+func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *createValidatorConfig) error {
+	if err := validateFlags(cmd, []string{"moniker"}); err != nil {
+		return errors.Wrap(err, "failed to validate create flags")
 	}
 
-	for _, value := range flagMap {
-		if value != "" {
-			return nil
-		}
+	if err := validateMinStakeAmount(ctx, &cfg.stakeConfig); err != nil {
+		return err
 	}
 
-	flagNames := make([]string, 0, len(flagMap))
-	for flag := range flagMap {
-		flagNames = append(flagNames, "--"+flag)
-	}
-
-	return fmt.Errorf("at least one of %s must be provided", strings.Join(flagNames, ", "))
+	return validateCommissionRate(ctx, cfg)
 }
 
-func validateValidatorUnjailFlags(cfg unjailConfig) error {
-	return validateFlags(map[string]string{
-		"rpc":              cfg.RPC,
-		"validator-pubkey": cfg.ValidatorPubKey,
+func validateOperatorFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{
+		"operator",
 	})
+}
+
+func validateWithdrawalFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{
+		"withdrawal-address",
+	})
+}
+
+func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *stakeConfig) error {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "stake"}); err != nil {
+		return errors.Wrap(err, "failed to validate stake flags")
+	}
+
+	return validateMinStakeAmount(ctx, cfg)
+}
+
+func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *stakeConfig) error {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "stake"}); err != nil {
+		return errors.Wrap(err, "failed to validate stake-on-behalf flags")
+	}
+
+	return validateMinStakeAmount(ctx, cfg)
+}
+
+func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg *unstakeConfig) error {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "stake"}); err != nil {
+		return errors.Wrap(err, "failed to validate unstake flags")
+	}
+
+	return validateMinUnstakeAmount(ctx, cfg)
+}
+
+func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unstakeConfig) error {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "stake"}); err != nil {
+		return errors.Wrap(err, "failed to validate unstake-on-behalf flags")
+	}
+
+	return validateMinUnstakeAmount(ctx, cfg)
+}
+
+func validateKeyConvertFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{})
+}
+
+func validateValidatorUnjailFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{"validator-pubkey"})
+}
+
+func validateMinStakeAmount(ctx context.Context, cfg *stakeConfig) error {
+	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return fmt.Errorf("invalid stake amount: %s", cfg.StakeAmount)
+	}
+
+	minStakeAmount, err := getUint256(ctx, &cfg.baseConfig, "minStakeAmount")
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve minimum stake amount")
+	}
+
+	if stakeAmount.Cmp(minStakeAmount) < 0 {
+		return fmt.Errorf("stake amount is less than the minimum required: %s", minStakeAmount.String())
+	}
+
+	return nil
+}
+
+func validateMinUnstakeAmount(ctx context.Context, cfg *unstakeConfig) error {
+	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return fmt.Errorf("invalid unstake amount: %s", cfg.StakeAmount)
+	}
+
+	minUnstakeAmount, err := getUint256(ctx, &cfg.baseConfig, "minUnstakeAmount")
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve minimum unstake amount")
+	}
+
+	if unstakeAmount.Cmp(minUnstakeAmount) < 0 {
+		return fmt.Errorf("unstake amount is less than the minimum required: %s", minUnstakeAmount.String())
+	}
+
+	return nil
+}
+
+func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) error {
+	commissionRate := new(big.Int).SetUint64(uint64(cfg.CommissionRate))
+
+	minCommissionRate, err := getUint256(ctx, &cfg.baseConfig, "minCommissionRate")
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve minimum commission rate")
+	}
+
+	if commissionRate.Cmp(minCommissionRate) < 0 {
+		return fmt.Errorf("commission rate is less than the minimum required: %s", minCommissionRate.String())
+	}
+
+	maxCommissionRate := new(big.Int).SetUint64(uint64(cfg.MaxCommissionRate))
+
+	if commissionRate.Cmp(maxCommissionRate) > 0 {
+		return fmt.Errorf("commission rate exceeds the maximum allowed: %s", maxCommissionRate.String())
+	}
+
+	return nil
 }
