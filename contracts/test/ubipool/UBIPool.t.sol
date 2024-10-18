@@ -48,7 +48,8 @@ contract UBIPoolTest is Test, ValidatorData {
         }
         vm.deal(address(ubiPool), totalAmount);
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, totalAmount, validatorUncmpPubKeys, amounts);
+        uint256 distributionId = ubiPool.setUBIDistribution(totalAmount, validatorUncmpPubKeys, amounts);
+        assertEq(distributionId, 1);
         for (uint256 i = 0; i < validators.length; i++) {
             uint256 amount = amounts[i];
             assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), amount);
@@ -60,27 +61,40 @@ contract UBIPoolTest is Test, ValidatorData {
             assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
             assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), 0);
         }
+        /*
+        assertEq(ubiPool.setUBIDistribution(totalAmount, validatorUncmpPubKeys, amounts), 2);
+        for (uint256 i = 0; i < validators.length; i++) {
+            uint256 amount = amounts[i];
+            assertEq(ubiPool.validatorUBIAmounts(2, validatorUncmpPubKeys[i]), amount);
+            vm.prank(validators[i].evmAddress);
+            uint256 balanceBefore = address(validators[i].evmAddress).balance;
+            uint256 poolBalanceBefore = address(ubiPool).balance;
+            ubiPool.claimUBI(2, validatorUncmpPubKeys[i]);
+            assertEq(address(validators[i].evmAddress).balance, balanceBefore + amount);
+            assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
+            assertEq(ubiPool.validatorUBIAmounts(2, validatorUncmpPubKeys[i]), 0);
+        }*/
     }
 
     function test_setUBIDistribution_reverts() public {
         // Fail if not protocol admin
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
-        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](0), new uint256[](0));
+        ubiPool.setUBIDistribution(100 ether, new bytes[](0), new uint256[](0));
 
         // Fail if validatorUncmpPubKeys is empty
         vm.expectRevert("UBIPool: validatorUncmpPubKeys cannot be empty");
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](0), new uint256[](0));
+        ubiPool.setUBIDistribution(100 ether, new bytes[](0), new uint256[](0));
 
         // Fail if validatorUncmpPubKeys and percentages do not match
         vm.expectRevert("UBIPool: length mismatch");
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), new uint256[](0));
+        ubiPool.setUBIDistribution(100 ether, new bytes[](1), new uint256[](0));
 
         // Fail if UBIPool: not enough balance
         vm.expectRevert("UBIPool: not enough balance");
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), new uint256[](1));
+        ubiPool.setUBIDistribution(100 ether, new bytes[](1), new uint256[](1));
 
         // Fail if amounts do not sum to totalUBI
         vm.expectRevert("UBIPool: total amount mismatch");
@@ -90,7 +104,7 @@ contract UBIPoolTest is Test, ValidatorData {
         amounts[0] = 1 ether;
         vm.deal(address(ubiPool), 100 ether);
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
+        ubiPool.setUBIDistribution(100 ether, validatorUncmpPubKeys, amounts);
 
         // Fail if one amount is zero
         vm.deal(address(ubiPool), 100 ether);
@@ -100,7 +114,7 @@ contract UBIPoolTest is Test, ValidatorData {
         validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
         vm.expectRevert("UBIPool: amounts cannot be zero");
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
+        ubiPool.setUBIDistribution(100 ether, validatorUncmpPubKeys, amounts);
 
         // Fail if pubkey is not valid
         vm.deal(address(ubiPool), 100 ether);
@@ -113,6 +127,6 @@ contract UBIPoolTest is Test, ValidatorData {
         ] = hex"0482782124bc9cd03c38aa4cac234dc4e4e3cecf04d57914371baf7fa78ffb975f6d58e245bea952dd039f0fec4e9db418c3b00000"; // pragma: allowlist secret
         vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         vm.prank(admin);
-        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
+        ubiPool.setUBIDistribution(100 ether, validatorUncmpPubKeys, amounts);
     }
 }

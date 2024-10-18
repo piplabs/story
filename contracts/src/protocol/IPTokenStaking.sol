@@ -51,9 +51,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
     uint256 public fee;
 
-    /// @notice Staking periods and their corresponding durations
-    mapping(IIPTokenStaking.StakingPeriod period => uint32 duration) public stakingDurations;
-
     modifier chargesFee() {
         if (msg.value != fee) {
             revert Errors.IPTokenStaking__InvalidFeeAmount();
