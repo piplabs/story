@@ -178,7 +178,7 @@ contract IPTokenStakingTest is Test {
             memory delegatorUncmpPubkeyChanged = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.createValidator{ value: stakeAmount }({
             validatorUncmpPubkey: delegatorUncmpPubkeyChanged,
             moniker: "delegator's validator",
@@ -390,7 +390,7 @@ contract IPTokenStakingTest is Test {
         // Can only be called by delegator
         vm.deal(address(0x4545), stakeAmount);
         vm.prank(address(0x4545));
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.redelegate{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
@@ -413,7 +413,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Src
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegate{ value: stakeAmount }(
             delegatorUncmpPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
@@ -424,7 +424,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Dst
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegate{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
@@ -506,7 +506,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Src
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
             delegatorUncmpPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
@@ -517,7 +517,7 @@ contract IPTokenStakingTest is Test {
         // Malformed Dst
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
@@ -565,7 +565,7 @@ contract IPTokenStakingTest is Test {
         bytes
             memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.setWithdrawalAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address with insufficient fee
@@ -589,7 +589,7 @@ contract IPTokenStakingTest is Test {
         bytes
             memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.setRewardsAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address with insufficient fee
@@ -611,7 +611,7 @@ contract IPTokenStakingTest is Test {
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         vm.deal(otherAddress, feeAmount * 10);
         vm.prank(otherAddress);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.updateValidatorCommission{ value: feeAmount }(delegatorUncmpPubkey, commissionRate);
 
         // Network shall not allow anyone to update the commission rate of a validator if it is less than minCommissionRate.
@@ -631,7 +631,7 @@ contract IPTokenStakingTest is Test {
         bytes
             memory otherDelegatorUncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.addOperator(otherDelegatorUncmpPubkey, operator);
 
         // Network shall not allow anyone to add operators for a delegator if the fee is not paid.
@@ -663,7 +663,7 @@ contract IPTokenStakingTest is Test {
         // Network shall not allow others to remove operators for a delegator
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         vm.prank(otherAddress);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.removeOperator(delegatorUncmpPubkey, operator);
 
         // Network shall allow delegators to remove their operators
@@ -728,7 +728,7 @@ contract IPTokenStakingTest is Test {
         // Network shall not allow anyone to unjail a validator if it is not the validator itself.
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         vm.prank(otherAddress);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyDerivedAddress.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyDerivedAddress.selector);
         ipTokenStaking.unjail(delegatorUncmpPubkey, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is not paid.
@@ -771,7 +771,7 @@ contract IPTokenStakingTest is Test {
         feeAmount = 1 ether;
         vm.deal(otherAddress, feeAmount);
         vm.prank(otherAddress);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyLength.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
         ipTokenStaking.unjailOnBehalf{ value: feeAmount }(delegatorCmpPubkeyShortLen, "");
 
         // Network shall not allow anyone to unjail with compressed pubkey of incorrect prefix.
@@ -780,7 +780,7 @@ contract IPTokenStakingTest is Test {
         feeAmount = 1 ether;
         vm.deal(otherAddress, feeAmount);
         vm.prank(otherAddress);
-        vm.expectRevert(Errors.IPTokenStaking__InvalidPubkeyPrefix.selector);
+        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyPrefix.selector);
         ipTokenStaking.unjailOnBehalf{ value: feeAmount }(delegatorCmpPubkeyWrongPrefix, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is not paid.

@@ -7,6 +7,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Errors } from "../libraries/Errors.sol";
+import { PubKeyVerification } from "./PubKeyVerification.sol";
 
 /**
  * @title IPTokenStaking
@@ -25,7 +26,7 @@ import { Errors } from "../libraries/Errors.sol";
  * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
  * transaction of step 2 would not have reverted.
  */
-contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
+contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PubKeyVerification {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
@@ -49,32 +50,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
     uint256 public fee;
-
-    /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
-    modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
-        if (uncmpPubkey.length != 65) {
-            revert Errors.IPTokenStaking__InvalidPubkeyLength();
-        }
-        if (uncmpPubkey[0] != 0x04) {
-            revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
-        }
-        _;
-    }
-
-    /// @notice Verifies that the given 65 byte uncompressed secp256k1 public key (with 0x04 prefix) is valid and
-    /// matches the expected EVM address.
-    modifier verifyUncmpPubkeyWithExpectedAddress(bytes calldata uncmpPubkey, address expectedAddress) {
-        if (uncmpPubkey.length != 65) {
-            revert Errors.IPTokenStaking__InvalidPubkeyLength();
-        }
-        if (uncmpPubkey[0] != 0x04) {
-            revert Errors.IPTokenStaking__InvalidPubkeyPrefix();
-        }
-        if (_uncmpPubkeyToAddress(uncmpPubkey) != expectedAddress) {
-            revert Errors.IPTokenStaking__InvalidPubkeyDerivedAddress();
-        }
-        _;
-    }
 
     modifier chargesFee() {
         if (msg.value != fee) {
@@ -632,13 +607,5 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (!success) {
             revert Errors.IPTokenStaking__FailedRemainerRefund();
         }
-    }
-
-    /// @notice Converts the given public key to an EVM address.
-    /// @dev Assume all calls to this function passes in the uncompressed public key.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key, with prefix 04.
-    /// @return address The EVM address derived from the public key.
-    function _uncmpPubkeyToAddress(bytes calldata uncmpPubkey) internal pure returns (address) {
-        return address(uint160(uint256(keccak256(uncmpPubkey[1:]))));
     }
 }
