@@ -6,11 +6,11 @@ pragma solidity ^0.8.23;
 /// flag "Hex High Entropy String" in CI run detect-secrets
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { UBIPool } from "../../src/protocol/UBIPool.sol";
 import { IUBIPool } from "../../src/interfaces/IUBIPool.sol";
 import { Test } from "../utils/Test.sol";
+import { ValidatorData } from "../data/ValidatorData.sol";
 
-contract UBIPoolTest is Test {
+contract UBIPoolTest is Test, ValidatorData {
     function setUp() public virtual override {
         super.setUp();
     }
@@ -18,21 +18,50 @@ contract UBIPoolTest is Test {
     function test_setUBIPercentage() public {
         // Fail if not protocol admin
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
-        ubiPool.setUBIPercentage(12 ether);
+        ubiPool.setUBIPercentage(12_00);
 
         // Fail if percentage too high
+        uint32 tooMuch = ubiPool.MAX_UBI_PERCENTAGE() + 1;
         vm.expectRevert("UBIPool: percentage too high");
         vm.prank(admin);
-        ubiPool.setUBIPercentage(ubiPool.MAX_UBI_PERCENTAGE() + 1);
+        ubiPool.setUBIPercentage(tooMuch);
 
         // Set percentage
         vm.expectEmit(true, true, true, true);
-        emit IUBIPool.UBIPercentageSet(22 ether);
+        emit IUBIPool.UBIPercentageSet(12_00);
         vm.prank(admin);
-        ubiPool.setUBIPercentage(22 ether);
+        ubiPool.setUBIPercentage(12_00);
     }
 
-    function test_setUBIDistribution() public {
+    function test_setUBIDistribution_claimUBI() public {
+        uint256[] memory amounts = new uint256[](validators.length);
+        bytes[] memory validatorUncmpPubKeys = new bytes[](validators.length);
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < validators.length; i++) {
+            amounts[i] = 100 ether + i * 10 ether;
+            validatorUncmpPubKeys[i] = validators[i].uncompressedHex;
+            totalAmount += amounts[i];
+            vm.prank(validators[i].evmAddress);
+            vm.expectRevert("UBIPool: no UBI to claim");
+            ubiPool.claimUBI(1, validatorUncmpPubKeys[i]);
+        }
+        vm.deal(address(ubiPool), totalAmount);
+        vm.prank(admin);
+        ubiPool.setUBIDistribution(1, totalAmount, validatorUncmpPubKeys, amounts);
+        for (uint256 i = 0; i < validators.length; i++) {
+            uint256 amount = amounts[i];
+            assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), amount);
+            vm.prank(validators[i].evmAddress);
+            uint256 balanceBefore = address(validators[i].evmAddress).balance;
+            uint256 poolBalanceBefore = address(ubiPool).balance;
+            ubiPool.claimUBI(1, validatorUncmpPubKeys[i]);
+            assertEq(address(validators[i].evmAddress).balance, balanceBefore + amount);
+            assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
+            assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), 0);
+        }
+    }
+
+    function test_setUBIDistribution_reverts() public {
         // Fail if not protocol admin
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
         ubiPool.setUBIDistribution(1, 100 ether, new bytes[](0), new uint256[](0));
@@ -43,11 +72,31 @@ contract UBIPoolTest is Test {
         ubiPool.setUBIDistribution(1, 100 ether, new bytes[](0), new uint256[](0));
 
         // Fail if validatorUncmpPubKeys and percentages do not match
-        vm.expectRevert("UBIPool: validatorUncmpPubKeys and percentages do not match");
+        vm.expectRevert("UBIPool: length mismatch");
         vm.prank(admin);
         ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), new uint256[](0));
 
-        // Fail if percentages do not sum to 100%
-        vm.expectRevert("UBIPool: percentages do not sum to 100%");
+        // Fail if UBIPool: not enough balance
+        vm.expectRevert("UBIPool: not enough balance");
+        vm.prank(admin);
+        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), new uint256[](1));
+
+        // Fail if amounts do not sum to totalUBI
+        vm.expectRevert("UBIPool: total amount mismatch");
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1 ether;
+        vm.deal(address(ubiPool), 100 ether);
+        vm.prank(admin);
+        ubiPool.setUBIDistribution(1, 100 ether, new bytes[](1), amounts);
+
+        // Fail if one amount is zero
+        vm.deal(address(ubiPool), 100 ether);
+        amounts = new uint256[](1);
+        amounts[0] = 0;
+        bytes[] memory validatorUncmpPubKeys = new bytes[](1);
+        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        vm.expectRevert("UBIPool: amounts cannot be zero");
+        vm.prank(admin);
+        ubiPool.setUBIDistribution(1, 100 ether, validatorUncmpPubKeys, amounts);
     }
 }

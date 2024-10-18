@@ -86,7 +86,7 @@ contract GenerateAlloc is Script {
 
         setPredeploys();
         setAllocations();
-        
+
         // Necessary to skip for tests
         if (saveState) {
             // Reset so its not included state dump
@@ -206,7 +206,7 @@ contract GenerateAlloc is Script {
 
     function setUBIPool() internal {
         address impl = Predeploys.getImplAddress(Predeploys.UBIPool);
-        address tmp = address(new UBIPool(30 ether)); // 30% UBI
+        address tmp = address(new UBIPool(20_00)); // 30% UBI
         vm.etch(impl, tmp.code);
 
         // reset tmp

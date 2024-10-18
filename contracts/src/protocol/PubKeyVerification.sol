@@ -8,9 +8,8 @@ import { Errors } from "../libraries/Errors.sol";
  * @notice Utility functions for pubkey verification
  */
 abstract contract PubKeyVerification {
-
-     /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
-     modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
+    /// @notice Verifies that the syntax of the given public key is a 65 byte uncompressed secp256k1 public key.
+    modifier verifyUncmpPubkey(bytes calldata uncmpPubkey) {
         if (uncmpPubkey.length != 65) {
             revert Errors.PubKeyVerifier__InvalidPubkeyLength();
         }
