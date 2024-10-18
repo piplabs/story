@@ -9,7 +9,7 @@ option go_package = "client/x/evmstaking/types";
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];
   // TODO: Add withdrawals collections field as ORM if needed
-  ValidatorSweepIndex validator_sweep_index = 2;
+  ValidatorSweepIndex validator_sweep_index = 2 [(gogoproto.nullable) = false];
 }
 
 message ValidatorSweepIndex {

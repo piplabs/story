@@ -8,7 +8,7 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/types"
 )
 
-var zeroVallidatorSweepIndex = &types.ValidatorSweepIndex{
+var zeroVallidatorSweepIndex = types.ValidatorSweepIndex{
 	NextValIndex:    0,
 	NextValDelIndex: 0,
 }

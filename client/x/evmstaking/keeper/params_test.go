@@ -71,31 +71,31 @@ func (s *TestSuite) TestMinPartialWithdrawalAmount() {
 func (s *TestSuite) TestSetValidatorSweepIndex() {
 	require := s.Require()
 	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	existingNextValIndex, existingNextValDelIndex, err := keeper.GetValidatorSweepIndex(ctx)
+	existingSweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
 	require.NoError(err)
 
 	// set new sweep index
 	newNextValIndex := uint64(10)
 	newNextValDelIndex := uint64(100)
 	// make sure new value is different from existing value
-	require.NotEqual(existingNextValIndex, newNextValIndex)
-	require.NotEqual(existingNextValDelIndex, newNextValDelIndex)
-	require.NoError(keeper.SetValidatorSweepIndex(ctx, newNextValIndex, newNextValDelIndex))
+	require.NotEqual(existingSweepIndex.NextValIndex, newNextValIndex)
+	require.NotEqual(existingSweepIndex.NextValDelIndex, newNextValDelIndex)
+	require.NoError(keeper.SetValidatorSweepIndex(ctx, types.NewValidatorSweepIndex(newNextValIndex, newNextValDelIndex)))
 
 	// check new sweep index is set correctly
-	nextValIndex, nextValDelIndex, err := keeper.GetValidatorSweepIndex(ctx)
+	sweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
 	require.NoError(err)
-	require.Equal(newNextValIndex, nextValIndex)
-	require.Equal(newNextValDelIndex, nextValDelIndex)
+	require.Equal(newNextValIndex, sweepIndex.NextValIndex)
+	require.Equal(newNextValDelIndex, sweepIndex.NextValDelIndex)
 }
 
 func (s *TestSuite) TestGetValidatorSweepIndex() {
 	require := s.Require()
 	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	nextValIndex, nextValDelIndex, err := keeper.GetValidatorSweepIndex(ctx)
+	sweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
 	require.NoError(err)
-	require.Equal(uint64(0), nextValIndex)
-	require.Equal(uint64(0), nextValDelIndex)
+	require.Equal(uint64(0), sweepIndex.NextValIndex)
+	require.Equal(uint64(0), sweepIndex.NextValDelIndex)
 }
 
 func (s *TestSuite) TestGetOldValidatorSweepIndex() {

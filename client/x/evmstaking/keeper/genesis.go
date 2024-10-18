@@ -16,7 +16,12 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 	if err := k.ValidateGenesis(gs); err != nil {
 		return err
 	}
+
 	if err := k.SetParams(ctx, gs.Params); err != nil {
+		return err
+	}
+
+	if err := k.SetValidatorSweepIndex(ctx, gs.ValidatorSweepIndex); err != nil {
 		return err
 	}
 
@@ -71,20 +76,22 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 		panic(err)
 	}
 
+	validatorSweepIndex, err := k.GetValidatorSweepIndex(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	return &types.GenesisState{
-		Params: params,
+		Params:              params,
+		ValidatorSweepIndex: validatorSweepIndex,
 	}
 }
 
 //nolint:revive // TODO: validate genesis
 func (k Keeper) ValidateGenesis(gs *types.GenesisState) error {
-	if err := types.ValidateMaxWithdrawalPerBlock(gs.Params.MaxWithdrawalPerBlock); err != nil {
-		return err
+	if err := gs.Params.Validate(); err != nil {
+		return errors.Wrap(err, "validate genesis state params")
 	}
 
-	if err := types.ValidateMaxSweepPerBlock(gs.Params.MaxSweepPerBlock, gs.Params.MaxWithdrawalPerBlock); err != nil {
-		return err
-	}
-
-	return types.ValidateMinPartialWithdrawalAmount(gs.Params.MinPartialWithdrawalAmount)
+	return nil
 }

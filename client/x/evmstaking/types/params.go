@@ -8,7 +8,7 @@ import (
 const (
 	DefaultMaxWithdrawalPerBlock uint32 = 4
 
-	DefaultMaxSweepPerBlock uint32 = 64
+	DefaultMaxSweepPerBlock uint32 = 1024
 
 	DefaultMinPartialWithdrawalAmount uint64 = 600_000
 
@@ -33,6 +33,22 @@ func DefaultParams() Params {
 		DefaultMinPartialWithdrawalAmount,
 		DefaultSingularityHeight,
 	)
+}
+
+func (p Params) Validate() error {
+	if err := ValidateMaxWithdrawalPerBlock(p.MaxWithdrawalPerBlock); err != nil {
+		return err
+	}
+
+	if err := ValidateMaxSweepPerBlock(p.MaxSweepPerBlock, p.MaxWithdrawalPerBlock); err != nil {
+		return err
+	}
+
+	if err := ValidateMinPartialWithdrawalAmount(p.MinPartialWithdrawalAmount); err != nil {
+		return err
+	}
+
+	return ValidateSingularityHeight(p.SingularityHeight)
 }
 
 func ValidateMaxWithdrawalPerBlock(v uint32) error {
