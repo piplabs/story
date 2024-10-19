@@ -69,6 +69,26 @@ func UnwrapErrCode(err error) ErrCode {
 	switch {
 	case errors.Is(err, ErrUnspecified):
 		return Unspecified
+	case errors.Is(err, ErrInvalidUncmpPubKey):
+		return InvalidUncmpPubKey
+	case errors.Is(err, ErrValidatorNotFound):
+		return ValidatorNotFound
+	case errors.Is(err, ErrValidatorAlreadyExists):
+		return ValidatorAlreadyExists
+	case errors.Is(err, ErrInvalidTokenType):
+		return InvalidTokenType
+	case errors.Is(err, ErrInvalidPeriodType):
+		return InvalidPeriodType
+	case errors.Is(err, ErrInvalidOperator):
+		return InvalidOperator
+	case errors.Is(err, ErrInvalidCommissionRate):
+		return InvalidCommissionRate
+	case errors.Is(err, ErrInvalidMinSelfDelegation):
+		return InvalidMinSelfDelegation
+	case errors.Is(err, ErrInvalidDelegationAmount):
+		return InvalidDelegationAmount
+	case errors.Is(err, ErrPeriodDelegationNotFound):
+		return PeriodDelegationNotFound
 	default:
 		return Unspecified
 	}
