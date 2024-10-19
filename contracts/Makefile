@@ -44,3 +44,7 @@ check-abigen-version: ## Check abigen version, exit(1) if not 1.13.14-stable.
 		echo "Install with go install github.com/ethereum/go-ethereum/cmd/abigen@v1.13.14"; \
 		exit 1; \
 	fi
+
+.PHONY: gengen
+gengen: ## Generate genesis config
+	forge script script/GenerateAlloc.s.sol -vvv --chain-id $(CHAIN_ID)
