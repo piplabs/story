@@ -331,22 +331,27 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 
 // GetDelegatorByDelegatorAddress queries delegator info for given delegator address.
 func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
 	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(r.Context(), delAddr)
+	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(queryContext, delAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(r.Context(), delAddr)
+	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(queryContext, delAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(r.Context(), delAddr)
+	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
 	if err != nil {
 		return nil, err
 	}
