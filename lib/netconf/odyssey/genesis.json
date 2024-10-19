@@ -21,7 +21,7 @@
       "app": "0"
     },
     "abci": {
-      "vote_extensions_enable_height": "1"
+      "vote_extensions_enable_height": "0"
     }
   },
   "app_hash": "",
@@ -193,7 +193,7 @@
     },
     "distribution": {
       "params": {
-        "ubi": "0.000000000000000000",
+        "ubi": "0.065000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true
@@ -212,7 +212,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "MtGd+Hzb4VnGm+PGTXDJhSkChm+iUjUGCX7LUS8o754="
+        "execution_block_hash": "Rv2Ok8OtlhAOD4Dksc00aZZlCqGntjL98rqNzIgNn90="
       }
     },
     "genutil": {
@@ -230,11 +230,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story1kz2cgurfhgege6zqnk8vwupwzqcjry0dj99f7f",
                 "validator_address": "storyvaloper1kz2cgurfhgege6zqnk8vwupwzqcjry0du23g4z",
                 "pubkey": {
@@ -244,7 +244,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -277,11 +278,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story1wl873hxdkhhjalt86zgmyphfzlt2kl39cxp8pk",
                 "validator_address": "storyvaloper1wl873hxdkhhjalt86zgmyphfzlt2kl39kf4x2a",
                 "pubkey": {
@@ -291,7 +292,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -324,11 +326,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story1pdj0z84lau0l7vf2jl4qs7yggv48p3av2g732g",
                 "validator_address": "storyvaloper1pdj0z84lau0l7vf2jl4qs7yggv48p3avy82spr",
                 "pubkey": {
@@ -338,7 +340,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -371,11 +374,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story1z0uqv8xrw2j23mlcpmzatt3jj9hzezdqpgfzvq",
                 "validator_address": "storyvaloper1z0uqv8xrw2j23mlcpmzatt3jj9hzezdq08ar8t",
                 "pubkey": {
@@ -385,7 +388,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -418,11 +422,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story10j30q04u6hs0ktcxlwh77j22cp7v26gktq8ry7",
                 "validator_address": "storyvaloper10j30q04u6hs0ktcxlwh77j22cp7v26gk90nz04",
                 "pubkey": {
@@ -432,7 +436,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -465,11 +470,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story19stnkys77a97pxg9uqd2j24sljun4nzhwa6wxc",
                 "validator_address": "storyvaloper19stnkys77a97pxg9uqd2j24sljun4nzhqjw0dn",
                 "pubkey": {
@@ -479,7 +484,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -512,11 +518,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story12zzvtjr4yyf0qfsyf5eayrrftjx6vzukqnuxpm",
                 "validator_address": "storyvaloper12zzvtjr4yyf0qfsyf5eayrrftjx6vzukwug82s",
                 "pubkey": {
@@ -526,7 +532,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -559,11 +566,11 @@
                   "details": ""
                 },
                 "commission": {
-                  "rate": "0.000000000000000000",
-                  "max_rate": "0.000000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024000000000",
                 "delegator_address": "story1a6u7vn2j5e6z0l6ykdyv809gxq0qaywqgu9zxy",
                 "validator_address": "storyvaloper1a6u7vn2j5e6z0l6ykdyv809gxq0qaywqxn3rd0",
                 "pubkey": {
@@ -573,7 +580,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -597,24 +605,24 @@
     },
     "slashing": {
       "params": {
-        "signed_blocks_window": "50000",
+        "signed_blocks_window": "28800",
         "min_signed_per_window": "0.050000000000000000",
         "downtime_jail_duration": "600s",
         "slash_fraction_double_sign": "0.050000000000000000",
-        "slash_fraction_downtime": "0.000100000000000000"
+        "slash_fraction_downtime": "0.000200000000000000"
       },
       "signing_infos": [],
       "missed_blocks": []
     },
     "staking": {
       "params": {
-        "unbonding_time": "3600s",
-        "max_validators": 100,
-        "max_entries": 7,
+        "unbonding_time": "1209600s",
+        "max_validators": 64,
+        "max_entries": 14,
         "historical_entries": 10000,
         "bond_denom": "stake",
-        "min_commission_rate": "0.000000000000000000",
-        "min_delegation": "1024",
+        "min_commission_rate": "0.050000000000000000",
+        "min_delegation": "1024000000000",
         "flexible_period_type": 0,
         "periods": [
           {
@@ -624,17 +632,17 @@
           },
           {
             "period_type": 1,
-            "duration": "60s",
+            "duration": "2592000s",
             "rewards_multiplier": "1.051000000000000000"
           },
           {
             "period_type": 2,
-            "duration": "120s",
+            "duration": "10368000s",
             "rewards_multiplier": "1.160000000000000000"
           },
           {
             "period_type": 3,
-            "duration": "180s",
+            "duration": "46656000s",
             "rewards_multiplier": "1.340000000000000000"
           }
         ],
@@ -662,7 +670,7 @@
       "params": {
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
-        "min_partial_withdrawal_amount": 100000000,
+        "min_partial_withdrawal_amount": 8000000000,
         "singularity_height": "1209600",
         "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
@@ -671,7 +679,7 @@
       "params": {
         "mint_denom": "stake",
         "inflations_per_year": "24625000000000000",
-        "blocks_per_year": "6311520",
+        "blocks_per_year": "10368000",
         "singularity_height": "1209600"
       }
     }
