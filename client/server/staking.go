@@ -2,6 +2,7 @@
 package server
 
 import (
+	"github.com/piplabs/story/lib/k1util"
 	"net/http"
 	"strconv"
 
@@ -19,19 +20,19 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/historical_info/{height}", utils.SimpleWrap(s.aminoCodec, s.GetHistoricalInfoByHeight))
 
 	s.httpMux.HandleFunc("/staking/validators", utils.AutoWrap(s.aminoCodec, s.GetValidators))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorDelegationsByValidatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorDelegationsByValidatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegations/{delegator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegations/{delegator_pub_key}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegators/{delegator_pub_key}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegators/{delegator_pub_key}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
 
-	s.httpMux.HandleFunc("/staking/delegations/{delegator_addr}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+	s.httpMux.HandleFunc("/staking/delegations/{delegator_pub_key}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/validators/{validator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
 }
 
 // GetStakingParams queries the staking parameters.
@@ -129,8 +130,13 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Validator(queryContext, &stakingtypes.QueryValidatorRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		ValidatorAddr: valAddr,
 	})
 
 	if err != nil {
@@ -151,8 +157,13 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).ValidatorDelegations(queryContext, &stakingtypes.QueryValidatorDelegationsRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		ValidatorAddr: valAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -176,10 +187,19 @@ func (s *Server) GetDelegationByValidatorAddressDelegatorAddress(r *http.Request
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Delegation(queryContext, &stakingtypes.QueryDelegationRequest{
-		ValidatorAddr: muxVars["validator_addr"],
-		DelegatorAddr: muxVars["delegator_addr"],
+		ValidatorAddr: valAddr,
+		DelegatorAddr: delAddr,
 	})
 	if err != nil {
 		return nil, err
@@ -195,8 +215,13 @@ func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDele
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).ValidatorUnbondingDelegations(queryContext, &stakingtypes.QueryValidatorUnbondingDelegationsRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		ValidatorAddr: valAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -219,10 +244,19 @@ func (s *Server) GetDelegatorUnbondingDelegation(r *http.Request) (resp any, err
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).UnbondingDelegation(queryContext, &stakingtypes.QueryUnbondingDelegationRequest{
-		ValidatorAddr: muxVars["validator_addr"],
-		DelegatorAddr: muxVars["delegator_addr"],
+		ValidatorAddr: valAddr,
+		DelegatorAddr: delAddr,
 	})
 	if err != nil {
 		return nil, err
@@ -238,8 +272,13 @@ func (s *Server) GetDelegationsByDelegatorAddress(req *getDelegationsByDelegator
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorDelegations(queryContext, &stakingtypes.QueryDelegatorDelegationsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: delAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -263,8 +302,13 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Redelegations(queryContext, &stakingtypes.QueryRedelegationsRequest{
-		DelegatorAddr:    mux.Vars(r)["delegator_addr"],
+		DelegatorAddr:    delAddr,
 		SrcValidatorAddr: req.SrcValidatorAddr,
 		DstValidatorAddr: req.DstValidatorAddr,
 		Pagination: &query.PageRequest{
@@ -290,8 +334,13 @@ func (s *Server) GetUnbondingDelegationsByDelegatorAddress(req *getUnbondingDele
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorUnbondingDelegations(queryContext, &stakingtypes.QueryDelegatorUnbondingDelegationsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: delAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -315,8 +364,13 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorValidators(queryContext, &stakingtypes.QueryDelegatorValidatorsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: delAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -346,10 +400,19 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorValidator(queryContext, &stakingtypes.QueryDelegatorValidatorRequest{
-		DelegatorAddr: muxVars["delegator_addr"],
-		ValidatorAddr: muxVars["validator_addr"],
+		DelegatorAddr: delAddr,
+		ValidatorAddr: valAddr,
 	})
 
 	if err != nil {
@@ -371,12 +434,22 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 	}
 
 	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress([]byte(muxVars["validator_pub_key"]))
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(muxVars["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(valAddrStr)
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(delAddrStr)
 	if err != nil {
 		return nil, err
 	}
@@ -392,12 +465,22 @@ func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (re
 	}
 
 	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress([]byte(muxVars["validator_pub_key"]))
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(muxVars["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(valAddrStr)
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(delAddrStr)
 	if err != nil {
 		return nil, err
 	}

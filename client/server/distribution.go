@@ -3,6 +3,7 @@ package server
 
 import (
 	"errors"
+	"github.com/piplabs/story/lib/k1util"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,16 +18,16 @@ import (
 func (s *Server) initDistributionRoute() {
 	s.httpMux.HandleFunc("/distribution/params", utils.SimpleWrap(s.aminoCodec, s.GetDistributionParams))
 
-	s.httpMux.HandleFunc("/distribution/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorByValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/commission", utils.SimpleWrap(s.aminoCodec, s.GetValidatorCommissionByValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/outstanding_rewards", utils.SimpleWrap(s.aminoCodec, s.GetValidatorOutstandingRewardsByValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/slashes", utils.AutoWrap(s.aminoCodec, s.GetValidatorSlashesByValidatorAddress))
+	s.httpMux.HandleFunc("/distribution/validators/{validator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorByValidatorAddress))
+	s.httpMux.HandleFunc("/distribution/validators/{validator_pub_key}/commission", utils.SimpleWrap(s.aminoCodec, s.GetValidatorCommissionByValidatorAddress))
+	s.httpMux.HandleFunc("/distribution/validators/{validator_pub_key}/outstanding_rewards", utils.SimpleWrap(s.aminoCodec, s.GetValidatorOutstandingRewardsByValidatorAddress))
+	s.httpMux.HandleFunc("/distribution/validators/{validator_pub_key}/slashes", utils.AutoWrap(s.aminoCodec, s.GetValidatorSlashesByValidatorAddress))
 	s.httpMux.HandleFunc("/distribution/all_validators/outstanding_rewards", utils.AutoWrap(s.aminoCodec, s.GetAllValidatorOutstandingRewards))
 
-	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/validators", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorsByDelegatorAddress))
-	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/rewards", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddress))
-	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/rewards/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddressValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/withdraw_address", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorWithdrawAddressByDelegatorAddress))
+	s.httpMux.HandleFunc("/distribution/delegators/{delegator_pub_key}/validators", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorsByDelegatorAddress))
+	s.httpMux.HandleFunc("/distribution/delegators/{delegator_pub_key}/rewards", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddress))
+	s.httpMux.HandleFunc("/distribution/delegators/{delegator_pub_key}/rewards/{validator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddressValidatorAddress))
+	s.httpMux.HandleFunc("/distribution/delegators/{delegator_pub_key}/withdraw_address", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorWithdrawAddressByDelegatorAddress))
 }
 
 // GetDistributionParams queries params of the distribution module.
@@ -51,8 +52,13 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorDistributionInfo(queryContext, &distributiontypes.QueryValidatorDistributionInfoRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: valAddr,
 	})
 	if err != nil {
 		return nil, err
@@ -68,8 +74,13 @@ func (s *Server) GetValidatorCommissionByValidatorAddress(r *http.Request) (resp
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorCommission(queryContext, &distributiontypes.QueryValidatorCommissionRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: valAddr,
 	})
 
 	if err != nil {
@@ -86,8 +97,13 @@ func (s *Server) GetValidatorOutstandingRewardsByValidatorAddress(r *http.Reques
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorOutstandingRewards(queryContext, &distributiontypes.QueryValidatorOutstandingRewardsRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: valAddr,
 	})
 
 	if err != nil {
@@ -145,8 +161,13 @@ func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesB
 		return nil, err
 	}
 
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorSlashes(queryContext, &distributiontypes.QueryValidatorSlashesRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: valAddr,
 		StartingHeight:   req.StartingHeight,
 		EndingHeight:     req.EndingHeight,
 		Pagination: &query.PageRequest{
@@ -172,8 +193,13 @@ func (s *Server) GetDistributionValidatorsByDelegatorAddress(r *http.Request) (r
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorValidators(queryContext, &distributiontypes.QueryDelegatorValidatorsRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
+		DelegatorAddress: delAddr,
 	})
 
 	if err != nil {
@@ -190,8 +216,13 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddress(r *http.Request) (resp an
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationTotalRewards(queryContext, &distributiontypes.QueryDelegationTotalRewardsRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
+		DelegatorAddress: delAddr,
 	})
 
 	if err != nil {
@@ -208,10 +239,19 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddressValidatorAddress(r *http.R
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationRewards(queryContext, &distributiontypes.QueryDelegationRewardsRequest{
-		DelegatorAddress: muxVars["delegator_address"],
-		ValidatorAddress: muxVars["validator_address"],
+		DelegatorAddress: delAddr,
+		ValidatorAddress: valAddr,
 	})
 
 	if err != nil {
@@ -228,8 +268,13 @@ func (s *Server) GetDelegatorWithdrawAddressByDelegatorAddress(r *http.Request) 
 		return nil, err
 	}
 
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorWithdrawAddress(queryContext, &distributiontypes.QueryDelegatorWithdrawAddressRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
+		DelegatorAddress: delAddr,
 	})
 
 	if err != nil {

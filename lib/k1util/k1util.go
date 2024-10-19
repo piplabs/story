@@ -3,6 +3,8 @@ package k1util
 
 import (
 	stdecdsa "crypto/ecdsa"
+	"fmt"
+	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cometbft/cometbft/crypto"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
@@ -177,4 +179,23 @@ func CosmosPubkeyToEVMAddress(pubkeyCmp []byte) (addr common.Address, err error)
 	addr = ethcrypto.PubkeyToAddress(*key)
 
 	return addr, nil
+}
+
+func CmpPubKeyToDelegatorAddress(cmpPubKey []byte) (string, error) {
+	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
+		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
+	}
+
+	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
+
+	return cosmostypes.AccAddress(pubKey.Address().Bytes()).String(), nil
+}
+
+func CmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
+	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
+		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
+	}
+	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
+
+	return cosmostypes.ValAddress(pubKey.Address().Bytes()).String(), nil
 }
