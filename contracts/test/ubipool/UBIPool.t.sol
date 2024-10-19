@@ -9,7 +9,6 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { IUBIPool } from "../../src/interfaces/IUBIPool.sol";
 import { Test } from "../utils/Test.sol";
 import { ValidatorData } from "../data/ValidatorData.sol";
-import { Errors } from "../../src/libraries/Errors.sol";
 
 contract UBIPoolTest is Test, ValidatorData {
     function setUp() public virtual override {
@@ -61,7 +60,8 @@ contract UBIPoolTest is Test, ValidatorData {
             assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
             assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), 0);
         }
-        /*
+        vm.deal(address(ubiPool), totalAmount);
+        vm.prank(admin);
         assertEq(ubiPool.setUBIDistribution(totalAmount, validatorUncmpPubKeys, amounts), 2);
         for (uint256 i = 0; i < validators.length; i++) {
             uint256 amount = amounts[i];
@@ -73,7 +73,7 @@ contract UBIPoolTest is Test, ValidatorData {
             assertEq(address(validators[i].evmAddress).balance, balanceBefore + amount);
             assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
             assertEq(ubiPool.validatorUBIAmounts(2, validatorUncmpPubKeys[i]), 0);
-        }*/
+        }
     }
 
     function test_setUBIDistribution_reverts() public {
@@ -125,7 +125,7 @@ contract UBIPoolTest is Test, ValidatorData {
         validatorUncmpPubKeys[
             0
         ] = hex"0482782124bc9cd03c38aa4cac234dc4e4e3cecf04d57914371baf7fa78ffb975f6d58e245bea952dd039f0fec4e9db418c3b00000"; // pragma: allowlist secret
-        vm.expectRevert(Errors.PubKeyVerifier__InvalidPubkeyLength.selector);
+        vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
         vm.prank(admin);
         ubiPool.setUBIDistribution(100 ether, validatorUncmpPubKeys, amounts);
     }

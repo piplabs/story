@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import { PubKeyVerification } from "./PubKeyVerification.sol";
+import { PubKeyVerifier } from "./PubKeyVerifier.sol";
 import { IUBIPool } from "../interfaces/IUBIPool.sol";
 
 /// @title UBIPool
@@ -18,7 +18,7 @@ contract UBIPool is
     IUBIPool,
     Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable,
-    PubKeyVerification,
+    PubKeyVerifier,
     MulticallUpgradeable
 {
     /// @notice The maximum UBI percentage
