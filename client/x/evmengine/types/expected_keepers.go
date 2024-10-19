@@ -30,10 +30,6 @@ type UpgradeKeeper interface {
 	ScheduleUpgrade(ctx context.Context, plan upgradetypes.Plan) error
 }
 
-type MintKeeper interface {
-	ProcessInflationEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
-}
-
 type DistrKeeper interface {
 	SetUbi(ctx context.Context, newUbi math.LegacyDec) error
 }

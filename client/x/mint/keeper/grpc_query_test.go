@@ -13,13 +13,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/piplabs/story/client/x/mint/keeper"
 	mintmodule "github.com/piplabs/story/client/x/mint/module"
 	minttestutil "github.com/piplabs/story/client/x/mint/testutil"
 	"github.com/piplabs/story/client/x/mint/types"
+
+	"go.uber.org/mock/gomock"
 )
 
 type MintTestSuite struct {
