@@ -231,8 +231,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1kz2cgurfhgege6zqnk8vwupwzqcjry0dj99f7f",
@@ -279,8 +279,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1wl873hxdkhhjalt86zgmyphfzlt2kl39cxp8pk",
@@ -327,8 +327,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1pdj0z84lau0l7vf2jl4qs7yggv48p3av2g732g",
@@ -375,8 +375,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1z0uqv8xrw2j23mlcpmzatt3jj9hzezdqpgfzvq",
@@ -423,8 +423,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story10j30q04u6hs0ktcxlwh77j22cp7v26gktq8ry7",
@@ -471,8 +471,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story19stnkys77a97pxg9uqd2j24sljun4nzhwa6wxc",
@@ -519,8 +519,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story12zzvtjr4yyf0qfsyf5eayrrftjx6vzukqnuxpm",
@@ -567,8 +567,8 @@
                 },
                 "commission": {
                   "rate": "0.070000000000000000",
-                  "max_rate": "0.070000000000000000",
-                  "max_change_rate": "0.000000000000000000"
+                  "max_rate": "0.100000000000000000",
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1a6u7vn2j5e6z0l6ykdyv809gxq0qaywqgu9zxy",
