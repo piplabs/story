@@ -16,8 +16,6 @@ library Predeploys {
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;
     address internal constant Create3 = 0xCcCcCC0000000000000000000000000000000004;
 
-    address internal constant Timelock = address(uint160(Namespace) - 1);
-
     /// @notice Return true if `addr` is not proxied
     function notProxied(address addr) internal pure returns (bool) {
         return addr == WIP;
