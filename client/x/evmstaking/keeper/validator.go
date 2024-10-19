@@ -35,6 +35,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 					sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
 					sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -43,7 +44,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress validator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -104,7 +105,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	if _, err = k.stakingKeeper.GetValidator(ctx, validatorAddr); err == nil {
-		return errors.New("validator already exists")
+		return types.WrapErrWithCode(types.ValidatorAlreadyExists, errors.Wrap(err, "validator already exists"))
 	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
 		// Either the validator does not exist, or unknown error.
 		return errors.Wrap(err, "get validator")
@@ -122,7 +123,8 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 
 	tokenType := int32(ev.SupportsUnlocked)
 	if _, err := k.stakingKeeper.GetTokenTypeInfo(ctx, tokenType); err != nil {
-		return errors.Wrap(err, "invalid token type")
+		// TODO(rayden)
+		return types.WrapErrWithCode(types.InvalidTokenType, errors.Wrap(err, "invalid token type"))
 	}
 
 	// Validator does not exist, create validator with self-delegation.

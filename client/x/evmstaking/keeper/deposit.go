@@ -31,6 +31,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 					sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -38,7 +39,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress delegator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
@@ -47,7 +48,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUnCmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress validator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -109,7 +110,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	val, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return errors.New("validator not exists")
+		return types.WrapErrWithCode(types.ValidatorNotFound, errors.New("validator not exists"))
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
@@ -127,6 +128,11 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		}
 		periodType = flexPeriodType
 		delID = stypes.FlexiblePeriodDelegationID
+	}
+
+	if _, err := k.stakingKeeper.GetPeriodInfo(ctx, periodType); err != nil {
+		// TODO(rayden)
+		return errors.Wrap(err, "get period info")
 	}
 
 	// TODO: Check if we can instantiate the msgServer without type assertion

@@ -327,6 +327,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -344,7 +345,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress depositor pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress depositor pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
@@ -353,7 +354,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUnCmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress validator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -376,12 +377,18 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	if delEvmAddr.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
-			return errors.New("invalid unstakeOnBehalf txn, no operator for delegator")
+			return types.WrapErrWithCode(
+				types.InvalidOperator,
+				errors.New("invalid unstakeOnBehalf txn, not from operator"),
+			)
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
 		if operatorAddr != ev.OperatorAddress.String() {
-			return errors.New("invalid unstakeOnBehalf txn, not from operator")
+			return types.WrapErrWithCode(
+				types.InvalidOperator,
+				errors.New("invalid unstakeOnBehalf txn, not from operator"),
+			)
 		}
 	}
 
