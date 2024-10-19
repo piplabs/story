@@ -13,10 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/mint/types"
-	"github.com/piplabs/story/contracts/bindings"
-	clog "github.com/piplabs/story/lib/log"
 )
 
 // Keeper of the mint store.
@@ -26,8 +23,6 @@ type Keeper struct {
 	stakingKeeper    types.StakingKeeper
 	bankKeeper       types.BankKeeper
 	feeCollectorName string
-
-	inflationUpdateContract *bindings.IPTokenStaking // (rayden) TODO
 
 	Schema collections.Schema
 	Params collections.Item[types.Params]
@@ -49,13 +44,12 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:                     cdc,
-		storeService:            storeService,
-		stakingKeeper:           sk,
-		bankKeeper:              bk,
-		feeCollectorName:        feeCollectorName,
-		inflationUpdateContract: nil,
-		Params:                  collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		cdc:              cdc,
+		storeService:     storeService,
+		stakingKeeper:    sk,
+		bankKeeper:       bk,
+		feeCollectorName: feeCollectorName,
+		Params:           collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 	}
 
 	schema, err := sb.Build()
@@ -100,11 +94,4 @@ func (k Keeper) MintCoins(ctx context.Context, newCoins sdk.Coins) error {
 // AddCollectedFees to be used in BeginBlocker.
 func (k Keeper) AddCollectedFees(ctx context.Context, fees sdk.Coins) error {
 	return k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, fees)
-}
-
-func (k Keeper) ProcessInflationEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
-	// (rayden) TODO
-	clog.Debug(ctx, "Processed inflation events", "height", height, "count", len(logs))
-
-	return nil
 }

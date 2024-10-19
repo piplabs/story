@@ -36,7 +36,6 @@ type ModuleInputs struct {
 	AccountKeeper    types.AccountKeeper
 	EvmStakingKeeper types.EvmStakingKeeper
 	UpgradeKeeper    types.UpgradeKeeper
-	MintKeeper       types.MintKeeper
 	DistrKeeper      types.DistrKeeper
 }
 
@@ -58,7 +57,6 @@ func ProvideModule(in ModuleInputs) (ModuleOutputs, error) {
 		in.AccountKeeper,
 		in.EvmStakingKeeper,
 		in.UpgradeKeeper,
-		in.MintKeeper,
 		in.DistrKeeper,
 	)
 	if err != nil {

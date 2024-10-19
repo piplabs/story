@@ -126,7 +126,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 		// Convert the amount from wei to gwei (Eth2 spec withdrawal is specified in gwei) by dividing by 10^9.
 		// TODO: consider rounding and decimal precision when dividing bigint.
 
-		switch ethlog.Topics[0] { // TODO(rayden): update validator commission
+		switch ethlog.Topics[0] {
 		case types.UpdateValidatorCommission.ID:
 			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommssion(ethlog)
 			if err != nil {

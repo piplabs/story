@@ -41,7 +41,6 @@ type Keeper struct {
 	accountKeeper    types.AccountKeeper
 	evmstakingKeeper types.EvmStakingKeeper
 	upgradeKeeper    types.UpgradeKeeper
-	mintKeeper       types.MintKeeper
 	distrKeeper      types.DistrKeeper
 
 	upgradeContract *bindings.UpgradeEntrypoint
@@ -67,7 +66,6 @@ func NewKeeper(
 	ak types.AccountKeeper,
 	esk types.EvmStakingKeeper,
 	uk types.UpgradeKeeper,
-	mk types.MintKeeper,
 	dk types.DistrKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
@@ -105,7 +103,6 @@ func NewKeeper(
 		upgradeKeeper:    uk,
 		upgradeContract:  upgradeContract,
 		ubiContract:      ubiContract,
-		mintKeeper:       mk,
 		distrKeeper:      dk,
 	}, nil
 }
