@@ -26,15 +26,13 @@ func (c ErrCode) String() string {
 	return codeToErr[c].Error()
 }
 
-func WrapErrWithCode(_ ErrCode, _ error) error {
-	return nil
-	/*
-		if _, ok := codeToErr[code]; !ok {
-			code = Unknown
-		}
+//nolint:wrapcheck // we are wrapping the error with the code
+func WrapErrWithCode(code ErrCode, err error) error {
+	if _, ok := codeToErr[code]; !ok {
+		code = Unknown
+	}
 
-		return errors.Join(codeToErr[code], err)
-	*/
+	return errors.Join(codeToErr[code], err)
 }
 
 func UnwrapErrCode(err error) ErrCode {
