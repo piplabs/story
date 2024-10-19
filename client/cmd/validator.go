@@ -2,16 +2,15 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -22,29 +21,71 @@ import (
 	_ "embed"
 )
 
-type ContractType int
+type StakingPeriod int
 
 const (
-	STAKING ContractType = iota
-	UBIPOOL
+	FLEXIBLE StakingPeriod = iota
+	SHORT
+	MEDIUM
+	LONG
 )
 
-type ContractInfo struct {
-	AddressHex string
-	ABI        []byte
+func (sp *StakingPeriod) String() string {
+	switch *sp {
+	case FLEXIBLE:
+		return "flexible"
+	case SHORT:
+		return "short"
+	case MEDIUM:
+		return "medium"
+	case LONG:
+		return "long"
+	default:
+		return "unknown"
+	}
+}
+
+func (sp *StakingPeriod) Set(v string) error {
+	switch strings.ToLower(v) {
+	case "flexible":
+		*sp = FLEXIBLE
+	case "short":
+		*sp = SHORT
+	case "medium":
+		*sp = MEDIUM
+	case "long":
+		*sp = LONG
+	default:
+		return errors.New(`staking period must be one of "flexible", "short", "medium", or "long"`)
+	}
+
+	return nil
+}
+
+func (*StakingPeriod) Type() string {
+	return "stakingPeriod"
 }
 
 //go:embed abi/IPTokenStaking.abi.json
 var ipTokenStakingABI []byte
 
-//go:embed abi/IPTokenSlashing.abi.json
-var ipTokenSlashingABI []byte
-
 type baseConfig struct {
-	RPC        string
-	PrivateKey string
-	Explorer   string
-	ChainID    int64
+	RPC          string
+	PrivateKey   string
+	Explorer     string
+	ChainID      int64
+	ABI          *abi.ABI
+	ContractAddr common.Address
+}
+
+type createValidatorConfig struct {
+	stakeConfig
+	ValidatorKeyFile        string
+	Moniker                 string
+	CommissionRate          uint32
+	MaxCommissionRate       uint32
+	MaxCommissionChangeRate uint32
+	Unlocked                bool
 }
 
 type stakeConfig struct {
@@ -52,6 +93,12 @@ type stakeConfig struct {
 	DelegatorPubKey string
 	ValidatorPubKey string
 	StakeAmount     string
+	StakePeriod     StakingPeriod
+}
+
+type unstakeConfig struct {
+	stakeConfig
+	DelegationID uint32
 }
 
 type unjailConfig struct {
@@ -69,27 +116,10 @@ type withdrawalConfig struct {
 	WithdrawalAddress string
 }
 
-type createValidatorConfig struct {
-	baseConfig
-	ValidatorKeyFile string
-	StakeAmount      string
-}
-
 type exportKeyConfig struct {
 	ValidatorKeyFile string
 	EvmKeyFile       string
 	ExportEVMKey     bool
-}
-
-var contracts = map[ContractType]ContractInfo{
-	STAKING: {
-		AddressHex: predeploys.IPTokenStaking,
-		ABI:        ipTokenStakingABI,
-	},
-	UBIPOOL: {
-		AddressHex: predeploys.UBIPool,
-		ABI:        ipTokenSlashingABI,
-	},
 }
 
 func loadEnv() {
@@ -130,10 +160,13 @@ func newValidatorCreateCmd() *cobra.Command {
 		Short: "Create a new validator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateValidatorCreateFlags(cfg) },
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorCreateFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return createValidator(ctx, cfg) },
 		),
 	}
@@ -151,10 +184,10 @@ func newValidatorAddOperatorCmd() *cobra.Command {
 		Short: "Add a new operator to your delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateOperatorFlags(cfg) },
+			validateOperatorFlags,
 			func(ctx context.Context) error { return addOperator(ctx, cfg) },
 		),
 	}
@@ -172,10 +205,10 @@ func newValidatorRemoveOperatorCmd() *cobra.Command {
 		Short: "Removes an existing operator from your delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateOperatorFlags(cfg) },
+			validateOperatorFlags,
 			func(ctx context.Context) error { return removeOperator(ctx, cfg) },
 		),
 	}
@@ -193,10 +226,10 @@ func newValidatorSetWithdrawalAddressCmd() *cobra.Command {
 		Short: "Updates the withdrawal address that receives stake and reward withdrawals",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateWithdrawalFlags(cfg) },
+			validateWithdrawalFlags,
 			func(ctx context.Context) error { return setWithdrawalAddress(ctx, cfg) },
 		),
 	}
@@ -214,11 +247,12 @@ func newValidatorStakeCmd() *cobra.Command {
 		Short: "Stake tokens as the delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error {
-				return validateValidatorStakeFlags(cfg)
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorStakeFlags(ctx, cmd, &cfg)
 			},
 			func(ctx context.Context) error { return stake(ctx, cfg) },
 		),
@@ -237,11 +271,12 @@ func newValidatorStakeOnBehalfCmd() *cobra.Command {
 		Short: "Stake tokens on behalf of a delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error {
-				return validateValidatorStakeOnBehalfFlags(cfg)
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorStakeOnBehalfFlags(ctx, cmd, &cfg)
 			},
 			func(ctx context.Context) error { return stakeOnBehalf(ctx, cfg) },
 		),
@@ -253,17 +288,20 @@ func newValidatorStakeOnBehalfCmd() *cobra.Command {
 }
 
 func newValidatorUnstakeCmd() *cobra.Command {
-	var cfg stakeConfig
+	var cfg unstakeConfig
 
 	cmd := &cobra.Command{
 		Use:   "unstake",
 		Short: "Unstake tokens as the delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateValidatorStakeFlags(cfg) },
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnstakeFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unstake(ctx, cfg) },
 		),
 	}
@@ -274,17 +312,20 @@ func newValidatorUnstakeCmd() *cobra.Command {
 }
 
 func newValidatorUnstakeOnBehalfCmd() *cobra.Command {
-	var cfg stakeConfig
+	var cfg unstakeConfig
 
 	cmd := &cobra.Command{
 		Use:   "unstake-on-behalf",
 		Short: "Unstake tokens on behalf of a delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateValidatorUnstakeOnBehalfFlags(cfg) },
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnstakeOnBehalfFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unstakeOnBehalf(ctx, cfg) },
 		),
 	}
@@ -304,7 +345,7 @@ func newValidatorKeyExportCmd() *cobra.Command {
 			return nil
 		},
 		RunE: runValidatorCommand(
-			func() error { return nil },
+			func(_ *cobra.Command) error { return nil },
 			func(ctx context.Context) error { return exportKey(ctx, cfg) },
 		),
 	}
@@ -322,10 +363,10 @@ func newValidatorUnjailCmd() *cobra.Command {
 		Short: "Unjail the validator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return loadAndValidatePrivateKey(&cfg.baseConfig)
+			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			func() error { return validateValidatorUnjailFlags(cfg) },
+			validateValidatorUnjailFlags,
 			func(ctx context.Context) error { return unjail(ctx, cfg) },
 		),
 	}
@@ -336,11 +377,11 @@ func newValidatorUnjailCmd() *cobra.Command {
 }
 
 func runValidatorCommand(
-	validate func() error,
+	validate func(cmd *cobra.Command) error,
 	execute func(ctx context.Context) error,
 ) func(cmd *cobra.Command, _ []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
-		if err := validate(); err != nil {
+		if err := validate(cmd); err != nil {
 			_ = cmd.Help()
 			return err
 		}
@@ -398,7 +439,19 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "createValidatorOnBehalf", stakeAmount, uncompressedPubKeyBytes)
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"createValidatorOnBehalf",
+		stakeAmount,
+		uncompressedPubKeyBytes,
+		cfg.Moniker,
+		cfg.CommissionRate,
+		cfg.MaxCommissionRate,
+		cfg.MaxCommissionChangeRate,
+		cfg.Unlocked,
+		[]byte{},
+	)
 	if err != nil {
 		return err
 	}
@@ -416,7 +469,13 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 
 	withdrawalAddress := common.HexToAddress(cfg.WithdrawalAddress)
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "setWithdrawalAddress", big.NewInt(0), uncompressedPubKey, withdrawalAddress)
+	fee, err := getUint256(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Fee for withdrawing: %s wei\n", fee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setWithdrawalAddress", fee, uncompressedPubKey, withdrawalAddress)
 	if err != nil {
 		return err
 	}
@@ -434,7 +493,14 @@ func addOperator(ctx context.Context, cfg operatorConfig) error {
 
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "addOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
+	fee, err := getUint256(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Fee for adding operator: %s wei\n", fee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "addOperator", fee, uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -452,7 +518,7 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "removeOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -463,14 +529,18 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 }
 
 func stake(ctx context.Context, cfg stakeConfig) error {
-	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
+	uncompressedDelegatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		return err
 	}
 
-	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 pub key")
+		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -478,20 +548,36 @@ func stake(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedPubKey, validatorPubKeyBytes)
+	receipt, err := prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"stakeOnBehalf",
+		stakeAmount,
+		uncompressedDelegatorPubKeyBytes,
+		uncompressedValidatorPubKeyBytes,
+		uint8(cfg.StakePeriod),
+		[]byte{},
+	)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Tokens staked successfully!")
+	fmt.Println("Tokens staked successfully! Extracting delegation ID...")
+
+	delegationID, err := extractDelegationIDFromStake(&cfg, receipt)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Delegation ID: %s\n", delegationID.String())
 
 	return nil
 }
 
 func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
-	delegatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.DelegatorPubKey)
+	delegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 delegator public key")
+		return errors.Wrap(err, "failed to decode hex-encoded delegator public key")
 	}
 
 	uncompressedDelegatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(delegatorPubKeyBytes)
@@ -499,9 +585,13 @@ func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 		return errors.Wrap(err, "failed to uncompress delegator public key")
 	}
 
-	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode validator public key")
+		return errors.Wrap(err, "failed to decode hex-encoed validator public key")
+	}
+	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -509,33 +599,65 @@ func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "stakeOnBehalf", stakeAmount, uncompressedDelegatorPubKeyBytes, validatorPubKeyBytes)
+	receipt, err := prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"stakeOnBehalf",
+		stakeAmount,
+		uncompressedDelegatorPubKeyBytes,
+		uncompressedValidatorPubKeyBytes,
+		uint8(cfg.StakePeriod),
+		[]byte{},
+	)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Tokens staked on behalf of delegator successfully!")
+	fmt.Println("Tokens staked on behalf of delegator successfully! Extracting delegation ID...")
+
+	delegationID, err := extractDelegationIDFromStake(&cfg, receipt)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Delegation ID: %s\n", delegationID.String())
 
 	return nil
 }
 
-func unstake(ctx context.Context, cfg stakeConfig) error {
-	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
+func unstake(ctx context.Context, cfg unstakeConfig) error {
+	uncompressedDelegatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		return err
 	}
 
-	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 pub key")
+		return errors.Wrap(err, "failed to decode hex-encoded validator pub key")
+	}
+	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unstake", big.NewInt(0), uncompressedPubKey, validatorPubKeyBytes, unstakeAmount)
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"unstake",
+		big.NewInt(0),
+		uncompressedDelegatorPubKeyBytes,
+		uncompressedValidatorPubKeyBytes,
+		delegationID,
+		unstakeAmount,
+		[]byte{},
+	)
 	if err != nil {
 		return err
 	}
@@ -545,23 +667,39 @@ func unstake(ctx context.Context, cfg stakeConfig) error {
 	return nil
 }
 
-func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
-	delegatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.DelegatorPubKey)
+func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
+	uncompressedDelegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 delegator pub key")
+		return errors.Wrap(err, "failed to decode hex-encoded delegator pub key")
 	}
 
-	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 validator pub key")
+		return errors.Wrap(err, "failed to decode hex-encoded validator pub key")
+	}
+	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
 	}
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unstakeOnBehalf", big.NewInt(0), delegatorPubKeyBytes, validatorPubKeyBytes, unstakeAmount)
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"unstakeOnBehalf",
+		big.NewInt(0),
+		uncompressedDelegatorPubKeyBytes,
+		uncompressedValidatorPubKeyBytes,
+		delegationID,
+		unstakeAmount,
+		[]byte{},
+	)
 	if err != nil {
 		return err
 	}
@@ -572,34 +710,30 @@ func unstakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 }
 
 func unjail(ctx context.Context, cfg unjailConfig) error {
-	validatorPubKeyBytes, err := base64.StdEncoding.DecodeString(cfg.ValidatorPubKey)
+	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode base64 validator public key")
+		return errors.Wrap(err, "failed to decode hex-encoded validator public key")
 	}
 
-	if len(validatorPubKeyBytes) != secp256k1.PubKeyBytesLenCompressed {
-		return fmt.Errorf("invalid compressed public key length: %d", len(validatorPubKeyBytes))
-	}
-
-	contractABI, err := abi.JSON(strings.NewReader(string(contracts[STAKING].ABI)))
+	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
-	result, err := prepareAndReadContract(ctx, STAKING, &cfg.baseConfig, "unjailFee")
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
 	if err != nil {
 		return err
 	}
 
 	var unjailFee *big.Int
-	err = contractABI.UnpackIntoInterface(&unjailFee, "unjailFee", result)
+	err = cfg.ABI.UnpackIntoInterface(&unjailFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unjailFee")
 	}
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
 
-	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unjailOnBehalf", unjailFee, validatorPubKeyBytes)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjailOnBehalf", unjailFee, uncompressedValidatorPubKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -609,39 +743,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 	return nil
 }
 
-func prepareAndReadContract(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, args ...any) ([]byte, error) {
-	contractInfo := contracts[contractType]
-	contractAddress := common.HexToAddress(contractInfo.AddressHex)
-	contractABI, err := abi.JSON(strings.NewReader(string(contractInfo.ABI)))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse ABI")
-	}
-
-	data, err := contractABI.Pack(methodName, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack data")
-	}
-
-	return readContract(ctx, *cfg, contractAddress, data)
-}
-
-//nolint:unparam // more cases later
-func prepareAndExecuteTransaction(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {
-	contractInfo := contracts[contractType]
-	contractAddress := common.HexToAddress(contractInfo.AddressHex)
-	contractABI, err := abi.JSON(strings.NewReader(string(contractInfo.ABI)))
-	if err != nil {
-		return errors.Wrap(err, "failed to parse ABI")
-	}
-	data, err := contractABI.Pack(methodName, args...)
-	if err != nil {
-		return errors.Wrap(err, "failed to pack data")
-	}
-
-	return prepareAndSendTransaction(ctx, *cfg, contractAddress, value, data)
-}
-
-func loadAndValidatePrivateKey(cfg *baseConfig) error {
+func initializeBaseConfig(cfg *baseConfig) error {
 	if cfg.PrivateKey == "" {
 		loadEnv()
 		cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
@@ -655,5 +757,40 @@ func loadAndValidatePrivateKey(cfg *baseConfig) error {
 		return errors.Wrap(err, "invalid EVM private key")
 	}
 
+	contractABI, err := abi.JSON(strings.NewReader(string(ipTokenStakingABI)))
+	if err != nil {
+		return errors.Wrap(err, "failed to parse contract ABI")
+	}
+
+	cfg.ABI = &contractABI
+	cfg.ContractAddr = common.HexToAddress(predeploys.IPTokenStaking)
+
 	return nil
+}
+
+func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*big.Int, error) {
+	event := cfg.ABI.Events["Deposit"]
+	eventSignature := event.ID
+	for _, vLog := range receipt.Logs {
+		if vLog.Topics[0] == eventSignature {
+			eventData := struct {
+				DelegatorUncmpPubkey []byte
+				ValidatorUnCmpPubkey []byte
+				StakeAmount          *big.Int
+				StakingPeriod        *big.Int
+				DelegationId         *big.Int //nolint:revive,stylecheck // Definition comes from ABI
+				OperatorAddress      common.Address
+				Data                 []byte
+			}{}
+
+			err := cfg.ABI.UnpackIntoInterface(&eventData, "Deposit", vLog.Data)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to unpack deposit event")
+			}
+
+			return eventData.DelegationId, nil
+		}
+	}
+
+	return nil, errors.New("deposit event not found in transaction logs")
 }

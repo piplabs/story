@@ -38,6 +38,7 @@ type InitConfig struct {
 	Seeds           string
 	SeedMode        bool
 	Moniker         string
+	PersistentPeers string
 }
 
 // newInitCmd returns a new cobra command that initializes the files and folders required by story.
@@ -165,6 +166,12 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		// Otherwise, use the network's default seeds
 		comet.P2P.Seeds = strings.Join(networkSeeds, ",")
 		log.Info(ctx, "Using network's default P2P seeds", "seeds", comet.P2P.Seeds)
+	}
+
+	if initCfg.PersistentPeers != "" {
+		persistentPeers := SplitAndTrim(initCfg.PersistentPeers)
+		comet.P2P.PersistentPeers = strings.Join(persistentPeers, ",")
+		log.Info(ctx, "Overriding P2P persistent peers", "persistent-peers", comet.P2P.PersistentPeers)
 	}
 
 	if initCfg.SeedMode {

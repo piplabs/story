@@ -40,7 +40,7 @@ func newKeyConvertCmd() *cobra.Command {
 		Short: "Convert between various key formats",
 		Args:  cobra.NoArgs,
 		RunE: runValidatorCommand(
-			func() error { return validateKeyConvertFlags(cfg) },
+			validateKeyConvertFlags,
 			func(ctx context.Context) error { return convertKey(ctx, cfg) },
 		),
 	}
