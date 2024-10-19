@@ -55,7 +55,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "1000000000000"
+              "amount": "100000000000000000000000"
             }
           ]
         }
@@ -63,7 +63,7 @@
       "supply": [
         {
           "denom": "stake",
-          "amount": "1000000000000"
+          "amount": "100000000000000000000000"
         }
       ],
       "denom_metadata": [],
@@ -71,13 +71,13 @@
     },
     "distribution": {
       "params": {
-        "community_tax": "0.020000000000000000",
+        "ubi": "0.020000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true
       },
       "fee_pool": {
-        "community_pool": []
+        "ubi": []
       },
       "delegator_withdraw_infos": [],
       "previous_proposer": "",
@@ -112,7 +112,7 @@
                   "max_rate": "0.000000000000000000",
                   "max_change_rate": "0.000000000000000000"
                 },
-                "min_self_delegation": "1",
+                "min_self_delegation": "1024",
                 "delegator_address": "story1qct6s9rr86dk7wz8ejtupx4eac29p8eqsjcjcy",
                 "validator_address": "storyvaloper1qct6s9rr86dk7wz8ejtupx4eac29p8eq7avnn0",
                 "pubkey": {
@@ -121,7 +121,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "1000000000000"
+                  "amount": "100000000000000000000000"
                 }
               }
             ],
@@ -157,12 +157,47 @@
     },
     "staking": {
       "params": {
-        "unbonding_time": "10s",
+        "unbonding_time": "3600s",
         "max_validators": 100,
         "max_entries": 7,
         "historical_entries": 10000,
         "bond_denom": "stake",
-        "min_commission_rate": "0.000000000000000000"
+        "min_commission_rate": "0.000000000000000000",
+        "min_delegation": "1",
+        "flexible_period_type": 0,
+        "periods": [
+          {
+            "period_type": 0,
+            "duration": "0s",
+            "rewards_multiplier": "1.000000000000000000"
+          },
+          {
+            "period_type": 1,
+            "duration": "60s",
+            "rewards_multiplier": "1.051000000000000000"
+          },
+          {
+            "period_type": 2,
+            "duration": "120s",
+            "rewards_multiplier": "1.160000000000000000"
+          },
+          {
+            "period_type": 3,
+            "duration": "180s",
+            "rewards_multiplier": "1.340000000000000000"
+          }
+        ],
+        "locked_token_type": 0,
+        "token_types": [
+          {
+            "token_type": 0,
+            "rewards_multiplier": "0.500000000000000000"
+          },
+          {
+            "token_type": 1,
+            "rewards_multiplier": "1.000000000000000000"
+          }
+        ]
       },
       "last_total_power": "0",
       "last_validator_powers": [],
@@ -172,26 +207,21 @@
       "redelegations": [],
       "exported": false
     },
-    "valsync": {},
     "evmstaking": {
       "params": {
-        "max_withdrawal_per_block": 4,
-        "max_sweep_per_block": 64,
-        "min_partial_withdrawal_amount": 600000
+        "max_withdrawal_per_block": 32,
+        "max_sweep_per_block": 128,
+        "min_partial_withdrawal_amount": 100000000,
+        "singularity_height": "1209600",
+        "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
     },
     "mint": {
-      "minter": {
-        "inflation": "0.130000000000000000",
-        "annual_provisions": "0.000000000000000000"
-      },
       "params": {
         "mint_denom": "stake",
-        "inflation_rate_change": "0.130000000000000000",
-        "inflation_max": "0.200000000000000000",
-        "inflation_min": "0.070000000000000000",
-        "goal_bonded": "0.670000000000000000",
-        "blocks_per_year": "6311520"
+        "inflations_per_year": "24625000000000000",
+        "blocks_per_year": "6311520",
+        "singularity_height": "1209600"
       }
     }
   }
