@@ -29,6 +29,8 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/validators/{validator_pub_key}/delegators/{delegator_pub_key}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
 
 	s.httpMux.HandleFunc("/staking/delegations/{delegator_pub_key}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
+
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_pub_key}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
@@ -325,6 +327,36 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 	}
 
 	return queryResp, nil
+}
+
+// GetDelegatorByDelegatorAddress queries delegator info for given delegator address.
+func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err error) {
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	if err != nil {
+		return nil, err
+	}
+
+	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(r.Context(), delAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(r.Context(), delAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(r.Context(), delAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"delegator_pubkey": mux.Vars(r)["delegator_pub_key"],
+		"withdraw_address": delWithdrawEvmAddr,
+		"reward_address":   delRewardEvmAddr,
+		"operator_address": delOperatorEvmAddr,
+	}, nil
 }
 
 // GetUnbondingDelegationsByDelegatorAddress queries all unbonding delegations of a given delegator address.
