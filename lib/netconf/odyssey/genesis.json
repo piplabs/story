@@ -244,7 +244,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -291,7 +292,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -338,7 +340,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -385,7 +388,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 0
               }
             ],
             "memo": "",
@@ -432,7 +436,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -479,7 +484,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -526,7 +532,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
@@ -573,7 +580,8 @@
                 "value": {
                   "denom": "stake",
                   "amount": "10000000000000000"
-                }
+                },
+                "support_token_type": 1
               }
             ],
             "memo": "",
