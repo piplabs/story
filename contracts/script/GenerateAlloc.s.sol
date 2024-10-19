@@ -81,28 +81,38 @@ contract GenerateAlloc is Script {
 
     /// @notice Get the minimum delay for the timelock
     function getTimelockMinDelay() internal view returns (uint256) {
-        if (block.chainid == 1513) { // Iliad
+        if (block.chainid == 1513) {
+            // Iliad
             return 1 days;
-        } else if (block.chainid == 1512) { // Mininet
+        } else if (block.chainid == 1512) {
+            // Mininet
             return 10 seconds;
-        } else if (block.chainid == 1315) { // Odyssey devnet
+        } else if (block.chainid == 1315) {
+            // Odyssey devnet
             return 10 seconds;
-        } else if (block.chainid == 31337) { // Local
+        } else if (block.chainid == 31337) {
+            // Local
             return 10 seconds;
         } else {
             revert("Unsupported chain id");
         }
     }
 
-    function getTimelockControllers() internal view returns (address[] memory proposers, address[] memory executors, address canceller) {
+    function getTimelockControllers()
+        internal
+        view
+        returns (address[] memory proposers, address[] memory executors, address canceller)
+    {
         proposers = new address[](1);
         executors = new address[](1);
-        if (block.chainid == 1513) { // Iliad            
+        if (block.chainid == 1513) {
+            // Iliad
             proposers[0] = protocolAdmin;
             executors[0] = protocolAdmin;
             canceller = protocolAdmin;
             return (proposers, executors, protocolAdmin);
-        } else if (block.chainid == 1512 || block.chainid == 1315 || block.chainid == 31337) { // Mininet, Odyssey devnet, Local
+        } else if (block.chainid == 1512 || block.chainid == 1315 || block.chainid == 31337) {
+            // Mininet, Odyssey devnet, Local
             proposers[0] = protocolAdmin;
             executors[0] = timelockExecutor;
             canceller = timelockGuardian;
@@ -114,15 +124,20 @@ contract GenerateAlloc is Script {
 
     /// @notice main script method
     function run() public {
+        // Tests should set these addresses first
         if (protocolAdmin == address(0)) {
             protocolAdmin = vm.envAddress("ADMIN_ADDRESS");
         }
         require(protocolAdmin != address(0), "protocolAdmin not set");
 
-        timelockExecutor = vm.envAddress("TIMELOCK_EXECUTOR_ADDRESS");
+        if (timelockExecutor == address(0)) {
+            timelockExecutor = vm.envAddress("TIMELOCK_EXECUTOR_ADDRESS");
+        }
         require(timelockExecutor != address(0), "executor not set");
 
-        timelockGuardian = vm.envAddress("TIMELOCK_GUARDIAN_ADDRESS");
+        if (timelockGuardian == address(0)) {
+            timelockGuardian = vm.envAddress("TIMELOCK_GUARDIAN_ADDRESS");
+        }
         require(timelockGuardian != address(0), "canceller not set");
 
         vm.startPrank(deployer);
@@ -169,7 +184,6 @@ contract GenerateAlloc is Script {
         // We deploy this with Create3 because we can't set storage variables in constructor with vm.etch
 
         uint256 minDelay = getTimelockMinDelay();
-
         (address[] memory proposers, address[] memory executors, address canceller) = getTimelockControllers();
 
         bytes memory creationCode = abi.encodePacked(
@@ -179,8 +193,14 @@ contract GenerateAlloc is Script {
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER");
         timelock = Create3(Predeploys.Create3).deploy(salt, creationCode);
 
-        TimelockController(payable(timelock)).grantRole(TimelockController(payable(timelock)).CANCELLER_ROLE(), canceller);
-        TimelockController(payable(timelock)).renounceRole(TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(), deployer);
+        TimelockController(payable(timelock)).grantRole(
+            TimelockController(payable(timelock)).CANCELLER_ROLE(),
+            canceller
+        );
+        TimelockController(payable(timelock)).renounceRole(
+            TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
+            deployer
+        );
 
         console2.log("TimelockController deployed at:", timelock);
     }
@@ -308,7 +328,7 @@ contract GenerateAlloc is Script {
 
     function setAllocations() internal {
         // EL Predeploys
-        vm.deal(0x0000000000000000000000000000000000000001, 1);
+        // Geth precompiles
         vm.deal(0x0000000000000000000000000000000000000001, 1);
         vm.deal(0x0000000000000000000000000000000000000002, 1);
         vm.deal(0x0000000000000000000000000000000000000003, 1);
@@ -318,6 +338,7 @@ contract GenerateAlloc is Script {
         vm.deal(0x0000000000000000000000000000000000000007, 1);
         vm.deal(0x0000000000000000000000000000000000000008, 1);
         vm.deal(0x0000000000000000000000000000000000000009, 1);
+        // Story's IPGraph precompile
         vm.deal(0x000000000000000000000000000000000000001a, 1);
         // Allocation
         if (block.chainid == MAINNET_CHAIN_ID) {

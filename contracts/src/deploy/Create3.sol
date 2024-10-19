@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import { CREATE3 } from "solmate/src/utils/CREATE3.sol";
-import { console2 } from "forge-std/console2.sol";
+
 /**
  * @title Create3
  * @notice Factory for deploying contracts to deterministic addresses via CREATE3 Enables deploying
@@ -20,10 +20,6 @@ contract Create3 {
      * @return deployed     The address of the deployed contract
      */
     function deploy(bytes32 salt, bytes memory creationCode) external payable returns (address deployed) {
-        console2.log("deploy");
-        console2.logBytes32(salt);
-        console2.logBytes(creationCode);
-        console2.log(msg.value);
         return CREATE3.deploy(salt, creationCode, msg.value);
     }
 

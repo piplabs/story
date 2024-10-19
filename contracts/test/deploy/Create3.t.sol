@@ -9,7 +9,6 @@ import { Test } from "../utils/Test.sol";
 import { Create3 } from "../../src/deploy/Create3.sol";
 
 contract Create3Test is Test {
-
     function testCreate3_deploy() public {
         // deploy and getDeployed should return same address when deployed by the same salt.
         bytes32 salt = 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef;

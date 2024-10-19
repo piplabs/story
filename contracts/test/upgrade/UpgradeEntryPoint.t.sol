@@ -16,10 +16,17 @@ contract UpgradeEntrypointTest is Test {
         int64 height = 1;
         string memory info = "info";
 
+        schedule(
+            address(upgradeEntrypoint),
+            abi.encodeWithSelector(IUpgradeEntrypoint.planUpgrade.selector, name, height, info)
+        );
+        waitForTimelock();
         vm.expectEmit(address(upgradeEntrypoint));
         emit IUpgradeEntrypoint.SoftwareUpgrade(name, height, info);
-        vm.prank(admin);
-        upgradeEntrypoint.planUpgrade(name, height, info);
+        executeTimelocked(
+            address(upgradeEntrypoint),
+            abi.encodeWithSelector(IUpgradeEntrypoint.planUpgrade.selector, name, height, info)
+        );
 
         // Network shall not allow non-protocol owner to submit an upgrade plan.
         address otherAddr = address(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab);

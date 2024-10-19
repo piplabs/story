@@ -678,11 +678,14 @@ contract IPTokenStakingTest is Test {
             address(ipTokenStaking),
             abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 5 wei)
         );
+        assertEq(ipTokenStaking.minStakeAmount(), 0);
 
         // Set amount that will not be rounded
+        schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether));
+        waitForTimelock();
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.MinStakeAmountSet(1 ether);
-        performTimelocked(
+        executeTimelocked(
             address(ipTokenStaking),
             abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether)
         );
@@ -696,30 +699,38 @@ contract IPTokenStakingTest is Test {
         );
 
         // Set using a non-owner address
-        expectRevertTimelocked(
-            address(ipTokenStaking),
-            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether),
-            "IPTokenStaking: Zero min stake amount"
-        );
+        vm.prank(delegatorAddr);
+        vm.expectRevert(); // TODO: encode OwnableUnauthorizedAccount
+        ipTokenStaking.setMinStakeAmount(1 ether);
     }
 
     function testIPTokenStaking_setMinUnstakeAmount() public {
         // Set amount that will be rounded down to 0
-        vm.prank(admin);
-        ipTokenStaking.setMinUnstakeAmount(5 wei);
+        // Set amount that will be rounded down to 0
+        performTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 5 wei)
+        );
         assertEq(ipTokenStaking.minUnstakeAmount(), 0);
 
         // Set amount that will not be rounded
-        vm.prank(admin);
+        schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 1 ether));
+        waitForTimelock();
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.MinUnstakeAmountSet(1 ether);
-        ipTokenStaking.setMinUnstakeAmount(1 ether);
+        executeTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 1 ether)
+        );
         assertEq(ipTokenStaking.minUnstakeAmount(), 1 ether);
 
         // Set 0
         vm.prank(admin);
-        vm.expectRevert("IPTokenStaking: Zero min unstake amount");
-        ipTokenStaking.setMinUnstakeAmount(0 ether);
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 0 ether),
+            "IPTokenStaking: Zero min unstake amount"
+        );
 
         // Set using a non-owner address
         vm.prank(delegatorAddr);
@@ -820,10 +831,11 @@ contract IPTokenStakingTest is Test {
     function testIPTokenStaking_SetFee() public {
         // Network shall allow the owner to set the fee charged for adding to CL storage.
         uint256 newFee = 2 ether;
+        schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setFee.selector, newFee));
+        waitForTimelock();
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.FeeSet(newFee);
-        vm.prank(admin);
-        ipTokenStaking.setFee(newFee);
+        executeTimelocked(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setFee.selector, newFee));
         assertEq(ipTokenStaking.fee(), newFee);
 
         // Network shall not allow non-owner to set the fee charged for adding to CL storage.
@@ -833,7 +845,10 @@ contract IPTokenStakingTest is Test {
         assertEq(ipTokenStaking.fee(), newFee);
 
         // Network shall not allow fees < default
-        vm.expectRevert();
-        ipTokenStaking.setFee(1);
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setFee.selector, 1),
+            "IPTokenStaking: Invalid min fee"
+        );
     }
 }
