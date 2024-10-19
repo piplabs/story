@@ -132,7 +132,7 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -189,12 +189,12 @@ func (s *Server) GetDelegationByValidatorAddressDelegatorAddress(r *http.Request
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDele
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -246,12 +246,12 @@ func (s *Server) GetDelegatorUnbondingDelegation(r *http.Request) (resp any, err
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (s *Server) GetDelegationsByDelegatorAddress(req *getDelegationsByDelegator
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +304,7 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 
 // GetDelegatorByDelegatorAddress queries delegator info for given delegator address.
 func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err error) {
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -366,7 +366,7 @@ func (s *Server) GetUnbondingDelegationsByDelegatorAddress(req *getUnbondingDele
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +396,7 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -432,12 +432,12 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress([]byte(mux.Vars(r)["validator_pub_key"]))
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(mux.Vars(r)["delegator_pub_key"]))
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -466,12 +466,12 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 	}
 
 	muxVars := mux.Vars(r)
-	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress([]byte(muxVars["validator_pub_key"]))
+	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress(muxVars["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(muxVars["delegator_pub_key"]))
+	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress(muxVars["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
@@ -497,12 +497,12 @@ func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (re
 	}
 
 	muxVars := mux.Vars(r)
-	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress([]byte(muxVars["validator_pub_key"]))
+	valAddrStr, err := k1util.CmpPubKeyToValidatorAddress(muxVars["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress([]byte(muxVars["delegator_pub_key"]))
+	delAddrStr, err := k1util.CmpPubKeyToDelegatorAddress(muxVars["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}

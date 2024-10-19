@@ -3,8 +3,10 @@ package k1util
 
 import (
 	stdecdsa "crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
+	"strings"
 
 	"github.com/cometbft/cometbft/crypto"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
@@ -181,9 +183,15 @@ func CosmosPubkeyToEVMAddress(pubkeyCmp []byte) (addr common.Address, err error)
 	return addr, nil
 }
 
-func CmpPubKeyToDelegatorAddress(cmpPubKey []byte) (string, error) {
+func CmpPubKeyToDelegatorAddress(cmpPubKeyHex string) (string, error) {
+	cmpPubKeyHex = strings.Replace(cmpPubKeyHex, "0x", "", 1)
+	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
+	if err != nil {
+		return "", errors.Wrap(err, "invalid compressed public key")
+	}
+
 	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
+		return "", errors.Wrap(fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey)), "invalid compressed public key")
 	}
 
 	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
@@ -191,9 +199,15 @@ func CmpPubKeyToDelegatorAddress(cmpPubKey []byte) (string, error) {
 	return cosmostypes.AccAddress(pubKey.Address().Bytes()).String(), nil
 }
 
-func CmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
+func CmpPubKeyToValidatorAddress(cmpPubKeyHex string) (string, error) {
+	cmpPubKeyHex = strings.Replace(cmpPubKeyHex, "0x", "", 1)
+	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
+	if err != nil {
+		return "", errors.Wrap(err, "invalid compressed public key")
+	}
+
 	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
+		return "", errors.Wrap(fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey)), "invalid compressed public key")
 	}
 	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
 
