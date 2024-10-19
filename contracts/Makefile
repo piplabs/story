@@ -21,12 +21,12 @@ build: version ## Build contracts.
 test: version ## Run tests.
 	forge test
 
-CONTRACTS := IPTokenStaking IPTokenSlashing UpgradeEntrypoint Create3
+CONTRACTS := IPTokenStaking UpgradeEntrypoint UBIPool Create3
 
 .PHONY: bindings
 bindings: check-abigen-version build ## Generate golang contract bindings.
 	./bindings/scripts/gen.sh $(CONTRACTS)
-	./bindings/scripts/genmore.sh IPTokenStaking IPTokenSlashing UpgradeEntrypoint Create3
+	./bindings/scripts/genmore.sh $(CONTRACTS)
 
 .PHONY: fork-holesky
 fork-holesky: ## Run an anvil holesky fork.

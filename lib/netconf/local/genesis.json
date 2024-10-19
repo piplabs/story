@@ -161,7 +161,7 @@
         "historical_entries": 10000,
         "bond_denom": "stake",
         "min_commission_rate": "0.000000000000000000",
-        "min_delegation": "1024",
+        "min_delegation": "1024000000000",
         "flexible_period_type": 0,
         "periods": [
           {

@@ -42,8 +42,10 @@ type Keeper struct {
 	evmstakingKeeper types.EvmStakingKeeper
 	upgradeKeeper    types.UpgradeKeeper
 	mintKeeper       types.MintKeeper
+	distrKeeper      types.DistrKeeper
 
 	upgradeContract *bindings.UpgradeEntrypoint
+	ubiContract     *bindings.UBIPool
 
 	// mutablePayload contains the previous optimistically triggered payload.
 	// It is optimistic because the validator set can change,
@@ -66,6 +68,7 @@ func NewKeeper(
 	esk types.EvmStakingKeeper,
 	uk types.UpgradeKeeper,
 	mk types.MintKeeper,
+	dk types.DistrKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
 		{Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
@@ -86,6 +89,11 @@ func NewKeeper(
 		panic(fmt.Sprintf("failed to bind to the UpgradeEntrypoint contract: %s", err))
 	}
 
+	ubiContract, err := bindings.NewUBIPool(common.HexToAddress(predeploys.UBIPool), ethCl)
+	if err != nil {
+		panic(fmt.Sprintf("failed to bind to the UBIPool contract: %s", err))
+	}
+
 	return &Keeper{
 		cdc:              cdc,
 		storeService:     storeService,
@@ -96,7 +104,9 @@ func NewKeeper(
 		evmstakingKeeper: esk,
 		upgradeKeeper:    uk,
 		upgradeContract:  upgradeContract,
+		ubiContract:      ubiContract,
 		mintKeeper:       mk,
+		distrKeeper:      dk,
 	}, nil
 }
 

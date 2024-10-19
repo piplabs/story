@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 
+	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -31,4 +32,8 @@ type UpgradeKeeper interface {
 
 type MintKeeper interface {
 	ProcessInflationEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
+}
+
+type DistrKeeper interface {
+	SetUbi(ctx context.Context, newUbi math.LegacyDec) error
 }

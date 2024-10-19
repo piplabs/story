@@ -28,7 +28,7 @@ const (
 
 	// IP Token Predeploys.
 	IPTokenStaking    = "0xcccccc0000000000000000000000000000000001"
-	IPTokenSlashing   = "0xcccccc0000000000000000000000000000000002"
+	UBIPool           = "0xcccccc0000000000000000000000000000000002"
 	UpgradeEntrypoint = "0xcccccc0000000000000000000000000000000003"
 
 	Secp256k1 = "0x00000000000000000000000000000000000256f1"
@@ -45,7 +45,7 @@ var (
 
 	// Predeploy addresses.
 	ipTokenStaking    = common.HexToAddress(IPTokenStaking)
-	ipTokenSlashing   = common.HexToAddress(IPTokenSlashing)
+	ubiPool           = common.HexToAddress(UBIPool)
 	upgradeEntrypoint = common.HexToAddress(UpgradeEntrypoint)
 
 	// Predeploy bytecodes.
@@ -88,7 +88,7 @@ func setStaking(db *state.MemDB) error {
 func setSlashing(db *state.MemDB) error {
 	storage := state.StorageValues{}
 
-	return setPredeploy(db, ipTokenSlashing, ipTokenStakingCode, bindings.IPTokenStakingStorageLayout, storage)
+	return setPredeploy(db, ubiPool, ipTokenStakingCode, bindings.IPTokenStakingStorageLayout, storage)
 }
 
 // setPredeploy sets the implementation code and proxy storage for the given predeploy.

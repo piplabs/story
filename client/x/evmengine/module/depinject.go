@@ -37,6 +37,7 @@ type ModuleInputs struct {
 	EvmStakingKeeper types.EvmStakingKeeper
 	UpgradeKeeper    types.UpgradeKeeper
 	MintKeeper       types.MintKeeper
+	DistrKeeper      types.DistrKeeper
 }
 
 type ModuleOutputs struct {
@@ -58,6 +59,7 @@ func ProvideModule(in ModuleInputs) (ModuleOutputs, error) {
 		in.EvmStakingKeeper,
 		in.UpgradeKeeper,
 		in.MintKeeper,
+		in.DistrKeeper,
 	)
 	if err != nil {
 		return ModuleOutputs{}, err

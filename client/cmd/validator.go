@@ -26,7 +26,7 @@ type ContractType int
 
 const (
 	STAKING ContractType = iota
-	SLASHING
+	UBIPOOL
 )
 
 type ContractInfo struct {
@@ -86,8 +86,8 @@ var contracts = map[ContractType]ContractInfo{
 		AddressHex: predeploys.IPTokenStaking,
 		ABI:        ipTokenStakingABI,
 	},
-	SLASHING: {
-		AddressHex: predeploys.IPTokenSlashing,
+	UBIPOOL: {
+		AddressHex: predeploys.UBIPool,
 		ABI:        ipTokenSlashingABI,
 	},
 }
@@ -581,12 +581,12 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 		return fmt.Errorf("invalid compressed public key length: %d", len(validatorPubKeyBytes))
 	}
 
-	contractABI, err := abi.JSON(strings.NewReader(string(contracts[SLASHING].ABI)))
+	contractABI, err := abi.JSON(strings.NewReader(string(contracts[STAKING].ABI)))
 	if err != nil {
 		return err
 	}
 
-	result, err := prepareAndReadContract(ctx, SLASHING, &cfg.baseConfig, "unjailFee")
+	result, err := prepareAndReadContract(ctx, STAKING, &cfg.baseConfig, "unjailFee")
 	if err != nil {
 		return err
 	}
@@ -599,7 +599,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
 
-	err = prepareAndExecuteTransaction(ctx, SLASHING, &cfg.baseConfig, "unjailOnBehalf", unjailFee, validatorPubKeyBytes)
+	err = prepareAndExecuteTransaction(ctx, STAKING, &cfg.baseConfig, "unjailOnBehalf", unjailFee, validatorPubKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -625,6 +625,7 @@ func prepareAndReadContract(ctx context.Context, contractType ContractType, cfg 
 	return readContract(ctx, *cfg, contractAddress, data)
 }
 
+//nolint:unparam // more cases later
 func prepareAndExecuteTransaction(ctx context.Context, contractType ContractType, cfg *baseConfig, methodName string, value *big.Int, args ...any) error {
 	contractInfo := contracts[contractType]
 	contractAddress := common.HexToAddress(contractInfo.AddressHex)
