@@ -674,26 +674,33 @@ contract IPTokenStakingTest is Test {
 
     function testIPTokenStaking_setMinStakeAmount() public {
         // Set amount that will be rounded down to 0
-        vm.prank(admin);
-        ipTokenStaking.setMinStakeAmount(5 wei);
-        assertEq(ipTokenStaking.minStakeAmount(), 0);
+        performTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 5 wei)
+        );
 
         // Set amount that will not be rounded
-        vm.prank(admin);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.MinStakeAmountSet(1 ether);
-        ipTokenStaking.setMinStakeAmount(1 ether);
+        performTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether)
+        );
         assertEq(ipTokenStaking.minStakeAmount(), 1 ether);
 
         // Set 0
-        vm.prank(admin);
-        vm.expectRevert("IPTokenStaking: Zero min stake amount");
-        ipTokenStaking.setMinStakeAmount(0 ether);
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 0 ether),
+            "IPTokenStaking: Zero min stake amount"
+        );
 
         // Set using a non-owner address
-        vm.prank(delegatorAddr);
-        vm.expectRevert();
-        ipTokenStaking.setMinStakeAmount(1 ether);
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether),
+            "IPTokenStaking: Zero min stake amount"
+        );
     }
 
     function testIPTokenStaking_setMinUnstakeAmount() public {
