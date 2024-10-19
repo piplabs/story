@@ -50,6 +50,7 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.StringVar(&cfg.ExternalAddress, "external-address", "", "Override the P2P external address")
 	flags.StringVar(&cfg.Seeds, "seeds", "", "Override the P2P seeds (comma-separated)")
 	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
+	flags.StringVar(&cfg.PersistentPeers, "persistent-peers", "", "Override the persistent peers (comma-separated)")
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
