@@ -121,12 +121,6 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		return errors.Wrap(err, "get min self delegation")
 	}
 
-	tokenType := int32(ev.SupportsUnlocked)
-	if _, err := k.stakingKeeper.GetTokenTypeInfo(ctx, tokenType); err != nil {
-		// TODO(rayden)
-		return types.WrapErrWithCode(types.InvalidTokenType, errors.Wrap(err, "invalid token type"))
-	}
-
 	// Validator does not exist, create validator with self-delegation.
 	msg, err := stypes.NewMsgCreateValidator(
 		validatorAddr.String(),
@@ -140,14 +134,20 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 			math.LegacyNewDec(int64(ev.MaxCommissionChangeRate)).Quo(math.LegacyNewDec(10000)),
 		),
 		minSelfDelegation, // make minimum self delegation align with minimum delegation amount
-		tokenType,
+		int32(ev.SupportsUnlocked),
 	)
 	if err != nil {
 		return errors.Wrap(err, "create validator message")
 	}
 
 	_, err = skeeperMsgServer.CreateValidator(ctx, msg)
-	if err != nil {
+	if errors.Is(err, stypes.ErrCommissionLTMinRate) {
+		return types.WrapErrWithCode(types.InvalidCommissionRate, err)
+	} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
+		return types.WrapErrWithCode(types.InvalidMinSelfDelegation, err)
+	} else if errors.Is(err, stypes.ErrNoTokenTypeFound) {
+		return types.WrapErrWithCode(types.InvalidTokenType, err)
+	} else if err != nil {
 		return errors.Wrap(err, "create validator")
 	}
 

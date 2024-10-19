@@ -130,11 +130,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		delID = stypes.FlexiblePeriodDelegationID
 	}
 
-	if _, err := k.stakingKeeper.GetPeriodInfo(ctx, periodType); err != nil {
-		// TODO(rayden)
-		return errors.Wrap(err, "get period info")
-	}
-
 	// TODO: Check if we can instantiate the msgServer without type assertion
 	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
 	if !ok {
@@ -147,7 +142,11 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		delID, periodType,
 	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
-	if err != nil {
+	if errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+		return types.WrapErrWithCode(types.InvalidDelegationAmount, err)
+	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
+		return types.WrapErrWithCode(types.InvalidPeriodType, err)
+	} else if err != nil {
 		return errors.Wrap(err, "delegate")
 	}
 

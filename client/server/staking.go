@@ -381,7 +381,7 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 		return nil, err
 	}
 
-	return s.store.GetStakingKeeper().GetAllPeriodDelegation(queryContext, delAddr, valAddr)
+	return s.store.GetStakingKeeper().GetAllPeriodDelegationsByDelAndValAddr(queryContext, delAddr, valAddr)
 }
 
 // GetPeriodDelegationByDelegatorAddressAndID queries period delegation info for given validator delegator pair and period delegation id.
