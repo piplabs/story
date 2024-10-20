@@ -2,7 +2,6 @@
 package server
 
 import (
-	"github.com/piplabs/story/lib/k1util"
 	"net/http"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/piplabs/story/client/server/utils"
+	"github.com/piplabs/story/lib/k1util"
 )
 
 func (s *Server) initStakingRoute() {
