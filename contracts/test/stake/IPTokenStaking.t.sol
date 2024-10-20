@@ -378,7 +378,7 @@ contract IPTokenStakingTest is Test {
         );
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
@@ -390,7 +390,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(address(0x4545), stakeAmount);
         vm.prank(address(0x4545));
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
@@ -402,7 +402,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Redelegating to same validator");
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpSrcPubkey,
@@ -413,7 +413,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
             validatorUncmpDstPubkey,
@@ -424,7 +424,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
@@ -435,19 +435,19 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Stake amount under min");
-        ipTokenStaking.redelegate{ value: stakeAmount - 1 }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
             delegationId,
-            stakeAmount + 100
+            stakeAmount - 1
         );
 
         // Revert if delegationId is invalid
         delegationId++;
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid delegation id");
-        ipTokenStaking.redelegate{ value: stakeAmount }(
+        ipTokenStaking.redelegate(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
@@ -483,7 +483,7 @@ contract IPTokenStakingTest is Test {
         );
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
@@ -495,7 +495,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
         vm.expectRevert("IPTokenStaking: Redelegating to same validator");
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpSrcPubkey,
@@ -506,7 +506,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
             validatorUncmpDstPubkey,
@@ -517,7 +517,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
@@ -528,19 +528,19 @@ contract IPTokenStakingTest is Test {
         vm.deal(operator, stakeAmount);
         vm.prank(operator);
         vm.expectRevert("IPTokenStaking: Stake amount under min");
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount - 1 }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,
             delegationId,
-            stakeAmount + 100
+            stakeAmount - 1
         );
 
         // Revert if delegationId is invalid
         delegationId++;
         vm.prank(operator);
         vm.expectRevert("IPTokenStaking: Invalid delegation id");
-        ipTokenStaking.redelegateOnBehalf{ value: stakeAmount }(
+        ipTokenStaking.redelegateOnBehalf(
             delegatorUncmpPubkey,
             validatorUncmpSrcPubkey,
             validatorUncmpDstPubkey,

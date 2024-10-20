@@ -268,7 +268,7 @@ interface IIPTokenStaking {
         bytes calldata validatorUncmpDstPubkey,
         uint256 delegationId,
         uint256 amount
-    ) external payable;
+    ) external;
 
     /// @notice Entry point for redelegating the stake to another validator on behalf of the delegator.
     /// @dev For non flexible staking, your staking period will continue as is.
@@ -284,7 +284,7 @@ interface IIPTokenStaking {
         bytes calldata validatorUncmpDstPubkey,
         uint256 delegationId,
         uint256 amount
-    ) external payable;
+    ) external;
 
     /// @notice Entry point for unstaking the previously staked token.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.

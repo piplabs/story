@@ -417,7 +417,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
-        payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
@@ -441,7 +440,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
-        payable
         verifyUncmpPubkey(delegatorUncmpPubkey)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
@@ -460,7 +458,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             keccak256(validatorUncmpSrcPubkey) != keccak256(validatorUncmpDstPubkey),
             "IPTokenStaking: Redelegating to same validator"
         );
-        (uint256 stakeAmount, ) = roundedStakeAmount(msg.value);
+        (uint256 stakeAmount, ) = roundedStakeAmount(amount);
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
 
@@ -470,7 +468,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             validatorUncmpDstPubkey,
             delegationId,
             msg.sender,
-            amount
+            stakeAmount
         );
     }
 
