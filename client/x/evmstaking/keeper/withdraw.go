@@ -379,7 +379,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		if errors.Is(err, collections.ErrNotFound) {
 			return types.WrapErrWithCode(
 				types.InvalidOperator,
-				errors.New("invalid unstakeOnBehalf txn, not from operator"),
+				errors.New("invalid unstakeOnBehalf txn, no operator"),
 			)
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
