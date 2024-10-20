@@ -14,7 +14,10 @@ library Predeploys {
     address internal constant Staking = 0xCCcCcC0000000000000000000000000000000001;
     address internal constant UBIPool = 0xCccCCC0000000000000000000000000000000002;
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;
-    address internal constant Create3 = 0xCcCcCC0000000000000000000000000000000004;
+
+    /// @notice Create3 factory address
+    /// @dev We maximize compatibility with the contracts deployed by ZeframLou
+    address internal constant Create3 = 0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf;
 
     /// @notice Return true if `addr` is not proxied
     function notProxied(address addr) internal pure returns (bool) {

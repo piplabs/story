@@ -18,6 +18,8 @@ contract Test is ForgeTest {
     address internal executor = address(0x456);
     address internal guardian = address(0x789);
 
+    address internal deployer = address(0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd);
+
     IPTokenStaking internal ipTokenStaking;
     UpgradeEntrypoint internal upgradeEntrypoint;
     UBIPool internal ubiPool;
@@ -33,7 +35,7 @@ contract Test is ForgeTest {
         upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
         ubiPool = UBIPool(Predeploys.UBIPool);
         create3 = Create3(Predeploys.Create3);
-        address timelockAddress = create3.getDeployed(keccak256("STORY_TIMELOCK_CONTROLLER"));
+        address timelockAddress = create3.getDeployed(deployer, keccak256("STORY_TIMELOCK_CONTROLLER"));
         timelock = TimelockController(payable(timelockAddress));
         require(timelockAddress.code.length > 0, "Timelock not deployed");
     }
