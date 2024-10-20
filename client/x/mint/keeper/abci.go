@@ -22,7 +22,7 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	if sdkCtx.BlockHeight() <= int64(params.SingularityHeight) {
+	if sdkCtx.BlockHeight() < int64(params.SingularityHeight) {
 		log.Debug(ctx, "Skip minting during singularity")
 		return nil
 	}
