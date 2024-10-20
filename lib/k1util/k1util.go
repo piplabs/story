@@ -184,32 +184,33 @@ func CosmosPubkeyToEVMAddress(pubkeyCmp []byte) (addr common.Address, err error)
 }
 
 func CmpPubKeyToDelegatorAddress(cmpPubKeyHex string) (string, error) {
-	cmpPubKeyHex = strings.Replace(cmpPubKeyHex, "0x", "", 1)
-	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
+	pubKey, err := decodePubKeyFromHex(cmpPubKeyHex)
 	if err != nil {
 		return "", errors.Wrap(err, "invalid compressed public key")
 	}
-
-	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", errors.Wrap(fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey)), "invalid compressed public key")
-	}
-
-	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
 
 	return cosmostypes.AccAddress(pubKey.Address().Bytes()).String(), nil
 }
 
 func CmpPubKeyToValidatorAddress(cmpPubKeyHex string) (string, error) {
-	cmpPubKeyHex = strings.Replace(cmpPubKeyHex, "0x", "", 1)
-	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
+	pubKey, err := decodePubKeyFromHex(cmpPubKeyHex)
 	if err != nil {
 		return "", errors.Wrap(err, "invalid compressed public key")
 	}
 
-	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", errors.Wrap(fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey)), "invalid compressed public key")
-	}
-	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
-
 	return cosmostypes.ValAddress(pubKey.Address().Bytes()).String(), nil
+}
+
+func decodePubKeyFromHex(pubKeyHex string) (*cosmosk1.PubKey, error) {
+	cmpPubKeyHex := strings.Replace(pubKeyHex, "0x", "", 1)
+	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid compressed public key")
+	}
+
+	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
+		return nil, errors.New(fmt.Sprintf("invalid compressed public key length: %d", len(cmpPubKey)))
+	}
+
+	return &cosmosk1.PubKey{Key: cmpPubKey}, nil
 }
