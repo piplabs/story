@@ -105,7 +105,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 				},
 				req: &abci.RequestPrepareProposal{
 					Txs:        nil, // Set to nil to simulate no transactions
@@ -146,7 +147,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 				wantErr: true,
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 				},
 			},
 			{
@@ -176,7 +178,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 				wantErr: true,
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 				},
 			},
 			{
@@ -206,7 +209,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 				wantErr: true,
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 				},
 			},
 		}
@@ -264,7 +268,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 		dk := moduletestutil.NewMockDistrKeeper(ctrl)
 		// Expected call for PeekEligibleWithdrawals
-		esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
+		esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil).AnyTimes()
 
 		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
 		require.NoError(t, err)
@@ -342,7 +347,8 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			wantErr:          false,
 			enableOptimistic: true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -365,7 +371,8 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			wantErr:          false,
 			enableOptimistic: true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -388,7 +395,8 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			wantErr:          false,
 			enableOptimistic: true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -411,7 +419,8 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			wantErr:          false,
 			enableOptimistic: true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -434,7 +443,8 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			wantErr:          false,
 			enableOptimistic: true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
 			},
 			postStateCheck: payloadWellSet,
 		},

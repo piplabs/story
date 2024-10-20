@@ -40,6 +40,7 @@ type Keeper struct {
 	ipTokenStakingContract *bindings.IPTokenStaking
 
 	WithdrawalQueue          addcollections.Queue[types.Withdrawal]
+	RewardWithdrawalQueue    addcollections.Queue[types.Withdrawal]
 	DelegatorWithdrawAddress collections.Map[string, string]
 	DelegatorRewardAddress   collections.Map[string, string]
 	DelegatorOperatorAddress collections.Map[string, string]
@@ -87,6 +88,7 @@ func NewKeeper(
 		validatorAddressCodec:    validatorAddressCodec,
 		ipTokenStakingContract:   ipTokenStakingContract,
 		WithdrawalQueue:          addcollections.NewQueue(sb, types.WithdrawalQueueKey, "withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
+		RewardWithdrawalQueue:    addcollections.NewQueue(sb, types.RewardWithdrawalQueueKey, "reward_withdrawal_queue", codec.CollValue[types.Withdrawal](cdc)),
 		DelegatorWithdrawAddress: collections.NewMap(sb, types.DelegatorWithdrawAddressMapKey, "delegator_withdraw_address_map", collections.StringKey, collections.StringValue),
 		DelegatorRewardAddress:   collections.NewMap(sb, types.DelegatorRewardAddressMapKey, "delegator_reward_address_map", collections.StringKey, collections.StringValue),
 		DelegatorOperatorAddress: collections.NewMap(sb, types.DelegatorOperatorAddressMapKey, "delegator_operator_address_map", collections.StringKey, collections.StringValue),

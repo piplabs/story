@@ -19,11 +19,14 @@ type AccountKeeper interface {
 type EvmStakingKeeper interface {
 	ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error
 	ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error
-	DequeueEligibleWithdrawals(ctx context.Context) (ethtypes.Withdrawals, error)
 	ParseDepositLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingDeposit, error)
 	ParseWithdrawLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingWithdraw, error)
 	ProcessStakingEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
-	PeekEligibleWithdrawals(ctx context.Context) (withdrawals ethtypes.Withdrawals, err error)
+	MaxWithdrawalPerBlock(ctx context.Context) (uint32, error)
+	DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) (withdrawals ethtypes.Withdrawals, err error)
+	PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withdrawals ethtypes.Withdrawals, err error)
+	DequeueEligibleRewardWithdrawals(ctx context.Context, maxRetrieve uint64) (withdrawals ethtypes.Withdrawals, err error)
+	PeekEligibleRewardWithdrawals(ctx context.Context, maxRetrieve int) (withdrawals ethtypes.Withdrawals, err error)
 }
 
 type UpgradeKeeper interface {

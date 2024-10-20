@@ -35,7 +35,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	dk := moduletestutil.NewMockDistrKeeper(ctrl)
-	esk.EXPECT().PeekEligibleWithdrawals(gomock.Any()).Return(nil, nil).AnyTimes()
+	esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 
 	sdkCtx, storeKey, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: tutil.RandomHash().Bytes()})
 	sdkCtx = sdkCtx.WithExecMode(sdk.ExecModeFinalize)

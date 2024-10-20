@@ -21,4 +21,5 @@ var (
 	DelegatorRewardAddressMapKey   = collections.NewPrefix(3)
 	DelegatorOperatorAddressMapKey = collections.NewPrefix(4)
 	WithdrawalQueueKey             = collections.NewPrefix(5)
+	RewardWithdrawalQueueKey       = collections.NewPrefix(6)
 )
