@@ -67,6 +67,8 @@ contract GenerateAlloc is Script {
             return "./odyssey-testnet-alloc.json";
         } else if (block.chainid == 31337) {
             return "./local-alloc.json";
+        } else if (block.chainid == 1514) {
+            return "./mainnet-alloc.json";
         } else {
             revert("Unsupported chain id");
         }
