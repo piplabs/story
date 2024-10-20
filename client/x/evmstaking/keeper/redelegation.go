@@ -33,6 +33,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -50,7 +51,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress depositor pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
@@ -59,7 +60,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	valSrcCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpSrcPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress src validator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress src validator pubkey"))
 	}
 	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(valSrcCmpPubkey)
 	if err != nil {
@@ -68,7 +69,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	valDstCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpDstPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress dst validator pubkey")
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress dst validator pubkey"))
 	}
 	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(valDstCmpPubkey)
 	if err != nil {
@@ -96,12 +97,18 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	if delEvmAddr.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
-			return errors.New("invalid redelegateOnBehalf txn, no operator for delegator")
+			return types.WrapErrWithCode(
+				types.InvalidOperator,
+				errors.New("invalid redelegateOnBehalf txn, no operator"),
+			)
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
 		if operatorAddr != ev.OperatorAddress.String() {
-			return errors.New("invalid redelegateOnBehalf txn, not from operator")
+			return types.WrapErrWithCode(
+				types.InvalidOperator,
+				errors.New("invalid redelegateOnBehalf txn, not from operator"),
+			)
 		}
 	}
 

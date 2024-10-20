@@ -2,16 +2,18 @@ package types
 
 // evmstaking module event types.
 const (
-	EventTypeSetWithdrawalAddressFailure = "set_withdrawal_address_failure"
-	EventTypeSetRewardAddressFailure     = "set_reward_address_failure"
-	EventTypeAddOperatorFailure          = "add_operator_failure"
-	EventTypeRemoveOperatorFailure       = "remove_operator_failure"
-	EventTypeCreateValidatorFailure      = "create_validator_failure"
-	EventTypeDelegateFailure             = "delegate_failure"
-	EventTypeRedelegateFailure           = "redelegate_failure"
-	EventTypeUndelegateFailure           = "undelegate_failure"
-	EventTypeUnjailFailure               = "unjail_failure"
+	EventTypeUpdateValidatorCommissionFailure = "update_validator_commission_failure"
+	EventTypeSetWithdrawalAddressFailure      = "set_withdrawal_address_failure"
+	EventTypeSetRewardAddressFailure          = "set_reward_address_failure"
+	EventTypeAddOperatorFailure               = "add_operator_failure"
+	EventTypeRemoveOperatorFailure            = "remove_operator_failure"
+	EventTypeCreateValidatorFailure           = "create_validator_failure"
+	EventTypeDelegateFailure                  = "delegate_failure"
+	EventTypeRedelegateFailure                = "redelegate_failure"
+	EventTypeUndelegateFailure                = "undelegate_failure"
+	EventTypeUnjailFailure                    = "unjail_failure"
 
+	AttributeKeyStatusCode              = "status_code"
 	AttributeKeyBlockHeight             = "block_height"
 	AttributeKeyDelegatorUncmpPubKey    = "delegator_uncmp_pubkey"
 	AttributeKeyValidatorUncmpPubKey    = "validator_uncmp_pubkey"
