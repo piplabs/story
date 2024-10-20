@@ -12,7 +12,7 @@ const (
 
 	DefaultMinPartialWithdrawalAmount uint64 = 600_000
 
-	DefaultSingularityHeight uint64 = 1209600 // 42 days with 35 seconds block time
+	DefaultSingularityHeight uint64 = 1209600 // 42 days with 3 seconds block time
 )
 
 // NewParams creates a new Params instance.
