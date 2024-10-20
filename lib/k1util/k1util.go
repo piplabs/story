@@ -4,22 +4,21 @@ package k1util
 import (
 	stdecdsa "crypto/ecdsa"
 	"encoding/hex"
-	"fmt"
-	cosmostypes "github.com/cosmos/cosmos-sdk/types"
-	"strings"
-
 	"github.com/cometbft/cometbft/crypto"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	cryptopb "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	cosmoscrypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"strings"
 
 	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
+
+	cosmoscrypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 )
 
 // privKeyLen is the length of a secp256k1 private key.
@@ -209,7 +208,7 @@ func decodePubKeyFromHex(pubKeyHex string) (*cosmosk1.PubKey, error) {
 	}
 
 	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return nil, errors.New(fmt.Sprintf("invalid compressed public key length: %d", len(cmpPubKey)))
+		return nil, errors.New("invalid compressed public key", "length", len(cmpPubKey))
 	}
 
 	return &cosmosk1.PubKey{Key: cmpPubKey}, nil

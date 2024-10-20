@@ -3,7 +3,6 @@ package server
 
 import (
 	"errors"
-	"github.com/piplabs/story/lib/k1util"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,6 +12,8 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/piplabs/story/client/server/utils"
+
+	"github.com/piplabs/story/lib/k1util"
 )
 
 func (s *Server) initDistributionRoute() {
