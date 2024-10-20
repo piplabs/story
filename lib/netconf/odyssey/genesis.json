@@ -109,7 +109,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -118,7 +118,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -127,7 +127,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -136,7 +136,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -145,7 +145,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -154,7 +154,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -163,7 +163,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         },
@@ -172,7 +172,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "10000000000000000"
+              "amount": "1000000"
             }
           ]
         }
@@ -180,7 +180,7 @@
       "supply": [
         {
           "denom": "stake",
-          "amount": "80000000000000000"
+          "amount": "8000000"
         }
       ],
       "denom_metadata": [],
@@ -243,7 +243,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 0
               }
@@ -291,7 +291,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 0
               }
@@ -339,7 +339,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 0
               }
@@ -387,7 +387,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 0
               }
@@ -435,7 +435,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 1
               }
@@ -483,7 +483,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 1
               }
@@ -531,7 +531,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 1
               }
@@ -579,7 +579,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "10000000000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 1
               }
