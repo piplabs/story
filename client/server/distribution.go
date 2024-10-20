@@ -48,12 +48,12 @@ func (s *Server) GetDistributionParams(r *http.Request) (resp any, err error) {
 
 // GetDistributionValidatorByValidatorAddress queries validator commission and self-delegation rewards for validator.
 func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +70,12 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 
 // GetValidatorCommissionByValidatorAddress queries accumulated commission for a validator.
 func (s *Server) GetValidatorCommissionByValidatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +93,12 @@ func (s *Server) GetValidatorCommissionByValidatorAddress(r *http.Request) (resp
 
 // GetValidatorOutstandingRewardsByValidatorAddress queries rewards of a validator address.
 func (s *Server) GetValidatorOutstandingRewardsByValidatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -157,12 +157,12 @@ func (s *Server) GetAllValidatorOutstandingRewards(req *getAllValidatorOutstandi
 
 // GetValidatorSlashesByValidatorAddress queries slash events of a validator.
 func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesByValidatorAddressRequest, r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -189,12 +189,12 @@ func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesB
 
 // GetDistributionValidatorsByDelegatorAddress queries the validators of a delegator.
 func (s *Server) GetDistributionValidatorsByDelegatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -212,12 +212,12 @@ func (s *Server) GetDistributionValidatorsByDelegatorAddress(r *http.Request) (r
 
 // GetDelegatorRewardsByDelegatorAddress queries the total rewards accrued by each validator.
 func (s *Server) GetDelegatorRewardsByDelegatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -235,17 +235,17 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddress(r *http.Request) (resp an
 
 // GetDelegatorRewardsByDelegatorAddressValidatorAddress queries the total rewards accrued by a delegation.
 func (s *Server) GetDelegatorRewardsByDelegatorAddressValidatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
 	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
 	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
+	if err != nil {
+		return nil, err
+	}
+
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -264,12 +264,12 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddressValidatorAddress(r *http.R
 
 // GetDelegatorWithdrawAddressByDelegatorAddress queries withdraw address of a delegator.
 func (s *Server) GetDelegatorWithdrawAddressByDelegatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
+	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := k1util.CmpPubKeyToDelegatorAddress(mux.Vars(r)["delegator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}

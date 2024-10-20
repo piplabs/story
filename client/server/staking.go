@@ -154,12 +154,12 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 
 // GetValidatorDelegationsByValidatorAddress queries delegate info for given validator.
 func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDelegationsByValidatorAddressRequest, r *http.Request) (resp any, err error) {
-	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
+	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
 	}
 
-	queryContext, err := s.createQueryContextByHeader(r)
+	valAddr, err := k1util.CmpPubKeyToValidatorAddress(mux.Vars(r)["validator_pub_key"])
 	if err != nil {
 		return nil, err
 	}

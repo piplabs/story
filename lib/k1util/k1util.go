@@ -4,21 +4,21 @@ package k1util
 import (
 	stdecdsa "crypto/ecdsa"
 	"encoding/hex"
+	"strings"
+
 	"github.com/cometbft/cometbft/crypto"
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	cryptopb "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	cosmoscrypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"strings"
 
 	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
-
-	cosmoscrypto "github.com/cosmos/cosmos-sdk/crypto/types"
-	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 )
 
 // privKeyLen is the length of a secp256k1 private key.
