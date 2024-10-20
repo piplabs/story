@@ -49,13 +49,15 @@ To generate this first state:
 1. Add a .env file in `contracts/.env`
 
 ```
-ADMIN_ADDRESS=0x123...
-UPGRADE_ADMIN_ADDRESS=0x234...
+ADMIN_ADDRESS=0x...
+TIMELOCK_EXECUTOR_ADDRESS=0x...
+TIMELOCK_GUARDIAN_ADDRESS=0x...
 ```
-- `ADMIN_ADDRESS` will be the owner of `IPTokenStaking` and `UpgradeEntryPoint`, able to execute admin methods.
-- `UPGRADE_ADMIN_ADDRESS` will be the owner of the [ProxyAdmin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/ProxyAdmin.sol) for each upgradeable predeploy.
+- `ADMIN_ADDRESS` will be the owner of the `TimelockController` contract. Will be able to propose transactions to the timelock, and cancel them.
+- `TIMELOCK_EXECUTOR_ADDRESS` address allowed to execute the scheduled actions once the timelock matures.
+- `TIMELOCK_GUARDIAN_ADDRESS` address allowed to cancel proposals
 
-2. Run
+1. Run
 ```
 forge script script/GenerateAlloc.s.sol -vvvv --chain-id <DESIRED_CHAIN_ID>
 ```

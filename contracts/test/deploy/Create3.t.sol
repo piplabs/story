@@ -5,17 +5,11 @@ pragma solidity ^0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
-import { Test } from "forge-std/Test.sol";
+import { Test } from "../utils/Test.sol";
 
 import { Create3 } from "../../src/deploy/Create3.sol";
 
 contract Create3Test is Test {
-    Create3 private create3;
-
-    function setUp() public {
-        create3 = new Create3();
-    }
-
     function testCreate3_deploy() public {
         // deploy and getDeployed should return same address when deployed by the same deployer and with same salt.
         bytes32 salt = 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef;
