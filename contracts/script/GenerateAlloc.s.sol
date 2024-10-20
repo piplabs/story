@@ -262,7 +262,7 @@ contract GenerateAlloc is Script {
             vm.deal(0x8Ffc89da28DD2F5f7582B0459505E9a615623791, 10000000 ether);
             vm.deal(0xE8DA8e345Ab1556E5DeE19F9c369C827561Ff712, 10000000 ether);
         } else {
-            // test alloc
+            // Default network alloc
             vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
             vm.deal(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab, 100000000 ether);
             vm.deal(0xEcB1D051475A7e330b1DD6683cdC7823Bbcf8Dcf, 100000000 ether);
