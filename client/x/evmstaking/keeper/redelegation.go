@@ -51,7 +51,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress depositor pubkey"))
+		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
