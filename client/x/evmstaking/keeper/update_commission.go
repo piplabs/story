@@ -39,7 +39,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
-		return errors.Wrap(err, "compress validator pubkey")
+		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
 	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())

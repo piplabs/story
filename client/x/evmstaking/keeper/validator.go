@@ -105,7 +105,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	if _, err = k.stakingKeeper.GetValidator(ctx, validatorAddr); err == nil {
-		return types.WrapErrWithCode(types.ValidatorAlreadyExists, errors.Wrap(err, "validator already exists"))
+		return types.WrapErrWithCode(types.ValidatorAlreadyExists, errors.New("validator already exists"))
 	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
 		// Either the validator does not exist, or unknown error.
 		return errors.Wrap(err, "get validator")
