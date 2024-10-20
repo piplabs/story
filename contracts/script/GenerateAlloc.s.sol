@@ -90,6 +90,9 @@ contract GenerateAlloc is Script {
         } else if (block.chainid == 1315) {
             // Odyssey devnet
             return 10 seconds;
+        } else if (block.chainid == 1516) {
+            // Odyssey testnet
+            return 1 days;
         } else if (block.chainid == 31337) {
             // Local
             return 10 seconds;
