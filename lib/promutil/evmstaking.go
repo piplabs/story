@@ -6,7 +6,10 @@ import (
 )
 
 var (
-	EVMStakingQueueDepth = promauto.NewGauge(prometheus.GaugeOpts{ //nolint:promlinter // skip
-		Name: "evmstaking_queue_depth",
+	EVMStakingWithdrawalQueueDepth = promauto.NewGauge(prometheus.GaugeOpts{ //nolint:promlinter // skip
+		Name: "evmstaking_withdrawal_queue_depth",
+	})
+	EVMStakingRewardQueueDepth = promauto.NewGauge(prometheus.GaugeOpts{ //nolint:promlinter // skip
+		Name: "evmstaking_reward_queue_depth",
 	})
 )

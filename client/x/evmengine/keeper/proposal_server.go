@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cosmos/gogoproto/proto"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -90,30 +91,68 @@ func evmEventsEqual(a, b []*types.EVMEvent) error {
 
 // compareWithdrawals compares the local peek and received withdrawals.
 func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawals etypes.Withdrawals) error {
-	expectedWithdrawals, err := s.evmstakingKeeper.PeekEligibleWithdrawals(ctx)
+	maxWithdrawals, err := s.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get max withdrawals per block")
+	}
+
+	expectedWithdrawals, err := s.evmstakingKeeper.PeekEligibleWithdrawals(ctx, int(maxWithdrawals))
 	if err != nil {
 		return errors.Wrap(err, "peek withdrawals")
 	}
 
-	log.Debug(ctx, "Comparing local and received withdrawals",
-		"local", len(expectedWithdrawals),
-		"received", len(actualWithdrawals),
-	)
-	if len(actualWithdrawals) != len(expectedWithdrawals) {
-		return errors.New("invalid withdrawals length")
+	if len(expectedWithdrawals) > len(actualWithdrawals) {
+		return fmt.Errorf(
+			"expected withdrawals %v should not greater than actual withdrawals %v",
+			len(expectedWithdrawals), len(actualWithdrawals),
+		)
 	}
 
-	for i, withdrawal := range actualWithdrawals {
-		if withdrawal.Index != expectedWithdrawals[i].Index {
+	expectedRewardWithdrawals, err := s.evmstakingKeeper.PeekEligibleRewardWithdrawals(
+		ctx, int(maxWithdrawals)-len(expectedWithdrawals),
+	)
+	if err != nil {
+		return errors.Wrap(err, "peek reward withdrawals")
+	}
+
+	localNum := len(expectedWithdrawals) + len(expectedRewardWithdrawals)
+	log.Debug(ctx, "Comparing local and received withdrawals",
+		"local", localNum,
+		"received", len(actualWithdrawals),
+	)
+	if localNum != len(actualWithdrawals) {
+		return fmt.Errorf(
+			"expected total withdrawals %v should equal to actual withdrawals %v",
+			localNum, len(actualWithdrawals),
+		)
+	}
+
+	pos := 0
+	for i := range expectedWithdrawals {
+		if expectedWithdrawals[i].Index != actualWithdrawals[pos].Index {
 			return errors.New("invalid withdrawal index")
 		}
 		// skip the Validator index equality check (always 0)
-		if withdrawal.Address != expectedWithdrawals[i].Address {
+		if expectedWithdrawals[i].Address != actualWithdrawals[pos].Address {
 			return errors.New("invalid withdrawal address")
 		}
-		if withdrawal.Amount != expectedWithdrawals[i].Amount {
+		if expectedWithdrawals[i].Amount != actualWithdrawals[pos].Amount {
 			return errors.New("invalid withdrawal amount")
 		}
+		pos++
+	}
+	for i := range expectedRewardWithdrawals {
+		if expectedRewardWithdrawals[i].Index != actualWithdrawals[pos].Index {
+			return errors.New("invalid withdrawal index")
+		}
+		// skip the Validator index equality check (always 0)
+		if expectedRewardWithdrawals[i].Address != actualWithdrawals[pos].Address {
+			return errors.New("invalid withdrawal address")
+		}
+		if expectedRewardWithdrawals[i].Amount != actualWithdrawals[pos].Amount {
+			return errors.New("invalid withdrawal amount")
+		}
+		pos++
 	}
 
 	return nil

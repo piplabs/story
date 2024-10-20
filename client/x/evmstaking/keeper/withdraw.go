@@ -18,7 +18,6 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
-	"github.com/piplabs/story/lib/promutil"
 )
 
 type RewardWithdrawal struct {
@@ -299,7 +298,7 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 		}
 
 		// Enqueue to the global withdrawal queue.
-		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			rewardWithdrawals[i].WithdrawalEntry.ExecutionAddress,
 			curBondDenomAmount,
@@ -307,9 +306,6 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 			return err
 		}
 	}
-
-	// set metrics
-	promutil.EVMStakingQueueDepth.Set(float64(k.WithdrawalQueue.Len(ctx)))
 
 	return nil
 }
