@@ -12,28 +12,29 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// AddWithdrawalToQueue inserts a withdrawal into the queue.
-func (k Keeper) AddWithdrawalToQueue(ctx context.Context, withdrawal types.Withdrawal) error {
-	return k.WithdrawalQueue.Enqueue(ctx, withdrawal)
+// AddRewardWithdrawalToQueue inserts a reward withdrawal into the queue.
+func (k Keeper) AddRewardWithdrawalToQueue(ctx context.Context, withdrawal types.Withdrawal) error {
+	return k.RewardWithdrawalQueue.Enqueue(ctx, withdrawal)
 }
 
-func (k Keeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) (withdrawals etypes.Withdrawals, err error) {
+func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (withdrawals etypes.Withdrawals, err error) {
 	if maxDequeue <= 0 {
 		return withdrawals, nil
 	}
+
 	// front is the unique monotonically increasing index of a withdrawal in the queue.
 	// It's used as the value in etypes.Withdrawal.Index for later validation purposes,
 	// when evmengine's msg_server receives withdrawals as part of the execution payload
 	// and needs to verify that the received withdrawals are in the correct order from
 	// the front of the queue.
-	front, err := k.WithdrawalQueue.Front(ctx)
+	front, err := k.RewardWithdrawalQueue.Front(ctx)
 	if err != nil {
 		log.Debug(ctx, "Front", "err", err)
 		return nil, err
 	}
 
-	for i := range uint64(maxDequeue) {
-		withdrawal, err := k.WithdrawalQueue.Dequeue(ctx)
+	for i := range maxDequeue {
+		withdrawal, err := k.RewardWithdrawalQueue.Dequeue(ctx)
 		if err != nil {
 			// Dequeue will return ErrEmptyQueue if the queue is empty
 			if errors.Is(err, addcollections.ErrEmptyQueue) {
@@ -43,8 +44,8 @@ func (k Keeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) 
 			return nil, err
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
-			Index:     front + i, // increment front by i to get the correct index in the loop
-			Validator: 0,         // does not matter for EL
+			Index:     front + uint64(i), // increment front by i to get the correct index in the loop
+			Validator: 0,                 // does not matter for EL
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
 		})
@@ -53,12 +54,12 @@ func (k Keeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) 
 	return withdrawals, nil
 }
 
-func (k Keeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withdrawals etypes.Withdrawals, err error) {
-	if maxPeek <= 0 {
+func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (withdrawals etypes.Withdrawals, err error) {
+	if maxPeek == 0 {
 		return withdrawals, nil
 	}
 
-	if k.WithdrawalQueue.IsEmpty(ctx) {
+	if k.RewardWithdrawalQueue.IsEmpty(ctx) {
 		return withdrawals, nil
 	}
 
@@ -67,14 +68,14 @@ func (k Keeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withd
 	// when evmengine's msg_server receives withdrawals as part of the execution payload
 	// and needs to verify that the received withdrawals are in the correct order from
 	// the front of the queue.
-	front, err := k.WithdrawalQueue.Front(ctx)
+	front, err := k.RewardWithdrawalQueue.Front(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range uint64(maxPeek) {
+	for i := range maxPeek {
 		// NOTE: Get adjusts the provided index by the front index of the queue
-		withdrawal, err := k.WithdrawalQueue.Get(ctx, i)
+		withdrawal, err := k.RewardWithdrawalQueue.Get(ctx, uint64(i))
 		if err != nil {
 			// Get will return ErrOutOfBoundsQueue if the queue is empty
 			if errors.Is(err, addcollections.ErrOutOfBoundsQueue) {
@@ -84,51 +85,12 @@ func (k Keeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withd
 			return nil, err
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
-			Index:     front + i, // increment front by i to get the correct index in the loop
-			Validator: 0,         // does not matter for EL
+			Index:     front + uint64(i), // increment front by i to get the correct index in the loop
+			Validator: 0,                 // does not matter for EL
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
 		})
 	}
 
 	return withdrawals, nil
-}
-
-// GetAllWithdrawals gets the set of all withdrawals with no limits.
-func (k Keeper) GetAllWithdrawals(ctx context.Context) (withdrawals []types.Withdrawal, err error) {
-	iterator, err := k.WithdrawalQueue.Iterate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	wdrKvs, err := iterator.KeyValues()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, withdrawal := range wdrKvs {
-		withdrawals = append(withdrawals, withdrawal.Value)
-	}
-
-	return withdrawals, nil
-}
-
-// GetWithdrawals returns at max the requested amount of withdrawals.
-func (k Keeper) GetWithdrawals(ctx context.Context, maxRetrieve uint32) (withdrawals []types.Withdrawal, err error) {
-	iterator, err := k.WithdrawalQueue.Iterate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	i := 0
-	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
-		withdrawal, err := iterator.Value()
-		if err != nil {
-			return nil, err
-		}
-		withdrawals = append(withdrawals, withdrawal)
-		i++
-	}
-
-	return withdrawals[:i], nil // trim if the array length < maxRetrieve
 }

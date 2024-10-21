@@ -10,6 +10,7 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/promutil"
 )
 
 // Query staking module's UnbondingDelegation (UBD Queue) to get the matured unbonding delegations. Then,
@@ -43,6 +44,10 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	if err := k.ProcessUbiWithdrawal(ctx); err != nil {
 		return nil, errors.Wrap(err, "process ubi withdrawal")
 	}
+
+	// set metrics
+	promutil.EVMStakingWithdrawalQueueDepth.Set(float64(k.WithdrawalQueue.Len(ctx)))
+	promutil.EVMStakingRewardQueueDepth.Set(float64(k.RewardWithdrawalQueue.Len(ctx)))
 
 	return valUpdates, nil
 }
