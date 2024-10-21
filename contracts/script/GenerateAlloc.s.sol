@@ -341,8 +341,10 @@ contract GenerateAlloc is Script {
         vm.deal(0x0000000000000000000000000000000000000007, 1);
         vm.deal(0x0000000000000000000000000000000000000008, 1);
         vm.deal(0x0000000000000000000000000000000000000009, 1);
+        // p256 verification precompile
+        vm.deal(0x0000000000000000000000000000000000000100, 1);
         // Story's IPGraph precompile
-        vm.deal(0x000000000000000000000000000000000000001a, 1);
+        vm.deal(0x0000000000000000000000000000000000000101, 1);
         // Allocation
         if (block.chainid == MAINNET_CHAIN_ID) {
             // TBD
