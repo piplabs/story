@@ -25,8 +25,8 @@ type EvmStakingKeeper interface {
 	MaxWithdrawalPerBlock(ctx context.Context) (uint32, error)
 	DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) (withdrawals ethtypes.Withdrawals, err error)
 	PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withdrawals ethtypes.Withdrawals, err error)
-	DequeueEligibleRewardWithdrawals(ctx context.Context, maxRetrieve uint64) (withdrawals ethtypes.Withdrawals, err error)
-	PeekEligibleRewardWithdrawals(ctx context.Context, maxRetrieve int) (withdrawals ethtypes.Withdrawals, err error)
+	DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (withdrawals ethtypes.Withdrawals, err error)
+	PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (withdrawals ethtypes.Withdrawals, err error)
 }
 
 type UpgradeKeeper interface {
