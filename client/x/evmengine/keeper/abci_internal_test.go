@@ -354,7 +354,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
-				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
