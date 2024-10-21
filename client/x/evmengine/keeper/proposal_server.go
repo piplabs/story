@@ -108,9 +108,8 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		)
 	}
 
-	expectedRewardWithdrawals, err := s.evmstakingKeeper.PeekEligibleRewardWithdrawals(
-		ctx, int(maxWithdrawals)-len(expectedWithdrawals),
-	)
+	maxRewardWithdrawals := int(maxWithdrawals) - len(expectedWithdrawals)
+	expectedRewardWithdrawals, err := s.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return errors.Wrap(err, "peek reward withdrawals")
 	}

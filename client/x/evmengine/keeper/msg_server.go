@@ -76,7 +76,8 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		"total_len", len(payload.Withdrawals),
 		"withdrawals_len", len(ws),
 	)
-	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, int(maxWithdrawals)-len(ws))
+	maxRewardWithdrawals := int(maxWithdrawals) - len(ws)
+	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
 	}
