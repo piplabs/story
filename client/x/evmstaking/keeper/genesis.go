@@ -26,11 +26,11 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 	}
 
 	if err := k.WithdrawalQueue.Initialize(ctx); err != nil {
-		log.Error(ctx, "InitGenesis.evmstaking not initialized", err)
+		log.Error(ctx, "InitGenesis.evmstaking withdrawal queue not initialized", err)
 		return err
 	}
 	if err := k.RewardWithdrawalQueue.Initialize(ctx); err != nil {
-		log.Error(ctx, "InitGenesis.evmstaking not initialized", err)
+		log.Error(ctx, "InitGenesis.evmstaking reward withdrawal queue not initialized", err)
 		return err
 	}
 	vals, err := k.stakingKeeper.GetAllValidators(ctx)
