@@ -296,10 +296,10 @@ replace (
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
 	// replace evidence module to the story's evidence module
-	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.2-0.20241021201424-b11be3a942ed
+	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.2-0.20241021233425-b586999d3a6a
 
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.8-0.20241021201424-b11be3a942ed
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.16
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
