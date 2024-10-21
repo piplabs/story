@@ -72,7 +72,7 @@ interface IIPTokenStaking {
 
     /// @notice Emitted when a user deposits token into the contract.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
     /// @param stakingPeriod of the deposit
     /// @param delegationId The ID of the delegation
@@ -80,7 +80,7 @@ interface IIPTokenStaking {
     /// @param data Additional data for the deposit
     event Deposit(
         bytes delegatorUncmpPubkey,
-        bytes validatorUnCmpPubkey,
+        bytes validatorUncmpPubkey,
         uint256 stakeAmount,
         uint256 stakingPeriod,
         uint256 delegationId,
@@ -90,14 +90,14 @@ interface IIPTokenStaking {
 
     /// @notice Emitted when a user withdraws her stake and starts the unbonding period.
     /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUnCmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorUncmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
     /// @param delegationId The ID of the delegation, 0 if flexible
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
     event Withdraw(
         bytes delegatorUncmpPubkey,
-        bytes validatorUnCmpPubkey,
+        bytes validatorUncmpPubkey,
         uint256 stakeAmount,
         uint256 delegationId,
         address operatorAddress,
