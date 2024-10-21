@@ -215,6 +215,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: ProcessUpgradeEvents error",
 			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
