@@ -316,8 +316,8 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // no parallel test for now
 func TestKeeper_PostFinalize(t *testing.T) {
-	t.Parallel()
 	payloadID := eengine.PayloadID{0x1}
 	payloadFailedToSet := func(k *Keeper) {
 		id, _, _ := k.getOptimisticPayload()

@@ -85,18 +85,18 @@ func (m *MockEvmStakingKeeper) EXPECT() *MockEvmStakingKeeperMockRecorder {
 }
 
 // DequeueEligibleRewardWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxRetrieve uint64) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DequeueEligibleRewardWithdrawals", ctx, maxRetrieve)
+	ret := m.ctrl.Call(m, "DequeueEligibleRewardWithdrawals", ctx, maxDequeue)
 	ret0, _ := ret[0].(types1.Withdrawals)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DequeueEligibleRewardWithdrawals indicates an expected call of DequeueEligibleRewardWithdrawals.
-func (mr *MockEvmStakingKeeperMockRecorder) DequeueEligibleRewardWithdrawals(ctx, maxRetrieve any) *gomock.Call {
+func (mr *MockEvmStakingKeeperMockRecorder) DequeueEligibleRewardWithdrawals(ctx, maxDequeue any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DequeueEligibleRewardWithdrawals", reflect.TypeOf((*MockEvmStakingKeeper)(nil).DequeueEligibleRewardWithdrawals), ctx, maxRetrieve)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DequeueEligibleRewardWithdrawals", reflect.TypeOf((*MockEvmStakingKeeper)(nil).DequeueEligibleRewardWithdrawals), ctx, maxDequeue)
 }
 
 // DequeueEligibleWithdrawals mocks base method.
@@ -160,18 +160,18 @@ func (mr *MockEvmStakingKeeperMockRecorder) ParseWithdrawLog(ethlog any) *gomock
 }
 
 // PeekEligibleRewardWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxRetrieve int) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PeekEligibleRewardWithdrawals", ctx, maxRetrieve)
+	ret := m.ctrl.Call(m, "PeekEligibleRewardWithdrawals", ctx, maxPeek)
 	ret0, _ := ret[0].(types1.Withdrawals)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PeekEligibleRewardWithdrawals indicates an expected call of PeekEligibleRewardWithdrawals.
-func (mr *MockEvmStakingKeeperMockRecorder) PeekEligibleRewardWithdrawals(ctx, maxRetrieve any) *gomock.Call {
+func (mr *MockEvmStakingKeeperMockRecorder) PeekEligibleRewardWithdrawals(ctx, maxPeek any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeekEligibleRewardWithdrawals", reflect.TypeOf((*MockEvmStakingKeeper)(nil).PeekEligibleRewardWithdrawals), ctx, maxRetrieve)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeekEligibleRewardWithdrawals", reflect.TypeOf((*MockEvmStakingKeeper)(nil).PeekEligibleRewardWithdrawals), ctx, maxPeek)
 }
 
 // PeekEligibleWithdrawals mocks base method.

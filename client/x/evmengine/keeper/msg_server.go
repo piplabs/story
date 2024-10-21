@@ -50,7 +50,11 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		ctx, "Dequeueing eligible withdrawals [BEFORE]",
 		"total_len", len(payload.Withdrawals),
 	)
-	ws, err := s.evmstakingKeeper.DequeueEligibleWithdrawals(ctx, len(payload.Withdrawals))
+	maxWithdrawals, err := s.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting max withdrawal per block")
+	}
+	ws, err := s.evmstakingKeeper.DequeueEligibleWithdrawals(ctx, int(maxWithdrawals))
 	if err != nil {
 		return nil, errors.Wrap(err, "error on withdrawals dequeue")
 	}
@@ -72,7 +76,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		"total_len", len(payload.Withdrawals),
 		"withdrawals_len", len(ws),
 	)
-	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, uint64(len(payload.Withdrawals)-len(ws)))
+	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, int(maxWithdrawals)-len(ws))
 	if err != nil {
 		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
 	}
