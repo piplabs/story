@@ -251,6 +251,7 @@ require (
 )
 
 require (
+	cosmossdk.io/x/evidence v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/upgrade v0.1.4
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.4
 	github.com/go-playground/validator/v10 v10.11.1
@@ -294,8 +295,11 @@ replace (
 	// should use v0.11.0. The Cosmos build fails with types/context.go:65:29: undefined: comet.BlockInfo otherwise.
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
+	// replace evidence module to the story's evidence module
+	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.2-0.20241021201424-b11be3a942ed
+
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.8-0.20241020215712-ca039d442878
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.8-0.20241021201424-b11be3a942ed
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12

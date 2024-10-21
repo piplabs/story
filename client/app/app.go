@@ -29,6 +29,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 
 	_ "cosmossdk.io/api/cosmos/tx/config/v1"          // import for side-effects
+	_ "cosmossdk.io/x/evidence"                       // import for side-effects
 	_ "cosmossdk.io/x/upgrade"                        // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/auth"           // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config" // import for side-effects
@@ -89,6 +90,7 @@ func newApp(
 		&app.Keepers.StakingKeeper,
 		&app.Keepers.SlashingKeeper,
 		&app.Keepers.DistrKeeper,
+		&app.Keepers.EvidenceKeeper,
 		&app.Keepers.ConsensusParamsKeeper,
 		&app.Keepers.GovKeeper,
 		&app.Keepers.UpgradeKeeper,
