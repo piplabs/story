@@ -230,7 +230,6 @@ contract GenerateAlloc is Script {
         vm.etch(impl, "");
         vm.etch(tmp, "");
 
-        
         vm.resetNonce(tmp);
         vm.deal(impl, 1);
         vm.deal(proxyAddr, 1);
@@ -386,7 +385,7 @@ contract GenerateAlloc is Script {
     function setTestAllocations() internal {
         address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
         for (uint160 i = 1; i <= 10_000; i++) {
-            vm.deal(address(uint160(allocSpace) + i) , i * 1 ether);
+            vm.deal(address(uint160(allocSpace) + i), i * 1 ether);
         }
     }
 }
