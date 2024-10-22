@@ -59,7 +59,7 @@ func (s *TestSuite) TestProcessDeposit() {
 	createDeposit := func(delPubKey, valPubKey []byte, amount *big.Int) *bindings.IPTokenStakingDeposit {
 		return &bindings.IPTokenStakingDeposit{
 			DelegatorUncmpPubkey: cmpToUncmp(delPubKey),
-			ValidatorUnCmpPubkey: cmpToUncmp(valPubKey),
+			ValidatorUncmpPubkey: cmpToUncmp(valPubKey),
 			StakeAmount:          amount,
 			StakingPeriod:        big.NewInt(0),
 			DelegationId:         big.NewInt(0),
@@ -87,7 +87,7 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: invalid delegator pubkey",
 			deposit: &bindings.IPTokenStakingDeposit{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey.Bytes())[:16],
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				StakingPeriod:        big.NewInt(0),
 				DelegationId:         big.NewInt(0),
@@ -99,7 +99,7 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: invalid validator pubkey",
 			deposit: &bindings.IPTokenStakingDeposit{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey.Bytes()),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
 				StakeAmount:          new(big.Int).SetUint64(1),
 				StakingPeriod:        big.NewInt(0),
 				DelegationId:         big.NewInt(0),
@@ -111,7 +111,7 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: corrupted delegator pubkey",
 			deposit: &bindings.IPTokenStakingDeposit{
 				DelegatorUncmpPubkey: createCorruptedPubKey(cmpToUncmp(delPubKey.Bytes())),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				StakingPeriod:        big.NewInt(0),
 				DelegationId:         big.NewInt(0),

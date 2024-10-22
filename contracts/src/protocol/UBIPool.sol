@@ -45,7 +45,7 @@ contract UBIPool is
     /// @notice Sets the UBI percentage distribution in CL
     /// @param percentage The percentage of the UBI
     function setUBIPercentage(uint32 percentage) external onlyOwner {
-        require(percentage < MAX_UBI_PERCENTAGE, "UBIPool: percentage too high");
+        require(percentage <= MAX_UBI_PERCENTAGE, "UBIPool: percentage too high");
         emit UBIPercentageSet(percentage);
     }
 

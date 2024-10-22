@@ -775,7 +775,7 @@ func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*bi
 		if vLog.Topics[0] == eventSignature {
 			eventData := struct {
 				DelegatorUncmpPubkey []byte
-				ValidatorUnCmpPubkey []byte
+				ValidatorUncmpPubkey []byte
 				StakeAmount          *big.Int
 				StakingPeriod        *big.Int
 				DelegationId         *big.Int //nolint:revive,stylecheck // Definition comes from ABI

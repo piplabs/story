@@ -287,7 +287,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			},
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
@@ -296,7 +296,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			name: "fail: invalid delegator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes())[:16],
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
@@ -307,7 +307,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			name: "fail: invalid validator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
@@ -318,7 +318,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			name: "fail: corrupted delegator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: createCorruptedPubKey(cmpToUncmp(delPubKey1.Bytes())),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
@@ -329,7 +329,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			name: "fail: corrupted validator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUnCmpPubkey: createCorruptedPubKey(cmpToUncmp(valPubKey.Bytes())),
+				ValidatorUncmpPubkey: createCorruptedPubKey(cmpToUncmp(valPubKey.Bytes())),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
@@ -343,7 +343,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			},
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(unknownPubKey.Bytes()),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(1),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(unknownPubKey.Bytes()),
@@ -357,7 +357,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 			},
 			withdraw: &bindings.IPTokenStakingWithdraw{
 				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUnCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
 				StakeAmount:          new(big.Int).SetUint64(math.MaxUint64),
 				DelegationId:         big.NewInt(0),
 				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),

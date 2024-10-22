@@ -26,7 +26,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 					types.EventTypeDelegateFailure,
 					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUnCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
 					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 					sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
@@ -46,7 +46,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "depositor pubkey to cosmos")
 	}
 
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUnCmpPubkey)
+	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
 		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
