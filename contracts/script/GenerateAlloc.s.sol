@@ -230,7 +230,7 @@ contract GenerateAlloc is Script {
         vm.etch(impl, "");
         vm.etch(tmp, "");
 
-        // can we reset nonce here? we are using "deployer" proxyAddr
+        
         vm.resetNonce(tmp);
         vm.deal(impl, 1);
         vm.deal(proxyAddr, 1);
@@ -331,7 +331,8 @@ contract GenerateAlloc is Script {
 
     function setAllocations() internal {
         // EL Predeploys
-        // Geth precompiles
+        // Geth precompile 1 wei allocation (Accounts with 0 balance and no EVM code may be removed from
+        // the state trie, 1 wei balance prevents this).
         vm.deal(0x0000000000000000000000000000000000000001, 1);
         vm.deal(0x0000000000000000000000000000000000000002, 1);
         vm.deal(0x0000000000000000000000000000000000000003, 1);
@@ -360,6 +361,7 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
         } else if (block.chainid == 1516) {
             // Odyssey testnet alloc
+            setTestAllocations();
             vm.deal(0x5687400189B13551137e330F7ae081142EdfD866, 200000000 ether);
             vm.deal(0x56A26642ad963D3542DdAe4d8fdECC396153c2f6, 200000000 ether);
             vm.deal(0x12cBb8F6F2F7d48bB22B6A1b12452381A45bEb7c, 100000000 ether);
@@ -369,6 +371,7 @@ contract GenerateAlloc is Script {
             vm.deal(0xE8DA8e345Ab1556E5DeE19F9c369C827561Ff712, 10000000 ether);
         } else {
             // Default network alloc
+            setTestAllocations();
             vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
             vm.deal(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab, 100000000 ether);
             vm.deal(0xEcB1D051475A7e330b1DD6683cdC7823Bbcf8Dcf, 100000000 ether);
@@ -377,6 +380,13 @@ contract GenerateAlloc is Script {
             vm.deal(0x00FCeC044cD73e8eC6Ad771556859b00C9011111, 100000000 ether);
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
+        }
+    }
+
+    function setTestAllocations() internal {
+        address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
+        for (uint160 i = 1; i <= 10_000; i++) {
+            vm.deal(address(uint160(allocSpace) + i) , i * 1 ether);
         }
     }
 }
