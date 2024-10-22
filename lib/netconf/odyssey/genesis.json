@@ -212,7 +212,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "Rv2Ok8OtlhAOD4Dksc00aZZlCqGntjL98rqNzIgNn90="
+        "execution_block_hash": "uu4JJd0M8kQp8cHJwfxMxbbgF2xuls0bWoNrxH+Pn4s="
       }
     },
     "genutil": {
@@ -610,7 +610,7 @@
         "downtime_jail_duration": "600s",
         "slash_fraction_double_sign": "0.050000000000000000",
         "slash_fraction_downtime": "0.000200000000000000",
-        "singularity_height": "1209600"
+        "singularity_height": "403200"
       },
       "signing_infos": [],
       "missed_blocks": []
@@ -672,7 +672,7 @@
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
         "min_partial_withdrawal_amount": 8000000000,
-        "singularity_height": "1209600",
+        "singularity_height": "403200",
         "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
     },
@@ -681,7 +681,7 @@
         "mint_denom": "stake",
         "inflations_per_year": "24625000000000000",
         "blocks_per_year": "10368000",
-        "singularity_height": "1209600"
+        "singularity_height": "403200"
       }
     }
   }
