@@ -11,7 +11,7 @@ build: mod ## Build the story client.
 	@go build -o build/story ./client
 
 .PHONY: mod 
-mod: ## mod: Update all go.mod files.
+mod: ## Update all go.mod files.
 	@go mod tidy
 
 ###############################################################################
