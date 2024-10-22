@@ -45,7 +45,7 @@ contract GenerateAlloc is Script {
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
     uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
-    bool public ALLOCATE_10K_TEST_ACCOUNTS = true;
+    bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
 
     /// @notice call from Test.sol to run test fast (no json saving)
     function disableStateDump() external {
