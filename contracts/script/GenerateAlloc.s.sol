@@ -16,6 +16,7 @@ import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
 import { InitializableHelper } from "./utils/InitializableHelper.sol";
 import { Predeploys } from "../src/libraries/Predeploys.sol";
 import { Create3 } from "../src/deploy/Create3.sol";
+import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
 /**
  * @title GenerateAlloc
  * @dev A script to generate the alloc section of EL genesis
@@ -175,6 +176,7 @@ contract GenerateAlloc is Script {
         // predeploys that are not upgradable
         setCreate3();
         deployTimelock();
+        deployERC6551();
 
         // predeploys that are upgradable
         setProxy(Predeploys.Staking);
@@ -330,6 +332,19 @@ contract GenerateAlloc is Script {
 
         vm.deal(Predeploys.Create3, 1);
         console2.log("Create3 deployed at:", Predeploys.Create3);
+    }
+
+    function deployERC6551() internal {
+        address tmp = address(new ERC6551Registry());
+        vm.etch(Predeploys.ERC6551Registry, tmp.code);
+
+        // reset tmp
+        vm.etch(tmp, "");
+        vm.store(tmp, 0, "0x");
+        vm.resetNonce(tmp);
+
+        vm.deal(Predeploys.ERC6551Registry, 1);
+        console2.log("ERC6551 deployed at:", Predeploys.ERC6551Registry);
     }
 
     function setAllocations() internal {

@@ -19,6 +19,9 @@ library Predeploys {
     /// @dev We maximize compatibility with the contracts deployed by ZeframLou
     address internal constant Create3 = 0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf;
 
+    /// @notice ERC6551Registry address
+    address internal constant ERC6551Registry = 0x000000006551c19487814612e58FE06813775758;
+
     /// @notice Return true if `addr` is not proxied
     function notProxied(address addr) internal pure returns (bool) {
         return addr == WIP;
