@@ -405,7 +405,7 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 	}
 
 	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	valAddr, err := s.store.GetStakingKeeper().ValidatorAddressCodec().StringToBytes(muxVars["validator_addr"])
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (re
 	}
 
 	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["validator_addr"])
+	valAddr, err := s.store.GetStakingKeeper().ValidatorAddressCodec().StringToBytes(muxVars["validator_addr"])
 	if err != nil {
 		return nil, err
 	}
