@@ -21,6 +21,8 @@ import { Create3 } from "../src/deploy/Create3.sol";
  * @dev A script to generate the alloc section of EL genesis
  * - Predeploys (See src/libraries/Predeploys.sol)
  * - Genesis $IP allocations (chain id dependent)
+ * - If you want to allocate 10k test accounts with funds,
+ * set this contract's property ALLOCATE_10K_TEST_ACCOUNTS to true
  * Run it by
  *  forge script script/GenerateAlloc.s.sol -vvvv --chain-id <CHAIN_ID>
  * Then, replace the contents of alloc field in EL genesis.json for the contents
@@ -44,7 +46,9 @@ contract GenerateAlloc is Script {
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
-    uint256 public constant MAINNET_CHAIN_ID = 0; // TBD
+    uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
+    // Optionally allocate 10k test accounts for devnets/testnets
+    bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
 
     /// @notice call from Test.sol to run test fast (no json saving)
     function disableStateDump() external {
@@ -72,7 +76,7 @@ contract GenerateAlloc is Script {
             return "./odyssey-testnet-alloc.json";
         } else if (block.chainid == 31337) {
             return "./local-alloc.json";
-        } else if (block.chainid == 1514) {
+        } else if (block.chainid == MAINNET_CHAIN_ID) {
             return "./mainnet-alloc.json";
         } else {
             revert("Unsupported chain id");
@@ -230,7 +234,6 @@ contract GenerateAlloc is Script {
         vm.etch(impl, "");
         vm.etch(tmp, "");
 
-        // can we reset nonce here? we are using "deployer" proxyAddr
         vm.resetNonce(tmp);
         vm.deal(impl, 1);
         vm.deal(proxyAddr, 1);
@@ -331,7 +334,8 @@ contract GenerateAlloc is Script {
 
     function setAllocations() internal {
         // EL Predeploys
-        // Geth precompiles
+        // Geth precompile 1 wei allocation (Accounts with 0 balance and no EVM code may be removed from
+        // the state trie, 1 wei balance prevents this).
         vm.deal(0x0000000000000000000000000000000000000001, 1);
         vm.deal(0x0000000000000000000000000000000000000002, 1);
         vm.deal(0x0000000000000000000000000000000000000003, 1);
@@ -377,6 +381,16 @@ contract GenerateAlloc is Script {
             vm.deal(0x00FCeC044cD73e8eC6Ad771556859b00C9011111, 100000000 ether);
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
+        }
+        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != MAINNET_CHAIN_ID) {
+            setTestAllocations();
+        }
+    }
+
+    function setTestAllocations() internal {
+        address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
+        for (uint160 i = 1; i <= 10_000; i++) {
+            vm.deal(address(uint160(allocSpace) + i), i * 1 ether);
         }
     }
 }
