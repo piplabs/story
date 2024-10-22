@@ -21,6 +21,8 @@ import { Create3 } from "../src/deploy/Create3.sol";
  * @dev A script to generate the alloc section of EL genesis
  * - Predeploys (See src/libraries/Predeploys.sol)
  * - Genesis $IP allocations (chain id dependent)
+ * - If you want to allocate 10k test accounts with funds,
+ * set this contract's property ALLOCATE_10K_TEST_ACCOUNTS to true
  * Run it by
  *  forge script script/GenerateAlloc.s.sol -vvvv --chain-id <CHAIN_ID>
  * Then, replace the contents of alloc field in EL genesis.json for the contents
@@ -45,6 +47,7 @@ contract GenerateAlloc is Script {
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
     uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
+    // Optionally allocate 10k test accounts for devnets/testnets
     bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
 
     /// @notice call from Test.sol to run test fast (no json saving)
