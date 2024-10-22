@@ -85,7 +85,7 @@ func (m *MockEvmStakingKeeper) EXPECT() *MockEvmStakingKeeperMockRecorder {
 }
 
 // DequeueEligibleRewardWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue uint32) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DequeueEligibleRewardWithdrawals", ctx, maxDequeue)
 	ret0, _ := ret[0].(types1.Withdrawals)
@@ -100,7 +100,7 @@ func (mr *MockEvmStakingKeeperMockRecorder) DequeueEligibleRewardWithdrawals(ctx
 }
 
 // DequeueEligibleWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue uint32) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DequeueEligibleWithdrawals", ctx, maxDequeue)
 	ret0, _ := ret[0].(types1.Withdrawals)
@@ -160,7 +160,7 @@ func (mr *MockEvmStakingKeeperMockRecorder) ParseWithdrawLog(ethlog any) *gomock
 }
 
 // PeekEligibleRewardWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint32) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PeekEligibleRewardWithdrawals", ctx, maxPeek)
 	ret0, _ := ret[0].(types1.Withdrawals)
@@ -175,7 +175,7 @@ func (mr *MockEvmStakingKeeperMockRecorder) PeekEligibleRewardWithdrawals(ctx, m
 }
 
 // PeekEligibleWithdrawals mocks base method.
-func (m *MockEvmStakingKeeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (types1.Withdrawals, error) {
+func (m *MockEvmStakingKeeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek uint32) (types1.Withdrawals, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PeekEligibleWithdrawals", ctx, maxPeek)
 	ret0, _ := ret[0].(types1.Withdrawals)

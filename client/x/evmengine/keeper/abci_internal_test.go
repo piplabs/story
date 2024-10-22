@@ -149,7 +149,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 				},
 			},
 			{
@@ -181,7 +181,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 				},
 			},
 			{
@@ -378,7 +378,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -403,7 +403,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -453,7 +453,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), 0).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 			},
 			postStateCheck: payloadWellSet,
 		},

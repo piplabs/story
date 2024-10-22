@@ -96,7 +96,7 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		return errors.Wrap(err, "get max withdrawals per block")
 	}
 
-	expectedWithdrawals, err := s.evmstakingKeeper.PeekEligibleWithdrawals(ctx, int(maxWithdrawals))
+	expectedWithdrawals, err := s.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		return errors.Wrap(err, "peek withdrawals")
 	}
@@ -108,21 +108,21 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		)
 	}
 
-	maxRewardWithdrawals := int(maxWithdrawals) - len(expectedWithdrawals)
+	maxRewardWithdrawals := maxWithdrawals - uint32(len(expectedWithdrawals))
 	expectedRewardWithdrawals, err := s.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return errors.Wrap(err, "peek reward withdrawals")
 	}
 
-	localNum := len(expectedWithdrawals) + len(expectedRewardWithdrawals)
+	expectedTotalWithdrawals := len(expectedWithdrawals) + len(expectedRewardWithdrawals)
 	log.Debug(ctx, "Comparing local and received withdrawals",
-		"local", localNum,
+		"local", expectedTotalWithdrawals,
 		"received", len(actualWithdrawals),
 	)
-	if localNum != len(actualWithdrawals) {
+	if expectedTotalWithdrawals != len(actualWithdrawals) {
 		return fmt.Errorf(
 			"expected total withdrawals %v should equal to actual withdrawals %v",
-			localNum, len(actualWithdrawals),
+			expectedTotalWithdrawals, len(actualWithdrawals),
 		)
 	}
 

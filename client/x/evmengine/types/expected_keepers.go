@@ -21,10 +21,10 @@ type EvmStakingKeeper interface {
 	ParseWithdrawLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingWithdraw, error)
 	ProcessStakingEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
 	MaxWithdrawalPerBlock(ctx context.Context) (uint32, error)
-	DequeueEligibleWithdrawals(ctx context.Context, maxDequeue int) (withdrawals ethtypes.Withdrawals, err error)
-	PeekEligibleWithdrawals(ctx context.Context, maxPeek int) (withdrawals ethtypes.Withdrawals, err error)
-	DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (withdrawals ethtypes.Withdrawals, err error)
-	PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (withdrawals ethtypes.Withdrawals, err error)
+	DequeueEligibleWithdrawals(ctx context.Context, maxDequeue uint32) (withdrawals ethtypes.Withdrawals, err error)
+	PeekEligibleWithdrawals(ctx context.Context, maxPeek uint32) (withdrawals ethtypes.Withdrawals, err error)
+	DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue uint32) (withdrawals ethtypes.Withdrawals, err error)
+	PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint32) (withdrawals ethtypes.Withdrawals, err error)
 }
 
 type UpgradeKeeper interface {

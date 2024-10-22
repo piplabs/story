@@ -17,11 +17,7 @@ func (k Keeper) AddRewardWithdrawalToQueue(ctx context.Context, withdrawal types
 	return k.RewardWithdrawalQueue.Enqueue(ctx, withdrawal)
 }
 
-func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue int) (withdrawals etypes.Withdrawals, err error) {
-	if maxDequeue <= 0 {
-		return withdrawals, nil
-	}
-
+func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue uint32) (withdrawals etypes.Withdrawals, err error) {
 	// front is the unique monotonically increasing index of a withdrawal in the queue.
 	// It's used as the value in etypes.Withdrawal.Index for later validation purposes,
 	// when evmengine's msg_server receives withdrawals as part of the execution payload
@@ -54,11 +50,7 @@ func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue
 	return withdrawals, nil
 }
 
-func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek int) (withdrawals etypes.Withdrawals, err error) {
-	if maxPeek == 0 {
-		return withdrawals, nil
-	}
-
+func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint32) (withdrawals etypes.Withdrawals, err error) {
 	if k.RewardWithdrawalQueue.IsEmpty(ctx) {
 		return withdrawals, nil
 	}
