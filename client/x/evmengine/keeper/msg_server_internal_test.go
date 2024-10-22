@@ -98,7 +98,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "pass: valid payload",
 			setup: func(c context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(c).Return(nil, nil)
+				esk.EXPECT().MaxWithdrawalPerBlock(c).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(c, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(c, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(c, gomock.Any(), gomock.Any()).Return(nil)
 
 				return sdk.UnwrapSDKContext(c)
@@ -160,7 +162,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: DequeueEligibleWithdrawals error",
 			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, errors.New("failed to dequeue"))
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, errors.New("failed to dequeue"))
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
@@ -170,7 +173,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: NewPayloadV3 returns status invalid",
 			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				mockEngine.forceInvalidNewPayloadV3 = true
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -182,7 +187,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: ForkchoiceUpdatedV3 returns status invalid",
 			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				mockEngine.forceInvalidForkchoiceUpdatedV3 = true
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -194,7 +201,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: ProcessStakingEvents error",
 			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(errors.New("failed to process staking events"))
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -206,7 +215,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		{
 			name: "fail: ProcessUpgradeEvents error",
 			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx).Return(nil, nil)
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 				return sdk.UnwrapSDKContext(ctx)

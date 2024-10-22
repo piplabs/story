@@ -103,7 +103,7 @@ func (s *TestSuite) TestDequeueEligibleWithdrawals() {
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
 			// Dequeue the withdrawals
-			result, err := s.EVMStakingKeeper.DequeueEligibleWithdrawals(s.Ctx)
+			result, err := s.EVMStakingKeeper.DequeueEligibleWithdrawals(s.Ctx, uint32(tc.expectedLen))
 			require.NoError(err)
 			require.Equal(tc.expectedLen, len(result))
 
@@ -173,7 +173,7 @@ func (s *TestSuite) TestPeekEligibleWithdrawals() {
 			queueLen := s.EVMStakingKeeper.WithdrawalQueue.Len(s.Ctx)
 
 			// Peek the withdrawals
-			result, err := s.EVMStakingKeeper.PeekEligibleWithdrawals(s.Ctx)
+			result, err := s.EVMStakingKeeper.PeekEligibleWithdrawals(s.Ctx, uint32(tc.expectedLen))
 			require.NoError(err)
 			require.Equal(tc.expectedLen, len(result))
 

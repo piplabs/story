@@ -53,10 +53,20 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	appHash := common.BytesToHash(ctx.BlockHeader().AppHash)
 
-	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx)
+	maxWithdrawals, err := k.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get max withdrawal per block")
+	}
+	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on withdrawals dequeue")
 	}
+	maxRewardWithdrawals := maxWithdrawals - uint32(len(withdrawals))
+	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
+	if err != nil {
+		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
+	}
+	withdrawals = append(withdrawals, rewardWithdrawals...)
 
 	// Either use the optimistic payload or create a new one.
 	payloadID, height, triggeredAt := k.getOptimisticPayload()
@@ -191,11 +201,23 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	// If optimistic block is discarded, we need to restore the dequeued withdrawals back to the queue.
 	// Thus, we peek here. If this optimistic block is indeed used in the next block, then we dequeue there.
 	// If this block is not used in the next block, the block itself is discarded and the queue is unaffected.
-	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx) // context is "context.TODO()"" (empty) in CometBFT v0.38
+	maxWithdrawals, err := k.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
+	if err != nil {
+		log.Error(ctx, "Starting optimistic build failed; get max withdrawal", err, logAttr)
+		return errors.Wrap(err, "get max withdrawal per block")
+	}
+	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals) // context is "context.TODO()"" (empty) in CometBFT v0.38
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; withdrawals peek", err, logAttr)
 		return nil
 	}
+	maxRewardWithdrawals := maxWithdrawals - uint32(len(withdrawals))
+	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
+	if err != nil {
+		log.Error(ctx, "Starting optimistic build failed; reward withdrawals peek", err, logAttr)
+		return errors.Wrap(err, "error on reward withdrawals dequeue")
+	}
+	withdrawals = append(withdrawals, rewardWithdrawals...)
 
 	fcr, err := k.startBuild(ctx, k.validatorAddr, withdrawals, appHash, timestamp)
 	if err != nil || isUnknown(fcr.PayloadStatus) {

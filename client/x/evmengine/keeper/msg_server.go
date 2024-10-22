@@ -2,11 +2,11 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
-	etypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -45,12 +45,55 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 	// TODO: We dequeue with assumption that the top items of the queue are the ones that are processed in the block.
 	// TODO: We might need to check that the withdrawals in the finalized block are the same as the ones dequeued.
-	// But there's no way to reject the block at this point, so we can only log an error.
-	log.Debug(ctx, "Dequeueing eligible withdrawals [BEFORE]", "len", len(payload.Withdrawals))
-	if _, err := s.evmstakingKeeper.DequeueEligibleWithdrawals(ctx); err != nil {
+	// Since we already checked the withdrawals in the proposal server, we simply check the length here.
+	log.Debug(
+		ctx, "Dequeueing eligible withdrawals [BEFORE]",
+		"total_len", len(payload.Withdrawals),
+	)
+	maxWithdrawals, err := s.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting max withdrawal per block")
+	}
+	ws, err := s.evmstakingKeeper.DequeueEligibleWithdrawals(ctx, maxWithdrawals)
+	if err != nil {
 		return nil, errors.Wrap(err, "error on withdrawals dequeue")
 	}
-	log.Debug(ctx, "Dequeueing eligible withdrawals [AFTER]", "len", len(payload.Withdrawals))
+	log.Debug(
+		ctx, "Dequeueing eligible withdrawals [AFTER]",
+		"total_len", len(payload.Withdrawals),
+		"withdrawals_len", len(ws),
+	)
+
+	if len(ws) > len(payload.Withdrawals) {
+		return nil, fmt.Errorf(
+			"dequeued withdrawals %v should not greater than proposed withdrawals %v",
+			len(ws), len(payload.Withdrawals),
+		)
+	}
+
+	log.Debug(
+		ctx, "Dequeueing eligible reward withdrawals [BEFORE]",
+		"total_len", len(payload.Withdrawals),
+		"withdrawals_len", len(ws),
+	)
+	maxRewardWithdrawals := maxWithdrawals - uint32(len(ws))
+	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
+	if err != nil {
+		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
+	}
+	log.Debug(
+		ctx, "Dequeueing eligible reward withdrawals [AFTER]",
+		"total_len", len(payload.Withdrawals),
+		"withdrawals_len", len(ws),
+		"reward_withdrawals_len", len(rws),
+	)
+
+	if totalWithdrawals := len(ws) + len(rws); totalWithdrawals != len(payload.Withdrawals) {
+		return nil, fmt.Errorf(
+			"dequeued total withdrawals %v should equal to proposed withdrawals %v",
+			totalWithdrawals, len(payload.Withdrawals),
+		)
+	}
 
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		status, err := pushPayload(ctx, s.engineCl, payload)
@@ -124,33 +167,6 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	}
 
 	return &types.ExecutionPayloadResponse{}, nil
-}
-
-//nolint:unused // compareWithdrawals compares the given actual withdrawals with the expected withdrawals from the queue.
-func (s msgServer) compareWithdrawals(ctx context.Context, actualWithdrawals etypes.Withdrawals) error {
-	expectedWithdrawals, err := s.evmstakingKeeper.PeekEligibleWithdrawals(ctx)
-	if err != nil {
-		return errors.Wrap(err, "peek withdrawals")
-	}
-
-	if len(actualWithdrawals) != len(expectedWithdrawals) {
-		return errors.New("invalid withdrawals length")
-	}
-
-	for i, withdrawal := range actualWithdrawals {
-		if withdrawal.Index != expectedWithdrawals[i].Index {
-			return errors.New("invalid withdrawal index")
-		}
-		// skip the Validator index equality check (always 0)
-		if withdrawal.Address != expectedWithdrawals[i].Address {
-			return errors.New("invalid withdrawal address")
-		}
-		if withdrawal.Amount != expectedWithdrawals[i].Amount {
-			return errors.New("invalid withdrawal amount")
-		}
-	}
-
-	return nil
 }
 
 // pushPayload pushes the given Engine API payload to EL and returns the engine payload status or an error.
