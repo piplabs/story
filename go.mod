@@ -251,7 +251,7 @@ require (
 )
 
 require (
-	cosmossdk.io/x/evidence v0.0.0-00010101000000-000000000000
+	cosmossdk.io/x/evidence v0.1.0
 	cosmossdk.io/x/upgrade v0.1.4
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.4
 	github.com/go-playground/validator/v10 v10.11.1
