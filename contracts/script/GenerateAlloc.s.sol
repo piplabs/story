@@ -176,7 +176,7 @@ contract GenerateAlloc is Script {
         // predeploys that are not upgradable
         setCreate3();
         deployTimelock();
-        deployERC6551();
+        setERC6551();
 
         // predeploys that are upgradable
         setProxy(Predeploys.Staking);
@@ -334,7 +334,7 @@ contract GenerateAlloc is Script {
         console2.log("Create3 deployed at:", Predeploys.Create3);
     }
 
-    function deployERC6551() internal {
+    function setERC6551() internal {
         address tmp = address(new ERC6551Registry());
         vm.etch(Predeploys.ERC6551Registry, tmp.code);
 
