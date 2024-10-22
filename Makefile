@@ -1,6 +1,18 @@
 help:  ## Display this help message
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m  %-30s\033[0m %s\n", $$1, $$2}'
 
+###############################################################################
+###                                Build                                    ###
+###############################################################################
+
+.PHONY: build
+build: mod ## Build the story client.
+	@mkdir -p build/
+	@go build -o build/story ./client
+
+.PHONY: mod 
+mod: ## mod: Update all go.mod files.
+	@go mod tidy
 
 ###############################################################################
 ###                                Contracts                                 ###
