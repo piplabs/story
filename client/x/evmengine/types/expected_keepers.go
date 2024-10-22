@@ -17,8 +17,6 @@ type AccountKeeper interface {
 }
 
 type EvmStakingKeeper interface {
-	ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingDeposit) error
-	ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) error
 	ParseDepositLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingDeposit, error)
 	ParseWithdrawLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingWithdraw, error)
 	ProcessStakingEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
