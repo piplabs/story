@@ -49,17 +49,6 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 
 	newComm := math.LegacyNewDecWithPrec(int64(ev.CommissionRate), 4)
-
-	minCommissionRate, err := k.stakingKeeper.MinCommissionRate(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get min commission rate")
-	}
-	if newComm.GT(math.LegacyOneDec()) || newComm.IsNegative() {
-		return errors.New("commission rate must be between 0 and 1 (inclusive)")
-	} else if newComm.LT(minCommissionRate) {
-		return errors.New("commission rate cannot be less than the min commission rate %s", minCommissionRate.String())
-	}
-
 	minSelfDelegation := validator.MinSelfDelegation
 	msg := stypes.NewMsgEditValidator(
 		validatorAddr.String(),

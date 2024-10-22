@@ -68,7 +68,6 @@ type StakingKeeper interface {
 	EndBlockerWithUnbondedEntries(ctx context.Context) ([]abci.ValidatorUpdate, []stakingtypes.UnbondedEntry, error)
 
 	MinDelegation(ctx context.Context) (math.Int, error)
-	MinCommissionRate(ctx context.Context) (math.LegacyDec, error)
 	GetFlexiblePeriodType(ctx context.Context) (int32, error)
 	GetPeriodInfo(ctx context.Context, periodType int32) (stakingtypes.Period, error)
 	GetLockedTokenType(ctx context.Context) (int32, error)
