@@ -5,6 +5,7 @@ package keepers
 // When performing `ignite scaffold` the keeper will be added to `app.go`. Please move them here.
 
 import (
+	evidencekeeper "cosmossdk.io/x/evidence/keeper"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -31,6 +32,7 @@ type Keepers struct {
 	ConsensusParamsKeeper consensuskeeper.Keeper
 	GovKeeper             *govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
+	EvidenceKeeper        evidencekeeper.Keeper
 
 	// Story
 	EvmStakingKeeper *evmstakingkeeper.Keeper

@@ -7,6 +7,7 @@ import (
 	bankmodulev1 "cosmossdk.io/api/cosmos/bank/module/v1"
 	consensusmodulev1 "cosmossdk.io/api/cosmos/consensus/module/v1"
 	distrmodulev1 "cosmossdk.io/api/cosmos/distribution/module/v1"
+	evidencemodulev1 "cosmossdk.io/api/cosmos/evidence/module/v1"
 	genutilmodulev1 "cosmossdk.io/api/cosmos/genutil/module/v1"
 	govmodulev1 "cosmossdk.io/api/cosmos/gov/module/v1"
 	slashingmodulev1 "cosmossdk.io/api/cosmos/slashing/module/v1"
@@ -15,6 +16,7 @@ import (
 	upgrademodulev1 "cosmossdk.io/api/cosmos/upgrade/module/v1"
 	"cosmossdk.io/core/appconfig"
 	"cosmossdk.io/depinject"
+	evidencetypes "cosmossdk.io/x/evidence/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -83,6 +85,7 @@ var (
 		minttypes.ModuleName,
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
+		evidencetypes.ModuleName,
 		// Story modules
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
@@ -101,6 +104,7 @@ var (
 		minttypes.ModuleName,
 		distrtypes.ModuleName, // Note: slashing happens after distr.BeginBlocker
 		slashingtypes.ModuleName,
+		evidencetypes.ModuleName,
 		stakingtypes.ModuleName,
 	}
 
@@ -191,6 +195,10 @@ var (
 			{
 				Name:   stakingtypes.ModuleName,
 				Config: appconfig.WrapAny(&stakingmodulev1.Module{}),
+			},
+			{
+				Name:   evidencetypes.ModuleName,
+				Config: appconfig.WrapAny(&evidencemodulev1.Module{}),
 			},
 			{
 				Name:   upgradetypes.ModuleName,
