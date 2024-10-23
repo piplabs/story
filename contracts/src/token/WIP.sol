@@ -6,9 +6,9 @@ import { ERC20 } from "solady/src/tokens/ERC20.sol";
 /// @author Inspired by WETH9 (https://github.com/dapphub/ds-weth/blob/master/src/weth9.sol)
 contract WIP is ERC20 {
     /// @notice emitted when IP is deposited in exchange for WIP
-    event  Deposit(address indexed from, uint amount);
+    event Deposit(address indexed from, uint amount);
     /// @notice emitted when WIP is withdrawn in exchange for IP
-    event  Withdrawal(address indexed to, uint amount);
+    event Withdrawal(address indexed to, uint amount);
     /// @notice emitted when a transfer of IP fails
     error IPTransferFailed();
 
@@ -29,7 +29,7 @@ contract WIP is ERC20 {
     /// @param value the amount of WIP to burn and withdraw
     function withdraw(uint value) external {
         _burn(msg.sender, value);
-        (bool success, ) = msg.sender.call{value: value}("");
+        (bool success, ) = msg.sender.call{ value: value }("");
         if (!success) {
             revert IPTransferFailed();
         }
