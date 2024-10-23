@@ -12,6 +12,7 @@ import { Predeploys } from "../../src/libraries/Predeploys.sol";
 import { Create3 } from "../../src/deploy/Create3.sol";
 import { GenerateAlloc } from "../../script/GenerateAlloc.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
+import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
@@ -24,6 +25,7 @@ contract Test is ForgeTest {
     UpgradeEntrypoint internal upgradeEntrypoint;
     UBIPool internal ubiPool;
     Create3 internal create3;
+    ERC6551Registry internal erc6551Registry;
     TimelockController internal timelock;
 
     function setUp() public virtual {
@@ -35,6 +37,7 @@ contract Test is ForgeTest {
         upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
         ubiPool = UBIPool(Predeploys.UBIPool);
         create3 = Create3(Predeploys.Create3);
+        erc6551Registry = ERC6551Registry(Predeploys.ERC6551Registry);
         address timelockAddress = create3.getDeployed(deployer, keccak256("STORY_TIMELOCK_CONTROLLER"));
         timelock = TimelockController(payable(timelockAddress));
         require(timelockAddress.code.length > 0, "Timelock not deployed");
