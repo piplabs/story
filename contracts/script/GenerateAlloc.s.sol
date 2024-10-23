@@ -188,6 +188,11 @@ contract GenerateAlloc is Script {
     }
 
     function setProxies() internal {
+        // We populate the predeploys namespace with proxies, to reserve the addresses
+        // for future use.
+        // Implementations are deterministically determined, but won't have code unless
+        // explicitly set in this script.
+        // Later on, they can be upgraded to new implementations by timelock.
         for (uint160 i = 1; i <= Predeploys.NamespaceSize; i++) {
             address addr = address(uint160(Predeploys.Namespace) + i);
             setProxy(addr);
