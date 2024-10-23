@@ -28,7 +28,6 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -172,7 +171,6 @@ func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(ctx, modAcc any) *gomo
 type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
@@ -378,7 +376,6 @@ func (mr *MockBankKeeperMockRecorder) UndelegateCoinsFromModuleToAccount(ctx, se
 type MockStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockStakingKeeperMockRecorder is the mock recorder for MockStakingKeeper.
@@ -533,6 +530,21 @@ func (mr *MockStakingKeeperMockRecorder) GetPeriodInfo(ctx, periodType any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPeriodInfo", reflect.TypeOf((*MockStakingKeeper)(nil).GetPeriodInfo), ctx, periodType)
 }
 
+// GetSingularityHeight mocks base method.
+func (m *MockStakingKeeper) GetSingularityHeight(ctx context.Context) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSingularityHeight", ctx)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSingularityHeight indicates an expected call of GetSingularityHeight.
+func (mr *MockStakingKeeperMockRecorder) GetSingularityHeight(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSingularityHeight", reflect.TypeOf((*MockStakingKeeper)(nil).GetSingularityHeight), ctx)
+}
+
 // GetTokenTypeInfo mocks base method.
 func (m *MockStakingKeeper) GetTokenTypeInfo(ctx context.Context, tokenType int32) (types2.TokenTypeInfo, error) {
 	m.ctrl.T.Helper()
@@ -671,7 +683,6 @@ func (mr *MockStakingKeeperMockRecorder) ValidatorAddressCodec() *gomock.Call {
 type MockSlashingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockSlashingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockSlashingKeeperMockRecorder is the mock recorder for MockSlashingKeeper.
@@ -709,7 +720,6 @@ func (mr *MockSlashingKeeperMockRecorder) Unjail(ctx, validatorAddr any) *gomock
 type MockDistributionKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistributionKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockDistributionKeeperMockRecorder is the mock recorder for MockDistributionKeeper.

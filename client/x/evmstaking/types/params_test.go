@@ -20,8 +20,8 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, singularityHeight := uint32(1), uint32(2), uint64(3), uint64(10)
-	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, singularityHeight)
+	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount := uint32(1), uint32(2), uint64(3)
+	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount)
 	// check values are set correctly
 	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(maxSweepPerBlock, params.MaxSweepPerBlock)
@@ -35,7 +35,6 @@ func (suite *ParamsTestSuite) TestDefaultParams() {
 	require.Equal(types.DefaultMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(types.DefaultMaxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
-	require.Equal(types.DefaultSingularityHeight, params.SingularityHeight)
 }
 
 func (suite *ParamsTestSuite) TestValidateMaxWithdrawalPerBlock() {

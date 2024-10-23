@@ -16,15 +16,20 @@ import (
 func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationFn) error {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, telemetry.Now(), telemetry.MetricKeyBeginBlocker)
 
-	params, err := k.Params.Get(ctx)
+	singularityHeight, err := k.stakingKeeper.GetSingularityHeight(ctx)
 	if err != nil {
 		return err
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	if sdkCtx.BlockHeight() < int64(params.SingularityHeight) {
+	if sdkCtx.BlockHeight() < int64(singularityHeight) {
 		log.Debug(ctx, "Skip minting during singularity")
 		return nil
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
 	}
 
 	// mint coins, update supply

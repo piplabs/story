@@ -149,8 +149,7 @@
         "min_signed_per_window": "0.050000000000000000",
         "downtime_jail_duration": "60s",
         "slash_fraction_double_sign": "0.050000000000000000",
-        "slash_fraction_downtime": "0.010000000000000000",
-        "singularity_height": "30"
+        "slash_fraction_downtime": "0.010000000000000000"
       },
       "signing_infos": [],
       "missed_blocks": []
@@ -165,6 +164,7 @@
         "min_commission_rate": "0.000000000000000000",
         "min_delegation": "1024000000000",
         "flexible_period_type": 0,
+        "singularity_height": "30",
         "periods": [
           {
             "period_type": 0,
@@ -213,7 +213,6 @@
         "max_withdrawal_per_block": 32,
         "max_sweep_per_block": 128,
         "min_partial_withdrawal_amount": 100000000,
-        "singularity_height": "30",
         "ubi_withdraw_address": "0xcccccc0000000000000000000000000000000002"
       }
     },
@@ -221,8 +220,7 @@
       "params": {
         "mint_denom": "stake",
         "inflations_per_year": "24625000000000000.000000000000000000",
-        "blocks_per_year": "6311520",
-        "singularity_height": "30"
+        "blocks_per_year": "6311520"
       }
     }
   }
