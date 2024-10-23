@@ -2,8 +2,12 @@ package keeper
 
 import (
 	"context"
+	"strconv"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
@@ -41,13 +45,30 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 	return nil
 }
 
-func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade) error {
-	err := k.upgradeKeeper.ScheduleUpgrade(ctx, upgradetypes.Plan{
+func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeUpgradeFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyUpgradeName, ev.Name),
+					sdk.NewAttribute(types.AttributeKeyUpgradeHeight, strconv.FormatInt(ev.Height, 10)),
+					sdk.NewAttribute(types.AttributeKeyUpgradeInfo, ev.Info),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				),
+			})
+		}
+	}()
+
+	if err = k.upgradeKeeper.ScheduleUpgrade(ctx, upgradetypes.Plan{
 		Name:   ev.Name,
 		Info:   ev.Info,
 		Height: ev.Height,
-	})
-	if err != nil {
+	}); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
 		return errors.Wrap(err, "process software upgrade: schedule upgrade")
 	}
 

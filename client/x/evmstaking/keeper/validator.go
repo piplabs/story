@@ -35,7 +35,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 					sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
 					sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -44,7 +44,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -105,7 +105,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	if _, err = k.stakingKeeper.GetValidator(ctx, validatorAddr); err == nil {
-		return types.WrapErrWithCode(types.ValidatorAlreadyExists, errors.New("validator already exists"))
+		return errors.WrapErrWithCode(errors.ValidatorAlreadyExists, errors.New("validator already exists"))
 	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
 		// Either the validator does not exist, or unknown error.
 		return errors.Wrap(err, "get validator")
@@ -142,11 +142,11 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 
 	_, err = skeeperMsgServer.CreateValidator(ctx, msg)
 	if errors.Is(err, stypes.ErrCommissionLTMinRate) {
-		return types.WrapErrWithCode(types.InvalidCommissionRate, err)
+		return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
 	} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
-		return types.WrapErrWithCode(types.InvalidMinSelfDelegation, err)
+		return errors.WrapErrWithCode(errors.InvalidMinSelfDelegation, err)
 	} else if errors.Is(err, stypes.ErrNoTokenTypeFound) {
-		return types.WrapErrWithCode(types.InvalidTokenType, err)
+		return errors.WrapErrWithCode(errors.InvalidTokenType, err)
 	} else if err != nil {
 		return errors.Wrap(err, "create validator")
 	}

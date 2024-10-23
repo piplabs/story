@@ -1,7 +1,7 @@
-package types
+package errors
 
 import (
-	"errors"
+	stderrors "errors"
 )
 
 type ErrCode uint32
@@ -18,20 +18,22 @@ const (
 	InvalidMinSelfDelegation ErrCode = 8
 	InvalidDelegationAmount  ErrCode = 9
 	PeriodDelegationNotFound ErrCode = 10
+	InvalidRequest           ErrCode = 11
 )
 
 var (
-	ErrUnspecified              = errors.New("unspecified")
-	ErrInvalidUncmpPubKey       = errors.New("invalid_uncompressed_pubkey")
-	ErrValidatorNotFound        = errors.New("validator_not_found")
-	ErrValidatorAlreadyExists   = errors.New("validator_already_exists")
-	ErrInvalidTokenType         = errors.New("invalid_token_type")
-	ErrInvalidPeriodType        = errors.New("invalid_period_type")
-	ErrInvalidOperator          = errors.New("invalid_operator")
-	ErrInvalidCommissionRate    = errors.New("invalid_commission_rate")
-	ErrInvalidMinSelfDelegation = errors.New("invalid_min_self_delegation")
-	ErrInvalidDelegationAmount  = errors.New("invalid_delegation_amount")
-	ErrPeriodDelegationNotFound = errors.New("period_delegation_not_found")
+	ErrUnspecified              = stderrors.New("unspecified")
+	ErrInvalidUncmpPubKey       = stderrors.New("invalid_uncompressed_pubkey")
+	ErrValidatorNotFound        = stderrors.New("validator_not_found")
+	ErrValidatorAlreadyExists   = stderrors.New("validator_already_exists")
+	ErrInvalidTokenType         = stderrors.New("invalid_token_type")
+	ErrInvalidPeriodType        = stderrors.New("invalid_period_type")
+	ErrInvalidOperator          = stderrors.New("invalid_operator")
+	ErrInvalidCommissionRate    = stderrors.New("invalid_commission_rate")
+	ErrInvalidMinSelfDelegation = stderrors.New("invalid_min_self_delegation")
+	ErrInvalidDelegationAmount  = stderrors.New("invalid_delegation_amount")
+	ErrPeriodDelegationNotFound = stderrors.New("period_delegation_not_found")
+	ErrInvalidRequest           = stderrors.New("invalid_request")
 )
 
 var codeToErr = map[ErrCode]error{
@@ -46,6 +48,7 @@ var codeToErr = map[ErrCode]error{
 	InvalidMinSelfDelegation: ErrInvalidMinSelfDelegation,
 	InvalidDelegationAmount:  ErrInvalidDelegationAmount,
 	PeriodDelegationNotFound: ErrPeriodDelegationNotFound,
+	InvalidRequest:           ErrInvalidRequest,
 }
 
 func (c ErrCode) String() string {
@@ -62,33 +65,35 @@ func WrapErrWithCode(code ErrCode, err error) error {
 		code = Unspecified
 	}
 
-	return errors.Join(codeToErr[code], err)
+	return stderrors.Join(codeToErr[code], err)
 }
 
 func UnwrapErrCode(err error) ErrCode {
 	switch {
-	case errors.Is(err, ErrUnspecified):
+	case stderrors.Is(err, ErrUnspecified):
 		return Unspecified
-	case errors.Is(err, ErrInvalidUncmpPubKey):
+	case stderrors.Is(err, ErrInvalidUncmpPubKey):
 		return InvalidUncmpPubKey
-	case errors.Is(err, ErrValidatorNotFound):
+	case stderrors.Is(err, ErrValidatorNotFound):
 		return ValidatorNotFound
-	case errors.Is(err, ErrValidatorAlreadyExists):
+	case stderrors.Is(err, ErrValidatorAlreadyExists):
 		return ValidatorAlreadyExists
-	case errors.Is(err, ErrInvalidTokenType):
+	case stderrors.Is(err, ErrInvalidTokenType):
 		return InvalidTokenType
-	case errors.Is(err, ErrInvalidPeriodType):
+	case stderrors.Is(err, ErrInvalidPeriodType):
 		return InvalidPeriodType
-	case errors.Is(err, ErrInvalidOperator):
+	case stderrors.Is(err, ErrInvalidOperator):
 		return InvalidOperator
-	case errors.Is(err, ErrInvalidCommissionRate):
+	case stderrors.Is(err, ErrInvalidCommissionRate):
 		return InvalidCommissionRate
-	case errors.Is(err, ErrInvalidMinSelfDelegation):
+	case stderrors.Is(err, ErrInvalidMinSelfDelegation):
 		return InvalidMinSelfDelegation
-	case errors.Is(err, ErrInvalidDelegationAmount):
+	case stderrors.Is(err, ErrInvalidDelegationAmount):
 		return InvalidDelegationAmount
-	case errors.Is(err, ErrPeriodDelegationNotFound):
+	case stderrors.Is(err, ErrPeriodDelegationNotFound):
 		return PeriodDelegationNotFound
+	case stderrors.Is(err, ErrInvalidRequest):
+		return InvalidRequest
 	default:
 		return Unspecified
 	}

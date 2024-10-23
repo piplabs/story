@@ -26,7 +26,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -34,7 +34,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -53,16 +53,16 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 	if valEvmAddr.String() != ev.Unjailer.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, valDelAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
-			return types.WrapErrWithCode(
-				types.InvalidOperator,
+			return errors.WrapErrWithCode(
+				errors.InvalidOperator,
 				errors.New("invalid unjailOnBehalf txn, no operator for delegator"),
 			)
 		} else if err != nil {
 			return errors.Wrap(err, "get validator's operator address failed")
 		}
 		if operatorAddr != ev.Unjailer.String() {
-			return types.WrapErrWithCode(
-				types.InvalidOperator,
+			return errors.WrapErrWithCode(
+				errors.InvalidOperator,
 				errors.New("invalid unjailOnBehalf txn, not from operator"),
 			)
 		}

@@ -2,8 +2,12 @@ package keeper
 
 import (
 	"context"
+	"strconv"
 
 	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
@@ -41,9 +45,26 @@ func (k *Keeper) ProcessUbiEvents(ctx context.Context, height uint64, logs []*ty
 	return nil
 }
 
-func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPoolUBIPercentageSet) error {
+func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPoolUBIPercentageSet) (err error) {
+	defer func() {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if err != nil {
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				sdk.NewEvent(
+					types.EventTypeUpgradeFailure,
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyUbiPercentage, strconv.FormatUint(uint64(ev.Percentage), 10)),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				),
+			})
+		}
+	}()
+
 	newUBI := math.LegacyNewDecWithPrec(int64(ev.Percentage), 4)
-	if err := k.distrKeeper.SetUbi(ctx, newUBI); err != nil {
+
+	if err = k.distrKeeper.SetUbi(ctx, newUBI); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
 		return errors.Wrap(err, "set new UBI percentage")
 	}
 
