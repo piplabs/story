@@ -31,7 +31,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 					sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -39,7 +39,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
@@ -48,7 +48,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -110,7 +110,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	val, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return types.WrapErrWithCode(types.ValidatorNotFound, errors.New("validator not exists"))
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, errors.New("validator not exists"))
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
@@ -143,9 +143,9 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
 	if errors.Is(err, stypes.ErrDelegationBelowMinimum) {
-		return types.WrapErrWithCode(types.InvalidDelegationAmount, err)
+		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
 	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
-		return types.WrapErrWithCode(types.InvalidPeriodType, err)
+		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
 	} else if err != nil {
 		return errors.Wrap(err, "delegate")
 	}

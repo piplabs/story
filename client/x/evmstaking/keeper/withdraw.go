@@ -341,7 +341,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, types.UnwrapErrCode(err).String()),
+					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				),
 			})
 		}
@@ -359,7 +359,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
 	}
 	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
 	if err != nil {
@@ -368,7 +368,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
 	if err != nil {
-		return types.WrapErrWithCode(types.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
+		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
 	}
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
 	if err != nil {
@@ -391,16 +391,16 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	if delEvmAddr.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
-			return types.WrapErrWithCode(
-				types.InvalidOperator,
+			return errors.WrapErrWithCode(
+				errors.InvalidOperator,
 				errors.New("invalid unstakeOnBehalf txn, no operator"),
 			)
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
 		if operatorAddr != ev.OperatorAddress.String() {
-			return types.WrapErrWithCode(
-				types.InvalidOperator,
+			return errors.WrapErrWithCode(
+				errors.InvalidOperator,
 				errors.New("invalid unstakeOnBehalf txn, not from operator"),
 			)
 		}
@@ -427,7 +427,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(ctx, msg)
 	if errors.Is(err, stypes.ErrNoPeriodDelegation) {
-		return types.WrapErrWithCode(types.PeriodDelegationNotFound, err)
+		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
 	} else if err != nil {
 		return errors.Wrap(err, "undelegate")
 	}
