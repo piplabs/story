@@ -611,7 +611,7 @@
         "downtime_jail_duration": "600s",
         "slash_fraction_double_sign": "0.050000000000000000",
         "slash_fraction_downtime": "0.000200000000000000",
-        "singularity_height": "403200"
+        "singularity_height": "28800"
       },
       "signing_infos": [],
       "missed_blocks": []
