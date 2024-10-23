@@ -10,7 +10,7 @@ library Predeploys {
     uint256 internal constant NamespaceSize = 1024;
 
     /// @notice Predeploys
-    address internal constant WIP = 0x1513000000000000000000000000000000000000;
+    address internal constant WIP = 0x1516000000000000000000000000000000000000;
     address internal constant Staking = 0xCCcCcC0000000000000000000000000000000001;
     address internal constant UBIPool = 0xCccCCC0000000000000000000000000000000002;
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;

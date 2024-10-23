@@ -17,6 +17,7 @@ import { InitializableHelper } from "./utils/InitializableHelper.sol";
 import { Predeploys } from "../src/libraries/Predeploys.sol";
 import { Create3 } from "../src/deploy/Create3.sol";
 import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
+import { WIP } from "../src/token/WIP.sol";
 /**
  * @title GenerateAlloc
  * @dev A script to generate the alloc section of EL genesis
@@ -185,6 +186,7 @@ contract GenerateAlloc is Script {
         setCreate3();
         deployTimelock();
         setERC6551();
+        setWIP();
 
         // Set proxies for all predeploys
         setProxies();
@@ -366,6 +368,19 @@ contract GenerateAlloc is Script {
 
         vm.deal(Predeploys.ERC6551Registry, 1);
         console2.log("ERC6551 deployed at:", Predeploys.ERC6551Registry);
+    }
+
+    function setWIP() internal {
+        address tmp = address(new WIP());
+        vm.etch(Predeploys.WIP, tmp.code);
+
+        // reset tmp
+        vm.etch(tmp, "");
+        vm.store(tmp, 0, "0x");
+        vm.resetNonce(tmp);
+
+        vm.deal(Predeploys.WIP, 1);
+        console2.log("WIP deployed at:", Predeploys.WIP);
     }
 
     function setAllocations() internal {

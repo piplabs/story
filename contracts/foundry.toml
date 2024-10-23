@@ -17,7 +17,8 @@ remappings = [
   "test/=test",
   "@openzeppelin/=node_modules/@openzeppelin/",
   "@openzeppelin-upgrades/contracts/=node_modules/@openzeppelin/contracts-upgradeable",
-  "erc6551/=node_modules/erc6551/"
+  "erc6551/=node_modules/erc6551/",
+  "solady/=node_modules/solady/",
 ]
 
 fs_permissions = [

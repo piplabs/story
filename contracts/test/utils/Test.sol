@@ -13,6 +13,7 @@ import { Create3 } from "../../src/deploy/Create3.sol";
 import { GenerateAlloc } from "../../script/GenerateAlloc.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
+import { WIP } from "../../src/token/WIP.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
@@ -27,6 +28,7 @@ contract Test is ForgeTest {
     Create3 internal create3;
     ERC6551Registry internal erc6551Registry;
     TimelockController internal timelock;
+    WIP internal wip;
 
     function setUp() public virtual {
         GenerateAlloc initializer = new GenerateAlloc();
@@ -37,6 +39,7 @@ contract Test is ForgeTest {
         upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
         ubiPool = UBIPool(Predeploys.UBIPool);
         create3 = Create3(Predeploys.Create3);
+        wip = WIP(payable(Predeploys.WIP));
         erc6551Registry = ERC6551Registry(Predeploys.ERC6551Registry);
         address timelockAddress = create3.getDeployed(deployer, keccak256("STORY_TIMELOCK_CONTROLLER"));
         timelock = TimelockController(payable(timelockAddress));
