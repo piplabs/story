@@ -196,7 +196,8 @@
         "ubi": "0.065000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
-        "withdraw_addr_enabled": true
+        "withdraw_addr_enabled": true,
+        "max_ubi": "0.200000000000000000"
       },
       "fee_pool": {
         "ubi": []
