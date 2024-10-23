@@ -294,27 +294,29 @@ func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err 
 
 	delAddr := mux.Vars(r)["delegator_addr"]
 
+	result := map[string]string{
+		"delegator_addr":   delAddr,
+		"withdraw_address": "",
+		"reward_address":   "",
+		"operator_address": "",
+	}
+
 	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(queryContext, delAddr)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		result["withdraw_address"] = delWithdrawEvmAddr
 	}
 
 	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(queryContext, delAddr)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		result["reward_address"] = delRewardEvmAddr
 	}
 
 	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		result["operator_address"] = delOperatorEvmAddr
 	}
 
-	return map[string]string{
-		"delegator_addr":   delAddr,
-		"withdraw_address": delWithdrawEvmAddr,
-		"reward_address":   delRewardEvmAddr,
-		"operator_address": delOperatorEvmAddr,
-	}, nil
+	return result, nil
 }
 
 // GetUnbondingDelegationsByDelegatorAddress queries all unbonding delegations of a given delegator address.
