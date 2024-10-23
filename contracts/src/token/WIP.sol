@@ -11,6 +11,8 @@ contract WIP is ERC20 {
     event Withdrawal(address indexed to, uint amount);
     /// @notice emitted when a transfer of IP fails
     error IPTransferFailed();
+    /// @notice emitted when an invalid transfer recipient is detected
+    error InvalidTransferReceiver();
 
     /// @notice triggered when IP is deposited in exchange for WIP
     receive() external payable {
@@ -44,6 +46,15 @@ contract WIP is ERC20 {
     /// @notice returns the symbol of the token
     function symbol() public view override returns (string memory) {
         return "WIP";
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {
+        if (to == address(0)) {
+            revert InvalidTransferReceiver();
+        }
+        if (to == address(this)) {
+            revert InvalidTransferReceiver();
+        }
     }
 
     /// @dev Sets Permit2 contract's allowance to infinity.
