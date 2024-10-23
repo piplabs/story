@@ -51,7 +51,7 @@ func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPo
 		if err != nil {
 			sdkCtx.EventManager().EmitEvents(sdk.Events{
 				sdk.NewEvent(
-					types.EventTypeUpgradeFailure,
+					types.EventTypeUpdateUbiFailure,
 					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 					sdk.NewAttribute(types.AttributeKeyUbiPercentage, strconv.FormatUint(uint64(ev.Percentage), 10)),
 					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
