@@ -13,6 +13,8 @@ contract WIP is ERC20 {
     error IPTransferFailed();
     /// @notice emitted when an invalid transfer recipient is detected
     error InvalidTransferReceiver();
+    /// @notice emitted when an invalid transfer spender is detected
+    error InvalidTransferSpender();
 
     /// @notice triggered when IP is deposited in exchange for WIP
     receive() external payable {
@@ -48,13 +50,37 @@ contract WIP is ERC20 {
         return "WIP";
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {
+    /// @notice approves `spender` to spend `amount` of WIP
+    function approve(address spender, uint256 amount) public override returns (bool) {
+        if (spender == msg.sender) {
+            revert InvalidTransferSpender();
+        }
+
+        return super.approve(spender, amount);
+    }
+
+    /// @notice transfers `amount` of WIP to a recipient `to`
+    function transfer(address to, uint256 amount) public override returns (bool) {
         if (to == address(0)) {
             revert InvalidTransferReceiver();
         }
         if (to == address(this)) {
             revert InvalidTransferReceiver();
         }
+
+        return super.transfer(to, amount);
+    }
+
+    /// @notice transfers `amount` of WIP from `from` to a recipient `to`
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        if (to == address(0)) {
+            revert InvalidTransferReceiver();
+        }
+        if (to == address(this)) {
+            revert InvalidTransferReceiver();
+        }
+
+        return super.transferFrom(from, to, amount);
     }
 
     /// @dev Sets Permit2 contract's allowance to infinity.

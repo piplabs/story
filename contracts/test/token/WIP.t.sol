@@ -119,5 +119,80 @@ contract WIPTest is Test {
         assertEq(wip.totalSupply(), depositAmount - withdrawAmount);
     }
 
+    function testTransferToZeroAddressReverts() public {
+        address owner = address(0x123);
+
+        vm.deal(owner, 1 ether);
+
+        vm.prank(owner);
+        wip.deposit{ value: 1 ether }();
+
+        assertEq(wip.balanceOf(owner), 1 ether);
+
+        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.prank(owner);
+        wip.transfer(address(0), 1 ether);
+    }
+
+    function testTransferToWIPContractReverts() public {
+        address owner = address(0x123);
+
+        vm.deal(owner, 1 ether);
+
+        vm.prank(owner);
+        wip.deposit{ value: 1 ether }();
+
+        assertEq(wip.balanceOf(owner), 1 ether);
+
+        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.prank(owner);
+        wip.transfer(address(wip), 1 ether);
+    }
+
+    function testTransferFromReceiverIsWIPContractReverts() public {
+        address owner = address(0x123);
+
+        vm.deal(owner, 1 ether);
+
+        vm.prank(owner);
+        wip.deposit{ value: 1 ether }();
+
+        assertEq(wip.balanceOf(owner), 1 ether);
+
+        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.prank(owner);
+        wip.transferFrom(owner, address(wip), 1 ether);
+    }
+
+    function testTransferFromReceiverIsZeroAddressReverts() public {
+        address owner = address(0x123);
+
+        vm.deal(owner, 1 ether);
+
+        vm.prank(owner);
+        wip.deposit{ value: 1 ether }();
+
+        assertEq(wip.balanceOf(owner), 1 ether);
+
+        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.prank(owner);
+        wip.transferFrom(owner, address(0), 1 ether);
+    }
+
+    function testApprovalToSelfReverts() public {
+        address owner = address(0x123);
+
+        vm.deal(owner, 1 ether);
+
+        vm.prank(owner);
+        wip.deposit{ value: 1 ether }();
+
+        assertEq(wip.balanceOf(owner), 1 ether);
+
+        vm.expectRevert(WIP.InvalidTransferSpender.selector);
+        vm.prank(owner);
+        wip.approve(owner, 1 ether);
+    }
+
     receive() external payable {}
 }
