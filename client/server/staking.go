@@ -4,6 +4,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -306,14 +307,17 @@ func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err 
 
 	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
 	if err != nil {
-		return nil, err
+		if !strings.Contains(err.Error(), "not found") {
+			return nil, err
+		}
+		delOperatorEvmAddr = ""
 	}
 
-	return map[string]string{
-		"delegator_addr":   delAddr,
-		"withdraw_address": delWithdrawEvmAddr,
-		"reward_address":   delRewardEvmAddr,
-		"operator_address": delOperatorEvmAddr,
+	return &DelegatorBaseInfo{
+		DelegatorAddr:   delAddr,
+		WithdrawAddress: delWithdrawEvmAddr,
+		RewardAddress:   delRewardEvmAddr,
+		OperatorAddress: delOperatorEvmAddr,
 	}, nil
 }
 
