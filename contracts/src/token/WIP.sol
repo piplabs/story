@@ -11,6 +11,10 @@ contract WIP is ERC20 {
     event Withdrawal(address indexed to, uint amount);
     /// @notice emitted when a transfer of IP fails
     error IPTransferFailed();
+    /// @notice emitted when an invalid transfer recipient is detected
+    error ERC20InvalidReceiver(address receiver);
+    /// @notice emitted when an invalid transfer spender is detected
+    error ERC20InvalidSpender(address spender);
 
     /// @notice triggered when IP is deposited in exchange for WIP
     receive() external payable {
@@ -44,6 +48,39 @@ contract WIP is ERC20 {
     /// @notice returns the symbol of the token
     function symbol() public view override returns (string memory) {
         return "WIP";
+    }
+
+    /// @notice approves `spender` to spend `amount` of WIP
+    function approve(address spender, uint256 amount) public override returns (bool) {
+        if (spender == msg.sender) {
+            revert ERC20InvalidSpender(msg.sender);
+        }
+
+        return super.approve(spender, amount);
+    }
+
+    /// @notice transfers `amount` of WIP to a recipient `to`
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        if (to == address(0)) {
+            revert ERC20InvalidReceiver(address(0));
+        }
+        if (to == address(this)) {
+            revert ERC20InvalidReceiver(address(this));
+        }
+
+        return super.transfer(to, amount);
+    }
+
+    /// @notice transfers `amount` of WIP from `from` to a recipient `to`
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        if (to == address(0)) {
+            revert ERC20InvalidReceiver(address(0));
+        }
+        if (to == address(this)) {
+            revert ERC20InvalidReceiver(address(this));
+        }
+
+        return super.transferFrom(from, to, amount);
     }
 
     /// @dev Sets Permit2 contract's allowance to infinity.
