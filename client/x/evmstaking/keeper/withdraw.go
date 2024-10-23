@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"cosmossdk.io/collections"
+	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -24,6 +25,7 @@ type RewardWithdrawal struct {
 	DelegatorAddress string
 	ValidatorAddress string
 	WithdrawalEntry  types.Withdrawal
+	RemainedBalance  uint64
 }
 
 func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
@@ -194,10 +196,18 @@ func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdraw
 			if nextDelegators[i].DelegatorAddress == valAccAddr.String() {
 				delRewards = delRewards.Add(valCommission.Commission...)
 			}
-			delRewardsTruncated, _ := delRewards.TruncateDecimal()
-			bondDenomAmount := delRewardsTruncated.AmountOf(sdk.DefaultBondDenom).Uint64()
 
-			if bondDenomAmount >= minPartialWithdrawalAmount {
+			addr, err := sdk.AccAddressFromBech32(nextDelegators[i].DelegatorAddress)
+			if err != nil {
+				return nil, errors.Wrap(err, "convert acc address from bech32 address")
+			}
+
+			delRewardsTruncated, _ := delRewards.TruncateDecimal()
+			rewardInDistrKeeper := delRewardsTruncated.AmountOf(sdk.DefaultBondDenom).Uint64()
+			rewardInBankKeeper := k.bankKeeper.GetBalance(ctx, addr, sdk.DefaultBondDenom).Amount.Uint64()
+			totalReward := rewardInDistrKeeper + rewardInBankKeeper
+
+			if totalReward >= minPartialWithdrawalAmount {
 				delEvmAddr, err := k.DelegatorRewardAddress.Get(ctx, nextDelegators[i].DelegatorAddress)
 				if err != nil {
 					return nil, errors.Wrap(err, "map delegator pubkey to evm reward address")
@@ -209,8 +219,9 @@ func (k Keeper) ExpectedRewardWithdrawals(ctx context.Context) ([]RewardWithdraw
 					WithdrawalEntry: types.NewWithdrawal(
 						uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 						delEvmAddr,
-						bondDenomAmount,
+						rewardInDistrKeeper,
 					),
+					RemainedBalance: rewardInBankKeeper,
 				})
 			}
 
@@ -277,14 +288,21 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 				delRewards = delRewards.Add(commissionRewards...)
 			}
 		}
-		curBondDenomAmount := delRewards.AmountOf(sdk.DefaultBondDenom).Uint64()
+
+		if rewardWithdrawals[i].RemainedBalance > 0 {
+			rewardCoins := sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(int64(rewardWithdrawals[i].RemainedBalance)))
+			delRewards = delRewards.Add(rewardCoins)
+		}
+
+		totalWithdrawalAmount := delRewards.AmountOf(sdk.DefaultBondDenom).Uint64()
 		log.Debug(
 			ctx, "Withdraw delegator rewards",
 			"validator_addr", rewardWithdrawals[i].ValidatorAddress,
 			"validator_account_addr", valAccAddr,
 			"delegator_addr", rewardWithdrawals[i].DelegatorAddress,
 			"amount_calculate", rewardWithdrawals[i].WithdrawalEntry.Amount,
-			"amount_withdraw", curBondDenomAmount,
+			"amount_deposited", rewardWithdrawals[i].RemainedBalance,
+			"amount_total_withdrawal", totalWithdrawalAmount,
 		)
 
 		// Burn tokens from the delegator
@@ -301,7 +319,7 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			rewardWithdrawals[i].WithdrawalEntry.ExecutionAddress,
-			curBondDenomAmount,
+			totalWithdrawalAmount,
 		)); err != nil {
 			return err
 		}
