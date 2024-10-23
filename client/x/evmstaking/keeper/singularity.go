@@ -7,15 +7,14 @@ import (
 )
 
 func (k *Keeper) IsSingularity(ctx context.Context) (bool, error) {
-	params, err := k.GetParams(ctx)
+	singularityHeight, err := k.stakingKeeper.GetSingularityHeight(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	blockHeight := sdkCtx.BlockHeader().Height
+	blockHeight := sdk.UnwrapSDKContext(ctx).BlockHeight()
 
-	if blockHeight < int64(params.SingularityHeight) {
+	if blockHeight < int64(singularityHeight) {
 		return true, nil
 	}
 

@@ -5,3 +5,4 @@ $mockgen_cmd -package mock -destination testutil/mock/grpc_server.go github.com/
 $mockgen_cmd -package mock -destination testutil/mock/logger.go cosmossdk.io/log Logger
 $mockgen_cmd -source=../client/x/evmengine/types/expected_keepers.go -package testutil -destination ../client/x/evmengine/testutil/expected_keepers_mocks.go
 $mockgen_cmd -source=../client/x/evmstaking/types/expected_keepers.go -package testutil -destination ../client/x/evmstaking/testutil/expected_keepers_mocks.go
+$mockgen_cmd -source=../client/x/mint/types/expected_keepers.go -package testutil -destination ../client/x/mint/testutil/expected_keepers_mocks.go

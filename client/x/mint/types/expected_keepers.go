@@ -12,6 +12,8 @@ import (
 type StakingKeeper interface {
 	StakingTokenSupply(ctx context.Context) (math.Int, error)
 	BondedRatio(ctx context.Context) (math.LegacyDec, error)
+
+	GetSingularityHeight(ctx context.Context) (uint64, error)
 }
 
 // AccountKeeper defines the contract required for account APIs.

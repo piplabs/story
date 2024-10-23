@@ -22,7 +22,6 @@ import (
 type MockStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockStakingKeeperMockRecorder is the mock recorder for MockStakingKeeper.
@@ -57,6 +56,21 @@ func (mr *MockStakingKeeperMockRecorder) BondedRatio(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BondedRatio", reflect.TypeOf((*MockStakingKeeper)(nil).BondedRatio), ctx)
 }
 
+// GetSingularityHeight mocks base method.
+func (m *MockStakingKeeper) GetSingularityHeight(ctx context.Context) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSingularityHeight", ctx)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSingularityHeight indicates an expected call of GetSingularityHeight.
+func (mr *MockStakingKeeperMockRecorder) GetSingularityHeight(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSingularityHeight", reflect.TypeOf((*MockStakingKeeper)(nil).GetSingularityHeight), ctx)
+}
+
 // StakingTokenSupply mocks base method.
 func (m *MockStakingKeeper) StakingTokenSupply(ctx context.Context) (math.Int, error) {
 	m.ctrl.T.Helper()
@@ -76,7 +90,6 @@ func (mr *MockStakingKeeperMockRecorder) StakingTokenSupply(ctx any) *gomock.Cal
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -140,7 +153,6 @@ func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(ctx, moduleAccount any
 type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
