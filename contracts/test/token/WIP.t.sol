@@ -17,7 +17,7 @@ contract WIPTest is Test {
         assertEq(wip.balanceOf(address(this)), 0);
         assertEq(wip.totalSupply(), 0);
 
-        (bool success, ) = address(wip).call{value: 1 ether}("");
+        (bool success, ) = address(wip).call{ value: 1 ether }("");
         assertTrue(success);
 
         assertEq(wip.balanceOf(address(this)), 1 ether);
@@ -28,7 +28,7 @@ contract WIPTest is Test {
         assertEq(wip.balanceOf(address(this)), 0);
         assertEq(wip.totalSupply(), 0);
 
-        wip.deposit{value: 1 ether}();
+        wip.deposit{ value: 1 ether }();
 
         assertEq(wip.balanceOf(address(this)), 1 ether);
         assertEq(wip.totalSupply(), 1 ether);
@@ -37,7 +37,7 @@ contract WIPTest is Test {
     function testWithdraw() public {
         uint256 startingBalance = address(this).balance;
 
-        wip.deposit{value: 1 ether}();
+        wip.deposit{ value: 1 ether }();
 
         wip.withdraw(1 ether);
 
@@ -49,7 +49,7 @@ contract WIPTest is Test {
     }
 
     function testPartialWithdraw() public {
-        wip.deposit{value: 1 ether}();
+        wip.deposit{ value: 1 ether }();
 
         uint256 balanceBeforeWithdraw = address(this).balance;
 
@@ -68,7 +68,7 @@ contract WIPTest is Test {
         vm.deal(owner, 1 ether);
 
         vm.prank(owner);
-        wip.deposit{value: 1 ether}();
+        wip.deposit{ value: 1 ether }();
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
@@ -83,7 +83,7 @@ contract WIPTest is Test {
         assertEq(wip.balanceOf(address(this)), 0);
         assertEq(wip.totalSupply(), 0);
 
-        (bool success, ) = address(wip).call{value: amount}("");
+        (bool success, ) = address(wip).call{ value: amount }("");
         assertTrue(success);
 
         assertEq(wip.balanceOf(address(this)), amount);
@@ -96,7 +96,7 @@ contract WIPTest is Test {
         assertEq(wip.balanceOf(address(this)), 0);
         assertEq(wip.totalSupply(), 0);
 
-        wip.deposit{value: amount}();
+        wip.deposit{ value: amount }();
 
         assertEq(wip.balanceOf(address(this)), amount);
         assertEq(wip.totalSupply(), amount);
@@ -106,7 +106,7 @@ contract WIPTest is Test {
         depositAmount = _bound(depositAmount, 0, address(this).balance);
         withdrawAmount = _bound(withdrawAmount, 0, depositAmount);
 
-        wip.deposit{value: depositAmount}();
+        wip.deposit{ value: depositAmount }();
 
         uint256 balanceBeforeWithdraw = address(this).balance;
 
@@ -121,4 +121,3 @@ contract WIPTest is Test {
 
     receive() external payable {}
 }
-
