@@ -4,6 +4,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -294,29 +295,30 @@ func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err 
 
 	delAddr := mux.Vars(r)["delegator_addr"]
 
-	result := map[string]string{
-		"delegator_addr":   delAddr,
-		"withdraw_address": "",
-		"reward_address":   "",
-		"operator_address": "",
-	}
-
 	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(queryContext, delAddr)
-	if err == nil {
-		result["withdraw_address"] = delWithdrawEvmAddr
+	if err != nil {
+		return nil, err
 	}
 
 	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(queryContext, delAddr)
-	if err == nil {
-		result["reward_address"] = delRewardEvmAddr
+	if err != nil {
+		return nil, err
 	}
 
 	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
-	if err == nil {
-		result["operator_address"] = delOperatorEvmAddr
+	if err != nil {
+		if strings.Index(err.Error(), "not found") != -1 {
+			return nil, err
+		}
+		delOperatorEvmAddr = ""
 	}
 
-	return result, nil
+	return &DelegatorBaseInfo{
+		DelegatorAddr:   delAddr,
+		WithdrawAddress: delWithdrawEvmAddr,
+		RewardAddress:   delRewardEvmAddr,
+		OperatorAddress: delOperatorEvmAddr,
+	}, nil
 }
 
 // GetUnbondingDelegationsByDelegatorAddress queries all unbonding delegations of a given delegator address.
