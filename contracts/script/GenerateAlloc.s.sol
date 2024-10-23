@@ -121,13 +121,13 @@ contract GenerateAlloc is Script {
             proposers[0] = protocolAdmin;
             executors[0] = protocolAdmin;
             canceller = protocolAdmin;
-            return (proposers, executors, protocolAdmin);
+            return (proposers, executors, canceller);
         } else if (block.chainid == 1512 || block.chainid == 1315 || block.chainid == 31337 || block.chainid == 1516) {
             // Mininet, Odyssey devnet, Local, Odyssey testnet
             proposers[0] = protocolAdmin;
             executors[0] = timelockExecutor;
             canceller = timelockGuardian;
-            return (proposers, executors, protocolAdmin);
+            return (proposers, executors, canceller);
         } else {
             revert("Unsupported chain id");
         }
