@@ -618,7 +618,7 @@
     "staking": {
       "params": {
         "unbonding_time": "1209600s",
-        "max_validators": 64,
+        "max_validators": 112,
         "max_entries": 14,
         "historical_entries": 10000,
         "bond_denom": "stake",
