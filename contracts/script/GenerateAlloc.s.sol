@@ -178,14 +178,20 @@ contract GenerateAlloc is Script {
         deployTimelock();
         setERC6551();
 
-        // predeploys that are upgradable
-        setProxy(Predeploys.Staking);
-        setProxy(Predeploys.Upgrades);
-        setProxy(Predeploys.UBIPool);
+        // Set proxies for all predeploys
+        setProxies();
 
+        // Set implementations for predeploys that are upgradable
         setStaking();
         setUpgrade();
         setUBIPool();
+    }
+
+    function setProxies() internal {
+        for (uint160 i = 1; i <= Predeploys.NamespaceSize; i++) {
+            address addr = address(uint160(Predeploys.Namespace) + i);
+            setProxy(addr);
+        }
     }
 
     /// @notice Deploy TimelockController

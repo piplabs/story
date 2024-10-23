@@ -138,7 +138,7 @@ contract Test is ForgeTest {
     /// @param target The address to call
     /// @param data The data to call with
     /// @param reason The expected revert reason
-    function expectRevertTimelocked(address target, bytes memory data, string memory reason) internal {
+    function expectRevertTimelocked(address target, bytes memory data, bytes memory reason) internal {
         uint256 minDelay = timelock.getMinDelay();
         vm.prank(admin);
         timelock.schedule(
