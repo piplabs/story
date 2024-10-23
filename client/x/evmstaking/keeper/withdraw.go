@@ -294,7 +294,7 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 			delRewards = delRewards.Add(rewardCoins)
 		}
 
-		totalWithdrawalAmount := delRewards.AmountOf(sdk.DefaultBondDenom).Uint64()
+		delRewardUint64 := delRewards.AmountOf(sdk.DefaultBondDenom).Uint64()
 		log.Debug(
 			ctx, "Withdraw delegator rewards",
 			"validator_addr", rewardWithdrawals[i].ValidatorAddress,
@@ -302,7 +302,7 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 			"delegator_addr", rewardWithdrawals[i].DelegatorAddress,
 			"amount_calculate", rewardWithdrawals[i].WithdrawalEntry.Amount,
 			"amount_deposited", rewardWithdrawals[i].RemainedBalance,
-			"amount_total_withdrawal", totalWithdrawalAmount,
+			"amount_total_withdrawal", delRewardUint64,
 		)
 
 		// Burn tokens from the delegator
@@ -319,7 +319,7 @@ func (k Keeper) EnqueueEligibleRewardWithdrawal(ctx context.Context, rewardWithd
 		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			rewardWithdrawals[i].WithdrawalEntry.ExecutionAddress,
-			totalWithdrawalAmount,
+			delRewardUint64,
 		)); err != nil {
 			return err
 		}
