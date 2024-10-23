@@ -129,7 +129,7 @@ contract WIPTest is Test {
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
-        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.expectRevert(abi.encodeWithSelector(WIP.ERC20InvalidReceiver.selector, address(0)));
         vm.prank(owner);
         wip.transfer(address(0), 1 ether);
     }
@@ -144,7 +144,7 @@ contract WIPTest is Test {
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
-        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.expectRevert(abi.encodeWithSelector(WIP.ERC20InvalidReceiver.selector, address(wip)));
         vm.prank(owner);
         wip.transfer(address(wip), 1 ether);
     }
@@ -159,7 +159,7 @@ contract WIPTest is Test {
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
-        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.expectRevert(abi.encodeWithSelector(WIP.ERC20InvalidReceiver.selector, address(wip)));
         vm.prank(owner);
         wip.transferFrom(owner, address(wip), 1 ether);
     }
@@ -174,7 +174,7 @@ contract WIPTest is Test {
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
-        vm.expectRevert(WIP.InvalidTransferReceiver.selector);
+        vm.expectRevert(abi.encodeWithSelector(WIP.ERC20InvalidReceiver.selector, address(0)));
         vm.prank(owner);
         wip.transferFrom(owner, address(0), 1 ether);
     }
@@ -189,7 +189,7 @@ contract WIPTest is Test {
 
         assertEq(wip.balanceOf(owner), 1 ether);
 
-        vm.expectRevert(WIP.InvalidTransferSpender.selector);
+        vm.expectRevert(abi.encodeWithSelector(WIP.ERC20InvalidSpender.selector, owner));
         vm.prank(owner);
         wip.approve(owner, 1 ether);
     }

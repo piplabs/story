@@ -12,9 +12,9 @@ contract WIP is ERC20 {
     /// @notice emitted when a transfer of IP fails
     error IPTransferFailed();
     /// @notice emitted when an invalid transfer recipient is detected
-    error InvalidTransferReceiver();
+    error ERC20InvalidReceiver(address receiver);
     /// @notice emitted when an invalid transfer spender is detected
-    error InvalidTransferSpender();
+    error ERC20InvalidSpender(address spender);
 
     /// @notice triggered when IP is deposited in exchange for WIP
     receive() external payable {
@@ -53,7 +53,7 @@ contract WIP is ERC20 {
     /// @notice approves `spender` to spend `amount` of WIP
     function approve(address spender, uint256 amount) public override returns (bool) {
         if (spender == msg.sender) {
-            revert InvalidTransferSpender();
+            revert ERC20InvalidSpender(msg.sender);
         }
 
         return super.approve(spender, amount);
@@ -62,10 +62,10 @@ contract WIP is ERC20 {
     /// @notice transfers `amount` of WIP to a recipient `to`
     function transfer(address to, uint256 amount) public override returns (bool) {
         if (to == address(0)) {
-            revert InvalidTransferReceiver();
+            revert ERC20InvalidReceiver(address(0));
         }
         if (to == address(this)) {
-            revert InvalidTransferReceiver();
+            revert ERC20InvalidReceiver(address(this));
         }
 
         return super.transfer(to, amount);
@@ -74,10 +74,10 @@ contract WIP is ERC20 {
     /// @notice transfers `amount` of WIP from `from` to a recipient `to`
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         if (to == address(0)) {
-            revert InvalidTransferReceiver();
+            revert ERC20InvalidReceiver(address(0));
         }
         if (to == address(this)) {
-            revert InvalidTransferReceiver();
+            revert ERC20InvalidReceiver(address(this));
         }
 
         return super.transferFrom(from, to, amount);
