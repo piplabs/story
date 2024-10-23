@@ -17,6 +17,9 @@ importers:
       erc6551:
         specifier: ^0.3.1
         version: 0.3.1
+      solady:
+        specifier: ^0.0.259
+        version: 0.0.259
       solmate:
         specifier: ^6.2.0
         version: 6.2.0
@@ -647,6 +650,9 @@ packages:
   slice-ansi@4.0.0:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
+
+  solady@0.0.259:
+    resolution: {integrity: sha512-GA23TidJxs11hdsjnh6CMi7pIRStvNerJK+t80F4VwXY3JGjxn+i3W5/mpQZAyC883gwgxLe+6Pauiemd46ezA==}
 
   solhint-plugin-prettier@0.1.0:
     resolution: {integrity: sha512-SDOTSM6tZxZ6hamrzl3GUgzF77FM6jZplgL2plFBclj/OjKP8Z3eIPojKU73gRr0MvOS8ACZILn8a5g0VTz/Gw==}
@@ -1356,6 +1362,8 @@ snapshots:
       ansi-styles: 4.3.0
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
+
+  solady@0.0.259: {}
 
   solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@1.4.1(prettier@3.3.3))(prettier@3.3.3):
     dependencies:
