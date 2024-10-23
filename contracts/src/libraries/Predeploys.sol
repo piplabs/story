@@ -20,6 +20,7 @@ library Predeploys {
     address internal constant Create3 = 0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf;
 
     /// @notice ERC6551Registry address
+/// @dev The common address for the ERC6551Registry across all chains defined by ERC-6551
     address internal constant ERC6551Registry = 0x000000006551c19487814612e58FE06813775758;
 
     /// @notice Return true if `addr` is not proxied
