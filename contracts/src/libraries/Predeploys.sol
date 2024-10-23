@@ -20,21 +20,21 @@ library Predeploys {
     address internal constant Create3 = 0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf;
 
     /// @notice ERC6551Registry address
-/// @dev The common address for the ERC6551Registry across all chains defined by ERC-6551
+    /// @dev The common address for the ERC6551Registry across all chains defined by ERC-6551
     address internal constant ERC6551Registry = 0x000000006551c19487814612e58FE06813775758;
 
-    /// @notice Return true if `addr` is not proxied
-    function notProxied(address addr) internal pure returns (bool) {
-        return addr == WIP;
+    /// @notice Return true if `addr` is proxied
+    function proxied(address addr) internal pure returns (bool) {
+        return addr > Namespace && addr <= address(uint160(Namespace) + uint160(NamespaceSize));
     }
 
     /// @notice Return implementation address for a proxied predeploy
-    function getImplAddress(address addr) internal pure returns (address) {
-        require(isPredeploy(addr), "Predeploys: not a predeploy");
-        require(!notProxied(addr), "Predeploys: not proxied");
+    function getImplAddress(address proxyAddress) internal pure returns (address) {
+        require(isPredeploy(proxyAddress), "Predeploys: not a predeploy");
+        require(proxied(proxyAddress), "Predeploys: not proxied");
 
         // max uint160 is odd, which gives us unique implementation for each predeploy
-        return address(type(uint160).max - uint160(addr));
+        return address(type(uint160).max - uint160(proxyAddress));
     }
 
     /// @notice Return true if `addr` is an active predeploy
