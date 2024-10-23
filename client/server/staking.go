@@ -307,7 +307,7 @@ func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err 
 
 	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
 	if err != nil {
-		if strings.Index(err.Error(), "not found") != -1 {
+		if !strings.Contains(err.Error(), "not found") {
 			return nil, err
 		}
 		delOperatorEvmAddr = ""
