@@ -51,6 +51,8 @@ contract GenerateAlloc is Script {
     uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
     // Optionally allocate 10k test accounts for devnets/testnets
     bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
+    // Optionally keep the timelock admin role for testnets
+    bool private constant KEEP_TIMELOCK_ADMIN_ROLE = true;
 
     /// @notice call from Test.sol to run test fast (no json saving)
     function disableStateDump() external {
@@ -149,6 +151,12 @@ contract GenerateAlloc is Script {
         }
         require(timelockGuardian != address(0), "canceller not set");
 
+        if (block.chainid == MAINNET_CHAIN_ID) {
+            require(!KEEP_TIMELOCK_ADMIN_ROLE, "Timelock admin role not allowed on mainnet");
+        } else {
+            console2.log("Will timelock admin role be assigned?", KEEP_TIMELOCK_ADMIN_ROLE);
+        }
+
         vm.startPrank(deployer);
 
         setPredeploys();
@@ -180,14 +188,25 @@ contract GenerateAlloc is Script {
         setERC6551();
         setWIP();
 
-        // predeploys that are upgradable
-        setProxy(Predeploys.Staking);
-        setProxy(Predeploys.Upgrades);
-        setProxy(Predeploys.UBIPool);
+        // Set proxies for all predeploys
+        setProxies();
 
+        // Set implementations for predeploys that are upgradable
         setStaking();
         setUpgrade();
         setUBIPool();
+    }
+
+    function setProxies() internal {
+        // We populate the predeploys namespace with proxies, to reserve the addresses
+        // for future use.
+        // Implementations are deterministically determined, but won't have code unless
+        // explicitly set in this script.
+        // Later on, they can be upgraded to new implementations by timelock.
+        for (uint160 i = 1; i <= Predeploys.NamespaceSize; i++) {
+            address addr = address(uint160(Predeploys.Namespace) + i);
+            setProxy(addr);
+        }
     }
 
     /// @notice Deploy TimelockController
@@ -208,10 +227,12 @@ contract GenerateAlloc is Script {
             TimelockController(payable(timelock)).CANCELLER_ROLE(),
             canceller
         );
-        TimelockController(payable(timelock)).renounceRole(
-            TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
-            deployer
-        );
+        if (!KEEP_TIMELOCK_ADMIN_ROLE) {
+            TimelockController(payable(timelock)).renounceRole(
+                TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
+                deployer
+            );
+        }
 
         console2.log("TimelockController deployed at:", timelock);
     }
