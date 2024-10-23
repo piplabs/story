@@ -41,12 +41,12 @@ contract WIP is ERC20 {
     }
 
     /// @notice returns the name of the token
-    function name() public view override returns (string memory) {
+    function name() public pure override returns (string memory) {
         return "Wrapped IP";
     }
 
     /// @notice returns the symbol of the token
-    function symbol() public view override returns (string memory) {
+    function symbol() public pure override returns (string memory) {
         return "WIP";
     }
 
