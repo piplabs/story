@@ -1,0 +1,62 @@
+name: Build Release Binaries
+
+on:
+  release:
+    types:
+      - created
+      - edited
+  # pull_request:
+  #   branches:
+  #     - main
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  Timestamp:
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+
+  build:
+    needs: Timestamp
+    name: Build Release Assets
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          [linux-amd64, linux-arm64, darwin-amd64, darwin-arm64]
+          
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.5
+
+      - name: Display Go version
+        run: go version
+
+      - name: Display the release tag
+        run: |
+          echo "Release tag: ${{ github.event.release.tag_name }}"
+
+      - name: Set up environment for cross-compilation
+        run: |
+          IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
+          output_name=./build/bin/story-${{ matrix.platform }}
+
+          echo "Building for $GOOS/$GOARCH..."
+          env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name
+
+      - name: Calculate checksum
+        run: |
+          sha256sum ./build/bin/story-${{ matrix.platform }} > ./build/bin/story-${{ matrix.platform }}.sha256
+
+      - name: Upload binaries and source code to GitHub Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.release.tag_name }}
+          file: |
+            ./build/bin/story-${{ matrix.platform }}
+            ./build/bin/story-${{ matrix.platform }}.sha256
+          file_glob: false
