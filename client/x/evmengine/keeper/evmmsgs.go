@@ -1,10 +1,7 @@
 package keeper
 
 import (
-	"bytes"
 	"context"
-	"slices"
-	"sort"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,41 +28,18 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 		return nil, errors.Wrap(err, "filter logs")
 	}
 
-	ll := make([]*types.EVMEvent, 0, len(logs))
+	events = make([]*types.EVMEvent, 0, len(logs))
 	for _, l := range logs {
-		topics := make([][]byte, 0, len(l.Topics))
-		for _, t := range l.Topics {
-			topics = append(topics, t.Bytes())
+		evmEvent, err := types.EthLogToEVMEvent(l)
+		if err != nil {
+			return nil, errors.Wrap(err, "convert log")
 		}
-		ll = append(ll, &types.EVMEvent{
-			Address: l.Address.Bytes(),
-			Topics:  topics,
-			Data:    l.Data,
-		})
+
+		events = append(events, evmEvent)
 	}
 
-	for _, log := range ll {
-		if err := log.Verify(); err != nil {
-			return nil, errors.Wrap(err, "verify log")
-		}
-	}
-	events = append(events, ll...)
-
-	// Sort by Address > Topics > Data
 	// This avoids dependency on runtime ordering.
-	sort.Slice(events, func(i, j int) bool {
-		if cmp := bytes.Compare(events[i].Address, events[j].Address); cmp != 0 {
-			return cmp < 0
-		}
-
-		topicI := slices.Concat(events[i].Topics...)
-		topicJ := slices.Concat(events[j].Topics...)
-		if cmp := bytes.Compare(topicI, topicJ); cmp != 0 {
-			return cmp < 0
-		}
-
-		return bytes.Compare(events[i].Data, events[j].Data) < 0
-	})
+	types.SortEVMEvents(events)
 
 	return events, nil
 }
