@@ -92,6 +92,10 @@ func (l abciWrapper) ProcessProposal(ctx context.Context, proposal *abci.Request
 
 // FinalizeBlock calls BeginBlock -> DeliverTx (for all txs) -> EndBlock.
 func (l abciWrapper) FinalizeBlock(ctx context.Context, req *abci.RequestFinalizeBlock) (*abci.ResponseFinalizeBlock, error) {
+	log.Info(ctx, "👾 ABCI call: FinalizeBlock",
+		"height", req.Height,
+		log.Hex7("proposer", req.ProposerAddress),
+	)
 	resp, err := l.Application.FinalizeBlock(ctx, req)
 	if err != nil {
 		log.Error(ctx, "Finalize req failed [BUG]", err, "height", req.Height)
