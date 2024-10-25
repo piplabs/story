@@ -47,14 +47,15 @@ jobs:
       - name: Set up environment for cross-compilation
         run: |
           IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
-          output_name=./build/bin/story-${{ matrix.platform }}
+          output_name=story-${{ matrix.platform }}
 
           echo "Building for $GOOS/$GOARCH..."
+          cd client
           env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name
 
       - name: Calculate checksum
         run: |
-          sha256sum ./build/bin/story-${{ matrix.platform }} > ./build/bin/story-${{ matrix.platform }}.sha256
+          sha256sum ./client/story-${{ matrix.platform }} > ./client/story-${{ matrix.platform }}.sha256
 
       - name: Upload binaries and source code to GitHub Release
         uses: svenstaro/upload-release-action@v2
@@ -62,6 +63,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.release.tag_name }}
           file: |
-            ./build/bin/story-${{ matrix.platform }}
-            ./build/bin/story-${{ matrix.platform }}.sha256
+            ./client/story-${{ matrix.platform }}
+            ./client/story-${{ matrix.platform }}.sha256
           file_glob: false
