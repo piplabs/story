@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	VersionMajor = 0        // Major version component of the current release
-	VersionMinor = 12       // Minor version component of the current release
-	VersionPatch = 0        // Patch version component of the current release
-	VersionMeta  = "stable" // Version metadata to append to the version string
+	VersionMajor = 0          // Major version component of the current release
+	VersionMinor = 12         // Minor version component of the current release
+	VersionPatch = 1          // Patch version component of the current release
+	VersionMeta  = "unstable" // Version metadata to append to the version string
 )
 
 // Version returns the version of the whole story-monorepo and all binaries built from this git commit.
