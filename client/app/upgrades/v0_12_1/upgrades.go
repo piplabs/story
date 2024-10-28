@@ -40,10 +40,10 @@ func CreateUpgradeHandler(
 				p.Duration = time.Hour * 7 * 24 // one week in hours
 			} else if p.PeriodType == 2 {
 				clog.Info(ctx, "Existing medium period duration: %d", p.Duration)
-				p.Duration = time.Hour * 14 * 24 // two week in hours
+				p.Duration = time.Hour * 14 * 24 // two weeks in hours
 			} else if p.PeriodType == 3 {
 				clog.Info(ctx, "Existing long period duration: %d", p.Duration)
-				p.Duration = time.Hour * 28 * 24 // four week in hours
+				p.Duration = time.Hour * 21 * 24 // three weeks in hours
 			}
 		}
 
