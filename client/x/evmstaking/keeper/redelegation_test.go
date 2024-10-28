@@ -1,17 +1,13 @@
 package keeper_test
 
-/*
 import (
 	"context"
 	"math/big"
 
-	"github.com/cometbft/cometbft/crypto"
-	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 )
@@ -216,4 +212,3 @@ func (s *TestSuite) TestParseRedelegationLog() {
 		})
 	}
 }
-*/

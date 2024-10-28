@@ -87,7 +87,7 @@ func (k Keeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek uint32) (wi
 	return withdrawals, nil
 }
 
-// GetAllWithdrawals gets the set of all withdrawals with no limits.
+// GetAllWithdrawals gets the set of all stake withdrawals with no limits.
 func (k Keeper) GetAllWithdrawals(ctx context.Context) (withdrawals []types.Withdrawal, err error) {
 	iterator, err := k.WithdrawalQueue.Iterate(ctx)
 	if err != nil {

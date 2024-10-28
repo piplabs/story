@@ -86,3 +86,42 @@ func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint3
 
 	return withdrawals, nil
 }
+
+// GetAllRewardWithdrawals gets the set of all reward withdrawals with no limits.
+func (k Keeper) GetAllRewardWithdrawals(ctx context.Context) (withdrawals []types.Withdrawal, err error) {
+	iterator, err := k.RewardWithdrawalQueue.Iterate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	wdrKvs, err := iterator.KeyValues()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, withdrawal := range wdrKvs {
+		withdrawals = append(withdrawals, withdrawal.Value)
+	}
+
+	return withdrawals, nil
+}
+
+// GetRewardWithdrawals returns at max the requested amount of reward withdrawals.
+func (k Keeper) GetRewardWithdrawals(ctx context.Context, maxRetrieve uint32) (withdrawals []types.Withdrawal, err error) {
+	iterator, err := k.RewardWithdrawalQueue.Iterate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	i := 0
+	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
+		withdrawal, err := iterator.Value()
+		if err != nil {
+			return nil, err
+		}
+		withdrawals = append(withdrawals, withdrawal)
+		i++
+	}
+
+	return withdrawals[:i], nil // trim if the array length < maxRetrieve
+}
