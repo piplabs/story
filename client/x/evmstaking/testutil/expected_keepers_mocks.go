@@ -11,6 +11,7 @@ package testutil
 
 import (
 	context "context"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	reflect "reflect"
 	time "time"
 
@@ -29,6 +30,36 @@ type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
 	isgomock struct{}
+}
+
+func (m *MockAccountKeeper) NewAccount(ctx context.Context, i types0.AccountI) types0.AccountI {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockAccountKeeper) GetAllAccounts(ctx context.Context) []types0.AccountI {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockAccountKeeper) ValidatePermissions(macc types0.ModuleAccountI) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockAccountKeeper) GetModuleAddressAndPermissions(moduleName string) (addr types0.AccAddress, permissions []string) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockAccountKeeper) GetModuleAccountAndPermissions(ctx context.Context, moduleName string) (types0.ModuleAccountI, []string) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockAccountKeeper) GetModulePermissions() map[string]authtypes.PermissionsForAddress {
+	//TODO implement me
+	panic("implement me")
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.

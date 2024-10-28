@@ -1,32 +1,26 @@
 package keeper_test
 
-/*
 import (
 	"math/big"
 	"testing"
 
 	"cosmossdk.io/math"
-	sdkmath "cosmossdk.io/math"
 
 	"github.com/cometbft/cometbft/crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
-	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
-
-	"go.uber.org/mock/gomock"
 )
 
 func (s *TestSuite) TestProcessCreateValidator() {
 	require := s.Require()
-	ctx, eskeeper, stakingKeeper, accountKeeper, bankKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper, s.AccountKeeper, s.BankKeeper
+	ctx, eskeeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
 
 	pubKeys, addrs, valAddrs := createAddresses(3)
 
@@ -42,7 +36,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 
 	// checkDelegatorMapAndValidator checks if the delegator map and validator are created
 	checkDelegatorMapAndValidator := func(c sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, delEvmAddr common.Address, _ math.Int) {
-		val, err := eskeeper.DelegatorMap.Get(c, delAddr.String())
+		val, err := eskeeper.DelegatorWithdrawAddress.Get(c, delAddr.String())
 		require.NoError(err)
 		require.Equal(delEvmAddr.String(), val)
 		// check validator is created
@@ -51,7 +45,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 	}
 	// checkDelegatorMapAndValTokens checks if the delegator map and validator tokens are added
 	checkDelegatorMapAndValTokens := func(c sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, delEvmAddr common.Address, previousValTokens math.Int) {
-		val, err := eskeeper.DelegatorMap.Get(c, delAddr.String())
+		val, err := eskeeper.DelegatorWithdrawAddress.Get(c, delAddr.String())
 		require.NoError(err)
 		require.Equal(delEvmAddr.String(), val)
 		// check validator tokens are added
@@ -83,18 +77,18 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valUncmpPubKey: uncmpPubKey0[1:],
 			expectedError:  "validator pubkey to cosmos",
 		},
-		// {
-		// 	name:           "fail: corrupted validator pubkey",
-		// 	valUncmpPubKey: corruptedPubKey,
-		// 	expectedError:  "validator pubkey to evm address",
-		// },
+		{
+			name:           "fail: corrupted validator pubkey",
+			valUncmpPubKey: corruptedPubKey,
+			expectedError:  "validator pubkey to evm address",
+		},
 		{
 			name:           "fail: mint coins",
 			valDelAddr:     addrs[0],
 			valUncmpPubKey: uncmpPubKey0,
 			preRun: func(_ *testing.T, _ sdk.Context, valDelAddr sdk.AccAddress, _ crypto.PubKey, _ math.Int) {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New("mint coins"))
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New("mint coins"))
 			},
 			expectedError: "create stake coin for depositor: mint coins",
 		},
@@ -103,9 +97,9 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valDelAddr:     addrs[0],
 			valUncmpPubKey: uncmpPubKey0,
 			preRun: func(_ *testing.T, _ sdk.Context, valDelAddr sdk.AccAddress, _ crypto.PubKey, _ math.Int) {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(errors.New("send coins"))
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(errors.New("send coins"))
 			},
 			expectedError: "create stake coin for depositor: mint coins",
 		},
@@ -116,10 +110,10 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valUncmpPubKey: uncmpPubKey2,
 			valPubKey:      pubKeys[2],
 			preRun: func(_ *testing.T, _ sdk.Context, valDelAddr sdk.AccAddress, _ crypto.PubKey, _ math.Int) {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValidator,
 		},
@@ -131,10 +125,10 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valPubKey:      pubKeys[2],
 			moniker:        "validator",
 			preRun: func(_ *testing.T, _ sdk.Context, valDelAddr sdk.AccAddress, _ crypto.PubKey, _ math.Int) {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValidator,
 		},
@@ -145,12 +139,12 @@ func (s *TestSuite) TestProcessCreateValidator() {
 			valUncmpPubKey: uncmpPubKey1,
 			valPubKey:      pubKeys[1],
 			preRun: func(_ *testing.T, _ sdk.Context, valDelAddr sdk.AccAddress, _ crypto.PubKey, _ math.Int) {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(false)
-				accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), valDelAddr).Return(nil)
-				accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(false)
+				// accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), valDelAddr).Return(nil)
+				// accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValidator,
 		},
@@ -168,14 +162,14 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				pubKey, err := k1util.PubKeyToCosmos(valPubKey)
 				require.NoError(err)
 				val := testutil.NewValidator(t, valAddr, pubKey)
-				validator, _, _ := val.AddTokensFromDel(tokens10, sdkmath.LegacyOneDec())
-				s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+				validator, _, _ := val.AddTokensFromDel(tokens10, math.LegacyOneDec())
+				// s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
 				_ = skeeper.TestingUpdateValidator(stakingKeeper, c, validator, true)
 
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValTokens,
 		},
@@ -193,16 +187,16 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				pubKey, err := k1util.PubKeyToCosmos(valPubKey)
 				require.NoError(err)
 				val := testutil.NewValidator(t, valAddr, pubKey)
-				validator, _, _ := val.AddTokensFromDel(valTokens, sdkmath.LegacyOneDec())
-				s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+				validator, _, _ := val.AddTokensFromDel(valTokens, math.LegacyOneDec())
+				// s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
 				_ = skeeper.TestingUpdateValidator(stakingKeeper, c, validator, true)
 
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(false)
-				accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), valDelAddr).Return(nil)
-				accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), valDelAddr).Return(false)
+				// accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), valDelAddr).Return(nil)
+				// accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValTokens,
 		},
@@ -277,4 +271,3 @@ func (s *TestSuite) TestParseCreateValidatorLog() {
 		})
 	}
 }
-*/

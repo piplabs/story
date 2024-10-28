@@ -25,8 +25,14 @@ import (
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,9 +44,11 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/module"
 	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
+	minttypes "github.com/piplabs/story/client/x/mint/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/k1util"
 
 	"go.uber.org/mock/gomock"
 )
@@ -79,8 +87,9 @@ type TestSuite struct {
 
 	Ctx sdk.Context
 
-	AccountKeeper    *estestutil.MockAccountKeeper
-	BankKeeper       *estestutil.MockBankKeeper
+	AccountKeeper authkeeper.AccountKeeper
+	// AccountKeeper    *estestutil.MockAccountKeeper
+	BankKeeper       bankkeeper.BaseKeeper
 	DistrKeeper      *estestutil.MockDistributionKeeper
 	StakingKeeper    *skeeper.Keeper
 	SlashingKeeper   *estestutil.MockSlashingKeeper
@@ -92,13 +101,20 @@ type TestSuite struct {
 
 func (s *TestSuite) SetupTest() {
 	s.encCfg = moduletestutil.MakeTestEncodingConfig(module.AppModuleBasic{})
+	authKey := storetypes.NewKVStoreKey(authtypes.StoreKey)
+	bankKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
 	evmstakingKey := storetypes.NewKVStoreKey(types.StoreKey)
 	stakingKey := storetypes.NewKVStoreKey(stypes.StoreKey)
+
+	authStoreService := runtime.NewKVStoreService(authKey)
+	bankStoreService := runtime.NewKVStoreService(bankKey)
 	storeService := runtime.NewKVStoreService(evmstakingKey)
 	stakingStoreService := runtime.NewKVStoreService(stakingKey)
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+	cms.MountStoreWithDB(authKey, storetypes.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(bankKey, storetypes.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(evmstakingKey, storetypes.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(stakingKey, storetypes.StoreTypeIAVL, db)
 	err := cms.LoadLatestVersion()
@@ -109,6 +125,10 @@ func (s *TestSuite) SetupTest() {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	cryptocodec.RegisterInterfaces(interfaceRegistry)
 	legacyAmino := codec.NewLegacyAmino()
+	authtypes.RegisterLegacyAminoCodec(legacyAmino)
+	authtypes.RegisterInterfaces(interfaceRegistry)
+	banktypes.RegisterLegacyAminoCodec(legacyAmino)
+	banktypes.RegisterInterfaces(interfaceRegistry)
 	stypes.RegisterLegacyAminoCodec(legacyAmino)
 	stypes.RegisterInterfaces(interfaceRegistry)
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
@@ -121,16 +141,45 @@ func (s *TestSuite) SetupTest() {
 	// gomock initializations
 	ctrl := gomock.NewController(s.T())
 
-	// mock keepers
-	accountKeeper := estestutil.NewMockAccountKeeper(ctrl)
-	accountKeeper.EXPECT().GetModuleAddress(types.ModuleName).Return(authtypes.NewModuleAddress(types.ModuleName)).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.ModuleName).Return(authtypes.NewModuleAddress(stypes.ModuleName)).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.BondedPoolName).Return(authtypes.NewModuleAddress(stypes.BondedPoolName)).AnyTimes()
-	accountKeeper.EXPECT().GetModuleAddress(stypes.NotBondedPoolName).Return(authtypes.NewModuleAddress(stypes.NotBondedPoolName)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("story")).AnyTimes()
+	maccPerms := map[string][]string{
+		authtypes.FeeCollectorName: nil,
+		minttypes.ModuleName:       {authtypes.Minter},
+		distrtypes.ModuleName:      nil,
+		stypes.BondedPoolName:      {authtypes.Burner, authtypes.Staking},
+		stypes.NotBondedPoolName:   {authtypes.Burner, authtypes.Staking},
+		types.ModuleName:           {authtypes.Burner, authtypes.Minter},
+		govtypes.ModuleName:        {authtypes.Burner},
+	}
+
+	accountKeeper := authkeeper.NewAccountKeeper(
+		marshaler,
+		authStoreService,
+		authtypes.ProtoBaseAccount,
+		maccPerms,
+		address.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix()),
+		"story",
+		authtypes.NewModuleAddress(authtypes.ModuleName).String(),
+	)
 	s.AccountKeeper = accountKeeper
-	bankKeeper := estestutil.NewMockBankKeeper(ctrl)
+
+	blockedAddrs := make(map[string]bool)
+	blockedAddrs[authtypes.NewModuleAddress(authtypes.FeeCollectorName).String()] = true
+	blockedAddrs[authtypes.NewModuleAddress(authtypes.ModuleName).String()] = true
+	blockedAddrs[authtypes.NewModuleAddress(distrtypes.ModuleName).String()] = true
+	blockedAddrs[authtypes.NewModuleAddress(stypes.BondedPoolName).String()] = true
+	blockedAddrs[authtypes.NewModuleAddress(stypes.NotBondedPoolName).String()] = true
+	blockedAddrs[authtypes.NewModuleAddress(types.ModuleName).String()] = true
+
+	bankKeeper := bankkeeper.NewBaseKeeper(
+		marshaler,
+		bankStoreService,
+		accountKeeper,
+		blockedAddrs,
+		authtypes.NewModuleAddress(banktypes.ModuleName).String(),
+		log.NewNopLogger(),
+	)
 	s.BankKeeper = bankKeeper
+
 	distrKeeper := estestutil.NewMockDistributionKeeper(ctrl)
 	s.DistrKeeper = distrKeeper
 	slashingKeeper := estestutil.NewMockSlashingKeeper(ctrl)
@@ -201,7 +250,7 @@ func cmpToEVM(cmpPubKey []byte) common.Address {
 
 func (s *TestSuite) TestProcessStakingEvents() {
 	require := s.Require()
-	ctx, evmstakingKeeper := s.Ctx, s.EVMStakingKeeper
+	ctx, evmstakingKeeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
 	// slashingKeeper := s.SlashingKeeper
 	// create addresses
 	pubKeys, addrs, _ := createAddresses(3)
@@ -486,6 +535,50 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				require.Equal(delEvmAddr.String(), evmDelAddr)
 			},
 		},
+		{
+			name: "pass: process CreateValidatorEvent",
+			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
+				data, err := stakingAbi.Events["CreateValidator"].Inputs.NonIndexed().Pack(
+					uncompressedDelPubKeyBytes,
+					"moniker",
+					delAmtGwei,
+					uint32(1000),
+					uint32(5000),
+					uint32(500),
+					uint8(0),
+					cmpToEVM(delPubKey.Bytes()),
+					[]byte{},
+				)
+				require.NoError(err)
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data}}
+				evmEvents, err := ethLogsToEvmEvents(logs)
+				if err != nil {
+					return nil, err
+				}
+
+				return evmEvents, nil
+			},
+			setup: func(c context.Context) {
+				// accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
+				// bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
+				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.NotBondedPoolName, sdk.NewCoins(delCoin))
+			},
+			stateCheck: func(c context.Context) {
+				_, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+				require.ErrorContains(err, "validator does not exist")
+			},
+			postStateCheck: func(c context.Context) {
+				newVal, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+				require.NoError(err)
+				require.Equal(sdk.ValAddress(delAddr).String(), newVal.OperatorAddress)
+				require.Equal("moniker", newVal.Description.GetMoniker())
+				require.Equal(sdkmath.NewInt(100), newVal.Tokens)
+				require.Equal("0.100000000000000000", newVal.Commission.Rate.String())
+				require.Equal("0.500000000000000000", newVal.Commission.MaxRate.String())
+				require.Equal("0.050000000000000000", newVal.Commission.MaxChangeRate.String())
+			},
+		},
 		/*
 			{
 				name: "pass: process CreateValidatorEvent",
@@ -692,12 +785,20 @@ func TestTestSuite(t *testing.T) {
 	suite.Run(t, new(TestSuite))
 }
 
-/*
 // setupValidatorAndDelegation creates a validator and delegation for testing.
 func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
-	bankKeeper, stakingKeeper, keeper := s.BankKeeper, s.StakingKeeper, s.EVMStakingKeeper
+	accountKeeper, bankKeeper, stakingKeeper, evmstakingKeeper := s.AccountKeeper, s.BankKeeper, s.StakingKeeper, s.EVMStakingKeeper
+
+	notBondedPool := stakingKeeper.GetNotBondedPool(ctx)
+	accountKeeper.SetModuleAccount(ctx, notBondedPool)
+
+	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, valTokens))
+	require.NoError(bankKeeper.MintCoins(ctx, types.ModuleName, initCoins))
+	require.NoError(bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, delAddr, initCoins))
+	require.NoError(bankKeeper.MintCoins(ctx, types.ModuleName, initCoins))
+	require.NoError(bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, notBondedPool.GetName(), initCoins))
 
 	// Convert public key to cosmos format
 	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
@@ -705,33 +806,35 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 
 	// Create and update validator
 	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
-	validator, _, _ := val.AddTokensFromDel(valTokens, sdkmath.LegacyOneDec())
-	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+	validator, issuedShares, _ := val.AddTokensFromDel(valTokens, sdkmath.LegacyOneDec())
+	require.Equal(valTokens, issuedShares.RoundInt())
+
+	// bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any()).Times(2)
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 
 	// Create and set delegation
 	delAmt := stakingKeeper.TokensFromConsensusPower(ctx, 100).ToLegacyDec()
-	delegation := stypes.NewDelegation(
-		delAddr.String(), valAddr.String(),
-		delAmt, stypes.FlexibleDelegationID, stypes.PeriodType_FLEXIBLE, time.Time{},
-	)
+	delegation := stypes.NewDelegation(delAddr.String(), valAddr.String(), delAmt, sdkmath.LegacyZeroDec())
 	require.NoError(stakingKeeper.SetDelegation(ctx, delegation))
 
 	validator.DelegatorShares = validator.DelegatorShares.Add(delAmt)
 	validator.DelegatorRewardsShares = validator.DelegatorRewardsShares.Add(delAmt)
+	require.NoError(bankKeeper.MintCoins(ctx, types.ModuleName, initCoins))
+	require.NoError(bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, notBondedPool.GetName(), initCoins))
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 
 	// Map delegator to EVM address
 	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(err)
-	require.NoError(keeper.DelegatorMap.Set(ctx, delAddr.String(), delEvmAddr.String()))
+	require.NoError(evmstakingKeeper.DelegatorWithdrawAddress.Set(ctx, delAddr.String(), delEvmAddr.String()))
+	require.NoError(evmstakingKeeper.DelegatorRewardAddress.Set(ctx, delAddr.String(), delEvmAddr.String()))
+	// require.NoError(evmstakingKeeper.DelegatorOperatorAddress.Set(ctx, delAddr.String(), delEvmAddr.String()))
 
 	// Ensure delegation is set correctly
 	delegation, err = stakingKeeper.GetDelegation(ctx, delAddr, valAddr)
 	require.NoError(err)
 	require.Equal(delAmt, delegation.GetShares())
 }
-*/
 
 func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey := append([]byte(nil), pubKey...)
@@ -741,19 +844,17 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	return corruptedPubKey
 }
 
-/*
 // setupUnbonding creates unbondings for testing.
 func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
 	require := s.Require()
-	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
+	stakingKeeper := s.StakingKeeper
 
-	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
+	// bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
 	_, _, err := stakingKeeper.Undelegate(
-		ctx, delAddr, valAddr, stypes.FlexibleDelegationID, sdkmath.LegacyMustNewDecFromStr(amount),
+		ctx, delAddr, valAddr, stypes.FlexiblePeriodDelegationID, sdkmath.LegacyMustNewDecFromStr(amount),
 	)
 	require.NoError(err)
 }
-*/
 
 // ethLogsToEvmEvents converts Ethereum logs to a slice of EVM events.
 func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error) {
