@@ -32,18 +32,18 @@ func CreateUpgradeHandler(
 		if err != nil {
 			return vm, errors.Wrap(err, "failed to get staking params")
 		}
-		periods := stakingParams.GetPeriods()
+		periods := stakingParams.Periods
 
-		for _, p := range periods {
-			if p.PeriodType == 1 {
-				clog.Info(ctx, "Existing short period duration: %d", p.Duration)
-				p.Duration = time.Hour * 7 * 24 // one week in hours
-			} else if p.PeriodType == 2 {
-				clog.Info(ctx, "Existing medium period duration: %d", p.Duration)
-				p.Duration = time.Hour * 14 * 24 // two weeks in hours
-			} else if p.PeriodType == 3 {
-				clog.Info(ctx, "Existing long period duration: %d", p.Duration)
-				p.Duration = time.Hour * 21 * 24 // three weeks in hours
+		for i := range periods {
+			if periods[i].PeriodType == 1 {
+				clog.Info(ctx, "Existing short period duration: %v hours", periods[i].Duration.Hours())
+				periods[i].Duration = time.Hour * 7 * 24 // one week in hours
+			} else if periods[i].PeriodType == 2 {
+				clog.Info(ctx, "Existing medium period duration: %v hours", periods[i].Duration.Hours())
+				periods[i].Duration = time.Hour * 14 * 24 // two weeks in hours
+			} else if periods[i].PeriodType == 3 {
+				clog.Info(ctx, "Existing long period duration: %v hours", periods[i].Duration.Hours())
+				periods[i].Duration = time.Hour * 21 * 24 // three weeks in hours
 			}
 		}
 
@@ -61,11 +61,11 @@ func CreateUpgradeHandler(
 
 		for _, p := range periods {
 			if p.PeriodType == 1 {
-				clog.Info(ctx, "New short period duration: %d", p.Duration)
+				clog.Info(ctx, "New short period duration: %v hours", p.Duration.Hours())
 			} else if p.PeriodType == 2 {
-				clog.Info(ctx, "New medium period duration: %d", p.Duration)
+				clog.Info(ctx, "New medium period duration: %v hours", p.Duration.Hours())
 			} else if p.PeriodType == 3 {
-				clog.Info(ctx, "New long period duration: %d", p.Duration)
+				clog.Info(ctx, "New long period duration: %v hours", p.Duration.Hours())
 			}
 		}
 
