@@ -90,11 +90,20 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
 	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
 	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
-	if err := k.DelegatorWithdrawAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator withdraw address map")
+	// NOTE: Do not overwrite the existing withdraw/reward address set by the validator.
+	if exists, err := k.DelegatorWithdrawAddress.Has(ctx, delegatorAddr.String()); err != nil {
+		return errors.Wrap(err, "check delegator withdraw address existence")
+	} else if !exists {
+		if err := k.DelegatorWithdrawAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator withdraw address map")
+		}
 	}
-	if err := k.DelegatorRewardAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator reward address map")
+	if exists, err := k.DelegatorRewardAddress.Has(ctx, delegatorAddr.String()); err != nil {
+		return errors.Wrap(err, "check delegator reward address existence")
+	} else if !exists {
+		if err := k.DelegatorRewardAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator reward address map")
+		}
 	}
 
 	// TODO: Check if we can instantiate the msgServer without type assertion
