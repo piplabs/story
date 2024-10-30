@@ -538,10 +538,6 @@ func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash comm
 	require.Equal(t, payload.FeeRecipient, validatorAddr)
 	require.Empty(t, payload.Withdrawals)
 	require.Equal(t, payload.Number, height)
-
-	// require.Len(t, executionPayload.PrevPayloadEvents, 1)
-	// evmLog := executionPayload.PrevPayloadEvents[0]
-	// require.Equal(t, evmLog.Address, zeroAddr.Bytes())
 }
 
 func ctxWithAppHash(t *testing.T, appHash common.Hash) (context.Context, *storetypes.KVStoreKey) {
