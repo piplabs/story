@@ -79,14 +79,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		)
 	}
 
-	if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, amountCoins); err != nil {
-		return errors.Wrap(err, "create stake coin for depositor: mint coins")
-	}
-
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, depositorAddr, amountCoins); err != nil {
-		return errors.Wrap(err, "create stake coin for depositor: send coins")
-	}
-
 	log.Debug(ctx, "EVM staking deposit detected, delegating to validator",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
@@ -94,16 +86,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		"val_evm_addr", valEvmAddr.String(),
 		"amount_coin", amountCoin.String(),
 	)
-
-	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
-	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
-	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
-	if err := k.DelegatorWithdrawAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator withdraw address map")
-	}
-	if err := k.DelegatorRewardAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
-		return errors.Wrap(err, "set delegator reward address map")
-	}
 
 	delID := ev.DelegationId.String()
 	periodType := int32(ev.StakingPeriod.Int64())
@@ -135,6 +117,34 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	if !ok {
 		return errors.New("type assertion failed")
 	}
+
+	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
+	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
+	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
+	// NOTE: Do not overwrite the existing withdraw/reward address set by the delegator.
+	if exists, err := k.DelegatorWithdrawAddress.Has(ctx, depositorAddr.String()); err != nil {
+		return errors.Wrap(err, "check delegator withdraw address existence")
+	} else if !exists {
+		if err := k.DelegatorWithdrawAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator withdraw address map")
+		}
+	}
+	if exists, err := k.DelegatorRewardAddress.Has(ctx, depositorAddr.String()); err != nil {
+		return errors.Wrap(err, "check delegator reward address existence")
+	} else if !exists {
+		if err := k.DelegatorRewardAddress.Set(ctx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+			return errors.Wrap(err, "set delegator reward address map")
+		}
+	}
+
+	if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, amountCoins); err != nil {
+		return errors.Wrap(err, "create stake coin for depositor: mint coins")
+	}
+
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, depositorAddr, amountCoins); err != nil {
+		return errors.Wrap(err, "create stake coin for depositor: send coins")
+	}
+
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
@@ -142,11 +152,22 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		delID, periodType,
 	)
 	_, err = skeeperMsgServer.Delegate(ctx, msg)
-	if errors.Is(err, stypes.ErrDelegationBelowMinimum) {
-		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
-	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
-		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
-	} else if err != nil {
+	if err != nil {
+		// burn tokens when creating validator failed
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, depositorAddr, types.ModuleName, amountCoins); err != nil {
+			return errors.Wrap(err, "send stake coins to the module account back")
+		}
+
+		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, amountCoins); err != nil {
+			return errors.Wrap(err, "burn the stake coins")
+		}
+
+		if errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+			return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
+		} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
+			return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
+		}
+
 		return errors.Wrap(err, "delegate")
 	}
 
