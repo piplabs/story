@@ -1034,8 +1034,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.19 h1:BFNCafIt0Fud4FUo7UZ8GHdf+/kx8ASknGYyKDsHJXg=
 github.com/piplabs/cosmos-sdk v0.50.7-piplabs-v0.19/go.mod h1:84xDDJEHttRT7NDGwBaUOLVOMN0JNE9x7NbsYIxXs1s=
-github.com/piplabs/cosmos-sdk/x/evidence v0.1.0 h1:zkP1KkXtGKKU1GT2O1ygGWRnNM+Fff/PYiEmovBWQBQ=
-github.com/piplabs/cosmos-sdk/x/evidence v0.1.0/go.mod h1:hTaiiXsoiJ3InMz1uptgF0BnGqROllAN8mwisOMMsfw=
+github.com/piplabs/cosmos-sdk/x/evidence v0.1.1-piplabs-v0.1 h1:8NMQQNIwwETASsk2uPc9zNwWI5g8bQnpINdzmGTfvsM=
+github.com/piplabs/cosmos-sdk/x/evidence v0.1.1-piplabs-v0.1/go.mod h1:l9M6k8sqBTVuP+uLgPOk31FnRskMoUeiO5jG265l6XY=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c/go.mod h1:7rwL4CYBLnjLxUqIJNnCWiEdr3bn6IUYi15bNlnbCCU=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
