@@ -11,11 +11,11 @@ import (
 	liberrors "github.com/piplabs/story/lib/errors"
 )
 
-func (s *Server) initComeBFTRoute() {
-	s.httpMux.HandleFunc("/comebft/block_events", utils.AutoWrap(s.aminoCodec, s.GetComebftBlockEvents))
+func (s *Server) initCometBFTRoute() {
+	s.httpMux.HandleFunc("/cometbft/block_events", utils.AutoWrap(s.aminoCodec, s.GetCometbftBlockEvents))
 }
 
-func (s *Server) GetComebftBlockEvents(req *getComebftBlockEventsRequest, r *http.Request) (resp any, err error) {
+func (s *Server) GetCometbftBlockEvents(req *getCometbftBlockEventsRequest, r *http.Request) (resp any, err error) {
 	if req.To-req.From > 100 {
 		return nil, errors.New("search max 100 blocks")
 	}
@@ -29,7 +29,7 @@ func (s *Server) GetComebftBlockEvents(req *getComebftBlockEventsRequest, r *htt
 		return nil, liberrors.Wrap(err, "failed to get the current block")
 	}
 
-	allRetBlock := make([]*getComebftBlockEventsBlockResults, 0)
+	allRetBlock := make([]*getCometbftBlockEventsBlockResults, 0)
 	for i := req.From; i < min(req.To, curBlock.Block.Height); i++ {
 		results, err := s.cl.BlockResults(r.Context(), &i)
 		if err != nil {
@@ -41,7 +41,7 @@ func (s *Server) GetComebftBlockEvents(req *getComebftBlockEventsRequest, r *htt
 		})
 
 		if len(events) > 0 {
-			allRetBlock = append(allRetBlock, &getComebftBlockEventsBlockResults{
+			allRetBlock = append(allRetBlock, &getCometbftBlockEventsBlockResults{
 				Height: results.Height,
 				FinalizeBlockEvents: slices.DeleteFunc(results.FinalizeBlockEvents, func(event abcitypes.Event) bool {
 					return !slices.Contains(req.EventTypeFilter, event.Type)

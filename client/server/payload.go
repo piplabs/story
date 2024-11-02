@@ -43,13 +43,13 @@ type getDenomOwnersByQueryRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
-type getComebftBlockEventsRequest struct {
+type getCometbftBlockEventsRequest struct {
 	From            int64    `mapstructure:"from"`
 	To              int64    `mapstructure:"to"`
 	EventTypeFilter []string `mapstructure:"event_type_filter"`
 }
 
-type getComebftBlockEventsBlockResults struct {
+type getCometbftBlockEventsBlockResults struct {
 	Height              int64        `json:"height"`
 	FinalizeBlockEvents []abci.Event `json:"finalize_block_events"`
 }
