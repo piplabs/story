@@ -19,26 +19,31 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+//nolint:contextcheck // already inherited new context
 func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, write := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeCreateValidatorFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyMoniker, ev.Moniker),
-					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
-					sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
-					sdk.NewAttribute(types.AttributeKeyMaxCommissionRate, strconv.FormatUint(uint64(ev.MaxCommissionRate), 10)),
-					sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
-					sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
-					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			write()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeCreateValidatorFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyMoniker, ev.Moniker),
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+				sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
+				sdk.NewAttribute(types.AttributeKeyMaxCommissionRate, strconv.FormatUint(uint64(ev.MaxCommissionRate), 10)),
+				sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
+				sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
+				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
@@ -62,16 +67,16 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
 	// Create account if not exists
-	if !k.authKeeper.HasAccount(ctx, delegatorAddr) {
-		acc := k.authKeeper.NewAccountWithAddress(ctx, delegatorAddr)
-		k.authKeeper.SetAccount(ctx, acc)
-		log.Debug(ctx, "Created account for depositor",
+	if !k.authKeeper.HasAccount(cachedCtx, delegatorAddr) {
+		acc := k.authKeeper.NewAccountWithAddress(cachedCtx, delegatorAddr)
+		k.authKeeper.SetAccount(cachedCtx, acc)
+		log.Debug(cachedCtx, "Created account for depositor",
 			"address", validatorAddr.String(),
 			"evm_address", delEvmAddr.String(),
 		)
 	}
 
-	log.Debug(ctx, "EVM staking create validator detected",
+	log.Debug(cachedCtx, "EVM staking create validator detected",
 		"val_story", validatorAddr.String(),
 		"val_pubkey", validatorPubkey.String(),
 		"del_story", delegatorAddr.String(),
@@ -86,7 +91,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	}
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
-	if _, err = k.stakingKeeper.GetValidator(ctx, validatorAddr); err == nil {
+	if _, err = k.stakingKeeper.GetValidator(cachedCtx, validatorAddr); err == nil {
 		return errors.WrapErrWithCode(errors.ValidatorAlreadyExists, errors.New("validator already exists"))
 	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
 		// Either the validator does not exist, or unknown error.
@@ -98,7 +103,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		moniker = validatorAddr.String() // use validator address as moniker if not provided
 	}
 
-	minSelfDelegation, err := k.stakingKeeper.MinDelegation(ctx)
+	minSelfDelegation, err := k.stakingKeeper.MinDelegation(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "get min self delegation")
 	}
@@ -126,37 +131,37 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
 	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
 	// NOTE: Do not overwrite the existing withdraw/reward address set by the validator.
-	if exists, err := k.DelegatorWithdrawAddress.Has(ctx, delegatorAddr.String()); err != nil {
+	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")
 	} else if !exists {
-		if err := k.DelegatorWithdrawAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
-	if exists, err := k.DelegatorRewardAddress.Has(ctx, delegatorAddr.String()); err != nil {
+	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {
-		if err := k.DelegatorRewardAddress.Set(ctx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorRewardAddress.Set(cachedCtx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator reward address map")
 		}
 	}
 
-	if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, amountCoins); err != nil {
+	if err := k.bankKeeper.MintCoins(cachedCtx, types.ModuleName, amountCoins); err != nil {
 		return errors.Wrap(err, "create stake coin for depositor: mint coins")
 	}
 
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, delegatorAddr, amountCoins); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cachedCtx, types.ModuleName, delegatorAddr, amountCoins); err != nil {
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	_, err = skeeperMsgServer.CreateValidator(ctx, msg)
+	_, err = skeeperMsgServer.CreateValidator(cachedCtx, msg)
 	if err != nil { //nolint:nestif // readability
 		// burn tokens when creating validator failed
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, amountCoins); err != nil {
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(cachedCtx, delegatorAddr, types.ModuleName, amountCoins); err != nil {
 			return errors.Wrap(err, "send stake coins to the module account back")
 		}
 
-		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, amountCoins); err != nil {
+		if err := k.bankKeeper.BurnCoins(cachedCtx, types.ModuleName, amountCoins); err != nil {
 			return errors.Wrap(err, "burn the stake coins")
 		}
 

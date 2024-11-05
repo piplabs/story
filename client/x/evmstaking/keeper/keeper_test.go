@@ -1,13 +1,9 @@
 package keeper_test
 
 import (
-	"context"
-	"math/big"
-	"testing"
 	"time"
 
 	"cosmossdk.io/log"
-	sdkmath "cosmossdk.io/math"
 	"cosmossdk.io/store"
 	"cosmossdk.io/store/metrics"
 	storetypes "cosmossdk.io/store/types"
@@ -28,18 +24,12 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
 
-	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/module"
 	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
-	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
 	"go.uber.org/mock/gomock"
@@ -72,15 +62,6 @@ func cmpToUncmp(cmpPubKey []byte) []byte {
 	}
 
 	return uncmpPubKey
-}
-
-func cmpToEVM(cmpPubKey []byte) common.Address {
-	evmAddr, err := keeper.CmpPubKeyToEVMAddress(cmpPubKey)
-	if err != nil {
-		panic(err)
-	}
-
-	return evmAddr
 }
 
 type TestSuite struct {
@@ -197,6 +178,17 @@ func (s *TestSuite) TestValidatorAddressCodec() {
 	require.NotNil(keeper.ValidatorAddressCodec())
 	_, err := keeper.ValidatorAddressCodec().StringToBytes("storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0")
 	require.NoError(err)
+}
+
+//nolint: dupword // test code
+/*
+func cmpToEVM(cmpPubKey []byte) common.Address {
+	evmAddr, err := keeper.CmpPubKeyToEVMAddress(cmpPubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return evmAddr
 }
 
 func (s *TestSuite) TestProcessStakingEvents() {
@@ -530,7 +522,6 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				require.Equal("0.050000000000000000", newVal.Commission.MaxChangeRate.String())
 			},
 		},
-		/*
 					{
 						name: "pass: process DepositEvent",
 						evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
@@ -659,7 +650,6 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					slashingKeeper.EXPECT().Unjail(c, valAddr1).Return(nil)
 				},
 			},
-		*/
 	}
 
 	for _, tc := range tcs {
@@ -691,8 +681,6 @@ func TestTestSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(TestSuite))
 }
-
-/*
 
 // setupValidatorAndDelegation creates a validator and delegation for testing.
 func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
@@ -732,7 +720,6 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 	require.NoError(err)
 	require.Equal(delAmt, delegation.GetShares())
 }
-*/
 
 func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey := append([]byte(nil), pubKey...)
@@ -742,7 +729,6 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	return corruptedPubKey
 }
 
-/*
 // setupUnbonding creates unbondings for testing.
 func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
 	require := s.Require()
@@ -754,7 +740,6 @@ func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, 
 	)
 	require.NoError(err)
 }
-*/
 
 // ethLogsToEvmEvents converts Ethereum logs to a slice of EVM events.
 func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error) {
@@ -779,3 +764,4 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 
 	return events, nil
 }
+*/
