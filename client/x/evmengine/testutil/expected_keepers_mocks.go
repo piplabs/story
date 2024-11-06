@@ -26,6 +26,7 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -63,6 +64,7 @@ func (mr *MockAccountKeeperMockRecorder) GetModuleAddress(moduleName any) *gomoc
 type MockEvmStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockEvmStakingKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockEvmStakingKeeperMockRecorder is the mock recorder for MockEvmStakingKeeper.
@@ -205,6 +207,7 @@ func (mr *MockEvmStakingKeeperMockRecorder) ProcessStakingEvents(ctx, height, lo
 type MockUpgradeKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockUpgradeKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockUpgradeKeeperMockRecorder is the mock recorder for MockUpgradeKeeper.
@@ -242,6 +245,7 @@ func (mr *MockUpgradeKeeperMockRecorder) ScheduleUpgrade(ctx, plan any) *gomock.
 type MockDistrKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistrKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockDistrKeeperMockRecorder is the mock recorder for MockDistrKeeper.
