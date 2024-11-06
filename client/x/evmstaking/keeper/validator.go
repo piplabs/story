@@ -155,25 +155,13 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	_, err = skeeperMsgServer.CreateValidator(cachedCtx, msg)
-	if err != nil { //nolint:nestif // readability
-		// burn tokens when creating validator failed
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(cachedCtx, delegatorAddr, types.ModuleName, amountCoins); err != nil {
-			return errors.Wrap(err, "send stake coins to the module account back")
-		}
-
-		if err := k.bankKeeper.BurnCoins(cachedCtx, types.ModuleName, amountCoins); err != nil {
-			return errors.Wrap(err, "burn the stake coins")
-		}
-
-		if errors.Is(err, stypes.ErrCommissionLTMinRate) {
-			return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
-		} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
-			return errors.WrapErrWithCode(errors.InvalidMinSelfDelegation, err)
-		} else if errors.Is(err, stypes.ErrNoTokenTypeFound) {
-			return errors.WrapErrWithCode(errors.InvalidTokenType, err)
-		}
-
+	if _, err = skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrCommissionLTMinRate) {
+		return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
+	} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
+		return errors.WrapErrWithCode(errors.InvalidMinSelfDelegation, err)
+	} else if errors.Is(err, stypes.ErrNoTokenTypeFound) {
+		return errors.WrapErrWithCode(errors.InvalidTokenType, err)
+	} else if err != nil {
 		return errors.Wrap(err, "create validator")
 	}
 

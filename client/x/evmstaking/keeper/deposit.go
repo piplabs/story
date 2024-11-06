@@ -156,23 +156,11 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		depositorAddr.String(), validatorAddr.String(), amountCoin,
 		delID, periodType,
 	)
-	_, err = skeeperMsgServer.Delegate(cachedCtx, msg)
-	if err != nil {
-		// burn tokens when creating validator failed
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(cachedCtx, depositorAddr, types.ModuleName, amountCoins); err != nil {
-			return errors.Wrap(err, "send stake coins to the module account back")
-		}
-
-		if err := k.bankKeeper.BurnCoins(cachedCtx, types.ModuleName, amountCoins); err != nil {
-			return errors.Wrap(err, "burn the stake coins")
-		}
-
-		if errors.Is(err, stypes.ErrDelegationBelowMinimum) {
-			return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
-		} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
-			return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
-		}
-
+	if _, err = skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
+	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
+		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
+	} else if err != nil {
 		return errors.Wrap(err, "delegate")
 	}
 
