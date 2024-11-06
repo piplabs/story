@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -18,19 +19,23 @@ import (
 )
 
 func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindings.IPTokenStakingUpdateValidatorCommssion) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeUpdateValidatorCommissionFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeUpdateValidatorCommissionFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
@@ -43,7 +48,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 
 	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-	validator, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
+	validator, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
 	if err != nil {
 		return errors.Wrap(err, "get validator")
 	}
@@ -63,7 +68,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
-	if _, err := skeeperMsgServer.EditValidator(ctx, msg); err != nil {
+	if _, err := skeeperMsgServer.EditValidator(cachedCtx, msg); err != nil {
 		return errors.Wrap(err, "update validator commission rate")
 	}
 

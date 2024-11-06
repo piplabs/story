@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -20,32 +21,36 @@ import (
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeRedelegateFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeySrcValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpSrcPubkey)),
-					sdk.NewAttribute(types.AttributeKeyDstValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpDstPubkey)),
-					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
-					sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
-					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeRedelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeySrcValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpSrcPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDstValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpDstPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
+				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
-	isInSingularity, err := k.IsSingularity(ctx)
+	isInSingularity, err := k.IsSingularity(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "check if it is singularity")
 	}
 
 	if isInSingularity {
-		log.Debug(ctx, "Relegation event detected, but it is not processed since current block is singularity")
+		log.Debug(cachedCtx, "Relegation event detected, but it is not processed since current block is singularity")
 		return nil
 	}
 
@@ -95,7 +100,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	// redelegateOnBehalf txn, need to check if it's from the operator
 	if delEvmAddr.String() != ev.OperatorAddress.String() {
-		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
+		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -114,7 +119,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
-	log.Debug(ctx, "EVM staking relegation detected",
+	log.Debug(cachedCtx, "EVM staking relegation detected",
 		"del_story", depositorAddr.String(),
 		"val_src_story", validatorSrcAddr.String(),
 		"val_dst_story", validatorDstAddr.String(),
@@ -128,7 +133,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
 		ev.DelegationId.String(), amountCoin,
 	)
-	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(ctx, msg)
+	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
 	if err != nil {
 		return errors.Wrap(err, "failed to begin redelegation")
 	}

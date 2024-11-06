@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -22,11 +23,11 @@ import (
 //nolint:contextcheck // already inherited new context
 func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, write := sdkCtx.CacheContext()
+	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
 		if err == nil {
-			write()
+			writeCache()
 			return
 		}
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
