@@ -3,12 +3,12 @@
 URL: [GET] /staking/validators
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | status | string |  | ✔ |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -330,7 +330,7 @@ URL: [GET] /staking/validators
 URL: [GET] /staking/validators/{validator_addr}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
@@ -381,7 +381,7 @@ URL: [GET] /staking/validators/{validator_addr}
 URL: [GET] /staking/delegators/{delegator_addr}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -405,7 +405,7 @@ URL: [GET] /staking/delegators/{delegator_addr}
 URL: [GET] /staking/validators/{validator_addr}/delegations
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
@@ -454,7 +454,7 @@ URL: [GET] /staking/validators/{validator_addr}/delegations
 URL: [GET] /staking/delegations/{delegator_addr}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -551,17 +551,17 @@ URL: [GET] /staking/delegations/{delegator_addr}
 URL: [GET] /staking/delegators/{delegator_addr}/redelegations
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | status | string |  | ✔ |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -572,7 +572,7 @@ URL: [GET] /staking/delegators/{delegator_addr}/redelegations
 URL: [GET] /staking/delegators/{delegator_addr}/validators
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -782,7 +782,7 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators
 URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
@@ -834,17 +834,17 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 URL: [GET] /staking/delegators/{delegator_addr}/unbonding_delegations
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | status | string |  | ✔ |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -928,7 +928,7 @@ URL: [GET] /staking/pool
 URL: [GET] /staking/historical_info/{height}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | height | integer |  | ✔ |
 
@@ -1194,7 +1194,7 @@ URL: [GET] /staking/historical_info/{height}
 URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
@@ -1227,17 +1227,17 @@ URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
 URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | status | string |  | ✔ |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -1248,7 +1248,7 @@ URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
 URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
@@ -1260,7 +1260,7 @@ URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}/unb
 URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
@@ -1289,7 +1289,7 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
@@ -1317,11 +1317,11 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 URL: [GET] /auth/accounts
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -1475,11 +1475,11 @@ URL: [GET] /bank/params
 URL: [GET] /bank/supply
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -1508,7 +1508,7 @@ URL: [GET] /bank/supply
 URL: [GET] /bank/supply/by_denom
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | denom | string | stake | ✔ |
 
@@ -1532,16 +1532,16 @@ URL: [GET] /bank/supply/by_denom
 URL: [GET] /bank/balances/{address}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -1570,12 +1570,12 @@ URL: [GET] /bank/balances/{address}
 URL: [GET] /bank/balances/{address}/by_denom
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | denom | string | stake |  |
 
@@ -1599,16 +1599,16 @@ URL: [GET] /bank/balances/{address}/by_denom
 URL: [GET] /bank/denom_owners/{denom}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | denom | string | stake | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -1704,11 +1704,11 @@ URL: [GET] /bank/denom_owners/{denom}
 URL: [GET] /bank/denom_owners_by_query
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string | stake |  |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 | denom | string | stake |  |
@@ -1826,7 +1826,7 @@ URL: [GET] /distribution/params
 URL: [GET] /distribution/delegators/{delegator_address}/validators
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -1854,7 +1854,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/validators
 URL: [GET] /distribution/delegators/{delegator_address}/withdraw_address
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -1875,7 +1875,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/withdraw_address
 URL: [GET] /distribution/delegators/{delegator_address}/rewards
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
@@ -1957,7 +1957,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/rewards
 URL: [GET] /distribution/delegators/{delegator_address}/rewards/{validator_address}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 | validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
@@ -1984,7 +1984,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/rewards/{validator_addre
 URL: [GET] /distribution/validators/{validator_address}
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
@@ -2017,7 +2017,7 @@ URL: [GET] /distribution/validators/{validator_address}
 URL: [GET] /distribution/validators/{validator_address}/commission
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
@@ -2045,7 +2045,7 @@ URL: [GET] /distribution/validators/{validator_address}/commission
 URL: [GET] /distribution/validators/{validator_address}/outstanding_rewards
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
@@ -2073,16 +2073,16 @@ URL: [GET] /distribution/validators/{validator_address}/outstanding_rewards
 URL: [GET] /distribution/validators/{validator_address}/slashes
 
 ### Path Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | pagination.key | string |  | ✔ |
 | pagination.offset | string | 0 | ✔ |
-| pagination.limit | array | 10 | ✔ |
+| pagination.limit | string | 10 | ✔ |
 | pagination.count_total | string | true | ✔ |
 | pagination.reverse | string | true | ✔ |
 
@@ -2104,7 +2104,7 @@ URL: [GET] /distribution/validators/{validator_address}/slashes
 URL: [GET] /distribution/all_validators/outstanding_rewards
 
 ### Query Params
-| Name | Type | Exampe | Require |
+| Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | from | integer | 100 |  |
 | to | integer | 200 |  |
