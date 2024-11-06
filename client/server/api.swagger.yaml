@@ -1,0 +1,2610 @@
+info:
+  title: story-api
+  description: ''
+  version: 1.0.0
+tags: []
+paths:
+  /staking/validators:
+    get:
+      summary: GetValidators
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: status
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  validators:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        operator_address:
+                          type: string
+                        consensus_pubkey:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - type
+                            - value
+                        jailed:
+                          type: boolean
+                        status:
+                          type: integer
+                        tokens:
+                          type: string
+                        delegator_shares:
+                          type: string
+                        description:
+                          type: object
+                          properties:
+                            moniker:
+                              type: string
+                          required:
+                            - moniker
+                        unbonding_height:
+                          type: string
+                        unbonding_time:
+                          type: string
+                        commission:
+                          type: object
+                          properties:
+                            commission_rates:
+                              type: object
+                              properties:
+                                rate:
+                                  type: string
+                                max_rate:
+                                  type: string
+                                max_change_rate:
+                                  type: string
+                              required:
+                                - rate
+                                - max_rate
+                                - max_change_rate
+                            update_time:
+                              type: string
+                          required:
+                            - commission_rates
+                            - update_time
+                        min_self_delegation:
+                          type: string
+                        unbonding_ids:
+                          type: array
+                          items:
+                            type: string
+                        rewards_tokens:
+                          type: string
+                        delegator_rewards_shares:
+                          type: string
+                        support_token_type:
+                          type: integer
+                      required:
+                        - operator_address
+                        - consensus_pubkey
+                        - jailed
+                        - status
+                        - tokens
+                        - delegator_shares
+                        - description
+                        - unbonding_height
+                        - unbonding_time
+                        - commission
+                        - min_self_delegation
+                        - unbonding_ids
+                        - rewards_tokens
+                        - delegator_rewards_shares
+                        - support_token_type
+                  pagination:
+                    type: object
+                    properties:
+                      next_key:
+                        type: string
+                      total:
+                        type: string
+                    required:
+                      - next_key
+                      - total
+                required:
+                  - validators
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}:
+    get:
+      summary: GetValidatorByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  validator:
+                    type: object
+                    properties:
+                      operator_address:
+                        type: string
+                      consensus_pubkey:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                          - type
+                          - value
+                      jailed:
+                        type: boolean
+                      status:
+                        type: integer
+                      tokens:
+                        type: string
+                      delegator_shares:
+                        type: string
+                      description:
+                        type: object
+                        properties:
+                          moniker:
+                            type: string
+                        required:
+                          - moniker
+                      unbonding_height:
+                        type: string
+                      unbonding_time:
+                        type: string
+                      commission:
+                        type: object
+                        properties:
+                          commission_rates:
+                            type: object
+                            properties:
+                              rate:
+                                type: string
+                              max_rate:
+                                type: string
+                              max_change_rate:
+                                type: string
+                            required:
+                              - rate
+                              - max_rate
+                              - max_change_rate
+                          update_time:
+                            type: string
+                        required:
+                          - commission_rates
+                          - update_time
+                      min_self_delegation:
+                        type: string
+                      unbonding_ids:
+                        type: array
+                        items:
+                          type: string
+                      support_token_type:
+                        type: integer
+                      rewards_tokens:
+                        type: string
+                      delegator_rewards_shares:
+                        type: string
+                    required:
+                      - operator_address
+                      - consensus_pubkey
+                      - jailed
+                      - status
+                      - tokens
+                      - delegator_shares
+                      - description
+                      - unbonding_height
+                      - unbonding_time
+                      - commission
+                      - min_self_delegation
+                      - unbonding_ids
+                      - support_token_type
+                      - rewards_tokens
+                      - delegator_rewards_shares
+                required:
+                  - validator
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}:
+    get:
+      summary: GetDelegatorByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegator_addr:
+                    type: string
+                  withdraw_address:
+                    type: string
+                  reward_address:
+                    type: string
+                  operator_address:
+                    type: string
+                required:
+                  - delegator_addr
+                  - withdraw_address
+                  - reward_address
+                  - operator_address
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegations:
+    get:
+      summary: GetValidatorDelegationsByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegation_responses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        delegation:
+                          type: object
+                          properties:
+                            delegator_address:
+                              type: string
+                            validator_address:
+                              type: string
+                            shares:
+                              type: string
+                            rewards_shares:
+                              type: string
+                          required:
+                            - delegator_address
+                            - validator_address
+                            - shares
+                            - rewards_shares
+                        balance:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                          required:
+                            - denom
+                            - amount
+                      required:
+                        - delegation
+                        - balance
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - delegation_responses
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegations/{delegator_addr}:
+    get:
+      summary: GetDelegationsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegation_responses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        delegation:
+                          type: object
+                          properties:
+                            delegator_address:
+                              type: string
+                            validator_address:
+                              type: string
+                            shares:
+                              type: string
+                            rewards_shares:
+                              type: string
+                          required:
+                            - delegator_address
+                            - validator_address
+                            - shares
+                            - rewards_shares
+                        balance:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                          required:
+                            - denom
+                            - amount
+                      required:
+                        - delegation
+                        - balance
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - delegation_responses
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}/redelegations:
+    get:
+      summary: GetRedelegationsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: status
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}/validators:
+    get:
+      summary: GetValidatorsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  validators:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        operator_address:
+                          type: string
+                        consensus_pubkey:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - type
+                            - value
+                        jailed:
+                          type: boolean
+                        status:
+                          type: integer
+                        tokens:
+                          type: string
+                        delegator_shares:
+                          type: string
+                        description:
+                          type: object
+                          properties:
+                            moniker:
+                              type: string
+                          required:
+                            - moniker
+                        unbonding_height:
+                          type: string
+                        unbonding_time:
+                          type: string
+                        commission:
+                          type: object
+                          properties:
+                            commission_rates:
+                              type: object
+                              properties:
+                                rate:
+                                  type: string
+                                max_rate:
+                                  type: string
+                                max_change_rate:
+                                  type: string
+                              required:
+                                - rate
+                                - max_rate
+                                - max_change_rate
+                            update_time:
+                              type: string
+                          required:
+                            - commission_rates
+                            - update_time
+                        min_self_delegation:
+                          type: string
+                        unbonding_ids:
+                          type: array
+                          items:
+                            type: string
+                        support_token_type:
+                          type: integer
+                        rewards_tokens:
+                          type: string
+                        delegator_rewards_shares:
+                          type: string
+                      required:
+                        - operator_address
+                        - consensus_pubkey
+                        - jailed
+                        - status
+                        - tokens
+                        - delegator_shares
+                        - description
+                        - unbonding_height
+                        - unbonding_time
+                        - commission
+                        - min_self_delegation
+                        - unbonding_ids
+                        - rewards_tokens
+                        - delegator_rewards_shares
+                        - support_token_type
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - validators
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}/validators/{validator_addr}:
+    get:
+      summary: GetValidatorsByDelegatorAddressValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  validator:
+                    type: object
+                    properties:
+                      operator_address:
+                        type: string
+                      consensus_pubkey:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                          - type
+                          - value
+                      jailed:
+                        type: boolean
+                      status:
+                        type: integer
+                      tokens:
+                        type: string
+                      delegator_shares:
+                        type: string
+                      description:
+                        type: object
+                        properties:
+                          moniker:
+                            type: string
+                        required:
+                          - moniker
+                      unbonding_height:
+                        type: string
+                      unbonding_time:
+                        type: string
+                      commission:
+                        type: object
+                        properties:
+                          commission_rates:
+                            type: object
+                            properties:
+                              rate:
+                                type: string
+                              max_rate:
+                                type: string
+                              max_change_rate:
+                                type: string
+                            required:
+                              - rate
+                              - max_rate
+                              - max_change_rate
+                          update_time:
+                            type: string
+                        required:
+                          - commission_rates
+                          - update_time
+                      min_self_delegation:
+                        type: string
+                      unbonding_ids:
+                        type: array
+                        items:
+                          type: string
+                      support_token_type:
+                        type: integer
+                      rewards_tokens:
+                        type: string
+                      delegator_rewards_shares:
+                        type: string
+                    required:
+                      - operator_address
+                      - consensus_pubkey
+                      - jailed
+                      - status
+                      - tokens
+                      - delegator_shares
+                      - description
+                      - unbonding_height
+                      - unbonding_time
+                      - commission
+                      - min_self_delegation
+                      - unbonding_ids
+                      - support_token_type
+                      - rewards_tokens
+                      - delegator_rewards_shares
+                required:
+                  - validator
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}/unbonding_delegations:
+    get:
+      summary: GetUnbondingDelegationsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: status
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+  /staking/params:
+    get:
+      summary: GetStakingParams
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  params:
+                    type: object
+                    properties:
+                      unbonding_time:
+                        type: string
+                      max_validators:
+                        type: integer
+                      max_entries:
+                        type: integer
+                      historical_entries:
+                        type: integer
+                      bond_denom:
+                        type: string
+                      min_commission_rate:
+                        type: string
+                      min_delegation:
+                        type: string
+                      periods:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            duration:
+                              type: string
+                            rewards_multiplier:
+                              type: string
+                            period_type:
+                              type: integer
+                          required:
+                            - duration
+                            - rewards_multiplier
+                            - period_type
+                      token_types:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rewards_multiplier:
+                              type: string
+                            token_type:
+                              type: integer
+                          required:
+                            - rewards_multiplier
+                    required:
+                      - unbonding_time
+                      - max_validators
+                      - max_entries
+                      - historical_entries
+                      - bond_denom
+                      - min_commission_rate
+                      - min_delegation
+                      - periods
+                      - token_types
+                required:
+                  - params
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/pool:
+    get:
+      summary: GetStakingPool
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  pool:
+                    type: object
+                    properties:
+                      not_bonded_tokens:
+                        type: string
+                      bonded_tokens:
+                        type: string
+                    required:
+                      - not_bonded_tokens
+                      - bonded_tokens
+                required:
+                  - pool
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/historical_info/{height}:
+    get:
+      summary: GetHistoricalInfoByHeight
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: height
+          in: path
+          description: ''
+          required: true
+          type: integer
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  hist:
+                    type: object
+                    properties:
+                      header:
+                        type: object
+                        properties:
+                          version:
+                            type: object
+                            properties: {}
+                          chain_id:
+                            type: string
+                          height:
+                            type: string
+                          time:
+                            type: string
+                          last_block_id:
+                            type: object
+                            properties:
+                              part_set_header:
+                                type: object
+                                properties: {}
+                            required:
+                              - part_set_header
+                          next_validators_hash:
+                            type: string
+                          app_hash:
+                            type: string
+                          proposer_address:
+                            type: string
+                        required:
+                          - version
+                          - chain_id
+                          - height
+                          - time
+                          - last_block_id
+                          - next_validators_hash
+                          - app_hash
+                          - proposer_address
+                      valset:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            operator_address:
+                              type: string
+                            consensus_pubkey:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                value:
+                                  type: string
+                              required:
+                                - type
+                                - value
+                            status:
+                              type: integer
+                            tokens:
+                              type: string
+                            delegator_shares:
+                              type: string
+                            description:
+                              type: object
+                              properties:
+                                moniker:
+                                  type: string
+                              required:
+                                - moniker
+                            unbonding_time:
+                              type: string
+                            commission:
+                              type: object
+                              properties:
+                                commission_rates:
+                                  type: object
+                                  properties:
+                                    rate:
+                                      type: string
+                                    max_rate:
+                                      type: string
+                                    max_change_rate:
+                                      type: string
+                                  required:
+                                    - rate
+                                    - max_rate
+                                    - max_change_rate
+                                update_time:
+                                  type: string
+                              required:
+                                - commission_rates
+                                - update_time
+                            min_self_delegation:
+                              type: string
+                            rewards_tokens:
+                              type: string
+                            delegator_rewards_shares:
+                              type: string
+                            support_token_type:
+                              type: integer
+                          required:
+                            - operator_address
+                            - consensus_pubkey
+                            - status
+                            - tokens
+                            - delegator_shares
+                            - description
+                            - unbonding_time
+                            - commission
+                            - min_self_delegation
+                            - rewards_tokens
+                            - delegator_rewards_shares
+                            - support_token_type
+                    required:
+                      - header
+                      - valset
+                required:
+                  - hist
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegations/{delegator_addr}:
+    get:
+      summary: GetDelegationByValidatorAddressDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegation_response:
+                    type: object
+                    properties:
+                      delegation:
+                        type: object
+                        properties:
+                          delegator_address:
+                            type: string
+                          validator_address:
+                            type: string
+                          shares:
+                            type: string
+                          rewards_shares:
+                            type: string
+                        required:
+                          - delegator_address
+                          - validator_address
+                          - shares
+                          - rewards_shares
+                      balance:
+                        type: object
+                        properties:
+                          denom:
+                            type: string
+                          amount:
+                            type: string
+                        required:
+                          - denom
+                          - amount
+                    required:
+                      - delegation
+                      - balance
+                required:
+                  - delegation_response
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/unbonding_delegations:
+    get:
+      summary: GetValidatorUnbondingDelegations
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: status
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation:
+    get:
+      summary: GetDelegatorUnbondingDelegation
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations:
+    get:
+      summary: GetPeriodDelegationsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    delegator_address:
+                      type: string
+                    validator_address:
+                      type: string
+                    period_delegation_id:
+                      type: string
+                    shares:
+                      type: string
+                    rewards_shares:
+                      type: string
+                    end_time:
+                      type: string
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}:
+    get:
+      summary: GetPeriodDelegationByDelegatorAddressAndID
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: period_delegation_id
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: '1'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegator_address:
+                    type: string
+                  validator_address:
+                    type: string
+                  period_delegation_id:
+                    type: string
+                  shares:
+                    type: string
+                  rewards_shares:
+                    type: string
+                  end_time:
+                    type: string
+                required:
+                  - delegator_address
+                  - validator_address
+                  - period_delegation_id
+                  - shares
+                  - rewards_shares
+                  - end_time
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /auth/accounts:
+    get:
+      summary: GetAccounts
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        value:
+                          type: object
+                          properties:
+                            address:
+                              type: string
+                            account_number:
+                              type: string
+                            public_key:
+                              type: string
+                            sequence:
+                              type: integer
+                            name:
+                              type: string
+                            permissions:
+                              type: 'null'
+                          required:
+                            - address
+                            - account_number
+                      required:
+                        - type
+                        - value
+                  pagination:
+                    type: object
+                    properties:
+                      next_key:
+                        type: string
+                      total:
+                        type: string
+                    required:
+                      - next_key
+                      - total
+                required:
+                  - accounts
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /auth/bech32:
+    get:
+      summary: GetBech32Prefix
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  bech32_prefix:
+                    type: string
+                required:
+                  - bech32_prefix
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /auth/params:
+    get:
+      summary: GetAuthParams
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  params:
+                    type: object
+                    properties:
+                      max_memo_characters:
+                        type: string
+                      tx_sig_limit:
+                        type: string
+                      tx_size_cost_per_byte:
+                        type: string
+                      sig_verify_cost_ed25519:
+                        type: string
+                      sig_verify_cost_secp256k1:
+                        type: string
+                    required:
+                      - max_memo_characters
+                      - tx_sig_limit
+                      - tx_size_cost_per_byte
+                      - sig_verify_cost_ed25519
+                      - sig_verify_cost_secp256k1
+                required:
+                  - params
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/params:
+    get:
+      summary: GetBankParams
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  params:
+                    type: object
+                    properties: {}
+                required:
+                  - params
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/supply:
+    get:
+      summary: GetSupply
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  supply:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - supply
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/supply/by_denom:
+    get:
+      summary: GetSupplyByDenom
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: denom
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: stake
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  amount:
+                    type: object
+                    properties:
+                      denom:
+                        type: string
+                      amount:
+                        type: string
+                    required:
+                      - denom
+                      - amount
+                required:
+                  - amount
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/balances/{address}:
+    get:
+      summary: GetBalancesByAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  balances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - balances
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/balances/{address}/by_denom:
+    get:
+      summary: GetBalancesByAddressDenom
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: denom
+          in: query
+          description: ''
+          required: false
+          type: string
+          x-example: stake
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  balance:
+                    type: object
+                    properties:
+                      denom:
+                        type: string
+                      amount:
+                        type: string
+                    required:
+                      - denom
+                      - amount
+                required:
+                  - balance
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/denom_owners/{denom}:
+    get:
+      summary: GetDenomOwners
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: denom
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: stake
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  denom_owners:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        address:
+                          type: string
+                        balance:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                          required:
+                            - denom
+                            - amount
+                      required:
+                        - address
+                        - balance
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - denom_owners
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/denom_owners_by_query:
+    get:
+      summary: GetDenomOwnersByQuery
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: pagination.key
+          in: query
+          description: ''
+          required: false
+          type: string
+          x-example: stake
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: denom
+          in: query
+          description: ''
+          required: false
+          type: string
+          x-example: stake
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  denom_owners:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        address:
+                          type: string
+                        balance:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                          required:
+                            - denom
+                            - amount
+                      required:
+                        - address
+                        - balance
+                  pagination:
+                    type: object
+                    properties:
+                      next_key:
+                        type: string
+                      total:
+                        type: string
+                    required:
+                      - next_key
+                      - total
+                required:
+                  - denom_owners
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/params:
+    get:
+      summary: GetDistributionParams
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  params:
+                    type: object
+                    properties:
+                      ubi:
+                        type: string
+                      base_proposer_reward:
+                        type: string
+                      bonus_proposer_reward:
+                        type: string
+                      withdraw_addr_enabled:
+                        type: boolean
+                    required:
+                      - ubi
+                      - base_proposer_reward
+                      - bonus_proposer_reward
+                      - withdraw_addr_enabled
+                required:
+                  - params
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/delegators/{delegator_address}/validators:
+    get:
+      summary: GetDistributionValidatorsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  validators:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - validators
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/delegators/{delegator_address}/withdraw_address:
+    get:
+      summary: GetDelegatorWithdrawAddressByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+  /distribution/delegators/{delegator_address}/rewards:
+    get:
+      summary: GetDelegatorRewardsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  rewards:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        validator_address:
+                          type: string
+                        reward:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              denom:
+                                type: string
+                              amount:
+                                type: string
+                            required:
+                              - denom
+                              - amount
+                      required:
+                        - validator_address
+                        - reward
+                  total:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                required:
+                  - rewards
+                  - total
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/delegators/{delegator_address}/rewards/{validator_address}:
+    get:
+      summary: GetDelegatorRewardsByDelegatorAddressValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: delegator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: validator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  rewards:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                required:
+                  - rewards
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/validators/{validator_address}:
+    get:
+      summary: GetDistributionValidatorByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  operator_address:
+                    type: string
+                  self_bond_rewards:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                  commission:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                required:
+                  - operator_address
+                  - self_bond_rewards
+                  - commission
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/validators/{validator_address}/commission:
+    get:
+      summary: GetValidatorCommissionByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  commission:
+                    type: object
+                    properties:
+                      commission:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                    required:
+                      - commission
+                required:
+                  - commission
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/validators/{validator_address}/outstanding_rewards:
+    get:
+      summary: GetValidatorOutstandingRewardsByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  rewards:
+                    type: object
+                    properties:
+                      rewards:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                    required:
+                      - rewards
+                required:
+                  - rewards
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/validators/{validator_address}/slashes:
+    get:
+      summary: GetValidatorSlashesByValidatorAddress
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: validator_address
+          in: path
+          description: ''
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: pagination.key
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: ''
+        - name: pagination.offset
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: ''
+          required: true
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: ''
+          required: true
+          type: string
+          x-example: 'true'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  slashes:
+                    type: array
+                    items:
+                      type: string
+                  pagination:
+                    type: object
+                    properties: {}
+                required:
+                  - slashes
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /distribution/all_validators/outstanding_rewards:
+    get:
+      summary: GetAllValidatorOutstandingRewards
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: from
+          in: query
+          description: ''
+          required: false
+          type: integer
+          x-example: 100
+        - name: to
+          in: query
+          description: ''
+          required: false
+          type: integer
+          x-example: 200
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
+swagger: '2.0'
+definitions: {}
+securityDefinitions: {}
+x-components: {}
