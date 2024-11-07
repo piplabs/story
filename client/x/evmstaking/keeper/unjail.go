@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -17,19 +18,23 @@ import (
 )
 
 func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUnjail) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeUnjailFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeUnjailFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
@@ -51,7 +56,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 
 	// unjailOnBehalf txn, need to check if it's from the operator
 	if valEvmAddr.String() != ev.Unjailer.String() {
-		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, valDelAddr.String())
+		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, valDelAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -68,7 +73,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		}
 	}
 
-	err = k.slashingKeeper.Unjail(ctx, valAddr)
+	err = k.slashingKeeper.Unjail(cachedCtx, valAddr)
 	if err != nil {
 		return errors.Wrap(err, "unjail")
 	}

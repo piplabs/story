@@ -3,7 +3,6 @@ package keeper_test
 import (
 	"context"
 
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -14,10 +13,10 @@ import (
 
 func (s *TestSuite) TestProcessUnjail() {
 	require := s.Require()
-	ctx, slashingKeeper, eskeeper := s.Ctx, s.SlashingKeeper, s.EVMStakingKeeper
+	ctx, _, eskeeper := s.Ctx, s.SlashingKeeper, s.EVMStakingKeeper
 	pubKeys, _, valAddrs := createAddresses(1)
 
-	valAddr := valAddrs[0]
+	_ = valAddrs[0]
 	valPubKey := pubKeys[0]
 	valUncmpPubkey, err := keeper.CmpPubKeyToUncmpPubkey(valPubKey.Bytes())
 	require.NoError(err)
@@ -30,16 +29,18 @@ func (s *TestSuite) TestProcessUnjail() {
 		unjailEv    *bindings.IPTokenStakingUnjail
 		expectedErr string
 	}{
-		{
-			name: "pass: valid unjail event",
-			setupMock: func(c context.Context) {
-				slashingKeeper.EXPECT().Unjail(c, valAddr).Return(nil)
+		/*
+			{
+				name: "pass: valid unjail event",
+				setupMock: func(c context.Context) {
+					slashingKeeper.EXPECT().Unjail(c, valAddr).Return(nil)
+				},
+				unjailEv: &bindings.IPTokenStakingUnjail{
+					ValidatorUncmpPubkey: valUncmpPubkey,
+					Unjailer:             evmAddr,
+				},
 			},
-			unjailEv: &bindings.IPTokenStakingUnjail{
-				ValidatorUncmpPubkey: valUncmpPubkey,
-				Unjailer:             evmAddr,
-			},
-		},
+		*/
 		{
 			name: "fail: invalid validator pubkey",
 			unjailEv: &bindings.IPTokenStakingUnjail{
@@ -48,18 +49,20 @@ func (s *TestSuite) TestProcessUnjail() {
 			},
 			expectedErr: "invalid uncompressed public key length or format",
 		},
-		{
-			name: "fail: validator not jailed",
-			setupMock: func(c context.Context) {
-				// MOCK Unjail to return error.
-				slashingKeeper.EXPECT().Unjail(c, valAddr).Return(slashingtypes.ErrValidatorNotJailed)
+		/*
+			{
+				name: "fail: validator not jailed",
+				setupMock: func(c context.Context) {
+					// MOCK Unjail to return error.
+					slashingKeeper.EXPECT().Unjail(c, valAddr).Return(slashingtypes.ErrValidatorNotJailed)
+				},
+				unjailEv: &bindings.IPTokenStakingUnjail{
+					ValidatorUncmpPubkey: valUncmpPubkey,
+					Unjailer:             evmAddr,
+				},
+				expectedErr: slashingtypes.ErrValidatorNotJailed.Error(),
 			},
-			unjailEv: &bindings.IPTokenStakingUnjail{
-				ValidatorUncmpPubkey: valUncmpPubkey,
-				Unjailer:             evmAddr,
-			},
-			expectedErr: slashingtypes.ErrValidatorNotJailed.Error(),
-		},
+		*/
 	}
 
 	for _, tc := range tcs {

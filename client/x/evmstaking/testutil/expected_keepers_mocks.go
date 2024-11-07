@@ -28,6 +28,7 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -171,6 +172,7 @@ func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(ctx, modAcc any) *gomo
 type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
@@ -376,6 +378,7 @@ func (mr *MockBankKeeperMockRecorder) UndelegateCoinsFromModuleToAccount(ctx, se
 type MockStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockStakingKeeperMockRecorder is the mock recorder for MockStakingKeeper.
@@ -683,6 +686,7 @@ func (mr *MockStakingKeeperMockRecorder) ValidatorAddressCodec() *gomock.Call {
 type MockSlashingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockSlashingKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockSlashingKeeperMockRecorder is the mock recorder for MockSlashingKeeper.
@@ -720,6 +724,7 @@ func (mr *MockSlashingKeeperMockRecorder) Unjail(ctx, validatorAddr any) *gomock
 type MockDistributionKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistributionKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockDistributionKeeperMockRecorder is the mock recorder for MockDistributionKeeper.
