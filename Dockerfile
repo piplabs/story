@@ -24,7 +24,7 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /story/story /usr/local/bin/
 
-EXPOSE 8545 8546 30303 30303/udp
+EXPOSE 1317 26656 26657 26660
 
 WORKDIR /root/.story/story
 ENTRYPOINT ["/bin/sh", "-c", "story init --network $NETWORK && exec story run \"$@\"", "--"]
