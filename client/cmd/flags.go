@@ -141,8 +141,9 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
 }
 
-func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
-	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove last block as well as state")
+func bindRollbackFlags(cmd *cobra.Command, cfg *rollbackConfig) {
+	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove blocks as well as states")
+	cmd.Flags().Int64VarP(&cfg.RollbackHeights, "number", "n", 1, "number of blocks to rollback")
 }
 
 func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
