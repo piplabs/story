@@ -1,4 +1,4 @@
-//nolint:dupl // event log
+//nolint:dupl,contextcheck // event log
 package keeper
 
 import (
@@ -16,19 +16,23 @@ import (
 )
 
 func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IPTokenStakingSetWithdrawalAddress) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeSetWithdrawalAddressFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyRewardAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeSetWithdrawalAddressFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyRewardAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
@@ -43,7 +47,7 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
 	executionAddr := common.BytesToAddress(ev.ExecutionAddress[:])
 
-	if err := k.DelegatorWithdrawAddress.Set(ctx, depositorAddr.String(), executionAddr.String()); err != nil {
+	if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), executionAddr.String()); err != nil {
 		return errors.Wrap(err, "delegator withdraw address map set")
 	}
 
@@ -51,19 +55,23 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 }
 
 func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPTokenStakingSetRewardAddress) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeSetRewardAddressFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeSetRewardAddressFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
@@ -78,7 +86,7 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
 	executionAddr := common.BytesToAddress(ev.ExecutionAddress[:])
 
-	if err := k.DelegatorRewardAddress.Set(ctx, depositorAddr.String(), executionAddr.String()); err != nil {
+	if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), executionAddr.String()); err != nil {
 		return errors.Wrap(err, "delegator reward address map set")
 	}
 
@@ -86,19 +94,23 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 }
 
 func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStakingAddOperator) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeAddOperatorFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeAddOperatorFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
@@ -112,7 +124,7 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 
 	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
 
-	if err := k.DelegatorOperatorAddress.Set(ctx, depositorAddr.String(), ev.Operator.String()); err != nil {
+	if err := k.DelegatorOperatorAddress.Set(cachedCtx, depositorAddr.String(), ev.Operator.String()); err != nil {
 		return errors.Wrap(err, "delegator operator address map set")
 	}
 
@@ -120,19 +132,23 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 }
 
 func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenStakingRemoveOperator) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeRemoveOperatorFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeRemoveOperatorFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
 	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
@@ -146,7 +162,7 @@ func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenS
 
 	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
 
-	if err := k.DelegatorOperatorAddress.Remove(ctx, depositorAddr.String()); err != nil {
+	if err := k.DelegatorOperatorAddress.Remove(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "delegator operator address map remove")
 	}
 

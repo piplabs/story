@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -46,23 +47,27 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 }
 
 func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeUpgradeFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyUpgradeName, ev.Name),
-					sdk.NewAttribute(types.AttributeKeyUpgradeHeight, strconv.FormatInt(ev.Height, 10)),
-					sdk.NewAttribute(types.AttributeKeyUpgradeInfo, ev.Info),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeUpgradeFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyUpgradeName, ev.Name),
+				sdk.NewAttribute(types.AttributeKeyUpgradeHeight, strconv.FormatInt(ev.Height, 10)),
+				sdk.NewAttribute(types.AttributeKeyUpgradeInfo, ev.Info),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
-	if err = k.upgradeKeeper.ScheduleUpgrade(ctx, upgradetypes.Plan{
+	if err = k.upgradeKeeper.ScheduleUpgrade(cachedCtx, upgradetypes.Plan{
 		Name:   ev.Name,
 		Info:   ev.Info,
 		Height: ev.Height,

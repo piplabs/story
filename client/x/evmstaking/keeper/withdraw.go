@@ -1,3 +1,4 @@
+//nolint:contextcheck // use cached context
 package keeper
 
 import (
@@ -314,31 +315,35 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 }
 
 func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStakingWithdraw) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
 	defer func() {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		if err != nil {
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				sdk.NewEvent(
-					types.EventTypeUndelegateFailure,
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
-					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
-					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
-				),
-			})
+		if err == nil {
+			writeCache()
+			return
 		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeUndelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+			),
+		})
 	}()
 
-	isInSingularity, err := k.IsSingularity(ctx)
+	isInSingularity, err := k.IsSingularity(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "check if it is singularity")
 	}
 
 	if isInSingularity {
-		log.Debug(ctx, "Withdraw event detected, but it is not processed since current block is singularity")
+		log.Debug(cachedCtx, "Withdraw event detected, but it is not processed since current block is singularity")
 		return nil
 	}
 
@@ -374,7 +379,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	// unstakeOnBehalf txn, need to check if it's from the operator
 	if delEvmAddr.String() != ev.OperatorAddress.String() {
-		operatorAddr, err := k.DelegatorOperatorAddress.Get(ctx, depositorAddr.String())
+		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -393,7 +398,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	amountCoin, _ := IPTokenToBondCoin(ev.StakeAmount)
 
-	log.Debug(ctx, "Processing EVM staking withdraw",
+	log.Debug(cachedCtx, "Processing EVM staking withdraw",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
 		"del_evm_addr", delEvmAddr.String(),
@@ -401,7 +406,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		"amount", ev.StakeAmount.String(),
 	)
 
-	if !k.authKeeper.HasAccount(ctx, depositorAddr) {
+	if !k.authKeeper.HasAccount(cachedCtx, depositorAddr) {
 		// TODO: gracefully handle when malicious or uninformed user tries to withdraw from non-existent account
 		// skip errors.Wrap(err) since err will be nil (since all prev errors were nil to reach this branch)
 		return errors.New("depositor account not found")
@@ -410,14 +415,14 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), ev.DelegationId.String(), amountCoin)
 
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
-	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(ctx, msg)
+	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
 	if errors.Is(err, stypes.ErrNoPeriodDelegation) {
 		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
 	} else if err != nil {
 		return errors.Wrap(err, "undelegate")
 	}
 
-	log.Debug(ctx, "EVM staking withdraw detected, undelegating from validator",
+	log.Debug(cachedCtx, "EVM staking withdraw detected, undelegating from validator",
 		"delegator", depositorAddr.String(),
 		"validator", validatorAddr.String(),
 		"amount", resp.Amount.String(),

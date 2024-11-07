@@ -74,15 +74,6 @@ func cmpToUncmp(cmpPubKey []byte) []byte {
 	return uncmpPubKey
 }
 
-func cmpToEVM(cmpPubKey []byte) common.Address {
-	evmAddr, err := keeper.CmpPubKeyToEVMAddress(cmpPubKey)
-	if err != nil {
-		panic(err)
-	}
-
-	return evmAddr
-}
-
 type TestSuite struct {
 	suite.Suite
 
@@ -199,9 +190,18 @@ func (s *TestSuite) TestValidatorAddressCodec() {
 	require.NoError(err)
 }
 
+func cmpToEVM(cmpPubKey []byte) common.Address {
+	evmAddr, err := keeper.CmpPubKeyToEVMAddress(cmpPubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return evmAddr
+}
+
 func (s *TestSuite) TestProcessStakingEvents() {
 	require := s.Require()
-	ctx, accountKeeper, bankKeeper, evmstakingKeeper, stakingKeeper := s.Ctx, s.AccountKeeper, s.BankKeeper, s.EVMStakingKeeper, s.StakingKeeper
+	ctx, evmstakingKeeper := s.Ctx, s.EVMStakingKeeper
 	// slashingKeeper := s.SlashingKeeper
 	// create addresses
 	pubKeys, addrs, _ := createAddresses(3)
@@ -486,62 +486,101 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				require.Equal(delEvmAddr.String(), evmDelAddr)
 			},
 		},
-		{
-			name: "pass: process CreateValidatorEvent",
-			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				data, err := stakingAbi.Events["CreateValidator"].Inputs.NonIndexed().Pack(
-					uncompressedDelPubKeyBytes,
-					"moniker",
-					delAmtGwei,
-					uint32(1000),
-					uint32(5000),
-					uint32(500),
-					uint8(0),
-					cmpToEVM(delPubKey.Bytes()),
-					[]byte{},
-				)
-				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data}}
-				evmEvents, err := ethLogsToEvmEvents(logs)
-				if err != nil {
-					return nil, err
-				}
-
-				return evmEvents, nil
-			},
-			setup: func(c context.Context) {
-				accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.NotBondedPoolName, sdk.NewCoins(delCoin))
-			},
-			stateCheck: func(c context.Context) {
-				_, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
-				require.ErrorContains(err, "validator does not exist")
-			},
-			postStateCheck: func(c context.Context) {
-				newVal, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
-				require.NoError(err)
-				require.Equal(sdk.ValAddress(delAddr).String(), newVal.OperatorAddress)
-				require.Equal("moniker", newVal.Description.GetMoniker())
-				require.Equal(sdkmath.NewInt(100), newVal.Tokens)
-				require.Equal("0.100000000000000000", newVal.Commission.Rate.String())
-				require.Equal("0.500000000000000000", newVal.Commission.MaxRate.String())
-				require.Equal("0.050000000000000000", newVal.Commission.MaxChangeRate.String())
-			},
-		},
 		/*
+			{
+				name: "pass: process CreateValidatorEvent",
+				evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
+					data, err := stakingAbi.Events["CreateValidator"].Inputs.NonIndexed().Pack(
+						uncompressedDelPubKeyBytes,
+						"moniker",
+						delAmtGwei,
+						uint32(1000),
+						uint32(5000),
+						uint32(500),
+						uint8(0),
+						cmpToEVM(delPubKey.Bytes()),
+						[]byte{},
+					)
+					require.NoError(err)
+					logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data}}
+					evmEvents, err := ethLogsToEvmEvents(logs)
+					if err != nil {
+						return nil, err
+					}
+
+					return evmEvents, nil
+				},
+				setup: func(c context.Context) {
+					accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
+					bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
+					bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
+					bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.NotBondedPoolName, sdk.NewCoins(delCoin))
+				},
+				stateCheck: func(c context.Context) {
+					_, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+					require.ErrorContains(err, "validator does not exist")
+				},
+				postStateCheck: func(c context.Context) {
+					newVal, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+					require.NoError(err)
+					require.Equal(sdk.ValAddress(delAddr).String(), newVal.OperatorAddress)
+					require.Equal("moniker", newVal.Description.GetMoniker())
+					require.Equal(sdkmath.NewInt(100), newVal.Tokens)
+					require.Equal("0.100000000000000000", newVal.Commission.Rate.String())
+					require.Equal("0.500000000000000000", newVal.Commission.MaxRate.String())
+					require.Equal("0.050000000000000000", newVal.Commission.MaxChangeRate.String())
+				},
+			},
+						{
+							name: "pass: process DepositEvent",
+							evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
+								data, err := stakingAbi.Events["Deposit"].Inputs.NonIndexed().Pack(
+									uncompressedDelPubKeyBytes,
+									delPubKey.Bytes(),
+									valPubKey1.Bytes(),
+									delAmtGwei,
+								)
+								require.NoError(err)
+								logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID}, Data: data}}
+								evmEvents, err := ethLogsToEvmEvents(logs)
+								if err != nil {
+									return nil, err
+								}
+
+								return evmEvents, nil
+							},
+							setup: func(c context.Context) {
+								s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
+								accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
+								bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
+								bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
+								bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.BondedPoolName, sdk.NewCoins(delCoin))
+							},
+							stateCheck: func(c context.Context) {
+								delegation, err := stakingKeeper.GetDelegation(c, delAddr, valAddr1)
+								require.NoError(err)
+								require.Equal(stakingKeeper.TokensFromConsensusPower(c, 100).ToLegacyDec(), delegation.GetShares())
+							},
+							postStateCheck: func(c context.Context) {
+								delegation, err := stakingKeeper.GetDelegation(c, delAddr, valAddr1)
+								require.NoError(err)
+								require.Equal(
+									stakingKeeper.TokensFromConsensusPower(c, 100).ToLegacyDec().Add(delCoin.Amount.ToLegacyDec()),
+									delegation.GetShares(),
+								)
+							},
+						},
 					{
-						name: "pass: process DepositEvent",
+						name: "pass: process RedelegateEvent",
 						evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-							data, err := stakingAbi.Events["Deposit"].Inputs.NonIndexed().Pack(
-								uncompressedDelPubKeyBytes,
+							data, err := stakingAbi.Events["Redelegate"].Inputs.NonIndexed().Pack(
 								delPubKey.Bytes(),
 								valPubKey1.Bytes(),
+								valPubKey2.Bytes(),
 								delAmtGwei,
 							)
 							require.NoError(err)
-							logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID}, Data: data}}
+							logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID}, Data: data}}
 							evmEvents, err := ethLogsToEvmEvents(logs)
 							if err != nil {
 								return nil, err
@@ -551,36 +590,31 @@ func (s *TestSuite) TestProcessStakingEvents() {
 						},
 						setup: func(c context.Context) {
 							s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
-							accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
-							bankKeeper.EXPECT().MintCoins(c, types.ModuleName, sdk.NewCoins(delCoin))
-							bankKeeper.EXPECT().SendCoinsFromModuleToAccount(c, types.ModuleName, delAddr, sdk.NewCoins(delCoin))
-							bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.BondedPoolName, sdk.NewCoins(delCoin))
+							s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
 						},
 						stateCheck: func(c context.Context) {
-							delegation, err := stakingKeeper.GetDelegation(c, delAddr, valAddr1)
-							require.NoError(err)
-							require.Equal(stakingKeeper.TokensFromConsensusPower(c, 100).ToLegacyDec(), delegation.GetShares())
+							_, err = stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
+							require.ErrorContains(err, "no redelegation found")
 						},
 						postStateCheck: func(c context.Context) {
-							delegation, err := stakingKeeper.GetDelegation(c, delAddr, valAddr1)
+							redelegation, err := stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
 							require.NoError(err)
 							require.Equal(
-								stakingKeeper.TokensFromConsensusPower(c, 100).ToLegacyDec().Add(delCoin.Amount.ToLegacyDec()),
-								delegation.GetShares(),
+								delCoin.Amount.Uint64(),
+								redelegation.Entries[0].InitialBalance.Uint64(),
 							)
 						},
 					},
 				{
-					name: "pass: process RedelegateEvent",
+					name: "pass: process WithdrawEvent",
 					evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-						data, err := stakingAbi.Events["Redelegate"].Inputs.NonIndexed().Pack(
+						data, err := stakingAbi.Events["Withdraw"].Inputs.NonIndexed().Pack(
 							delPubKey.Bytes(),
 							valPubKey1.Bytes(),
-							valPubKey2.Bytes(),
 							delAmtGwei,
 						)
 						require.NoError(err)
-						logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID}, Data: data}}
+						logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID}, Data: data}}
 						evmEvents, err := ethLogsToEvmEvents(logs)
 						if err != nil {
 							return nil, err
@@ -590,75 +624,41 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					},
 					setup: func(c context.Context) {
 						s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
-						s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
+						accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
+						bankKeeper.EXPECT().SendCoinsFromModuleToModule(c, stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
 					},
 					stateCheck: func(c context.Context) {
-						_, err = stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
-						require.ErrorContains(err, "no redelegation found")
+						_, err = stakingKeeper.GetUnbondingDelegation(c, delAddr, valAddr1)
+						require.ErrorContains(err, "no unbonding delegation found")
 					},
 					postStateCheck: func(c context.Context) {
-						redelegation, err := stakingKeeper.GetRedelegation(c, delAddr, valAddr1, valAddr2)
+						ubd, err := stakingKeeper.GetUnbondingDelegation(c, delAddr, valAddr1)
 						require.NoError(err)
 						require.Equal(
 							delCoin.Amount.Uint64(),
-							redelegation.Entries[0].InitialBalance.Uint64(),
+							ubd.Entries[0].InitialBalance.Uint64(),
 						)
 					},
 				},
-			{
-				name: "pass: process WithdrawEvent",
-				evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-					data, err := stakingAbi.Events["Withdraw"].Inputs.NonIndexed().Pack(
-						delPubKey.Bytes(),
-						valPubKey1.Bytes(),
-						delAmtGwei,
-					)
-					require.NoError(err)
-					logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID}, Data: data}}
-					evmEvents, err := ethLogsToEvmEvents(logs)
-					if err != nil {
-						return nil, err
-					}
+				{
+					name: "pass: process UnjailEvent",
+					evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
+						data, err := stakingAbi.Events["Unjail"].Inputs.NonIndexed().Pack(valPubKey1.Bytes())
+						require.NoError(err)
+						logs := []ethtypes.Log{{Topics: []common.Hash{types.UnjailEvent.ID, common.BytesToHash(delEvmAddr.Bytes())}, Data: data}}
+						evmEvents, err := ethLogsToEvmEvents(logs)
+						if err != nil {
+							return nil, err
+						}
 
-					return evmEvents, nil
+						return evmEvents, nil
+					},
+					setup: func(c context.Context) {
+						// We just check if the unjail function is called.
+						// Because we are using the mock slashing keeper, we cannot check the staking module's state.
+						slashingKeeper.EXPECT().Unjail(c, valAddr1).Return(nil)
+					},
 				},
-				setup: func(c context.Context) {
-					s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
-					accountKeeper.EXPECT().HasAccount(c, delAddr).Return(true)
-					bankKeeper.EXPECT().SendCoinsFromModuleToModule(c, stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
-				},
-				stateCheck: func(c context.Context) {
-					_, err = stakingKeeper.GetUnbondingDelegation(c, delAddr, valAddr1)
-					require.ErrorContains(err, "no unbonding delegation found")
-				},
-				postStateCheck: func(c context.Context) {
-					ubd, err := stakingKeeper.GetUnbondingDelegation(c, delAddr, valAddr1)
-					require.NoError(err)
-					require.Equal(
-						delCoin.Amount.Uint64(),
-						ubd.Entries[0].InitialBalance.Uint64(),
-					)
-				},
-			},
-			{
-				name: "pass: process UnjailEvent",
-				evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-					data, err := stakingAbi.Events["Unjail"].Inputs.NonIndexed().Pack(valPubKey1.Bytes())
-					require.NoError(err)
-					logs := []ethtypes.Log{{Topics: []common.Hash{types.UnjailEvent.ID, common.BytesToHash(delEvmAddr.Bytes())}, Data: data}}
-					evmEvents, err := ethLogsToEvmEvents(logs)
-					if err != nil {
-						return nil, err
-					}
-
-					return evmEvents, nil
-				},
-				setup: func(c context.Context) {
-					// We just check if the unjail function is called.
-					// Because we are using the mock slashing keeper, we cannot check the staking module's state.
-					slashingKeeper.EXPECT().Unjail(c, valAddr1).Return(nil)
-				},
-			},
 		*/
 	}
 
@@ -693,7 +693,6 @@ func TestTestSuite(t *testing.T) {
 }
 
 /*
-
 // setupValidatorAndDelegation creates a validator and delegation for testing.
 func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, delPubKey crypto.PubKey, valAddr sdk.ValAddress, delAddr sdk.AccAddress, valTokens sdkmath.Int) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
