@@ -142,7 +142,8 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 }
 
 func bindRollbackFlags(cmd *cobra.Command, cfg *rollbackConfig) {
-	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove blocks as well as states")
+	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove Cosmos & CometBFT blocks as well as states")
+	cmd.Flags().BoolVar(&cfg.RemoveBlock, "rollback-evm", false, "remove EVM blocks as well")
 	cmd.Flags().Int64VarP(&cfg.RollbackHeights, "number", "n", 1, "number of blocks to rollback")
 }
 

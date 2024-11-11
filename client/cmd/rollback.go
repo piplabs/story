@@ -12,6 +12,7 @@ import (
 
 type rollbackConfig struct {
 	RemoveBlock     bool // See cosmos-sdk/server/rollback.go
+	RollbackEVM     bool
 	RollbackHeights int64
 }
 
@@ -19,6 +20,7 @@ type rollbackConfig struct {
 func newRollbackCmd(appCreateFunc func(context.Context, app.Config) *app.App) *cobra.Command {
 	rollbackCfg := rollbackConfig{
 		RemoveBlock:     false,
+		RollbackEVM:     false,
 		RollbackHeights: 1,
 	}
 	storyCfg := storycfg.DefaultConfig()
@@ -51,11 +53,12 @@ will be re-executed against the application.
 				return err
 			}
 
-			a := appCreateFunc(ctx, app.Config{
+			appCfg := app.Config{
 				Config: storyCfg,
 				Comet:  cometCfg,
-			})
-			lastHeight, lastHash, err := app.RollbackCometAndAppState(a, cometCfg, rollbackCfg.RollbackHeights, rollbackCfg.RemoveBlock)
+			}
+			a := appCreateFunc(ctx, appCfg)
+			lastHeight, lastHash, err := app.RollbackCometAndAppState(ctx, a, appCfg, cometCfg, rollbackCfg.RollbackHeights, rollbackCfg.RemoveBlock, rollbackCfg.RollbackEVM)
 			if err != nil {
 				return err
 			}
