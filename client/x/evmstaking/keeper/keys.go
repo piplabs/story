@@ -13,7 +13,7 @@ import (
 func UncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 	// Check if the uncompressed public key is 65 bytes and starts with 0x04
 	if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
-		return nil, errors.New("invalid uncompressed public key format")
+		return nil, errors.New("invalid uncompressed public key length or format")
 	}
 
 	// Extract x and y coordinates from the uncompressed public key
