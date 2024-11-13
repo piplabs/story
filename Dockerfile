@@ -3,7 +3,7 @@ ARG COMMIT=""
 ARG VERSION=""
 ARG BUILDNUM=""
 
-# Build Geth in a stock Go builder container
+# Build in a stock Go builder container
 FROM golang:1.22-alpine as builder
 
 # Set the Current Working Directory inside the container
@@ -18,7 +18,7 @@ RUN go mod download
 ADD . /story/
 RUN go build -o story ./client
 
-# Pull Geth into a second stage deploy alpine container
+# Pull into a second stage deploy alpine container
 FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
