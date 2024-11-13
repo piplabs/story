@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,24 +11,25 @@ import (
 )
 
 func UncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
+	// Check if the uncompressed public key is 65 bytes and starts with 0x04
 	if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
 		return nil, errors.New("invalid uncompressed public key length or format")
 	}
 
-	// Extract the x and y coordinates
-	x := new(big.Int).SetBytes(uncmpPubKey[1:33])
-	y := new(big.Int).SetBytes(uncmpPubKey[33:])
+	// Extract x and y coordinates from the uncompressed public key
+	x := uncmpPubKey[1:33]
+	y := uncmpPubKey[33:]
 
-	// Determine the prefix based on the parity of y
-	prefix := byte(0x02) // Even y
-	if y.Bit(0) == 1 {
-		prefix = 0x03 // Odd y
+	// Determine if y is even or odd by checking the last byte of y
+	var prefix byte
+	if y[len(y)-1]%2 == 0 {
+		prefix = 0x02 // even y-coordinate
+	} else {
+		prefix = 0x03 // odd y-coordinate
 	}
 
-	// Construct the compressed public key
-	compressedPubKey := make([]byte, 33)
-	compressedPubKey[0] = prefix
-	copy(compressedPubKey[1:], x.Bytes())
+	// Create compressed public key (1 byte prefix + 32 bytes x-coordinate)
+	compressedPubKey := append([]byte{prefix}, x...)
 
 	return compressedPubKey, nil
 }
