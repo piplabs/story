@@ -172,6 +172,25 @@ contract IPTokenStakingTest is Test {
             data: abi.encode("data")
         });
 
+        // Network shall not allow a moniker longer than MAX_MONIKER_LENGTH
+        string memory moniker;
+        for (uint256 i = 0; i < ipTokenStaking.MAX_MONIKER_LENGTH() + 1; i++) {
+            moniker = string.concat(moniker, "a");
+        }
+        stakeAmount = ipTokenStaking.minStakeAmount();
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Moniker length over max");
+        ipTokenStaking.createValidator{ value: stakeAmount }({
+            validatorUncmpPubkey: validatorUncmpPubkey,
+            moniker: moniker,
+            commissionRate: 1000,
+            maxCommissionRate: 5000,
+            maxCommissionChangeRate: 100,
+            supportsUnlocked: false,
+            data: ""
+        });
+
         // Network shall not allow anyone to create a new validator if the provided public key doesn’t match sender’s address.
         bytes
             memory delegatorUncmpPubkeyChanged = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret

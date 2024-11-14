@@ -28,6 +28,9 @@ import { PubKeyVerifier } from "./PubKeyVerifier.sol";
 contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PubKeyVerifier {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// @notice Maximum length of the validator moniker, in bytes.
+    uint256 public constant MAX_MONIKER_LENGTH = 70;
+
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
 
@@ -280,6 +283,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         require(commissionRate <= maxCommissionRate, "IPTokenStaking: Commission rate over max");
+        require(bytes(moniker).length <= MAX_MONIKER_LENGTH, "IPTokenStaking: Moniker length over max");
+
         payable(address(0)).transfer(stakeAmount);
         emit CreateValidator(
             validatorUncmpPubkey,
