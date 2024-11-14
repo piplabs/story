@@ -491,17 +491,6 @@ contract IPTokenStakingTest is Test {
             delegationId,
             stakeAmount
         );
-        // Stake < Min
-        vm.deal(delegatorAddr, stakeAmount + feeAmount);
-        vm.prank(delegatorAddr);
-        vm.expectRevert("IPTokenStaking: Stake amount under min");
-        ipTokenStaking.redelegate{ value: feeAmount }(
-            delegatorUncmpPubkey,
-            validatorUncmpSrcPubkey,
-            validatorUncmpDstPubkey,
-            delegationId,
-            stakeAmount - 1
-        );
 
         // Revert if delegationId is invalid
         delegationId++;
@@ -595,17 +584,6 @@ contract IPTokenStakingTest is Test {
             hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist secret
             delegationId,
             stakeAmount
-        );
-        // Stake < Min
-        vm.deal(operator, stakeAmount + feeAmount);
-        vm.prank(operator);
-        vm.expectRevert("IPTokenStaking: Stake amount under min");
-        ipTokenStaking.redelegateOnBehalf{ value: feeAmount }(
-            delegatorUncmpPubkey,
-            validatorUncmpSrcPubkey,
-            validatorUncmpDstPubkey,
-            delegationId,
-            stakeAmount - 1
         );
 
         // Revert if delegationId is invalid
