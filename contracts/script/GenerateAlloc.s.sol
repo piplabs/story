@@ -12,12 +12,14 @@ import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
 import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 import { UBIPool } from "../src/protocol/UBIPool.sol";
 
+import { ChainIds } from "./utils/ChainIds.sol";
 import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
 import { InitializableHelper } from "./utils/InitializableHelper.sol";
 import { Predeploys } from "../src/libraries/Predeploys.sol";
 import { Create3 } from "../src/deploy/Create3.sol";
 import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
 import { WIP } from "../src/token/WIP.sol";
+
 /**
  * @title GenerateAlloc
  * @dev A script to generate the alloc section of EL genesis
@@ -48,7 +50,6 @@ contract GenerateAlloc is Script {
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
-    uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
     // Optionally allocate 10k test accounts for devnets/testnets
     bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
@@ -56,13 +57,13 @@ contract GenerateAlloc is Script {
 
     /// @notice call from Test.sol to run test fast (no json saving)
     function disableStateDump() external {
-        require(block.chainid == 31337, "Only for local tests");
+        require(block.chainid == ChainIds.LOCAL, "Only for local tests");
         saveState = false;
     }
 
     /// @notice call from Test.sol only
     function setAdminAddresses(address protocol, address executor, address guardian) external {
-        require(block.chainid == 31337, "Only for local tests");
+        require(block.chainid == ChainIds.LOCAL, "Only for local tests");
         protocolAdmin = protocol;
         timelockExecutor = executor;
         timelockGuardian = guardian;
@@ -70,17 +71,17 @@ contract GenerateAlloc is Script {
 
     /// @notice path where alloc file will be stored
     function getDumpPath() internal view returns (string memory) {
-        if (block.chainid == 1513) {
+        if (block.chainid == ChainIds.ILIAD) {
             return "./iliad-alloc.json";
-        } else if (block.chainid == 1512) {
+        } else if (block.chainid == ChainIds.MININET) {
             return "./mininet-alloc.json";
-        } else if (block.chainid == 1315) {
+        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
             return "./odyssey-devnet-alloc.json";
-        } else if (block.chainid == 1516) {
+        } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             return "./odyssey-testnet-alloc.json";
-        } else if (block.chainid == 31337) {
+        } else if (block.chainid == ChainIds.LOCAL) {
             return "./local-alloc.json";
-        } else if (block.chainid == MAINNET_CHAIN_ID) {
+        } else if (block.chainid == ChainIds.MAINNET) {
             return "./mainnet-alloc.json";
         } else {
             revert("Unsupported chain id");
@@ -89,19 +90,19 @@ contract GenerateAlloc is Script {
 
     /// @notice Get the minimum delay for the timelock
     function getTimelockMinDelay() internal view returns (uint256) {
-        if (block.chainid == 1513) {
+        if (block.chainid == ChainIds.ILIAD) {
             // Iliad
             return 1 days;
-        } else if (block.chainid == 1512) {
+        } else if (block.chainid == ChainIds.MININET) {
             // Mininet
             return 10 seconds;
-        } else if (block.chainid == 1315) {
+        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
             // Odyssey devnet
             return 10 seconds;
-        } else if (block.chainid == 1516) {
+        } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             // Odyssey testnet
             return 1 days;
-        } else if (block.chainid == 31337) {
+        } else if (block.chainid == ChainIds.LOCAL) {
             // Local
             return 10 seconds;
         } else {
@@ -116,13 +117,18 @@ contract GenerateAlloc is Script {
     {
         proposers = new address[](1);
         executors = new address[](1);
-        if (block.chainid == 1513) {
+        if (block.chainid == ChainIds.ILIAD) {
             // Iliad
             proposers[0] = protocolAdmin;
             executors[0] = protocolAdmin;
             canceller = protocolAdmin;
             return (proposers, executors, canceller);
-        } else if (block.chainid == 1512 || block.chainid == 1315 || block.chainid == 31337 || block.chainid == 1516) {
+        } else if (
+            block.chainid == ChainIds.MININET ||
+            block.chainid == ChainIds.ODYSSEY_DEVNET ||
+            block.chainid == ChainIds.LOCAL ||
+            block.chainid == ChainIds.ODYSSEY_TESTNET
+        ) {
             // Mininet, Odyssey devnet, Local, Odyssey testnet
             proposers[0] = protocolAdmin;
             executors[0] = timelockExecutor;
@@ -401,9 +407,9 @@ contract GenerateAlloc is Script {
         // Story's IPGraph precompile
         vm.deal(0x0000000000000000000000000000000000000101, 1);
         // Allocation
-        if (block.chainid == MAINNET_CHAIN_ID) {
+        if (block.chainid == ChainIds.MAINNET) {
             // TBD
-        } else if (block.chainid == 1315) {
+        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
             // Odyssey devnet alloc
             vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
             vm.deal(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab, 100000000 ether);
@@ -413,7 +419,7 @@ contract GenerateAlloc is Script {
             vm.deal(0x00FCeC044cD73e8eC6Ad771556859b00C9011111, 100000000 ether);
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
-        } else if (block.chainid == 1516) {
+        } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             // Odyssey testnet alloc
             vm.deal(0x5687400189B13551137e330F7ae081142EdfD866, 200000000 ether);
             vm.deal(0x56A26642ad963D3542DdAe4d8fdECC396153c2f6, 200000000 ether);
@@ -434,7 +440,7 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
         }
-        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != MAINNET_CHAIN_ID) {
+        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != ChainIds.MAINNET) {
             setTestAllocations();
         }
     }
