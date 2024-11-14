@@ -156,7 +156,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Removes current operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function unsetOperator(bytes calldata uncmpPubkey) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+    function unsetOperator(
+        bytes calldata uncmpPubkey
+    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
         emit UnsetOperator(uncmpPubkey);
     }
 
