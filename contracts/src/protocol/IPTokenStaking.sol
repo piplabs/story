@@ -143,24 +143,21 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //                            Operator functions                          //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Adds an operator for a delegator.
+    /// @notice Sets an operator for a delegator.
+    /// Calling this method will override any existing operator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param operator The operator address to add.
-    function addOperator(
+    function setOperator(
         bytes calldata uncmpPubkey,
         address operator
     ) external payable verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) chargesFee {
-        emit AddOperator(uncmpPubkey, operator);
+        emit SetOperator(uncmpPubkey, operator);
     }
 
-    /// @notice Removes an operator for a delegator.
+    /// @notice Removes current operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param operator The operator address to remove.
-    function removeOperator(
-        bytes calldata uncmpPubkey,
-        address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
-        emit RemoveOperator(uncmpPubkey, operator);
+    function unsetOperator(bytes calldata uncmpPubkey) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+        emit UnsetOperator(uncmpPubkey);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

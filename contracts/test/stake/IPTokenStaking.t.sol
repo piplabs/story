@@ -624,52 +624,51 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.updateValidatorCommission{ value: feeAmount - 1 }(delegatorUncmpPubkey, commissionRate);
     }
 
-    function testIPTokenStaking_addOperator() public {
+    function testIPTokenStaking_setOperator() public {
         // Network shall not allow others to add operators for a delegator
         address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         bytes
             memory otherDelegatorUncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.addOperator(otherDelegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator(otherDelegatorUncmpPubkey, operator);
 
         // Network shall not allow anyone to add operators for a delegator if the fee is not paid.
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator(delegatorUncmpPubkey, operator);
 
         // Network shall not allow anyone to add operators for a delegator if the fee is wrong
         uint256 feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount + 1);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator{ value: feeAmount + 1 }(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount + 1 }(delegatorUncmpPubkey, operator);
 
         // Network should allow delegators to add operators for themselves
         feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.AddOperator(delegatorUncmpPubkey, operator);
-        ipTokenStaking.addOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
+        emit IIPTokenStaking.SetOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
     }
 
-    function testIPTokenStaking_removeOperator() public {
-        address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+    function testIPTokenStaking_unsetOperator() public {
         // Network shall not allow others to remove operators for a delegator
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         vm.prank(otherAddress);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.removeOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
 
         // Network shall allow delegators to remove their operators
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.RemoveOperator(delegatorUncmpPubkey, operator);
-        ipTokenStaking.removeOperator(delegatorUncmpPubkey, operator);
+        emit IIPTokenStaking.UnsetOperator(delegatorUncmpPubkey);
+        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
     }
 
     function testIPTokenStaking_setMinStakeAmount() public {

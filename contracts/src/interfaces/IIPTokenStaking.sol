@@ -120,15 +120,14 @@ interface IIPTokenStaking {
         uint256 amount
     );
 
-    /// @notice Emitted to request adding an operator address to a validator
+    /// @notice Emitted to request setting an operator address to a validator
     /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param operator address
-    event AddOperator(bytes uncmpPubkey, address operator);
+    event SetOperator(bytes uncmpPubkey, address operator);
 
-    /// @notice Emitted to request removing an operator address to a validator
+    /// @notice Emitted to request removing the operator address to a validator
     /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param operator address
-    event RemoveOperator(bytes uncmpPubkey, address operator);
+    event UnsetOperator(bytes uncmpPubkey);
 
     /// @notice Emitted when the minimum stake amount is set.
     /// @param minStakeAmount The new minimum stake amount.
@@ -151,15 +150,15 @@ interface IIPTokenStaking {
     /// @return remainder The remainder of the stake amount.
     function roundedStakeAmount(uint256 rawAmount) external view returns (uint256 amount, uint256 remainder);
 
-    /// @notice Adds an operator for a delegator.
+    /// @notice Sets an operator for a delegator.
+    /// Calling this method will override any existing operator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param operator The operator address to add.
-    function addOperator(bytes calldata uncmpPubkey, address operator) external payable;
+    function setOperator(bytes calldata uncmpPubkey, address operator) external payable;
 
-    /// @notice Removes an operator for a delegator.
+    /// @notice Removes current operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param operator The operator address to remove.
-    function removeOperator(bytes calldata uncmpPubkey, address operator) external;
+    function unsetOperator(bytes calldata uncmpPubkey) external;
 
     /// @notice Set/Update the withdrawal address that receives the withdrawals.
     /// Charges fee for adding to CL storage. Must be exact amount.
