@@ -162,7 +162,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function removeOperator(
         bytes calldata uncmpPubkey,
         address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) chargesFee {
         emit RemoveOperator(uncmpPubkey, operator);
     }
 
@@ -422,9 +422,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
+        payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
+        chargesFee
     {
         _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
@@ -445,9 +447,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
+        payable
         verifyUncmpPubkey(delegatorUncmpPubkey)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
+        chargesFee
     {
         _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
@@ -505,8 +509,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     )
         external
+        payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         verifyUncmpPubkey(validatorUncmpPubkey)
+        chargesFee
     {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
@@ -524,7 +530,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external verifyUncmpPubkey(delegatorUncmpPubkey) verifyUncmpPubkey(validatorUncmpPubkey) {
+    ) external payable verifyUncmpPubkey(delegatorUncmpPubkey) verifyUncmpPubkey(validatorUncmpPubkey) chargesFee {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
