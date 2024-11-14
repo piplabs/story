@@ -40,12 +40,24 @@ func (s *Server) GetCometbftBlockEvents(req *getCometbftBlockEventsRequest, r *h
 			return !slices.Contains(req.EventTypeFilter, event.Type)
 		})
 
-		if len(events) > 0 {
-			allRetBlock = append(allRetBlock, &getCometbftBlockEventsBlockResults{
-				Height: results.Height,
-				FinalizeBlockEvents: slices.DeleteFunc(results.FinalizeBlockEvents, func(event abcitypes.Event) bool {
+		txEvents := make([]abcitypes.Event, 0)
+		if req.IncludeTxEvents {
+			for _, result := range results.TxsResults {
+				curEvent := slices.DeleteFunc(result.Events, func(event abcitypes.Event) bool {
 					return !slices.Contains(req.EventTypeFilter, event.Type)
-				}),
+				})
+
+				if len(curEvent) > 0 {
+					txEvents = append(txEvents, curEvent...)
+				}
+			}
+		}
+
+		if len(events) > 0 || len(txEvents) > 0 {
+			allRetBlock = append(allRetBlock, &getCometbftBlockEventsBlockResults{
+				Height:              results.Height,
+				TxEvents:            txEvents,
+				FinalizeBlockEvents: events,
 			})
 		}
 	}

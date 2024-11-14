@@ -46,11 +46,13 @@ type getDenomOwnersByQueryRequest struct {
 type getCometbftBlockEventsRequest struct {
 	From            int64    `mapstructure:"from"`
 	To              int64    `mapstructure:"to"`
+	IncludeTxEvents bool     `mapstructure:"include_tx_events"`
 	EventTypeFilter []string `mapstructure:"event_type_filter"`
 }
 
 type getCometbftBlockEventsBlockResults struct {
 	Height              int64        `json:"height"`
+	TxEvents            []abci.Event `json:"txs_events"`
 	FinalizeBlockEvents []abci.Event `json:"finalize_block_events"`
 }
 
