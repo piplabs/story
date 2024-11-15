@@ -40,6 +40,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()

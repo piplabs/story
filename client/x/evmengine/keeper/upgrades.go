@@ -3,6 +3,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"strconv"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -63,6 +64,7 @@ func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.Upgrad
 				sdk.NewAttribute(types.AttributeKeyUpgradeHeight, strconv.FormatInt(ev.Height, 10)),
 				sdk.NewAttribute(types.AttributeKeyUpgradeInfo, ev.Info),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()

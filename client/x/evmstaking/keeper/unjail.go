@@ -33,6 +33,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
