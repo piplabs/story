@@ -234,6 +234,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 					Address: nil, // nil address
 					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 					Data:    data,
+					TxHash:  dummyHash.Bytes(),
 				}}
 			},
 			expectedError: "deliver upgrade-related event logs",

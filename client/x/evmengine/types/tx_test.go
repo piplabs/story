@@ -18,8 +18,10 @@ const (
 
 var (
 	dummyContractAddress = common.HexToAddress(dummyAddressHex)
+	dummyTxHash          = common.HexToHash(dummyAddressHex)
 	emptyAddr            = common.Address{}
 	emptyData            = []byte{}
+	emptyTxHash          = common.Hash{}
 )
 
 // initializeABI loads the ABI once.
@@ -48,11 +50,13 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 				Address: emptyAddr.Bytes(),
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 				Data:    emptyData,
+				TxHash:  emptyTxHash.Bytes(),
 			},
 			expectedResult: ethtypes.Log{
 				Address: emptyAddr,
 				Topics:  []common.Hash{types.SoftwareUpgradeEvent.ID},
 				Data:    emptyData,
+				TxHash:  emptyTxHash,
 			},
 		},
 		{
@@ -61,11 +65,13 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 				Address: dummyContractAddress.Bytes(),
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 				Data:    emptyData,
+				TxHash:  emptyTxHash.Bytes(),
 			},
 			expectedResult: ethtypes.Log{
 				Address: dummyContractAddress,
 				Topics:  []common.Hash{types.SoftwareUpgradeEvent.ID},
 				Data:    emptyData,
+				TxHash:  emptyTxHash,
 			},
 		},
 		{
@@ -74,11 +80,13 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 				Address: dummyContractAddress.Bytes(),
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 				Data:    data,
+				TxHash:  emptyTxHash.Bytes(),
 			},
 			expectedResult: ethtypes.Log{
 				Address: dummyContractAddress,
 				Topics:  []common.Hash{types.SoftwareUpgradeEvent.ID},
 				Data:    data,
+				TxHash:  emptyTxHash,
 			},
 		},
 	}
@@ -114,6 +122,7 @@ func TestEVMEvent_Verify(t *testing.T) {
 			evmEvent: &types.EVMEvent{
 				Address: nil,
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+				TxHash:  dummyTxHash.Bytes(),
 			},
 			expectedErr: "nil address",
 		},
@@ -122,14 +131,25 @@ func TestEVMEvent_Verify(t *testing.T) {
 			evmEvent: &types.EVMEvent{
 				Address: dummyContractAddress.Bytes(),
 				Topics:  [][]byte{},
+				TxHash:  dummyTxHash.Bytes(),
 			},
 			expectedErr: "empty topics",
+		},
+		{
+			name: "fail: nil tx hash",
+			evmEvent: &types.EVMEvent{
+				Address: dummyContractAddress.Bytes(),
+				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+				TxHash:  nil,
+			},
+			expectedErr: "nil tx hash",
 		},
 		{
 			name: "fail: invalid address length",
 			evmEvent: &types.EVMEvent{
 				Address: []byte{0x01},
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+				TxHash:  dummyTxHash.Bytes(),
 			},
 			expectedErr: "invalid address length",
 		},
@@ -138,8 +158,18 @@ func TestEVMEvent_Verify(t *testing.T) {
 			evmEvent: &types.EVMEvent{
 				Address: dummyContractAddress.Bytes(),
 				Topics:  [][]byte{{0x01}},
+				TxHash:  dummyTxHash.Bytes(),
 			},
 			expectedErr: "invalid topic length",
+		},
+		{
+			name: "fail: invalid tx hash length",
+			evmEvent: &types.EVMEvent{
+				Address: dummyContractAddress.Bytes(),
+				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+				TxHash:  []byte{0x01},
+			},
+			expectedErr: "invalid tx hash length",
 		},
 		{
 			name: "pass: valid log",
@@ -147,6 +177,7 @@ func TestEVMEvent_Verify(t *testing.T) {
 				Address: dummyContractAddress.Bytes(),
 				Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 				Data:    data,
+				TxHash:  dummyTxHash.Bytes(),
 			},
 		},
 	}

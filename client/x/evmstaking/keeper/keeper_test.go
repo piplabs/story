@@ -767,6 +767,7 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 			Address: l.Address.Bytes(),
 			Topics:  topics,
 			Data:    l.Data,
+			TxHash:  l.TxHash.Bytes(),
 		})
 	}
 

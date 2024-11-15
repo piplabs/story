@@ -94,7 +94,8 @@ func WithMockSelfDelegation(pubkey crypto.PubKey, ether int64) func(*engineMock)
 				common.HexToHash(valAddr.Hex()), // delegator
 				common.HexToHash(valAddr.Hex()), // validator
 			},
-			Data: data,
+			Data:   data,
+			TxHash: common.HexToHash(valAddr.Hex()),
 		}
 
 		mock.pendingLogs[contractAddr] = []types.Log{eventLog}

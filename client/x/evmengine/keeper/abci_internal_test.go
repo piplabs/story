@@ -650,9 +650,13 @@ func (m mockLogProvider) Prepare(_ context.Context, blockHash common.Hash) ([]*e
 	var topic common.Hash
 	f.Fuzz(&topic)
 
+	var txHash common.Hash
+	f.Fuzz(&txHash)
+
 	return []*etypes.EVMEvent{{
 		Address: zeroAddr.Bytes(),
 		Topics:  [][]byte{topic[:]},
+		TxHash:  txHash.Bytes(),
 	}}, nil
 }
 

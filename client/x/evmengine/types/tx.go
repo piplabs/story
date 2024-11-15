@@ -47,18 +47,22 @@ func (l *EVMEvent) Verify() error {
 		return errors.New("empty topics")
 	}
 
-	if len(l.Address) != len(common.Address{}) {
-		return errors.New("invalid address length")
+	if l.TxHash == nil {
+		return errors.New("nil tx hash")
 	}
 
-	if len(l.TxHash) != len(common.Hash{}) {
-		return errors.New("invalid txHash length")
+	if len(l.Address) != len(common.Address{}) {
+		return errors.New("invalid address length")
 	}
 
 	for _, t := range l.Topics {
 		if len(t) != len(common.Hash{}) {
 			return errors.New("invalid topic length")
 		}
+	}
+
+	if len(l.TxHash) != len(common.Hash{}) {
+		return errors.New("invalid tx hash length")
 	}
 
 	return nil
