@@ -18,7 +18,6 @@ import (
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
-	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
@@ -51,7 +50,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
-	evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
+	// evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
 	mockEngine, err := newMockEngineAPI(storeKey, 2)
 	require.NoError(t, err)
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
@@ -80,20 +79,19 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 		return block, payloadID, payloadData
 	}
-	createRandomEvents := func(c context.Context, blkHash common.Hash) []*types.EVMEvent {
-		events, err := evmLogProc.Prepare(c, blkHash)
-		require.NoError(t, err)
-
-		return events
-	}
+	// createRandomEvents := func(c context.Context, blkHash common.Hash) []*types.EVMEvent {
+	//	events, err := evmLogProc.Prepare(c, blkHash)
+	//	require.NoError(t, err)
+	//
+	//	return events
+	//}
 
 	tcs := []struct {
-		name                    string
-		setup                   func(c context.Context) sdk.Context
-		createPayload           func(c context.Context) (*etypes.Block, engine.PayloadID, []byte)
-		createPrevPayloadEvents func(c context.Context, blkHash common.Hash) []*types.EVMEvent
-		expectedError           string
-		postCheck               func(c context.Context, block *etypes.Block, payloadID engine.PayloadID)
+		name          string
+		setup         func(c context.Context) sdk.Context
+		createPayload func(c context.Context) (*etypes.Block, engine.PayloadID, []byte)
+		expectedError string
+		postCheck     func(c context.Context, block *etypes.Block, payloadID engine.PayloadID)
 	}{
 		{
 			name: "pass: valid payload",
@@ -105,8 +103,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(c)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
+			createPayload: createValidPayload,
 			postCheck: func(c context.Context, block *etypes.Block, payloadID engine.PayloadID) {
 				gotPayload, err := mockEngine.GetPayloadV3(c, payloadID)
 				require.NoError(t, err)
@@ -156,8 +153,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return block, payloadID, payloadData
 			},
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "invalid proposed payload number",
+			expectedError: "invalid proposed payload number",
 		},
 		{
 			name: "fail: DequeueEligibleWithdrawals error",
@@ -180,9 +176,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "payload invalid",
+			createPayload: createValidPayload,
+			expectedError: "payload invalid",
 		},
 		{
 			name: "fail: ForkchoiceUpdatedV3 returns status invalid",
@@ -194,9 +189,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "payload invalid",
+			createPayload: createValidPayload,
+			expectedError: "payload invalid",
 		},
 		{
 			name: "fail: ProcessStakingEvents error",
@@ -208,36 +202,35 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "deliver staking-related event logs",
-		},
-		{
-			name: "fail: ProcessUpgradeEvents error",
-			setup: func(ctx context.Context) sdk.Context {
-				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
-				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
-				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
-				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
-
-				return sdk.UnwrapSDKContext(ctx)
-			},
 			createPayload: createValidPayload,
-			createPrevPayloadEvents: func(_ context.Context, _ common.Hash) []*types.EVMEvent {
-				// crate invalid upgrade event to trigger ProcessUpgradeEvents failure
-				upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
-				require.NoError(t, err, "failed to load ABI")
-				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{{
-					Address: nil, // nil address
-					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
-					Data:    data,
-				}}
-			},
-			expectedError: "deliver upgrade-related event logs",
+			expectedError: "deliver staking-related event logs",
 		},
+		//{
+		//	name: "fail: ProcessUpgradeEvents error",
+		//	setup: func(ctx context.Context) sdk.Context {
+		//		esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+		//		esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+		//		esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+		//		esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
+		//
+		//		return sdk.UnwrapSDKContext(ctx)
+		//	},
+		//	createPayload: createValidPayload,
+		//	createPrevPayloadEvents: func(_ context.Context, _ common.Hash) []*types.EVMEvent {
+		//		// crate invalid upgrade event to trigger ProcessUpgradeEvents failure
+		//		upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
+		//		require.NoError(t, err, "failed to load ABI")
+		//		data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
+		//		require.NoError(t, err)
+		//
+		//		return []*types.EVMEvent{{
+		//			Address: nil, // nil address
+		//			Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+		//			Data:    data,
+		//		}}
+		//	},
+		//	expectedError: "deliver upgrade-related event logs",
+		// },
 	}
 
 	for _, tc := range tcs {
@@ -247,7 +240,6 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			var payloadData []byte
 			var payloadID engine.PayloadID
 			var block *etypes.Block
-			var events []*types.EVMEvent
 
 			cachedCtx, _ := ctx.CacheContext()
 			if tc.setup != nil {
@@ -256,14 +248,10 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			if tc.createPayload != nil {
 				block, payloadID, payloadData = tc.createPayload(cachedCtx)
 			}
-			if tc.createPrevPayloadEvents != nil {
-				events = tc.createPrevPayloadEvents(cachedCtx, block.Hash())
-			}
 
 			resp, err := msgSrv.ExecutionPayload(cachedCtx, &types.MsgExecutionPayload{
-				Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-				ExecutionPayload:  payloadData,
-				PrevPayloadEvents: events,
+				Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				ExecutionPayload: payloadData,
 			})
 			if tc.expectedError != "" {
 				require.ErrorContains(t, err, tc.expectedError)

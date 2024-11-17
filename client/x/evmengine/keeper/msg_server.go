@@ -151,15 +151,13 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, err
 	}
 
-	// Deliver all the previous payload log events
-	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
-		return nil, errors.Wrap(err, "deliver staking-related event logs")
+	events, err := s.evmEvents(ctx, payload.BlockHash)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch evm events")
 	}
-	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
-		return nil, errors.Wrap(err, "deliver upgrade-related event logs")
-	}
-	if err := s.ProcessUbiEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
-		return nil, errors.Wrap(err, "deliver ubi-related event logs")
+
+	if err := s.deliverEvents(ctx, payload.Number, events); err != nil {
+		return nil, errors.Wrap(err, "deliver event logs")
 	}
 
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
@@ -186,6 +184,21 @@ func pushPayload(ctx context.Context, engineCl ethclient.EngineClient, payload e
 	}
 
 	return status, nil
+}
+
+// deliverEvents deliver all the current (finalized - forkchoice updated) block's payload log events.
+func (s msgServer) deliverEvents(ctx context.Context, height uint64, events []*types.EVMEvent) error {
+	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, height, events); err != nil {
+		return errors.Wrap(err, "deliver staking-related event logs")
+	}
+	if err := s.ProcessUpgradeEvents(ctx, height, events); err != nil {
+		return errors.Wrap(err, "deliver upgrade-related event logs")
+	}
+	if err := s.ProcessUbiEvents(ctx, height, events); err != nil {
+		return errors.Wrap(err, "deliver ubi-related event logs")
+	}
+
+	return nil
 }
 
 var _ types.MsgServiceServer = msgServer{}
