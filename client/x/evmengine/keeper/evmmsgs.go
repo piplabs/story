@@ -47,6 +47,7 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 			Address: l.Address.Bytes(),
 			Topics:  topics,
 			Data:    l.Data,
+			TxHash:  l.TxHash.Bytes(),
 		})
 	}
 

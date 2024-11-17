@@ -134,6 +134,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 						Data:    data,
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},
@@ -154,11 +155,13 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 						Data:    data1,
+						TxHash:  dummyHash.Bytes(),
 					},
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 						Data:    data2,
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},
@@ -180,6 +183,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 						Data:    data,
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},
@@ -198,6 +202,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
 						Data:    data,
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},
@@ -212,6 +217,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes(), dummyHash.Bytes()},
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},
@@ -225,6 +231,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 					{
 						Address: []byte("invalid address"),
 						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+						TxHash:  dummyHash.Bytes(),
 					},
 				}
 			},

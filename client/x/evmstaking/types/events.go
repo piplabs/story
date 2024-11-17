@@ -15,6 +15,7 @@ const (
 
 	AttributeKeyStatusCode              = "status_code"
 	AttributeKeyBlockHeight             = "block_height"
+	AttributeKeyTxHash                  = "tx_hash"
 	AttributeKeyDelegatorUncmpPubKey    = "delegator_uncmp_pubkey"
 	AttributeKeyValidatorUncmpPubKey    = "validator_uncmp_pubkey"
 	AttributeKeySrcValidatorUncmpPubKey = "src_validator_uncmp_pubkey"

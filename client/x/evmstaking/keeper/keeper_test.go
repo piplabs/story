@@ -247,7 +247,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "fail: invalid evm event",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -262,7 +262,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid SetWithdrawalEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -274,7 +274,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid CreateValidatorEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -286,7 +286,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid DepositEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -298,7 +298,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid RedelegateEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -310,7 +310,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid WithdrawEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -322,7 +322,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		{
 			name: "pass(continue): invalid UnjailEvent log",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.UnjailEvent.ID, dummyHash, dummyHash}}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.UnjailEvent.ID, dummyHash, dummyHash}, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -343,7 +343,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					evmAddrBytes,
 				)
 				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID}, Data: data}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -367,7 +367,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					[]byte{},
 				)
 				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -389,7 +389,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					[]byte{},
 				)
 				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID}, Data: data}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -410,7 +410,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					delAmtGwei,
 				)
 				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID}, Data: data}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -431,7 +431,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 					[]byte{},
 				)
 				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID}, Data: data}}
+				logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -767,6 +767,7 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 			Address: l.Address.Bytes(),
 			Topics:  topics,
 			Data:    l.Data,
+			TxHash:  l.TxHash.Bytes(),
 		})
 	}
 

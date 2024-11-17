@@ -3,6 +3,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"strconv"
 
 	"cosmossdk.io/math"
@@ -61,6 +62,7 @@ func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPo
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyUbiPercentage, strconv.FormatUint(uint64(ev.Percentage), 10)),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()

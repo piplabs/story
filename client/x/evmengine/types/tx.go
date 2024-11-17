@@ -30,6 +30,7 @@ func (l *EVMEvent) ToEthLog() (ethtypes.Log, error) {
 		Address: addr,
 		Topics:  topics,
 		Data:    l.Data,
+		TxHash:  common.BytesToHash(l.TxHash),
 	}, nil
 }
 
@@ -46,6 +47,10 @@ func (l *EVMEvent) Verify() error {
 		return errors.New("empty topics")
 	}
 
+	if l.TxHash == nil {
+		return errors.New("nil tx hash")
+	}
+
 	if len(l.Address) != len(common.Address{}) {
 		return errors.New("invalid address length")
 	}
@@ -54,6 +59,10 @@ func (l *EVMEvent) Verify() error {
 		if len(t) != len(common.Hash{}) {
 			return errors.New("invalid topic length")
 		}
+	}
+
+	if len(l.TxHash) != len(common.Hash{}) {
+		return errors.New("invalid tx hash length")
 	}
 
 	return nil
