@@ -1,7 +1,6 @@
 package server
 
 import (
-	abci "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -41,17 +40,6 @@ type getDenomOwnersRequest struct {
 type getDenomOwnersByQueryRequest struct {
 	Denom      string     `mapstructure:"denom"`
 	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getCometbftBlockEventsRequest struct {
-	From            int64    `mapstructure:"from"`
-	To              int64    `mapstructure:"to"`
-	EventTypeFilter []string `mapstructure:"event_type_filter"`
-}
-
-type getCometbftBlockEventsBlockResults struct {
-	Height              int64        `json:"height"`
-	FinalizeBlockEvents []abci.Event `json:"finalize_block_events"`
 }
 
 type getAllValidatorOutstandingRewardsRequest struct {

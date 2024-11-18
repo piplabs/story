@@ -117,7 +117,6 @@ func (s *Server) prepareUnpackInterfaces(v codectypes.UnpackInterfacesMessage) e
 func (s *Server) registerHandle() {
 	s.initAuthRoute()
 	s.initBankRoute()
-	s.initCometBFTRoute()
 	s.initDistributionRoute()
 	s.initEvmStakingRoute()
 	s.initSlashingRoute()
