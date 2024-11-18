@@ -70,17 +70,17 @@ func (s *TestSuite) TestProcessCreateValidator() {
 		{
 			name:           "fail: nil validator pubkey",
 			valUncmpPubKey: nil,
-			expectedError:  "validator pubkey to cosmos",
+			expectedError:  "compress validator pubkey: invalid uncompressed public key length or format",
 		},
 		{
 			name:           "fail: invalid validator pubkey",
 			valUncmpPubKey: uncmpPubKey0[1:],
-			expectedError:  "validator pubkey to cosmos",
+			expectedError:  "compress validator pubkey: invalid uncompressed public key length or format",
 		},
 		{
 			name:           "fail: corrupted validator pubkey",
 			valUncmpPubKey: corruptedPubKey,
-			expectedError:  "validator pubkey to evm address",
+			expectedError:  "validator pubkey to evm address: invalid public key",
 		},
 		{
 			name:           "fail: mint coins",
@@ -144,7 +144,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				// accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
 				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
 				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValidator,
 		},
@@ -196,7 +196,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				// accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
 				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
 				// bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, valDelAddr, gomock.Any()).Return(nil)
-				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), valDelAddr, gomock.Any(), gomock.Any()).Return(nil)
 			},
 			postCheck: checkDelegatorMapAndValTokens,
 		},

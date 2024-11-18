@@ -30,7 +30,6 @@ var (
 )
 
 func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
-	t.Parallel()
 	keeper, ctx, ctrl, uk := setupTestEnvironment(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -88,7 +87,6 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			tc.setupMock()
 			err := keeper.ProcessSoftwareUpgrade(ctx, tc.ev())
 			if tc.expectedErr != "" {
@@ -102,7 +100,6 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 }
 
 func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
-	t.Parallel()
 	keeper, ctx, ctrl, uk := setupTestEnvironment(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -241,7 +238,6 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
