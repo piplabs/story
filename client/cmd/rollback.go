@@ -3,11 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+
+	"github.com/spf13/cobra"
+
 	"github.com/piplabs/story/client/app"
 	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/log"
-	"github.com/spf13/cobra"
 )
 
 type rollbackConfig struct {
