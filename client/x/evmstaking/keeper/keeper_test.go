@@ -810,12 +810,19 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 	require.Equal(valTokens, issuedShares.RoundInt())
 
 	// bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any()).Times(2)
-	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
+	// _ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
+
+	// Create/Get period delegation
+	periodDelegation, err := stakingKeeper.GetOrCreatePeriodDelegation(ctx, delAddr, valAddr, stypes.FlexiblePeriodDelegationID, stypes.DefaultFlexiblePeriodType, time.Now())
+	require.NoError(err)
 
 	// Create and set delegation
 	delAmt := stakingKeeper.TokensFromConsensusPower(ctx, 100).ToLegacyDec()
-	delegation := stypes.NewDelegation(delAddr.String(), valAddr.String(), delAmt, sdkmath.LegacyZeroDec())
-	require.NoError(stakingKeeper.SetDelegation(ctx, delegation))
+	_, _, err = stakingKeeper.Delegate(
+		ctx, delAddr, delAmt.RoundInt(), stypes.Unbonded, val, false,
+		periodDelegation.PeriodDelegationId, periodDelegation.PeriodType, periodDelegation.EndTime,
+	)
+	require.NoError(err)
 
 	validator.DelegatorShares = validator.DelegatorShares.Add(delAmt)
 	validator.DelegatorRewardsShares = validator.DelegatorRewardsShares.Add(delAmt)
@@ -831,7 +838,7 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 	// require.NoError(evmstakingKeeper.DelegatorOperatorAddress.Set(ctx, delAddr.String(), delEvmAddr.String()))
 
 	// Ensure delegation is set correctly
-	delegation, err = stakingKeeper.GetDelegation(ctx, delAddr, valAddr)
+	delegation, err := stakingKeeper.GetDelegation(ctx, delAddr, valAddr)
 	require.NoError(err)
 	require.Equal(delAmt, delegation.GetShares())
 }

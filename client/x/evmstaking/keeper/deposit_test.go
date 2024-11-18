@@ -1,10 +1,8 @@
 package keeper_test
 
-/*
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"cosmossdk.io/math"
 	sdkmath "cosmossdk.io/math"
@@ -19,17 +17,14 @@ import (
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
-
-	"go.uber.org/mock/gomock"
 )
 
 // createValidator creates a validator.
 func (s *TestSuite) createValidator(ctx context.Context, valPubKey crypto.PubKey, valAddr sdk.ValAddress) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	require := s.Require()
-	bankKeeper, stakingKeeper := s.BankKeeper, s.StakingKeeper
+	stakingKeeper := s.StakingKeeper
 
 	// Convert public key to cosmos format
 	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
@@ -39,13 +34,13 @@ func (s *TestSuite) createValidator(ctx context.Context, valPubKey crypto.PubKey
 	val := testutil.NewValidator(s.T(), valAddr, valCosmosPubKey)
 	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	validator, _, _ := val.AddTokensFromDel(valTokens, sdkmath.LegacyOneDec())
-	bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+	// bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 }
 
 func (s *TestSuite) TestProcessDeposit() {
 	require := s.Require()
-	ctx, keeper, accountKeeper, bankKeeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.AccountKeeper, s.BankKeeper, s.StakingKeeper
+	ctx, keeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
 
 	pubKeys, accAddrs, valAddrs := createAddresses(2)
 	// delegator
@@ -68,11 +63,11 @@ func (s *TestSuite) TestProcessDeposit() {
 	}
 	expectAccountMock := func(isNewAccount bool) {
 		if isNewAccount {
-			accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(false)
-			accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), delAddr).Return(nil)
-			accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
+			// accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(false)
+			//accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), delAddr).Return(nil)
+			//accountKeeper.EXPECT().SetAccount(gomock.Any(), gomock.Any())
 		} else {
-			accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(true)
+			// accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(true)
 		}
 	}
 
@@ -119,16 +114,16 @@ func (s *TestSuite) TestProcessDeposit() {
 			},
 			expectedErr: "invalid uncompressed public key length or format",
 		},
-		// {
-		// 	name:        "fail: corrupted validator pubkey",
-		// 	deposit:     createDeposit(delPubKey.Bytes(), createCorruptedPubKey(valPubKey.Bytes()), new(big.Int).SetUint64(1)),
-		// 	expectedErr: "validator pubkey to evm address",
-		// },
+		{
+			name:        "fail: corrupted validator pubkey",
+			deposit:     createDeposit(delPubKey.Bytes(), createCorruptedPubKey(valPubKey.Bytes()), new(big.Int).SetUint64(1)),
+			expectedErr: "validator pubkey to evm address",
+		},
 		{
 			name: "fail: mint coins to existing delegator",
 			settingMock: func() {
-				accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New(""))
+				// accountKeeper.EXPECT().HasAccount(gomock.Any(), delAddr).Return(true)
+				//bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New(""))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "create stake coin for depositor: mint coins",
@@ -137,7 +132,7 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: mint coins to new delegator",
 			settingMock: func() {
 				expectAccountMock(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New(""))
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New(""))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "create stake coin for depositor: mint coins",
@@ -146,8 +141,8 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: send coins from module to existing delegator",
 			settingMock: func() {
 				expectAccountMock(false)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(errors.New(""))
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(errors.New(""))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "create stake coin for depositor: send coins",
@@ -156,8 +151,8 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: send coins from module to new delegator",
 			settingMock: func() {
 				expectAccountMock(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(errors.New(""))
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(errors.New(""))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "create stake coin for depositor: send coins",
@@ -166,9 +161,9 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: delegate to existing delegator",
 			settingMock: func() {
 				expectAccountMock(false)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(errors.New("failed to delegate"))
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(errors.New("failed to delegate"))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "failed to delegate",
@@ -177,9 +172,9 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "fail: delegate to new delegator",
 			settingMock: func() {
 				expectAccountMock(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(errors.New("failed to delegate"))
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(errors.New("failed to delegate"))
 			},
 			deposit:     createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedErr: "failed to delegate",
@@ -188,9 +183,9 @@ func (s *TestSuite) TestProcessDeposit() {
 			name: "pass: existing delegator",
 			settingMock: func() {
 				expectAccountMock(false)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(nil)
 			},
 			deposit: createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedResult: stypes.Delegation{
@@ -198,23 +193,23 @@ func (s *TestSuite) TestProcessDeposit() {
 				ValidatorAddress: valAddr.String(),
 				Shares:           math.LegacyNewDecFromInt(math.NewInt(1)),
 				RewardsShares:    math.LegacyNewDecFromInt(math.NewInt(1)),
-				PeriodDelegations: map[string]*stypes.PeriodDelegation{
-					stypes.FlexibleDelegationID: {
-						PeriodDelegationId: stypes.FlexibleDelegationID,
-						Shares:             math.LegacyNewDecFromInt(math.NewInt(1)),
-						RewardsShares:      math.LegacyNewDecFromInt(math.NewInt(1)),
-						EndTime:            time.Time{},
-					},
-				},
+				//PeriodDelegations: map[string]*stypes.PeriodDelegation{
+				//	stypes.FlexibleDelegationID: {
+				//		PeriodDelegationId: stypes.FlexibleDelegationID,
+				//		Shares:             math.LegacyNewDecFromInt(math.NewInt(1)),
+				//		RewardsShares:      math.LegacyNewDecFromInt(math.NewInt(1)),
+				//		EndTime:            time.Time{},
+				//	},
+				// },
 			},
 		},
 		{
 			name: "pass: new delegator",
 			settingMock: func() {
 				expectAccountMock(true)
-				bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
-				bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(nil)
+				// bankKeeper.EXPECT().MintCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, delAddr, gomock.Any()).Return(nil)
+				//bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), delAddr, stypes.BondedPoolName, gomock.Any()).Return(nil)
 			},
 			deposit: createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
 			expectedResult: stypes.Delegation{
@@ -222,14 +217,14 @@ func (s *TestSuite) TestProcessDeposit() {
 				ValidatorAddress: valAddr.String(),
 				Shares:           math.LegacyNewDecFromInt(math.NewInt(1)),
 				RewardsShares:    math.LegacyNewDecFromInt(math.NewInt(1)),
-				PeriodDelegations: map[string]*stypes.PeriodDelegation{
-					stypes.FlexibleDelegationID: {
-						PeriodDelegationId: stypes.FlexibleDelegationID,
-						Shares:             math.LegacyNewDecFromInt(math.NewInt(1)),
-						RewardsShares:      math.LegacyNewDecFromInt(math.NewInt(1)),
-						EndTime:            time.Time{},
-					},
-				},
+				//PeriodDelegations: map[string]*stypes.PeriodDelegation{
+				//	stypes.FlexibleDelegationID: {
+				//		PeriodDelegationId: stypes.FlexibleDelegationID,
+				//		Shares:             math.LegacyNewDecFromInt(math.NewInt(1)),
+				//		RewardsShares:      math.LegacyNewDecFromInt(math.NewInt(1)),
+				//		EndTime:            time.Time{},
+				//	},
+				// },
 			},
 		},
 	}
@@ -248,7 +243,7 @@ func (s *TestSuite) TestProcessDeposit() {
 				// check delegation
 				delegation, err := stakingKeeper.GetDelegation(cachedCtx, delAddr, valAddr)
 				require.NoError(err)
-				delegation.PeriodDelegations[stypes.FlexibleDelegationID].EndTime = time.Time{}
+				// delegation.PeriodDelegations[stypes.FlexibleDelegationID].EndTime = time.Time{}
 				require.Equal(tc.expectedResult, delegation)
 			}
 		})
@@ -291,4 +286,3 @@ func (s *TestSuite) TestParseDepositLog() {
 		})
 	}
 }
-*/
