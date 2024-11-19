@@ -147,6 +147,10 @@ func bindRollbackFlags(cmd *cobra.Command, cfg *config.Config) {
 
 func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+}
+
+func bindValidatorUnjailOnBehalfFlags(cmd *cobra.Command, cfg *unjailConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
 }
 
@@ -229,6 +233,10 @@ func validateKeyConvertFlags(cmd *cobra.Command) error {
 }
 
 func validateValidatorUnjailFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{})
+}
+
+func validateValidatorUnjailOnBehalfFlags(cmd *cobra.Command) error {
 	return validateFlags(cmd, []string{"validator-pubkey"})
 }
 

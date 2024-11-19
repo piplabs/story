@@ -147,6 +147,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorRemoveOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
 		newValidatorUnjailCmd(),
+		newValidatorUnjailOnBehalfCmd(),
 	)
 
 	return cmd
@@ -372,6 +373,27 @@ func newValidatorUnjailCmd() *cobra.Command {
 	}
 
 	bindValidatorUnjailFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorUnjailOnBehalfCmd() *cobra.Command {
+	var cfg unjailConfig
+
+	cmd := &cobra.Command{
+		Use:   "unjail-on-behalf",
+		Short: "Unjail the validator on behalf of a validator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			validateValidatorUnjailOnBehalfFlags,
+			func(ctx context.Context) error { return unjailOnBehalf(ctx, cfg) },
+		),
+	}
+
+	bindValidatorUnjailOnBehalfFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -715,6 +737,35 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 }
 
 func unjail(ctx context.Context, cfg unjailConfig) error {
+	uncompressedValidatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to get uncompressed pub key from private key")
+	}
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var unjailFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&unjailFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack unjailFee")
+	}
+
+	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjailOnBehalf", unjailFee, uncompressedValidatorPubKeyBytes, []byte{})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Validator successfully unjailed on behalf of validator!")
+
+	return nil
+}
+
+func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded validator public key")
@@ -743,7 +794,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 		return err
 	}
 
-	fmt.Println("Validator successfully unjailed!")
+	fmt.Println("Validator successfully unjailed on behalf of validator!")
 
 	return nil
 }
