@@ -19,6 +19,7 @@ const (
 	InvalidDelegationAmount  ErrCode = 9
 	PeriodDelegationNotFound ErrCode = 10
 	InvalidRequest           ErrCode = 11
+	UnexpectedCondition      ErrCode = 12
 )
 
 var (
@@ -34,6 +35,7 @@ var (
 	ErrInvalidDelegationAmount  = stderrors.New("invalid_delegation_amount")
 	ErrPeriodDelegationNotFound = stderrors.New("period_delegation_not_found")
 	ErrInvalidRequest           = stderrors.New("invalid_request")
+	ErrUnexpectedCondition      = stderrors.New("unexpected_condition")
 )
 
 var codeToErr = map[ErrCode]error{
@@ -49,6 +51,7 @@ var codeToErr = map[ErrCode]error{
 	InvalidDelegationAmount:  ErrInvalidDelegationAmount,
 	PeriodDelegationNotFound: ErrPeriodDelegationNotFound,
 	InvalidRequest:           ErrInvalidRequest,
+	UnexpectedCondition:      ErrUnexpectedCondition,
 }
 
 func (c ErrCode) String() string {
@@ -94,6 +97,8 @@ func UnwrapErrCode(err error) ErrCode {
 		return PeriodDelegationNotFound
 	case stderrors.Is(err, ErrInvalidRequest):
 		return InvalidRequest
+	case stderrors.Is(err, ErrUnexpectedCondition):
+		return UnexpectedCondition
 	default:
 		return Unspecified
 	}

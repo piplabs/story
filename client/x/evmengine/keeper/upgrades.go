@@ -4,6 +4,7 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -52,6 +53,9 @@ func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.Upgrad
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return

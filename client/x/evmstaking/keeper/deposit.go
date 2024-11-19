@@ -4,6 +4,7 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,6 +24,9 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return
