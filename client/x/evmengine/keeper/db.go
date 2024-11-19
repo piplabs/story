@@ -38,7 +38,7 @@ func (k *Keeper) InsertGenesisHead(ctx context.Context, executionBlockHash []byt
 func (k *Keeper) getExecutionHead(ctx context.Context) (*ExecutionHead, error) {
 	head, err := k.headTable.Get(ctx, executionHeadID)
 	if err != nil {
-		return nil, errors.Wrap(err, "update execution head")
+		return nil, errors.Wrap(err, "get execution head")
 	}
 
 	return head, nil
