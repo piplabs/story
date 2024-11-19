@@ -105,7 +105,7 @@ func bindValidatorStakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
 func bindValidatorUnstakeFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake in wei")
 	cmd.Flags().Uint32Var(&cfg.DelegationID, "delegation-id", 0, "The delegation ID (0 for flexible staking)")
 }
 
@@ -113,7 +113,7 @@ func bindValidatorUnstakeOnBehalfFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
 	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's hex-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
+	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake in wei")
 	cmd.Flags().Uint32Var(&cfg.DelegationID, "delegation-id", 0, "The delegation ID (0 for flexible staking)")
 }
 
@@ -209,7 +209,7 @@ func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command
 }
 
 func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg *unstakeConfig) error {
-	if err := validateFlags(cmd, []string{"validator-pubkey", "stake"}); err != nil {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "unstake"}); err != nil {
 		return errors.Wrap(err, "failed to validate unstake flags")
 	}
 
@@ -217,7 +217,7 @@ func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg 
 }
 
 func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unstakeConfig) error {
-	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "stake"}); err != nil {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "unstake"}); err != nil {
 		return errors.Wrap(err, "failed to validate unstake-on-behalf flags")
 	}
 
