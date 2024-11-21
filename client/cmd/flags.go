@@ -37,6 +37,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything)")
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
 	flags.BoolVar(&cfg.EVMBuildOptimistic, "evm-build-optimistic", cfg.EVMBuildOptimistic, "Enables optimistic building of EVM payloads on previous block finalize")
+	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
 }
 
 func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
