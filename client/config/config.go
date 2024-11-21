@@ -62,6 +62,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	OdysseyConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -83,6 +84,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -104,6 +106,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 )
 
@@ -129,6 +132,7 @@ func DefaultConfig() Config {
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 }
 
@@ -182,6 +186,8 @@ type Config struct {
 	Seeds              string
 	SeedMode           bool
 	RemoveBlock        bool // See cosmos-sdk/server/rollback.go
+	WithComet          bool // See cosmos-sdk/server/start.go
+
 }
 
 // ConfigFile returns the default path to the toml story config file.

@@ -38,6 +38,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags.BoolVar(&cfg.APIEnable, "api-enable", cfg.APIEnable, "Define if the API server should be enabled")
 	flags.StringVar(&cfg.APIAddress, "api-address", cfg.APIAddress, "The API server address to listen on")
 	flags.BoolVar(&cfg.EnableUnsafeCORS, "enabled-unsafe-cors", cfg.EnableUnsafeCORS, "Enable unsafe CORS for API server")
+	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
 }
 
 func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {

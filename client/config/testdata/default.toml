@@ -71,6 +71,8 @@ api-address = "127.0.0.1:1317"
 # EnableUnsafeCORS defines whether to enable CORS for API server.
 enabled-unsafe-cors = false
 
+with-comet = true
+
 #######################################################################
 ###                         Logging Options                         ###
 #######################################################################
