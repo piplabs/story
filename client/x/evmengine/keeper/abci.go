@@ -3,9 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -22,18 +20,20 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// prepareTimeout is the maximum time to prepare a proposal.
+// Timeout results in proposing an empty consensus block.
+const prepareTimeout = time.Second * 10
+
 // PrepareProposal returns a proposal for the next block.
-// Note returning an error results in a panic cometbft and CONSENSUS_FAILURE log.
+// Note returning an error results proposing an empty block.
 func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPrepareProposal) (
 	*abci.ResponsePrepareProposal, error,
 ) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error(ctx, "PrepareProposal panic", nil, "recover", r)
-			fmt.Println("panic stacktrace: \n" + string(debug.Stack()))
-			panic(r)
-		}
-	}()
+	// Only allow 10s to prepare a proposal. Propose empty block otherwise.
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), prepareTimeout)
+	defer timeoutCancel()
+	ctx = ctx.WithContext(timeoutCtx)
+
 	if len(req.Txs) > 0 {
 		return nil, errors.New("unexpected transactions in proposal")
 	} else if req.MaxTxBytes < cmttypes.MaxBlockSizeBytes*9/10 {
@@ -77,11 +77,13 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 			if err != nil {
 				log.Warn(ctx, "Preparing proposal failed: build new evm payload (will retry)", err)
 				return false, nil
-			} else if fcr.PayloadStatus.Status != engine.VALID {
-				return false, errors.New("status not valid")
+			} else if isSyncing(fcr.PayloadStatus) {
+				return false, errors.New("evm unexpectedly syncing") // Abort, don't retry
+			} else if invalid, err := isInvalid(fcr.PayloadStatus); invalid {
+				return false, errors.Wrap(err, "proposed invalid payload") // Abort, don't retry
 			} else if fcr.PayloadID == nil {
-				return false, errors.New("missing payload ID")
-			}
+				return false, errors.New("missing payload ID [BUG]")
+			} /* else isValid(status) */
 
 			payloadID = *fcr.PayloadID
 
@@ -223,7 +225,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	withdrawals = append(withdrawals, rewardWithdrawals...)
 
 	fcr, err := k.startBuild(ctx, k.validatorAddr, withdrawals, appHash, timestamp)
-	if err != nil || isUnknown(fcr.PayloadStatus) {
+	if err != nil {
 		log.Warn(ctx, "Starting optimistic build failed", err, logAttr)
 		return nil
 	} else if isSyncing(fcr.PayloadStatus) {
@@ -235,7 +237,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	} else if fcr.PayloadID == nil {
 		log.Error(ctx, "Starting optimistic build failed; missing payload ID [BUG]", nil, logAttr)
 		return nil
-	}
+	} /* else isValid(status) */
 
 	k.setOptimisticPayload(*fcr.PayloadID, uint64(nextHeight))
 

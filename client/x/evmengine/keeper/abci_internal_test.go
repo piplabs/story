@@ -117,7 +117,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name: "forkchoiceUpdateV2 not valid",
+				name: "forkchoiceUpdateV3 not valid",
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
@@ -693,10 +693,6 @@ func (m *mockEngineAPI) HeaderByType(ctx context.Context, typ ethclient.HeadType
 	}
 
 	return m.mock.HeaderByType(ctx, typ)
-}
-
-func (m *mockEngineAPI) NewPayloadV2(ctx context.Context, params eengine.ExecutableData) (eengine.PayloadStatusV1, error) {
-	return m.mock.NewPayloadV2(ctx, params)
 }
 
 //nolint:nonamedreturns // Required for defer
