@@ -10,7 +10,9 @@ import (
 	snapshottypes "cosmossdk.io/store/snapshots/types"
 	storetypes "cosmossdk.io/store/types"
 
+	abciserver "github.com/cometbft/cometbft/abci/server"
 	cmtcfg "github.com/cometbft/cometbft/config"
+	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
@@ -97,16 +99,24 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		return nil, err
 	}
 
-	cmtNode, err := newCometNode(ctx, &cfg.Comet, app, privVal)
+	cmtNode, err := newCometNode(ctx, &cfg.Comet, app, privVal, cfg.WithComet)
 	if err != nil {
 		return nil, errors.Wrap(err, "create comet node")
 	}
 
-	rpcClient := rpclocal.New(cmtNode)
-	cmtAPI := comet.NewAPI(rpcClient, app.ChainID())
-	app.SetCometAPI(cmtAPI)
+	var rpcClient *rpclocal.Local
+	if cfg.WithComet {
+		n, ok := cmtNode.(*node.Node)
+		if !ok {
+			return nil, errors.Wrap(err, "convert comet node")
+		}
+		rpcClient = rpclocal.New(n)
+		cmtAPI := comet.NewAPI(rpcClient, app.ChainID())
 
-	log.Info(ctx, "Starting CometBFT", "listeners", cmtNode.Listeners())
+		app.SetCometAPI(cmtAPI)
+
+		log.Info(ctx, "Starting CometBFT", "listeners", n.Listeners())
+	}
 
 	if err := cmtNode.Start(); err != nil {
 		return nil, errors.Wrap(err, "start comet node")
@@ -134,7 +144,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		if err := cmtNode.Stop(); err != nil {
 			return errors.Wrap(err, "stop comet node")
 		}
-		cmtNode.Wait()
+		<-cmtNode.Quit()
 
 		// Note that cometBFT doesn't shut down cleanly. It leaves a bunch of goroutines running...
 
@@ -195,8 +205,8 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	return app, privVal, nil
 }
 
-func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator,
-) (*node.Node, error) {
+func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator, withComet bool,
+) (service.Service, error) {
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
 		return nil, errors.Wrap(err, "load or gen node key", "key_file", cfg.NodeKeyFile())
@@ -215,17 +225,26 @@ func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmt
 		},
 	)
 
-	cmtNode, err := node.NewNode(cfg,
-		privVal,
-		nodeKey,
-		proxy.NewLocalClientCreator(wrapper),
-		node.DefaultGenesisDocProviderFunc(cfg),
-		cmtcfg.DefaultDBProvider,
-		node.DefaultMetricsProvider(cfg.Instrumentation),
-		cmtLog,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "create node")
+	var cmtNode service.Service
+	if withComet {
+		cmtNode, err = node.NewNode(cfg,
+			privVal,
+			nodeKey,
+			proxy.NewLocalClientCreator(wrapper),
+			node.DefaultGenesisDocProviderFunc(cfg),
+			cmtcfg.DefaultDBProvider,
+			node.DefaultMetricsProvider(cfg.Instrumentation),
+			cmtLog,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "create node")
+		}
+	} else {
+		cmtNode, err = abciserver.NewServer(cfg.ProxyApp, cfg.ABCI, wrapper)
+		if err != nil {
+			return nil, errors.Wrap(err, "create abci server")
+		}
+		cmtNode.SetLogger(cmtLog.With("module", "abci-server"))
 	}
 
 	return cmtNode, nil
