@@ -28,6 +28,9 @@ import { PubKeyVerifier } from "./PubKeyVerifier.sol";
 contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PubKeyVerifier {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// @notice Maximum length of the validator moniker, in bytes.
+    uint256 public constant MAX_MONIKER_LENGTH = 70;
+
     /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
     uint256 public immutable STAKE_ROUNDING;
 
@@ -159,7 +162,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function removeOperator(
         bytes calldata uncmpPubkey,
         address operator
-    ) external verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) {
+    ) external payable verifyUncmpPubkeyWithExpectedAddress(uncmpPubkey, msg.sender) chargesFee {
         emit RemoveOperator(uncmpPubkey, operator);
     }
 
@@ -280,6 +283,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         require(commissionRate <= maxCommissionRate, "IPTokenStaking: Commission rate over max");
+        require(bytes(moniker).length <= MAX_MONIKER_LENGTH, "IPTokenStaking: Moniker length over max");
+
         payable(address(0)).transfer(stakeAmount);
         emit CreateValidator(
             validatorUncmpPubkey,
@@ -417,9 +422,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
+        payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
+        chargesFee
     {
         _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
@@ -440,9 +447,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 amount
     )
         external
+        payable
         verifyUncmpPubkey(delegatorUncmpPubkey)
         verifyUncmpPubkey(validatorUncmpSrcPubkey)
         verifyUncmpPubkey(validatorUncmpDstPubkey)
+        chargesFee
     {
         _redelegate(delegatorUncmpPubkey, validatorUncmpSrcPubkey, validatorUncmpDstPubkey, delegationId, amount);
     }
@@ -459,7 +468,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             "IPTokenStaking: Redelegating to same validator"
         );
         (uint256 stakeAmount, ) = roundedStakeAmount(amount);
-        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
 
         emit Redelegate(
@@ -500,8 +508,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     )
         external
+        payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
         verifyUncmpPubkey(validatorUncmpPubkey)
+        chargesFee
     {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
@@ -519,7 +529,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external verifyUncmpPubkey(delegatorUncmpPubkey) verifyUncmpPubkey(validatorUncmpPubkey) {
+    ) external payable verifyUncmpPubkey(delegatorUncmpPubkey) verifyUncmpPubkey(validatorUncmpPubkey) chargesFee {
         _unstake(delegatorUncmpPubkey, validatorUncmpPubkey, delegationId, amount, data);
     }
 
