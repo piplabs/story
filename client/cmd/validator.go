@@ -755,12 +755,12 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjailOnBehalf", unjailFee, uncompressedValidatorPubKeyBytes, []byte{})
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjail", unjailFee, uncompressedValidatorPubKeyBytes, []byte{})
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Validator successfully unjailed on behalf of validator!")
+	fmt.Println("Validator successfully unjailed!")
 
 	return nil
 }
