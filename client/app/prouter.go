@@ -18,7 +18,7 @@ import (
 // processTimeout is the maximum time to process a proposal.
 // Timeout results in rejecting the proposal, which could negatively affect liveness.
 // But it avoids blocking forever, which also negatively affects liveness.
-const processTimeout = time.Minute
+const processTimeout = time.Second * 10
 
 // makeProcessProposalRouter creates a new process proposal router that only routes
 // expected messages to expected modules.
