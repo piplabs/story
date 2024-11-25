@@ -668,9 +668,14 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 }
 
 func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
-	uncompressedDelegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
+	delegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded delegator pub key")
+	}
+
+	uncompressedDelegatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(delegatorPubKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to uncompress delegator public key")
 	}
 
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
