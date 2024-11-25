@@ -4,6 +4,7 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 
 	"cosmossdk.io/collections"
@@ -22,6 +23,9 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return

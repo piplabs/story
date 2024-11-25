@@ -4,6 +4,7 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -20,6 +21,9 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return
@@ -60,6 +64,9 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return
@@ -100,6 +107,9 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return
@@ -139,6 +149,9 @@ func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenS
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
 	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
 		if err == nil {
 			writeCache()
 			return
