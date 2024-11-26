@@ -741,12 +741,12 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_setMinStakeAmount() public {
-        // Set amount that will be rounded down to 0
+        // Set amount that will be rounded down to 1 ether
         performTimelocked(
             address(ipTokenStaking),
-            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 5 wei)
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether + 5 wei)
         );
-        assertEq(ipTokenStaking.minStakeAmount(), 0);
+        assertEq(ipTokenStaking.minStakeAmount(), 1 ether);
 
         // Set amount that will not be rounded
         schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 1 ether));
@@ -766,6 +766,13 @@ contract IPTokenStakingTest is Test {
             "IPTokenStaking: Zero min stake amount"
         );
 
+        // Set amount that will be rounded down to 0
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinStakeAmount.selector, 5 wei),
+            "IPTokenStaking: Zero min stake amount"
+        );
+
         // Set using a non-owner address
         vm.prank(delegatorAddr);
         vm.expectRevert(); // TODO: encode OwnableUnauthorizedAccount
@@ -773,13 +780,12 @@ contract IPTokenStakingTest is Test {
     }
 
     function testIPTokenStaking_setMinUnstakeAmount() public {
-        // Set amount that will be rounded down to 0
-        // Set amount that will be rounded down to 0
+        // Set amount that will be rounded down to 1 ether
         performTimelocked(
             address(ipTokenStaking),
-            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 5 wei)
+            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 1 ether + 5 wei)
         );
-        assertEq(ipTokenStaking.minUnstakeAmount(), 0);
+        assertEq(ipTokenStaking.minUnstakeAmount(), 1 ether);
 
         // Set amount that will not be rounded
         schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 1 ether));
@@ -797,6 +803,14 @@ contract IPTokenStakingTest is Test {
         expectRevertTimelocked(
             address(ipTokenStaking),
             abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 0 ether),
+            "IPTokenStaking: Zero min unstake amount"
+        );
+
+        // Set amount that will be rounded down to 0 ether
+        vm.prank(admin);
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinUnstakeAmount.selector, 5 wei),
             "IPTokenStaking: Zero min unstake amount"
         );
 
