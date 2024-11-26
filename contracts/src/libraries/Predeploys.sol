@@ -30,20 +30,9 @@ library Predeploys {
 
     /// @notice Return implementation address for a proxied predeploy
     function getImplAddress(address proxyAddress) internal pure returns (address) {
-        require(isPredeploy(proxyAddress), "Predeploys: not a predeploy");
         require(proxied(proxyAddress), "Predeploys: not proxied");
 
         // max uint160 is odd, which gives us unique implementation for each predeploy
         return address(type(uint160).max - uint160(proxyAddress));
-    }
-
-    /// @notice Return true if `addr` is an active predeploy
-    function isActivePredeploy(address addr) internal pure returns (bool) {
-        return addr == WIP || addr == Staking || addr == UBIPool || addr == Upgrades;
-    }
-
-    /// @notice Return true if `addr` is in some predeploy namespace
-    function isPredeploy(address addr) internal pure returns (bool) {
-        return (uint160(addr) >> 11 == uint160(Namespace) >> 11);
     }
 }
