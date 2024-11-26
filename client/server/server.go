@@ -74,7 +74,11 @@ func NewServer(store Store, cl rpcclient.Client, listenAddress string, enableUns
 	s.httpServer = &http.Server{
 		Addr:              listenAddress,
 		Handler:           svrHandler,
-		ReadHeaderTimeout: 60 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       10 * time.Second,
+		MaxHeaderBytes:    8 << 10,
 	}
 
 	return s, nil
