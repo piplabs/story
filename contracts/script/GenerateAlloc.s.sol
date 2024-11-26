@@ -18,9 +18,10 @@ import { Predeploys } from "../src/libraries/Predeploys.sol";
 import { Create3 } from "../src/deploy/Create3.sol";
 import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
 import { WIP } from "../src/token/WIP.sol";
+
 /**
  * @title GenerateAlloc
- * @dev A script to generate the alloc section of EL genesis
+ * @dev A script to generate the alloc section of EL genesis file
  * - Predeploys (See src/libraries/Predeploys.sol)
  * - Genesis $IP allocations (chain id dependent)
  * - If you want to allocate 10k test accounts with funds,
@@ -54,13 +55,13 @@ contract GenerateAlloc is Script {
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = true;
 
-    /// @notice call from Test.sol to run test fast (no json saving)
+    /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
         require(block.chainid == 31337, "Only for local tests");
         saveState = false;
     }
 
-    /// @notice call from Test.sol only
+    /// @dev this call should only be available from Test.sol
     function setAdminAddresses(address protocol, address executor, address guardian) external {
         require(block.chainid == 31337, "Only for local tests");
         protocolAdmin = protocol;
@@ -109,6 +110,7 @@ contract GenerateAlloc is Script {
         }
     }
 
+    /// @notice Gets the proposers, executors and canceller for the timelocks
     function getTimelockControllers()
         internal
         view
@@ -181,35 +183,36 @@ contract GenerateAlloc is Script {
         }
     }
 
+    /// @notice Prepares the bytecode and storage for predeployed contracts in genesis file
     function setPredeploys() internal {
-        // predeploys that are not upgradable
+        // Set predeploys that are outside of the proxied Namespace and Timelock
         setCreate3();
         deployTimelock();
         setERC6551();
         setWIP();
 
-        // Set proxies for all predeploys
+        // Set proxies for all predeploys in the proxied Namespace
         setProxies();
 
-        // Set implementations for predeploys that are upgradable
+        // Set implementations for predeploys that are used since genesis
         setStaking();
         setUpgrade();
         setUBIPool();
     }
 
+    /// @dev Populates the upgradeable predeploys namespace with proxies, to reserve the addresses
+    /// for future use. Implementations are deterministically determined, but won't have code
+    /// unless explicitly set in setPredeploys(). Later on, they can be upgraded to new
+    /// implementations by governance.
     function setProxies() internal {
-        // We populate the predeploys namespace with proxies, to reserve the addresses
-        // for future use.
-        // Implementations are deterministically determined, but won't have code unless
-        // explicitly set in this script.
-        // Later on, they can be upgraded to new implementations by timelock.
         for (uint160 i = 1; i <= Predeploys.NamespaceSize; i++) {
             address addr = address(uint160(Predeploys.Namespace) + i);
             setProxy(addr);
         }
     }
 
-    /// @notice Deploy TimelockController
+    /// @notice Deploy TimelockController to manage upgrades and admin actions
+    /// @dev this is a deterministic deployment, not a predeploy (won't show in genesis file).
     function deployTimelock() internal {
         // We deploy this with Create3 because we can't set storage variables in constructor with vm.etch
 
@@ -237,6 +240,9 @@ contract GenerateAlloc is Script {
         console2.log("TimelockController deployed at:", timelock);
     }
 
+    /// @notice Set a TransparentUpgradeableProxy bytecode and storage for a predeploy address,
+    /// within the proxied Namespace
+    /// @dev We use a deterministic implementation address
     function setProxy(address proxyAddr) internal {
         address impl = Predeploys.getImplAddress(proxyAddr);
 
@@ -264,9 +270,7 @@ contract GenerateAlloc is Script {
         vm.deal(proxyAddr, 1);
     }
 
-    /**
-     * @notice Setup Staking predeploy
-     */
+    /// @notice Sets the bytecode for the implementation of IPTokenStaking predeploy
     function setStaking() internal {
         address impl = Predeploys.getImplAddress(Predeploys.Staking);
 
@@ -301,9 +305,7 @@ contract GenerateAlloc is Script {
         console2.log("IPTokenStaking owner:", IPTokenStaking(Predeploys.Staking).owner());
     }
 
-    /**
-     * @notice Setup Upgrade predeploy
-     */
+    /// @notice Sets the bytecode for the implementation of UpgradeEntrypoint predeploy
     function setUpgrade() internal {
         address impl = Predeploys.getImplAddress(Predeploys.Upgrades);
         address tmp = address(new UpgradeEntrypoint());
@@ -325,6 +327,7 @@ contract GenerateAlloc is Script {
         console2.log("UpgradeEntrypoint owner:", UpgradeEntrypoint(Predeploys.Upgrades).owner());
     }
 
+    /// @notice Sets the bytecode for the implementation of UBIPool predeploy
     function setUBIPool() internal {
         address impl = Predeploys.getImplAddress(Predeploys.UBIPool);
         address tmp = address(new UBIPool(20_00)); // 20% UBI
@@ -344,6 +347,8 @@ contract GenerateAlloc is Script {
         console2.log("UBIPool owner:", UBIPool(Predeploys.UBIPool).owner());
     }
 
+    /// @notice Sets the bytecode for Create3 factory as a predeploy
+    /// @dev Create3 factory address https://github.com/ZeframLou/create3-factory
     function setCreate3() internal {
         address tmp = address(new Create3());
         vm.etch(Predeploys.Create3, tmp.code);
@@ -357,6 +362,8 @@ contract GenerateAlloc is Script {
         console2.log("Create3 deployed at:", Predeploys.Create3);
     }
 
+    /// @notice Sets the bytecode for ERC6551Registry as a predeploy
+    /// @dev ERC6551Registry as defined by ERC-6551
     function setERC6551() internal {
         address tmp = address(new ERC6551Registry());
         vm.etch(Predeploys.ERC6551Registry, tmp.code);
@@ -370,6 +377,8 @@ contract GenerateAlloc is Script {
         console2.log("ERC6551 deployed at:", Predeploys.ERC6551Registry);
     }
 
+    /// @notice Sets the bytecode for WIP as a predeploy
+    /// @dev WIP is the ERC20 wrapper for IP token
     function setWIP() internal {
         address tmp = address(new WIP());
         vm.etch(Predeploys.WIP, tmp.code);
@@ -383,6 +392,7 @@ contract GenerateAlloc is Script {
         console2.log("WIP deployed at:", Predeploys.WIP);
     }
 
+    /// @notice Sets initial balances for predeploys and genesis allocations
     function setAllocations() internal {
         // EL Predeploys
         // Geth precompile 1 wei allocation (Accounts with 0 balance and no EVM code may be removed from
@@ -434,11 +444,13 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
         }
+        // Test for big allocations
         if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != MAINNET_CHAIN_ID) {
             setTestAllocations();
         }
     }
 
+    /// @notice Sets 10,000 test accounts with increasing balances
     function setTestAllocations() internal {
         address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
         for (uint160 i = 1; i <= 10_000; i++) {
