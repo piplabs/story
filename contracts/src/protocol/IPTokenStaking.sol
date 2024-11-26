@@ -121,16 +121,16 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Sets the minimum amount required to stake.
     /// @param newMinStakeAmount The minimum amount required to stake.
     function _setMinStakeAmount(uint256 newMinStakeAmount) private {
-        require(newMinStakeAmount > 0, "IPTokenStaking: Zero min stake amount");
         minStakeAmount = newMinStakeAmount - (newMinStakeAmount % STAKE_ROUNDING);
+        require(minStakeAmount > 0, "IPTokenStaking: Zero min stake amount");
         emit MinStakeAmountSet(minStakeAmount);
     }
 
     /// @dev Sets the minimum amount required to withdraw.
     /// @param newMinUnstakeAmount The minimum amount required to stake.
     function _setMinUnstakeAmount(uint256 newMinUnstakeAmount) private {
-        require(newMinUnstakeAmount > 0, "IPTokenStaking: Zero min unstake amount");
         minUnstakeAmount = newMinUnstakeAmount - (newMinUnstakeAmount % STAKE_ROUNDING);
+        require(minUnstakeAmount > 0, "IPTokenStaking: Zero min unstake amount");
         emit MinUnstakeAmountSet(minUnstakeAmount);
     }
 
