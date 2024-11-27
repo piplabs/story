@@ -30,6 +30,10 @@ contract UBIPool is
     /// @notice The amount of UBI for each validator for a given distribution
     mapping(uint256 distributionId => mapping(bytes validatorUncmpPubkey => uint256 amount)) public validatorUBIAmounts;
 
+    /// @notice The total amount of pending tokens to claim.
+    /// Added when a distribution is set, and subtracted when a validator claims their UBI.
+    uint256 public totalPendingClaims;
+
     constructor(uint32 maxUBIPercentage) {
         MAX_UBI_PERCENTAGE = maxUBIPercentage;
         _disableInitializers();
@@ -61,7 +65,8 @@ contract UBIPool is
     ) external onlyOwner returns (uint256) {
         require(validatorUncmpPubKeys.length > 0, "UBIPool: validatorUncmpPubKeys cannot be empty");
         require(validatorUncmpPubKeys.length == amounts.length, "UBIPool: length mismatch");
-        require(totalUBI <= address(this).balance, "UBIPool: not enough balance");
+        require(totalUBI + totalPendingClaims <= address(this).balance, "UBIPool: not enough balance");
+        totalPendingClaims += totalUBI;
         uint256 accAmount;
         currentDistributionId++;
         for (uint256 i = 0; i < amounts.length; i++) {
@@ -88,5 +93,6 @@ contract UBIPool is
         validatorUBIAmounts[distributionId][validatorUncmpPubkey] = 0;
         (bool success, ) = msg.sender.call{ value: amount }("");
         require(success, "UBIPool: failed to send UBI");
+        totalPendingClaims -= amount;
     }
 }
