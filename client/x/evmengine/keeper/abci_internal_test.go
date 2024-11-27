@@ -407,33 +407,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			},
 			postStateCheck: payloadFailedToSet,
 		},
-		/*
-			{
-				name: "fail: unknown status from EL",
-				mockEngine: mockEngineAPI{
-					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
-						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
-						return eengine.ForkChoiceResponse{
-							PayloadStatus: eengine.PayloadStatusV1{
-								Status:          "unknown status",
-								LatestValidHash: nil,
-								ValidationError: nil,
-							},
-							PayloadID: &payloadID,
-						}, nil
-					},
-				},
-				mockClient:       mock.MockClient{},
-				wantErr:          false,
-				enableOptimistic: true,
-				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
-					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-				},
-				postStateCheck: payloadFailedToSet,
-			},
-		*/
 		{
 			name: "pass",
 			mockEngine: mockEngineAPI{
