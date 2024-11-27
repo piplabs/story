@@ -7,27 +7,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/piplabs/story/client/app"
-	storycfg "github.com/piplabs/story/client/config"
+	cfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/log"
 )
 
-type RollbackConfig struct {
-	RemoveBlock     bool // See cosmos-sdk/server/rollback.go
-	RollbackHeights uint64
-}
-
-func DefaultConfig() RollbackConfig {
-	return RollbackConfig{
-		RemoveBlock:     false,
-		RollbackHeights: 1,
-	}
-}
-
 // newRollbackCmd returns a new cobra command that rolls back one block of the story consensus client.
 func newRollbackCmd(appCreateFunc func(context.Context, app.Config) *app.App) *cobra.Command {
-	rollbackCfg := DefaultConfig()
-	storyCfg := storycfg.DefaultConfig()
+	rollbackCfg := cfg.DefaultRollbackConfig()
+	storyCfg := cfg.DefaultConfig()
 	logCfg := log.DefaultConfig()
 
 	cmd := &cobra.Command{
