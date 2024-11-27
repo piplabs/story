@@ -164,7 +164,7 @@ contract UBIPoolTest is Test, ValidatorData {
         bytes[] memory validatorUncmpPubKeys = new bytes[](2);
         validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
         validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
-        
+
         vm.deal(address(ubiPool), totalAmount);
         performTimelocked(
             address(ubiPool),
@@ -186,7 +186,12 @@ contract UBIPoolTest is Test, ValidatorData {
 
         expectRevertTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, newTotalAmount, newValidatorUncmpPubKeys, newAmounts),
+            abi.encodeWithSelector(
+                IUBIPool.setUBIDistribution.selector,
+                newTotalAmount,
+                newValidatorUncmpPubKeys,
+                newAmounts
+            ),
             "UBIPool: not enough balance"
         );
     }
@@ -200,7 +205,7 @@ contract UBIPoolTest is Test, ValidatorData {
         bytes[] memory validatorUncmpPubKeys = new bytes[](2);
         validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
         validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
-        
+
         vm.deal(address(ubiPool), totalAmount + 10 ether); // Extra balance for next distribution
         performTimelocked(
             address(ubiPool),
@@ -222,7 +227,12 @@ contract UBIPoolTest is Test, ValidatorData {
 
         performTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, newTotalAmount, newValidatorUncmpPubKeys, newAmounts),
+            abi.encodeWithSelector(
+                IUBIPool.setUBIDistribution.selector,
+                newTotalAmount,
+                newValidatorUncmpPubKeys,
+                newAmounts
+            ),
             bytes32(keccak256("setUBIDistribution"))
         );
     }
