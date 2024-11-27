@@ -12,19 +12,21 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-type rollbackConfig struct {
+type RollbackConfig struct {
 	RemoveBlock     bool // See cosmos-sdk/server/rollback.go
-	RollbackEVM     bool
-	RollbackHeights int64
+	RollbackHeights uint64
+}
+
+func DefaultConfig() RollbackConfig {
+	return RollbackConfig{
+		RemoveBlock:     false,
+		RollbackHeights: 1,
+	}
 }
 
 // newRollbackCmd returns a new cobra command that rolls back one block of the story consensus client.
 func newRollbackCmd(appCreateFunc func(context.Context, app.Config) *app.App) *cobra.Command {
-	rollbackCfg := rollbackConfig{
-		RemoveBlock:     false,
-		RollbackEVM:     false,
-		RollbackHeights: 1,
-	}
+	rollbackCfg := DefaultConfig()
 	storyCfg := storycfg.DefaultConfig()
 	logCfg := log.DefaultConfig()
 
@@ -60,7 +62,7 @@ will be re-executed against the application.
 				Comet:  cometCfg,
 			}
 			a := appCreateFunc(ctx, appCfg)
-			lastHeight, lastHash, err := app.RollbackCometAndAppState(ctx, a, appCfg, cometCfg, rollbackCfg.RollbackHeights, rollbackCfg.RemoveBlock, rollbackCfg.RollbackEVM)
+			lastHeight, lastHash, err := app.RollbackCometAndAppState(a, cometCfg, rollbackCfg)
 			if err != nil {
 				return err
 			}

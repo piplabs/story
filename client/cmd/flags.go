@@ -141,10 +141,9 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
 }
 
-func bindRollbackFlags(cmd *cobra.Command, cfg *rollbackConfig) {
+func bindRollbackFlags(cmd *cobra.Command, cfg *RollbackConfig) {
 	cmd.Flags().BoolVar(&cfg.RemoveBlock, "hard", false, "remove Cosmos & CometBFT blocks as well as states")
-	cmd.Flags().BoolVar(&cfg.RemoveBlock, "rollback-evm", false, "remove EVM blocks as well")
-	cmd.Flags().Int64VarP(&cfg.RollbackHeights, "number", "n", 1, "number of blocks to rollback")
+	cmd.Flags().Uint64VarP(&cfg.RollbackHeights, "number", "n", 1, "number of blocks to rollback")
 }
 
 func bindValidatorUnjailFlags(cmd *cobra.Command, cfg *unjailConfig) {
