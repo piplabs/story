@@ -153,4 +153,77 @@ contract UBIPoolTest is Test, ValidatorData {
             "PubKeyVerifier: Invalid pubkey length"
         );
     }
+
+    function test_claimUBI_revert_respect_unclaimed_tokens() public {
+        // Reverts if balance < totalPendingClaims + totalUBI
+        // Set initial distribution and claim some
+        uint256 totalAmount = 100 ether;
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 60 ether;
+        amounts[1] = 40 ether;
+        bytes[] memory validatorUncmpPubKeys = new bytes[](2);
+        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
+        
+        vm.deal(address(ubiPool), totalAmount);
+        performTimelocked(
+            address(ubiPool),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts),
+            bytes32(keccak256("setUBIDistribution"))
+        );
+
+        // First validator claims their UBI
+        vm.prank(validators[0].evmAddress);
+        ubiPool.claimUBI(1, validatorUncmpPubKeys[0]);
+
+        // Try to set new distribution with not enough balance
+        // Only 40 ether left in contract but 60 ether still pending claims
+        uint256 newTotalAmount = 1 ether;
+        uint256[] memory newAmounts = new uint256[](1);
+        newAmounts[0] = 1 ether;
+        bytes[] memory newValidatorUncmpPubKeys = new bytes[](1);
+        newValidatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+
+        expectRevertTimelocked(
+            address(ubiPool),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, newTotalAmount, newValidatorUncmpPubKeys, newAmounts),
+            "UBIPool: not enough balance"
+        );
+    }
+
+    function test_claimUBI_respect_unclaimed_tokens() public {
+        // Set initial distribution
+        uint256 totalAmount = 100 ether;
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 60 ether;
+        amounts[1] = 40 ether;
+        bytes[] memory validatorUncmpPubKeys = new bytes[](2);
+        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
+        
+        vm.deal(address(ubiPool), totalAmount + 10 ether); // Extra balance for next distribution
+        performTimelocked(
+            address(ubiPool),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts),
+            bytes32(keccak256("setUBIDistribution"))
+        );
+
+        // First validator claims their UBI
+        vm.prank(validators[0].evmAddress);
+        ubiPool.claimUBI(1, validatorUncmpPubKeys[0]);
+
+        // Set new distribution with enough balance
+        // 40 ether pending claims + 10 ether extra balance = enough for 5 ether new distribution
+        uint256 newTotalAmount = 5 ether;
+        uint256[] memory newAmounts = new uint256[](1);
+        newAmounts[0] = 5 ether;
+        bytes[] memory newValidatorUncmpPubKeys = new bytes[](1);
+        newValidatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+
+        performTimelocked(
+            address(ubiPool),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, newTotalAmount, newValidatorUncmpPubKeys, newAmounts),
+            bytes32(keccak256("setUBIDistribution"))
+        );
+    }
 }
