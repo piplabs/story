@@ -276,7 +276,6 @@ contract GenerateAlloc is Script {
 
         address tmp = address(
             new IPTokenStaking(
-                1 gwei, // stakingRounding
                 1 ether // defaultMinFee, 1 IP
             )
         );

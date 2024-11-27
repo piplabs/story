@@ -30,18 +30,9 @@ contract IPTokenStakingTest is Test {
 
     function testIPTokenStaking_Constructor() public {
         vm.expectRevert("IPTokenStaking: Invalid default min fee");
-        new IPTokenStaking(
-            1 gwei, // stakingRounding
-            0 ether
-        );
-        vm.expectRevert("IPTokenStaking: Zero staking rounding");
-        address impl = address(
-            new IPTokenStaking(
-                0, // stakingRounding
-                1 ether // Default min fee charged for adding to CL storage, 1 eth
-            )
-        );
+        new IPTokenStaking(0 ether);
 
+        address impl;
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
             owner: admin,
             minStakeAmount: 0,
@@ -51,7 +42,6 @@ contract IPTokenStakingTest is Test {
         });
         impl = address(
             new IPTokenStaking(
-                1 gwei, // stakingRounding
                 1 ether // Default min fee charged for adding to CL storage, 1 eth
             )
         );

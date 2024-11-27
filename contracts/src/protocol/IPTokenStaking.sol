@@ -31,8 +31,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Maximum length of the validator moniker, in bytes.
     uint256 public constant MAX_MONIKER_LENGTH = 70;
 
-    /// @notice Stake amount increments, 1 ether => e.g. 1 ether, 2 ether, 5 ether etc.
-    uint256 public immutable STAKE_ROUNDING;
+    /// @notice Stake amount increments. Consensus Layer requires staking in increments of 1 gwei.
+    uint256 public constant STAKE_ROUNDING = 1 gwei;
 
     /// @notice Default minimum fee charged for adding to CL storage
     uint256 public immutable DEFAULT_MIN_FEE;
@@ -59,9 +59,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _;
     }
 
-    constructor(uint256 stakingRounding, uint256 defaultMinFee) {
-        require(stakingRounding > 0, "IPTokenStaking: Zero staking rounding");
-        STAKE_ROUNDING = stakingRounding; // Recommended: 1 gwei (10^9)
+    constructor(uint256 defaultMinFee) {
         require(defaultMinFee >= 1 gwei, "IPTokenStaking: Invalid default min fee");
         DEFAULT_MIN_FEE = defaultMinFee;
         _disableInitializers();
@@ -461,7 +459,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param rawAmount The raw stake amount.
     /// @return amount The rounded stake amount.
     /// @return remainder The remainder of the stake amount.
-    function roundedStakeAmount(uint256 rawAmount) public view returns (uint256 amount, uint256 remainder) {
+    function roundedStakeAmount(uint256 rawAmount) public pure returns (uint256 amount, uint256 remainder) {
         remainder = rawAmount % STAKE_ROUNDING;
         amount = rawAmount - remainder;
     }
