@@ -545,13 +545,13 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 		return err
 	}
 
-	var removeOpeatorFee *big.Int
-	err = cfg.ABI.UnpackIntoInterface(&removeOpeatorFee, "fee", result)
+	var removeOperatorFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&removeOperatorFee, "fee", result)
 	if err != nil {
-		return errors.Wrap(err, "failed to unpack removeOpeatorFee")
+		return errors.Wrap(err, "failed to unpack removeOperatorFee")
 	}
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", removeOpeatorFee, uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", removeOperatorFee, uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
