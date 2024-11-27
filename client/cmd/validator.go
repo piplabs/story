@@ -540,7 +540,18 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", big.NewInt(0), uncompressedPubKey, operatorAddress)
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var removeOperatorFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&removeOperatorFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack removeOperatorFee")
+	}
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", removeOperatorFee, uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -669,11 +680,22 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
 
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var unstakeFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&unstakeFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack unstakeFee")
+	}
+
 	_, err = prepareAndExecuteTransaction(
 		ctx,
 		&cfg.baseConfig,
 		"unstake",
-		big.NewInt(0),
+		unstakeFee,
 		uncompressedDelegatorPubKeyBytes,
 		uncompressedValidatorPubKeyBytes,
 		delegationID,
@@ -716,11 +738,22 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
 
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var unstakeOnBehalfFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&unstakeOnBehalfFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack unstakeOnBehalfFee")
+	}
+
 	_, err = prepareAndExecuteTransaction(
 		ctx,
 		&cfg.baseConfig,
 		"unstakeOnBehalf",
-		big.NewInt(0),
+		unstakeOnBehalfFee,
 		uncompressedDelegatorPubKeyBytes,
 		uncompressedValidatorPubKeyBytes,
 		delegationID,
