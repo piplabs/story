@@ -44,9 +44,9 @@ contract GenerateAlloc is Script {
     // Governance multi-sig
     address internal protocolAdmin;
     // Executor of scheduled operations
-    address internal timelockExecutor;
+    address[] internal timelockExecutors;
     // Guardian of timelock
-    address internal timelockGuardian;
+    address[] internal timelockCancellers;
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
@@ -62,11 +62,13 @@ contract GenerateAlloc is Script {
     }
 
     /// @notice call from Test.sol only
-    function setAdminAddresses(address protocol, address executor, address guardian) external {
+    function setTestAdminAddresses(address protocol, address executor, address canceller) external {
         require(block.chainid == ChainIds.LOCAL, "Only for local tests");
         protocolAdmin = protocol;
-        timelockExecutor = executor;
-        timelockGuardian = guardian;
+        if (executor != address(0)) {
+            timelockExecutors.push(executor);
+        }
+        timelockCancellers.push(canceller);
     }
 
     /// @notice path where alloc file will be stored
@@ -110,35 +112,6 @@ contract GenerateAlloc is Script {
         }
     }
 
-    function getTimelockControllers()
-        internal
-        view
-        returns (address[] memory proposers, address[] memory executors, address canceller)
-    {
-        proposers = new address[](1);
-        executors = new address[](1);
-        if (block.chainid == ChainIds.ILIAD) {
-            // Iliad
-            proposers[0] = protocolAdmin;
-            executors[0] = protocolAdmin;
-            canceller = protocolAdmin;
-            return (proposers, executors, canceller);
-        } else if (
-            block.chainid == ChainIds.MININET ||
-            block.chainid == ChainIds.ODYSSEY_DEVNET ||
-            block.chainid == ChainIds.LOCAL ||
-            block.chainid == ChainIds.ODYSSEY_TESTNET
-        ) {
-            // Mininet, Odyssey devnet, Local, Odyssey testnet
-            proposers[0] = protocolAdmin;
-            executors[0] = timelockExecutor;
-            canceller = timelockGuardian;
-            return (proposers, executors, canceller);
-        } else {
-            revert("Unsupported chain id");
-        }
-    }
-
     /// @notice main script method
     function run() public {
         // Tests should set these addresses first
@@ -147,17 +120,22 @@ contract GenerateAlloc is Script {
         }
         require(protocolAdmin != address(0), "protocolAdmin not set");
 
-        if (timelockExecutor == address(0)) {
-            timelockExecutor = vm.envAddress("TIMELOCK_EXECUTOR_ADDRESS");
+        if (timelockExecutors.length == 0) {
+            timelockExecutors = vm.envAddress("TIMELOCK_EXECUTOR_ADDRESSES", ",");
+            if (timelockExecutors.length == 0) {
+                console2.log("Using public timelock executions");
+            }
         }
-        require(timelockExecutor != address(0), "executor not set");
 
-        if (timelockGuardian == address(0)) {
-            timelockGuardian = vm.envAddress("TIMELOCK_GUARDIAN_ADDRESS");
+        if (timelockCancellers.length == 0) {
+            timelockCancellers = vm.envAddress("TIMELOCK_CANCELLER_ADDRESSES", ",");
+            require(timelockCancellers.length > 0, "No timelock cancellers set");
+            for (uint256 i = 0; i < timelockCancellers.length; i++) {
+                require(timelockCancellers[i] != address(0), "Zero address astimelock guardian");
+            }
         }
-        require(timelockGuardian != address(0), "canceller not set");
 
-        if (block.chainid == MAINNET_CHAIN_ID) {
+        if (block.chainid == ChainIds.MAINNET) {
             require(!KEEP_TIMELOCK_ADMIN_ROLE, "Timelock admin role not allowed on mainnet");
         } else {
             console2.log("Will timelock admin role be assigned?", KEEP_TIMELOCK_ADMIN_ROLE);
@@ -220,25 +198,34 @@ contract GenerateAlloc is Script {
         // We deploy this with Create3 because we can't set storage variables in constructor with vm.etch
 
         uint256 minDelay = getTimelockMinDelay();
-        (address[] memory proposers, address[] memory executors, address canceller) = getTimelockControllers();
+        address[] memory proposers = new address[](1);
+        proposers[0] = protocolAdmin;
 
         bytes memory creationCode = abi.encodePacked(
             type(TimelockController).creationCode,
-            abi.encode(minDelay, proposers, executors, deployer)
+            abi.encode(minDelay, proposers, timelockExecutors, deployer)
         );
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER");
         timelock = Create3(Predeploys.Create3).deploy(salt, creationCode);
 
-        TimelockController(payable(timelock)).grantRole(
-            TimelockController(payable(timelock)).CANCELLER_ROLE(),
-            canceller
-        );
-        if (!KEEP_TIMELOCK_ADMIN_ROLE) {
-            TimelockController(payable(timelock)).renounceRole(
-                TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
-                deployer
+        for (uint256 i = 0; i < timelockCancellers.length; i++) {
+            TimelockController(payable(timelock)).grantRole(
+                TimelockController(payable(timelock)).CANCELLER_ROLE(),
+                timelockCancellers[i]
             );
         }
+
+        if (KEEP_TIMELOCK_ADMIN_ROLE) {
+            TimelockController(payable(timelock)).grantRole(
+                TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
+                protocolAdmin
+            );
+        }
+
+        TimelockController(payable(timelock)).renounceRole(
+            TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE(),
+            deployer
+        );
 
         console2.log("TimelockController deployed at:", timelock);
     }

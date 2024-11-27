@@ -17,7 +17,7 @@ import { WIP } from "../../src/token/WIP.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
-    address internal executor = address(0x456);
+    address internal executor = address(0x0);
     address internal guardian = address(0x789);
 
     address internal deployer = address(0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd);
@@ -33,7 +33,7 @@ contract Test is ForgeTest {
     function setUp() public virtual {
         GenerateAlloc initializer = new GenerateAlloc();
         initializer.disableStateDump(); // Faster tests. Don't call to verify JSON output
-        initializer.setAdminAddresses(admin, executor, guardian);
+        initializer.setTestAdminAddresses(admin, executor, guardian);
         initializer.run();
         ipTokenStaking = IPTokenStaking(Predeploys.Staking);
         upgradeEntrypoint = UpgradeEntrypoint(Predeploys.Upgrades);
