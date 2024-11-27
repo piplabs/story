@@ -6,7 +6,6 @@ pragma solidity 0.8.23;
  * @notice Predeploy addresses (match story/genutil/evm/predeploys.go)
  */
 library Predeploys {
-
     /// @notice Predeploys
     /// @dev Address reserved for ERC20 wrapper for Story's native token, address starts with
     /// Story mainnet chain ID
