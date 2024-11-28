@@ -49,7 +49,7 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
     /// @notice predecessor for the timelocked call
     bytes32 predecessor;
 
-    constructor(string memory _action, UpgradeModes _mode, Output _outputType) JSONBatchTxHelper() {
+    constructor(string memory _action, UpgradeModes _mode, Output _outputType, address _timelock) JSONBatchTxHelper() {
         if (_mode == UpgradeModes.UNSET) {
             revert("Mode must be set");
         }
@@ -59,14 +59,18 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
         }
         outputType = _outputType;
         action = _action;
+        address timelockAddress;
+        if (_timelock == address(0)) {
+            timelockAddress = Ownable2StepUpgradeable(Predeploys.Staking).owner();
+        } else {
+            timelockAddress = _timelock;
+        }
+        timelock = TimelockController(payable(timelockAddress));
     }
 
-    function run() public virtual {
-        // Get timelock address
-        // NOTE: This assumes the timelock is still the owner of the predeploys, change if this is not the case
-        address timelockAddress = Ownable2StepUpgradeable(Predeploys.Staking).owner();
-        timelock = TimelockController(payable(timelockAddress));
+    function run() public virtual {        
         minDelay = timelock.getMinDelay();
+        console2.log("Min delay: ", minDelay);
         _startOperation();
         // Read upgrade proposals file
         if (outputType == Output.BATCH_TX_JSON) {
@@ -104,7 +108,8 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
         if (outputType == Output.TX_EXECUTION) {
             timelock.schedule(target, value, data, _predecessor, _salt, minDelay);
         } else {
-            _saveAction(target, value, data, _predecessor, _salt, string.concat(action, "-", _modeDescription()));
+            bytes memory scheduleData = abi.encodeCall(TimelockController.schedule, (target, value, data, _predecessor, _salt, minDelay));
+            _saveTx(address(timelock), 0, scheduleData, string.concat(action, "-", _modeDescription()));
         }
     }
 
@@ -112,7 +117,8 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
         if (outputType == Output.TX_EXECUTION) {
             timelock.execute(target, value, data, _predecessor, _salt);
         } else {
-            _saveAction(target, value, data, _predecessor, _salt, string.concat(action, "-", _modeDescription()));
+            bytes memory executeData = abi.encodeCall(TimelockController.execute, (target, value, data, _predecessor, _salt));
+            _saveTx(address(timelock), 0, executeData, string.concat(action, "-", _modeDescription()));
         }
     }
 
@@ -120,7 +126,8 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
         if (outputType == Output.TX_EXECUTION) {
             timelock.cancel(timelock.hashOperation(target, value, data, _predecessor, _salt));
         } else {
-            _saveAction(target, value, data, _predecessor, _salt, string.concat(action, "-", _modeDescription()));
+            bytes memory cancelData = abi.encodeCall(TimelockController.cancel, (timelock.hashOperation(target, value, data, _predecessor, _salt)));
+            _saveTx(address(timelock), 0, cancelData, string.concat(action, "-", _modeDescription()));
         }
     }
 
@@ -144,23 +151,6 @@ abstract contract TimelockedOperations is Script, JSONBatchTxHelper {
             revert("Invalid mode");
         }
     }
-
-    function _saveAction(address target, uint256 value, bytes memory data, bytes32 _predecessor, bytes32 _salt, string memory _comment) internal {
-        if (predecessor == bytes32(0)) {
-            predecessor = _predecessor;
-        } else {
-            console2.log("Predecessor already set, ignoring: ");
-            console2.logBytes32(_predecessor);
-        }
-        if (salt == bytes32(0)) {
-            salt = _salt;
-        } else {
-            console2.log("Salt already set, ignoring: ");
-            console2.logBytes32(_salt);
-        }
-        _saveTx(target, value, data, _comment);
-    }
-
 
     function _modeDescription() internal view returns (string memory) {
         if (mode == UpgradeModes.SCHEDULE) {

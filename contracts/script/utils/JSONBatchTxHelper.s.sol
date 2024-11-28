@@ -58,7 +58,7 @@ contract JSONBatchTxHelper is Script {
         }
         json = string(abi.encodePacked(json, "]"));
 
-        string memory filename = string(abi.encodePacked("./deploy-out/", _action, "-", chainId, ".json"));
+        string memory filename = string(abi.encodePacked("./script/admin-actions/out/", _action, "-", chainId, ".json"));
         vm.writeFile(filename, json);
         console2.log("Wrote batch txs to ", filename);
     }
