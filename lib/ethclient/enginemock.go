@@ -457,21 +457,6 @@ func (m *engineMock) GetPayloadV3(ctx context.Context, payloadID engine.PayloadI
 	}, nil
 }
 
-// TODO(corver): Add support for V3
-
-func (*engineMock) NewPayloadV2(context.Context, engine.ExecutableData) (engine.PayloadStatusV1, error) {
-	panic("implement me")
-}
-
-func (*engineMock) ForkchoiceUpdatedV2(context.Context, engine.ForkchoiceStateV1, *engine.PayloadAttributes,
-) (engine.ForkChoiceResponse, error) {
-	panic("implement me")
-}
-
-func (*engineMock) GetPayloadV2(context.Context, engine.PayloadID) (*engine.ExecutionPayloadEnvelope, error) {
-	panic("implement me")
-}
-
 // MakePayload returns a new fuzzed payload using head as parent if provided.
 func MakePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHash common.Hash,
 	feeRecipient common.Address, randao common.Hash, beaconRoot *common.Hash) (engine.ExecutableData, error) {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmttypes "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -13,6 +14,11 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
+
+// processTimeout is the maximum time to process a proposal.
+// Timeout results in rejecting the proposal, which could negatively affect liveness.
+// But it avoids blocking forever, which also negatively affects liveness.
+const processTimeout = time.Second * 10
 
 // makeProcessProposalRouter creates a new process proposal router that only routes
 // expected messages to expected modules.
@@ -29,6 +35,11 @@ func makeProcessProposalRouter(app *App) *baseapp.MsgServiceRouter {
 // It also updates some external state.
 func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig client.TxConfig) sdk.ProcessProposalHandler {
 	return func(ctx sdk.Context, req *abci.RequestProcessProposal) (*abci.ResponseProcessProposal, error) {
+		// Only allow 10s to process a proposal. Reject proposal otherwise.
+		timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), processTimeout)
+		defer timeoutCancel()
+		ctx = ctx.WithContext(timeoutCtx)
+
 		// Ensure the proposal includes quorum vote extensions (unless first block).
 		if req.Height > 1 {
 			var totalPower, votedPower int64
@@ -82,6 +93,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 	}
 }
 
+//nolint:unparam // Explicitly return nil error
 func rejectProposal(ctx context.Context, err error) (*abci.ResponseProcessProposal, error) {
 	log.Error(ctx, "Rejecting process proposal", err)
 	return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil

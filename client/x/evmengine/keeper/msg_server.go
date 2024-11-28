@@ -97,10 +97,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		status, err := pushPayload(ctx, s.engineCl, payload)
-		if err != nil || isUnknown(status) {
+		if err != nil {
 			// We need to retry forever on networking errors, but can't easily identify them, so retry all errors.
-			log.Warn(ctx, "Processing finalized payload failed: push new payload to evm (will retry)", err,
-				"status", status.Status)
+			log.Warn(ctx, "Processing finalized payload failed: push new payload to evm (will retry)", err)
 
 			return false, nil // Retry
 		} else if invalid, err := isInvalid(status); invalid {
@@ -110,7 +109,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 			return false, err // Don't retry, error out.
 		} else if isSyncing(status) {
 			log.Warn(ctx, "Processing finalized payload; evm syncing", nil)
-		}
+		} /* else isValid(status) */
 
 		return true, nil // We are done, don't retry
 	})
@@ -127,10 +126,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		fcr, err := s.engineCl.ForkchoiceUpdatedV3(ctx, fcs, nil)
-		if err != nil || isUnknown(fcr.PayloadStatus) {
+		if err != nil {
 			// We need to retry forever on networking errors, but can't easily identify them, so retry all errors.
-			log.Warn(ctx, "Processing finalized payload failed: evm fork choice update (will retry)", err,
-				"status", fcr.PayloadStatus.Status)
+			log.Warn(ctx, "Processing finalized payload failed: evm fork choice update (will retry)", err)
 
 			return false, nil // Retry
 		} else if isSyncing(fcr.PayloadStatus) {
@@ -143,7 +141,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 				"payload_height", payload.Number)
 
 			return false, err // Don't retry
-		}
+		} /* else isValid(status) */
 
 		return true, nil
 	})
@@ -189,17 +187,6 @@ func pushPayload(ctx context.Context, engineCl ethclient.EngineClient, payload e
 }
 
 var _ types.MsgServiceServer = msgServer{}
-
-func isUnknown(status engine.PayloadStatusV1) bool {
-	if status.Status == engine.VALID ||
-		status.Status == engine.INVALID ||
-		status.Status == engine.SYNCING ||
-		status.Status == engine.ACCEPTED {
-		return false
-	}
-
-	return true
-}
 
 func isSyncing(status engine.PayloadStatusV1) bool {
 	return status.Status == engine.SYNCING || status.Status == engine.ACCEPTED

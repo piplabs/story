@@ -117,7 +117,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name: "forkchoiceUpdateV2 not valid",
+				name: "forkchoiceUpdateV3 not valid",
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
@@ -408,31 +408,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			postStateCheck: payloadFailedToSet,
 		},
 		{
-			name: "fail: unknown status from EL",
-			mockEngine: mockEngineAPI{
-				forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
-					payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
-					return eengine.ForkChoiceResponse{
-						PayloadStatus: eengine.PayloadStatusV1{
-							Status:          "unknown status",
-							LatestValidHash: nil,
-							ValidationError: nil,
-						},
-						PayloadID: &payloadID,
-					}, nil
-				},
-			},
-			mockClient:       mock.MockClient{},
-			wantErr:          false,
-			enableOptimistic: true,
-			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
-				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
-				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
-			},
-			postStateCheck: payloadFailedToSet,
-		},
-		{
 			name: "pass",
 			mockEngine: mockEngineAPI{
 				forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
@@ -693,10 +668,6 @@ func (m *mockEngineAPI) HeaderByType(ctx context.Context, typ ethclient.HeadType
 	}
 
 	return m.mock.HeaderByType(ctx, typ)
-}
-
-func (m *mockEngineAPI) NewPayloadV2(ctx context.Context, params eengine.ExecutableData) (eengine.PayloadStatusV1, error) {
-	return m.mock.NewPayloadV2(ctx, params)
 }
 
 //nolint:nonamedreturns // Required for defer
