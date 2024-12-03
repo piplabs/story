@@ -25,11 +25,8 @@ func newRollbackCmd(appCreateFunc func(context.Context, app.Config) *app.App) *c
 A state rollback is performed to recover from an incorrect application state transition,
 when CometBFT has persisted an incorrect app hash and is thus unable to make
 progress. Rollback overwrites a state at height n with the state at height n - X.
-The application also rolls back to height n - X. If --hard=true, the block
-itself will also be deleted and re-downloaded from the p2p network. Note that
-different blocks from n - X to n cannot be re-built/re-proposed since that would result in validator slashing.
-If --hard=false, No blocks are removed, so upon restarting CometBFT the transactions in blocks [n - X + 1, n]
-will be re-executed against the application.
+The application also rolls back to height n - X. No blocks are removed, so upon restarting
+CometBFT the transactions in blocks [n - X + 1, n] will be re-executed against the application.
 `,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx, err := log.Init(cmd.Context(), logCfg)
