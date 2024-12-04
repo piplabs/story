@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,6 +20,11 @@ func UncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 	// Extract x and y coordinates from the uncompressed public key
 	x := uncmpPubKey[1:33]
 	y := uncmpPubKey[33:]
+
+	// Check if the point is on the curve
+	if !secp256k1.S256().IsOnCurve(new(big.Int).SetBytes(x), new(big.Int).SetBytes(y)) {
+		return nil, errors.New("invalid uncompressed public key, not on curve")
+	}
 
 	// Determine if y is even or odd by checking the last byte of y
 	var prefix byte
