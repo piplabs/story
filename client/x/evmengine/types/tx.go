@@ -8,12 +8,17 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// ToEthLog converts an EVMEvent to an Ethereum Log.
-// Note it assumes that Verify has been called before.
+/*
+ToEthLog converts an EVMEvent to an Ethereum Log.
+Note:
+1. It assumes that Verify has been called before.
+2. It's only used for events from the story contracts.
+*/
 func (l *EVMEvent) ToEthLog() (ethtypes.Log, error) {
 	if l == nil {
 		return ethtypes.Log{}, errors.New("nil log")
 	} else if len(l.Topics) == 0 {
+		// Events of story contracts are expected to have topics.
 		return ethtypes.Log{}, errors.New("empty topics")
 	}
 	topics := make([]common.Hash, 0, len(l.Topics))
