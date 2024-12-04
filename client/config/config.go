@@ -74,7 +74,7 @@ var (
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
 		EVMBuildDelay:      defaultEVMBuildDelay,
-		EVMBuildOptimistic: false,
+		EVMBuildOptimistic: true,
 		APIEnable:          false,
 		APIAddress:         "127.0.0.1:1317",
 		EnableUnsafeCORS:   false,
