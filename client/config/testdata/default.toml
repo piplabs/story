@@ -71,6 +71,21 @@ api-address = "127.0.0.1:1317"
 # EnableUnsafeCORS defines whether to enable CORS for API server.
 enabled-unsafe-cors = false
 
+# ReadTimeout defines the API server read timeout (in seconds).
+read-timeout = 10
+
+# ReadHeaderTimeout defines the API server read header timeout (in seconds).
+read-header-timeout = 10
+
+# WriteTimeout defines the API server write timeout (in seconds).
+write-timeout = 10
+
+# IdleTimeout defines the API server idle timeout (in seconds).
+idle-timeout = 10
+
+# MaxHeaderBytes defines the API server max header (in bytes).
+max-header-bytes = 8192
+
 #######################################################################
 ###                         Logging Options                         ###
 #######################################################################

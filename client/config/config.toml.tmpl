@@ -62,14 +62,30 @@ evm-build-delay = "{{ .EVMBuildDelay }}"
 # more time for block building while ensuring faster consensus blocks.
 evm-build-optimistic = {{ .EVMBuildOptimistic }}
 
+[api]
 # APIEnable defines if the API server should be enabled.
-api-enable = {{ .APIEnable }}
+api-enable = {{ .API.APIEnable }}
 
 # APIAddress defines the API server address to listen on.
-api-address = "{{ .APIAddress }}"
+api-address = "{{ .API.APIAddress }}"
 
 # EnableUnsafeCORS defines whether to enable CORS for API server.
-enabled-unsafe-cors = {{ .EnableUnsafeCORS }}
+enabled-unsafe-cors = {{ .API.EnableUnsafeCORS }}
+
+# ReadTimeout defines the API server read timeout (in seconds).
+read-timeout = {{ .API.ReadTimeout }}
+
+# ReadHeaderTimeout defines the API server read header timeout (in seconds).
+read-header-timeout = {{ .API.ReadHeaderTimeout }}
+
+# WriteTimeout defines the API server write timeout (in seconds).
+write-timeout = {{ .API.WriteTimeout }}
+
+# IdleTimeout defines the API server idle timeout (in seconds).
+idle-timeout = {{ .API.IdleTimeout }}
+
+# MaxHeaderBytes defines the API server max header (in bytes).
+max-header-bytes = {{ .API.MaxHeaderBytes }}
 
 #######################################################################
 ###                         Logging Options                         ###

@@ -54,7 +54,7 @@ type Server struct {
 	aminoCodec *codec.LegacyAmino
 }
 
-func NewServer(store Store, cl rpcclient.Client, listenAddress string, enableUnsafeCORS bool) (*Server, error) {
+func NewServer(cfg *Config, store Store, cl rpcclient.Client) (*Server, error) {
 	s := &Server{
 		errChan: make(chan error),
 		store:   store,
@@ -68,17 +68,18 @@ func NewServer(store Store, cl rpcclient.Client, listenAddress string, enableUns
 	s.registerHandle()
 
 	var svrHandler http.Handler = s.httpMux
-	if enableUnsafeCORS {
+	if cfg.EnableUnsafeCORS {
 		svrHandler = handlers.CORS()(s.httpMux)
 	}
+
 	s.httpServer = &http.Server{
-		Addr:              listenAddress,
+		Addr:              cfg.APIAddress,
 		Handler:           svrHandler,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       10 * time.Second,
-		MaxHeaderBytes:    8 << 10,
+		ReadTimeout:       time.Duration(cfg.ReadTimeout) * time.Second,
+		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeout) * time.Second,
+		WriteTimeout:      time.Duration(cfg.WriteTimeout) * time.Second,
+		IdleTimeout:       time.Duration(cfg.IdleTimeout) * time.Second,
+		MaxHeaderBytes:    int(cfg.MaxHeaderBytes),
 	}
 
 	return s, nil

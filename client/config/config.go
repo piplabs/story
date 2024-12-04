@@ -14,6 +14,7 @@ import (
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	db "github.com/cosmos/cosmos-db"
 
+	apisvr "github.com/piplabs/story/client/server"
 	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -54,9 +55,7 @@ var (
 		PruningOption:      pruningtypes.PruningOptionDefault,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: false,
-		APIEnable:          false,
-		APIAddress:         "127.0.0.1:1317",
-		EnableUnsafeCORS:   false,
+		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
 		RPCLaddr:           "tcp://127.0.0.1:26657",
 		ExternalAddress:    "",
@@ -75,9 +74,7 @@ var (
 		PruningOption:      pruningtypes.PruningOptionDefault,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: true,
-		APIEnable:          false,
-		APIAddress:         "127.0.0.1:1317",
-		EnableUnsafeCORS:   false,
+		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
 		RPCLaddr:           "tcp://127.0.0.1:26657",
 		ExternalAddress:    "",
@@ -96,9 +93,7 @@ var (
 		PruningOption:      pruningtypes.PruningOptionDefault,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: false,
-		APIEnable:          false,
-		APIAddress:         "127.0.0.1:1317",
-		EnableUnsafeCORS:   false,
+		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
 		RPCLaddr:           "tcp://127.0.0.1:26657",
 		ExternalAddress:    "",
@@ -121,9 +116,7 @@ func DefaultConfig() Config {
 		PruningOption:      defaultPruningOption,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: defaultEVMBuildOptimistic,
-		APIEnable:          false,
-		APIAddress:         "127.0.0.1:1317",
-		EnableUnsafeCORS:   false,
+		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
 		RPCLaddr:           "tcp://127.0.0.1:26657",
 		ExternalAddress:    "",
@@ -173,9 +166,7 @@ type Config struct {
 	PruningOption      string // See cosmossdk.io/store/pruning/types/options.go
 	EVMBuildDelay      time.Duration
 	EVMBuildOptimistic bool
-	APIEnable          bool
-	APIAddress         string
-	EnableUnsafeCORS   bool
+	API                apisvr.Config
 	Tracer             tracer.Config
 	RPCLaddr           string
 	ExternalAddress    string

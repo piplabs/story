@@ -11,9 +11,16 @@
  "PruningOption": "nothing",
  "EVMBuildDelay": 600000000,
  "EVMBuildOptimistic": true,
- "APIEnable": false,
- "APIAddress": "127.0.0.1:1317",
- "EnableUnsafeCORS": false,
+ "API": {
+  "APIEnable": false,
+  "APIAddress": "127.0.0.1:1317",
+  "EnableUnsafeCORS": false,
+  "ReadTimeout": 10,
+  "ReadHeaderTimeout": 10,
+  "WriteTimeout": 10,
+  "IdleTimeout": 10,
+  "MaxHeaderBytes": 8192
+ },
  "Tracer": {
   "Endpoint": "",
   "Headers": ""
