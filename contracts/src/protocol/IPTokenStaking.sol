@@ -443,6 +443,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             "IPTokenStaking: Redelegating to same validator"
         );
         (uint256 stakeAmount, ) = roundedStakeAmount(amount);
+        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
 
         emit Redelegate(

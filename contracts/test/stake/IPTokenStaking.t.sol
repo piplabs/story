@@ -487,6 +487,8 @@ contract IPTokenStakingTest is Test {
             stakeAmount
         );
 
+        delegationId--;
+
         // Revert if fee is not paid
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
@@ -496,6 +498,18 @@ contract IPTokenStakingTest is Test {
             validatorUncmpDstPubkey,
             delegationId,
             stakeAmount
+        );
+
+        // Stake < Min
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Stake amount under min");
+        ipTokenStaking.redelegate{ value: feeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount - 1
         );
     }
 
@@ -582,6 +596,7 @@ contract IPTokenStakingTest is Test {
             delegationId,
             stakeAmount
         );
+        delegationId--;
 
         // Revert if fee is not paid
         vm.prank(operator);
@@ -592,6 +607,18 @@ contract IPTokenStakingTest is Test {
             validatorUncmpDstPubkey,
             delegationId,
             stakeAmount
+        );
+
+        // Stake < Min
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Stake amount under min");
+        ipTokenStaking.redelegateOnBehalf{ value: feeAmount }(
+            delegatorUncmpPubkey,
+            validatorUncmpSrcPubkey,
+            validatorUncmpDstPubkey,
+            delegationId,
+            stakeAmount - 1
         );
     }
 
