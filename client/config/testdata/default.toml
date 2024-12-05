@@ -62,6 +62,7 @@ evm-build-delay = "600ms"
 # more time for block building while ensuring faster consensus blocks.
 evm-build-optimistic = true
 
+[api]
 # APIEnable defines if the API server should be enabled.
 api-enable = false
 
