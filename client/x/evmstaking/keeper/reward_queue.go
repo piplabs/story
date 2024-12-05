@@ -41,7 +41,7 @@ func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
 			Index: front + uint64(i), // increment front by i to get the correct index in the loop
-			// used to distinguish between unstake and reward withdrawals as EL does not care about the value
+			// used to distinguish different types of withdrawals as EL does not use the value
 			Validator: uint64(withdrawal.WithdrawalType),
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
@@ -79,7 +79,7 @@ func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint3
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
 			Index: front + uint64(i), // increment front by i to get the correct index in the loop
-			// used to distinguish between unstake and reward withdrawals as EL does not care about the value
+			// used to distinguish different types of withdrawals as EL does not use the value
 			Validator: uint64(withdrawal.WithdrawalType),
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
