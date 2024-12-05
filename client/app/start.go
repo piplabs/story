@@ -146,9 +146,9 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}
 
 	var apiSvr *apisvr.Server
-	if cfg.API.APIEnable {
+	if cfg.API.Enable {
 		log.Info(ctx, "Starting API server",
-			"api_address", cfg.API.APIAddress,
+			"api_address", cfg.API.Address,
 			"enable_unsafe_cors", cfg.API.EnableUnsafeCORS,
 		)
 		apiSvr, err = apisvr.NewServer(&cfg.API, app, rpcClient)
@@ -171,7 +171,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 
 		// Note that cometBFT doesn't shut down cleanly. It leaves a bunch of goroutines running...
 
-		if cfg.API.APIEnable {
+		if cfg.API.Enable {
 			if err := apiSvr.Stop(ctx); err != nil {
 				return errors.Wrap(err, "stop API server")
 			}

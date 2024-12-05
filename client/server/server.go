@@ -73,7 +73,7 @@ func NewServer(cfg *Config, store Store, cl rpcclient.Client) (*Server, error) {
 	}
 
 	s.httpServer = &http.Server{
-		Addr:              cfg.APIAddress,
+		Addr:              cfg.Address,
 		Handler:           svrHandler,
 		ReadTimeout:       time.Duration(cfg.ReadTimeout) * time.Second,
 		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeout) * time.Second,
