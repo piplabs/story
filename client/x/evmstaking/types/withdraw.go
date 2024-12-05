@@ -25,10 +25,11 @@ func (ws Withdrawals) Len() int {
 }
 
 // TODO amount as math.Int.
-func NewWithdrawal(creationHeight uint64, executionAddr string, amount uint64) Withdrawal {
+func NewWithdrawal(creationHeight uint64, executionAddr string, amount uint64, withdrawalType WithdrawalType) Withdrawal {
 	return Withdrawal{
 		CreationHeight:   creationHeight,
 		ExecutionAddress: executionAddr,
 		Amount:           amount,
+		WithdrawalType:   withdrawalType,
 	}
 }

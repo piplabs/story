@@ -33,8 +33,8 @@ func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 		return nil, errors.Wrap(err, "process staking EndBlocker")
 	}
 
-	if err := k.ProcessUnbondingWithdrawals(ctx, unbondedEntries); err != nil {
-		return nil, errors.Wrap(err, "process unbonding withdrawals")
+	if err := k.ProcessUnstakeWithdrawals(ctx, unbondedEntries); err != nil {
+		return nil, errors.Wrap(err, "process unstake withdrawals")
 	}
 
 	if err := k.ProcessRewardWithdrawals(ctx); err != nil {
