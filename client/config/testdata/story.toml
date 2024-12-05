@@ -74,7 +74,7 @@ enable = false
 address = "127.0.0.1:1317"
 
 # EnableUnsafeCORS defines whether to enable CORS for API server.
-enabled-unsafe-cors = false
+enable-unsafe-cors = false
 
 # ReadTimeout defines the API server read timeout (in seconds).
 read-timeout = 10
