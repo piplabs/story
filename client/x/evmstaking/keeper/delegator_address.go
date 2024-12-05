@@ -106,7 +106,7 @@ func (k Keeper) ProcessSetOperator(ctx context.Context, ev *bindings.IPTokenStak
 		}
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			sdk.NewEvent(
-				types.EventTypeAddOperatorFailure,
+				types.EventTypeSetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
@@ -145,7 +145,7 @@ func (k Keeper) ProcessUnsetOperator(ctx context.Context, ev *bindings.IPTokenSt
 		}
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			sdk.NewEvent(
-				types.EventTypeRemoveOperatorFailure,
+				types.EventTypeUnsetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
