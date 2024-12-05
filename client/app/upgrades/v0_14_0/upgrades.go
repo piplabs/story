@@ -1,5 +1,5 @@
 //nolint:revive,stylecheck // version underscores
-package v0_13_2
+package v0_14_0
 
 import (
 	"context"
@@ -50,9 +50,11 @@ func CreateUpgradeHandler(
 		}
 
 		log.Info(ctx, "Removing old UnbondingID...")
-		// TODO: Remove old UnbondingID
+		if err := keepers.StakingKeeper.RemoveOldUnbondingID(ctx); err != nil {
+			return vm, errors.Wrap(err, "failed to remove old UnbondingID")
+		}
 
-		log.Info(ctx, "Upgrade v0.13.2 complete")
+		log.Info(ctx, "Upgrade v0.14.0 complete")
 
 		return vm, nil
 	}

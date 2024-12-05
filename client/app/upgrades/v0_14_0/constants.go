@@ -1,5 +1,5 @@
 //nolint:revive,stylecheck // version underscores
-package v0_13_2
+package v0_14_0
 
 import (
 	storetypes "cosmossdk.io/store/types"
@@ -7,7 +7,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades"
 )
 
-const UpgradeName = "v0.13.2"
+const UpgradeName = "v0.14.0"
 
 var Upgrade = upgrades.Upgrade{
 	UpgradeName:          UpgradeName,
