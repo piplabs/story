@@ -184,7 +184,7 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	if cmtos.FileExists(cmtConfigFile) {
 		log.Info(ctx, "Found comet config file", "path", cmtConfigFile)
 	} else {
-		cmtconfig.WriteConfigFile(cmtConfigFile, &comet) // This panics on any error :(
+		WriteConfigFile(cmtConfigFile, &comet) // This panics on any error :(
 		log.Info(ctx, "Generated default comet config file", "path", cmtConfigFile)
 	}
 
