@@ -30,6 +30,7 @@ func DefaultCometConfig(homeDir string) cfg.Config {
 	conf.StateSync.DiscoveryTime = time.Second * 10        // Increase discovery time
 	conf.StateSync.ChunkRequestTimeout = time.Minute       // Increase timeout
 	conf.Mempool.Type = cfg.MempoolTypeNop                 // Disable cometBFT mempool
+	conf.Mempool.Broadcast = false                         // Disable mempool broadcast
 	conf.Consensus.TimeoutCommit = 2000 * time.Millisecond // Increase block time
 
 	return *conf
