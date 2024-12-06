@@ -62,14 +62,34 @@ evm-build-delay = "600ms"
 # more time for block building while ensuring faster consensus blocks.
 evm-build-optimistic = true
 
-# APIEnable defines if the API server should be enabled.
-api-enable = false
+#######################################################################
+###                           API Options                           ###
+#######################################################################
 
-# APIAddress defines the API server address to listen on.
-api-address = "127.0.0.1:1317"
+[api]
+# Enable defines if the API server should be enabled.
+enable = false
+
+# Address defines the API server address to listen on.
+address = "127.0.0.1:1317"
 
 # EnableUnsafeCORS defines whether to enable CORS for API server.
-enabled-unsafe-cors = false
+enable-unsafe-cors = false
+
+# ReadTimeout defines the API server read timeout (in seconds).
+read-timeout = 10
+
+# ReadHeaderTimeout defines the API server read header timeout (in seconds).
+read-header-timeout = 10
+
+# WriteTimeout defines the API server write timeout (in seconds).
+write-timeout = 10
+
+# IdleTimeout defines the API server idle timeout (in seconds).
+idle-timeout = 10
+
+# MaxHeaderBytes defines the API server max header (in bytes).
+max-header-bytes = 8192
 
 #######################################################################
 ###                         Logging Options                         ###
