@@ -845,7 +845,7 @@ func (s *TestSuite) setupValidatorAndDelegation(ctx context.Context, valPubKey, 
 
 func createCorruptedPubKey(pubKey []byte) []byte {
 	corruptedPubKey := append([]byte(nil), pubKey...)
-	corruptedPubKey[0] = 0x03
+	// corruptedPubKey[0] = 0x03
 	corruptedPubKey[1] = 0xFF
 
 	return corruptedPubKey
