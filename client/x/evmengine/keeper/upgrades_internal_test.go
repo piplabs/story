@@ -278,7 +278,7 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
 	require.NoError(t, err)
 	keeper.SetCometAPI(cmtAPI)
-	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
+	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
 	require.NoError(t, err)
 	keeper.SetValidatorAddress(nxtAddr)
 	populateGenesisHead(ctx, t, keeper)
