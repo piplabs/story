@@ -1,4 +1,3 @@
-//nolint:paralleltest // Parallel tests not supported since test-alias globals are used.
 package expbackoff_test
 
 import (

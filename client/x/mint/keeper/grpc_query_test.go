@@ -1,4 +1,3 @@
-//nolint:paralleltest // just for testing
 package keeper_test
 
 import (

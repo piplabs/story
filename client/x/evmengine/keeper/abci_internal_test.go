@@ -316,7 +316,6 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	})
 }
 
-
 func TestKeeper_PostFinalize(t *testing.T) {
 	payloadID := eengine.PayloadID{0x1}
 	payloadFailedToSet := func(k *Keeper) {
