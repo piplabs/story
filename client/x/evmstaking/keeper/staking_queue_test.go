@@ -1,6 +1,5 @@
 package keeper_test
 
-/*
 import (
 	"context"
 	"time"
@@ -53,12 +52,16 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 
 	tcs := []struct {
 		name           string
+		preRun         func(c context.Context)
 		setUnbondings  func(c context.Context)
 		expectedResult []stypes.DVPair
 		expectedError  string
 	}{
 		{
 			name: "pass: no matured unbondings",
+			preRun: func(c context.Context) {
+				// s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+			},
 			setUnbondings: func(c context.Context) {
 				s.setupUnbonding(c, delAddr, valAddr1, "100")
 				s.setupUnbonding(c, delAddr, valAddr2, "100")
@@ -67,6 +70,9 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 		},
 		{
 			name: "pass: one matured and one not matured unbonding",
+			preRun: func(c context.Context) {
+				// s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+			},
 			setUnbondings: func(c context.Context) {
 				s.setupMatureUnbonding(c, delAddr, valAddr1, "100", ubdTime)
 				s.setupUnbonding(c, delAddr, valAddr2, "100")
@@ -77,6 +83,9 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 		},
 		{
 			name: "pass: two matured unbondings",
+			preRun: func(c context.Context) {
+				// s.BankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.NotBondedPoolName, stypes.BondedPoolName, gomock.Any())
+			},
 			setUnbondings: func(c context.Context) {
 				s.setupMatureUnbonding(c, delAddr, valAddr1, "100", ubdTime)
 				s.setupMatureUnbonding(c, delAddr, valAddr2, "100", ubdTime)
@@ -91,6 +100,9 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 	for _, tc := range tcs {
 		s.Run(tc.name, func() {
 			cachedCtx, _ := ctx.CacheContext()
+			if tc.preRun != nil {
+				tc.preRun(cachedCtx)
+			}
 			if tc.setUnbondings != nil {
 				tc.setUnbondings(cachedCtx)
 			}
@@ -107,4 +119,3 @@ func (s *TestSuite) TestGetMatureUnbondedDelegations() {
 		})
 	}
 }
-*/
