@@ -306,8 +306,8 @@ replace (
 
 	github.com/cometbft/cometbft v0.38.12 => github.com/cometbft/cometbft v0.38.9
 
-	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.10-piplabs-v0.1
+	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.10, current branch: piplabs/v0.50.10
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.10-piplabs-v0.3
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
