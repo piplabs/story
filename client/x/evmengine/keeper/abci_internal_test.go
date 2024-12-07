@@ -60,7 +60,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	// such as when no transactions are provided, when errors occur while fetching block information,
 	// or when errors occur during fork choice update.
 	t.Run("TestRunErrScenarios", func(t *testing.T) {
-		t.Parallel()
+		// t.Parallel() // disable parallel testing for now
 		tests := []struct {
 			name       string
 			mockEngine mockEngineAPI
@@ -70,7 +70,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 			setupMocks func(esk *moduletestutil.MockEvmStakingKeeper)
 		}{
 			{
-				name:       "no transactions",
+				name:       "pass: no transactions",
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				req: &abci.RequestPrepareProposal{
@@ -82,14 +82,14 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: false,
 			},
 			{
-				name:       "max bytes is less than 9/10 of max block size",
+				name:       "fail: max bytes is less than 9/10 of max block size",
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				req:        &abci.RequestPrepareProposal{MaxTxBytes: cmttypes.MaxBlockSizeBytes * 1 / 10},
 				wantErr:    true,
 			},
 			{
-				name:       "with transactions",
+				name:       "fail: with transactions",
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				req: &abci.RequestPrepareProposal{
@@ -101,7 +101,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name:       "failed to peek eligible withdrawals",
+				name:       "fail: peek eligible withdrawals",
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
@@ -117,7 +117,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name: "forkchoiceUpdateV3 not valid",
+				name: "fail: forkchoiceUpdateV3 not valid",
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
@@ -153,7 +153,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 			},
 			{
-				name: "unknown payload",
+				name: "fail: unknown payload",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
 						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
@@ -185,7 +185,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 			},
 			{
-				name: "optimistic payload exists but unknown payload is returned by EL",
+				name: "fail: optimistic payload exists but unknown payload is returned by EL",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
 						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
@@ -219,7 +219,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
+				// t.Parallel()
 				ctx, storeKey, storeService := setupCtxStore(t, nil)
 				cdc := getCodec(t)
 				txConfig := authtx.NewTxConfig(cdc, nil)
@@ -316,7 +316,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	})
 }
 
-//nolint:paralleltest // no parallel test for now
+
 func TestKeeper_PostFinalize(t *testing.T) {
 	payloadID := eengine.PayloadID{0x1}
 	payloadFailedToSet := func(k *Keeper) {
@@ -334,15 +334,26 @@ func TestKeeper_PostFinalize(t *testing.T) {
 		mockClient       mock.MockClient
 		wantErr          bool
 		enableOptimistic bool
+		isNextProposer   bool
 		setupMocks       func(esk *moduletestutil.MockEvmStakingKeeper)
 		postStateCheck   func(k *Keeper)
 	}{
 		{
-			name:             "nothing happens when enableOptimistic is false",
+			name:             "pass: nothing happens when enableOptimistic is false",
 			mockEngine:       mockEngineAPI{},
 			mockClient:       mock.MockClient{},
 			wantErr:          false,
 			enableOptimistic: false,
+			isNextProposer:   false,
+			postStateCheck:   payloadFailedToSet,
+		},
+		{
+			name:             "pass: node is not next proposer",
+			mockEngine:       mockEngineAPI{},
+			mockClient:       mock.MockClient{},
+			wantErr:          false,
+			enableOptimistic: true,
+			isNextProposer:   false,
 			postStateCheck:   payloadFailedToSet,
 		},
 		{
@@ -351,6 +362,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			mockClient:       mock.MockClient{},
 			wantErr:          false,
 			enableOptimistic: true,
+			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
@@ -375,6 +387,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			mockClient:       mock.MockClient{},
 			wantErr:          false,
 			enableOptimistic: true,
+			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -400,6 +413,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			mockClient:       mock.MockClient{},
 			wantErr:          false,
 			enableOptimistic: true,
+			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -408,7 +422,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			postStateCheck: payloadFailedToSet,
 		},
 		{
-			name: "pass",
+			name: "pass: optimistic build payload",
 			mockEngine: mockEngineAPI{
 				forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
 					payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
@@ -425,6 +439,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			mockClient:       mock.MockClient{},
 			wantErr:          false,
 			enableOptimistic: true,
+			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -453,11 +468,19 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			var err error
 
 			cmtAPI := newMockCometAPI(t, nil)
+
 			// set the header and proposer so we have the correct next proposer
 			header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes()}
-			header.ProposerAddress = cmtAPI.validatorSet.Validators[0].Address
-			nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
+			header.ProposerAddress = cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.Address
+
+			var nxtAddr common.Address
+			if tt.isNextProposer {
+				nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
+			} else {
+				nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(2).Proposer.PubKey)
+			}
 			require.NoError(t, err)
+
 			ctx, storeKey, storeService := setupCtxStore(t, &header)
 			ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
 			tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
