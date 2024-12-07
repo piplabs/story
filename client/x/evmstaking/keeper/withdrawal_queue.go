@@ -40,8 +40,9 @@ func (k Keeper) DequeueEligibleWithdrawals(ctx context.Context, maxDequeue uint3
 			return nil, err
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
-			Index:     front + i, // increment front by i to get the correct index in the loop
-			Validator: 0,         // does not matter for EL
+			Index: front + i, // increment front by i to get the correct index in the loop
+			// used to distinguish different types of withdrawals as EL does not use the value
+			Validator: uint64(withdrawal.WithdrawalType),
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
 		})
@@ -77,8 +78,9 @@ func (k Keeper) PeekEligibleWithdrawals(ctx context.Context, maxPeek uint32) (wi
 			return nil, err
 		}
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
-			Index:     front + i, // increment front by i to get the correct index in the loop
-			Validator: 0,         // does not matter for EL
+			Index: front + i, // increment front by i to get the correct index in the loop
+			// used to distinguish different types of withdrawals as EL does not use the value
+			Validator: uint64(withdrawal.WithdrawalType),
 			Address:   common.HexToAddress(withdrawal.ExecutionAddress),
 			Amount:    withdrawal.Amount,
 		})

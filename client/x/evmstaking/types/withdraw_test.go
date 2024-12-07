@@ -39,22 +39,22 @@ func (suite *WithdrawTestSuite) TestString() {
 	}{
 		{
 			name:           "Normal values",
-			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 100),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" amount:100 ", suite.evmAddr.String()),
 		},
 		{
 			name:           "Empty addresses",
-			withdrawal:     types.NewWithdrawal(1, "", 1),
+			withdrawal:     types.NewWithdrawal(1, "", 1, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 			expectedString: "creation_height:1 amount:1 ",
 		},
 		{
 			name:           "Large amount",
-			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), math.MaxUint64),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), math.MaxUint64, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" amount:%s ", suite.evmAddr.String(), new(big.Int).SetUint64(math.MaxUint64).String()),
 		},
 		{
 			name:           "Zero amount",
-			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 0),
+			withdrawal:     types.NewWithdrawal(1, suite.evmAddr.String(), 0, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 			expectedString: fmt.Sprintf("creation_height:1 execution_address:\"%s\" ", suite.evmAddr.String()),
 		},
 	}
@@ -72,8 +72,8 @@ func (suite *WithdrawTestSuite) TestWithdrawalsString() {
 	require := suite.Require()
 	ws := types.Withdrawals{
 		Withdrawals: []types.Withdrawal{
-			types.NewWithdrawal(1, suite.evmAddr.String(), 1),
-			types.NewWithdrawal(2, suite.evmAddr.String(), 2),
+			types.NewWithdrawal(1, suite.evmAddr.String(), 1, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
+			types.NewWithdrawal(2, suite.evmAddr.String(), 2, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 		},
 	}
 
@@ -90,8 +90,8 @@ func (suite *WithdrawTestSuite) TestWithdrawalsLen() {
 	require := suite.Require()
 	ws := types.Withdrawals{
 		Withdrawals: []types.Withdrawal{
-			types.NewWithdrawal(1, suite.evmAddr.String(), 1),
-			types.NewWithdrawal(2, suite.evmAddr.String(), 2),
+			types.NewWithdrawal(1, suite.evmAddr.String(), 1, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
+			types.NewWithdrawal(2, suite.evmAddr.String(), 2, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
 		},
 	}
 

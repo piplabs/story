@@ -23,7 +23,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
+func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
 	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
 
 	for _, entry := range unbondedEntries {
@@ -32,7 +32,7 @@ func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries
 			return errors.Wrap(err, "delegator address from bech32")
 		}
 
-		log.Debug(ctx, "Adding undelegation to withdrawal queue",
+		log.Debug(ctx, "Adding unstake to withdrawal queue",
 			"delegator", entry.DelegatorAddress,
 			"validator", entry.ValidatorAddress,
 			"amount", entry.Amount.String())
@@ -60,9 +60,10 @@ func (k Keeper) ProcessUnbondingWithdrawals(ctx context.Context, unbondedEntries
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			delEvmAddr,
 			entry.Amount.Uint64(),
+			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
 		))
 		if err != nil {
-			return errors.Wrap(err, "add unbonding withdrawal to queue")
+			return errors.Wrap(err, "add unstake withdrawal to queue")
 		}
 	}
 
@@ -308,6 +309,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 		withdrawalEVMAddr,
 		delRewardUint64,
+		types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
 	)); err != nil {
 		return errors.Wrap(err, "add reward withdrawal to queue")
 	}

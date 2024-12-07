@@ -6,6 +6,12 @@ import "cosmos_proto/cosmos.proto";
 
 option go_package = "client/x/evmstaking/types";
 
+enum WithdrawalType {
+  WITHDRAWAL_TYPE_UNSTAKE = 0;
+  WITHDRAWAL_TYPE_REWARD = 1;
+  WITHDRAWAL_TYPE_UBI = 2;
+}
+
 message Withdrawal {
   option (gogoproto.equal) = true;
   option (gogoproto.goproto_getters) = false;
@@ -22,5 +28,8 @@ message Withdrawal {
     // (gogoproto.customtype) = "cosmossdk.io/math.Int",
     // (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"amount\""
+  ];
+  WithdrawalType withdrawal_type = 4 [
+    (gogoproto.moretags) = "yaml:\"withdrawal_type\""
   ];
 }
