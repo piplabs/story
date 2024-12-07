@@ -93,6 +93,7 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 			return nil, err
 		}
 		triggeredAt = time.Now()
+		log.Debug(ctx, "Started non-optimistic payload", "height", req.Height, "payload", payloadID.String())
 	} else {
 		log.Info(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
 	}
@@ -183,12 +184,11 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 
 	// Extract context values
 	height := ctx.BlockHeight()
-	proposer := ctx.BlockHeader().ProposerAddress
 	timestamp := ctx.BlockTime()
 	appHash := common.BytesToHash(ctx.BlockHeader().AppHash) // This is the app hash after the block is finalized.
 
 	// Maybe start building the next block if we are the next proposer.
-	isNext, err := k.isNextProposer(ctx, proposer, height)
+	isNext, err := k.isNextProposer(ctx, height)
 	if err != nil {
 		// IsNextProposer does non-deterministic cometBFT queries, don't stall node due to errors.
 		log.Warn(ctx, "Next proposer failed, skipping optimistic EVM payload build", err)

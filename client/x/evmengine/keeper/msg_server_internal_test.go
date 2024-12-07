@@ -46,7 +46,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 	// set the header and proposer so we have the correct next proposer
 	header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes()}
 	header.ProposerAddress = cmtAPI.validatorSet.Validators[0].Address
-	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.Validators[1].PubKey)
+	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
 	require.NoError(t, err)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
