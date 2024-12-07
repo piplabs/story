@@ -193,7 +193,7 @@ func (k *Keeper) isNextProposer(ctx context.Context, currentHeight int64) (bool,
 	}
 
 	nextProposer := valset.CopyIncrementProposerPriority(1).Proposer
-	nextAddr, err := k1util.PubKeyToAddress(nextProposer.PubKey)
+	nextAddr, err := k1util.PubKeyToAddress(nextProposer.PubKey) // Convert to EVM address
 	if err != nil {
 		return false, err
 	}
