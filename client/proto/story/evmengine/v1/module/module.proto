@@ -1,14 +1,14 @@
 syntax = "proto3";
-package client.x.evmstaking.module;
+package story.evmengine.v1.module;
 
 import "cosmos/app/v1alpha1/module.proto";
 
-option go_package = "client/x/evmstaking/module";
+option go_package = "github.com/piplabs/story/client/x/evmengine/module";
 
-// ModuleName is the config object for the evmstaking module.
+// Module is the config object for the evmengine module.
 message Module {
   option (cosmos.app.v1alpha1.module) = {
-    go_import: "github.com/piplabs/story/client/x/evmstaking"
+    go_import: "github.com/piplabs/story/client/x/evmengine"
   };
 
   // authority defines the custom module authority. If not set, defaults to the governance module.
