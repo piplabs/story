@@ -1,10 +1,10 @@
 syntax = "proto3";
-package client.x.evmstaking.types;
+package story.evmstaking.v1.types;
 
 import "gogoproto/gogo.proto";
 import "cosmos_proto/cosmos.proto";
 
-option go_package = "client/x/evmstaking/types";
+option go_package = "github.com/piplabs/story/client/x/evmstaking/types";
 
 enum WithdrawalType {
   WITHDRAWAL_TYPE_UNSTAKE = 0;

@@ -1,10 +1,9 @@
 syntax = "proto3";
-
-package client.x.mint.module;
+package story.mint.v1.module;
 
 import "cosmos/app/v1alpha1/module.proto";
 
-option go_package = "client/x/mint/module";
+option go_package = "github.com/piplabs/story/client/x/mint/module";
 
 // Module is the config object of the mint module.
 message Module {

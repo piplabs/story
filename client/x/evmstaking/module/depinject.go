@@ -10,6 +10,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
+	"github.com/piplabs/story/client/api/story/evmstaking/v1/module"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/ethclient"
@@ -18,7 +19,7 @@ import (
 //nolint:gochecknoinits // depinject
 func init() {
 	appmodule.Register(
-		&Module{},
+		&module.Module{},
 		appmodule.Provide(
 			ProvideModule,
 		),
@@ -28,7 +29,7 @@ func init() {
 type ModuleInputs struct {
 	depinject.In
 
-	Config                *Module
+	Config                *module.Module
 	ValidatorAddressCodec runtime.ValidatorAddressCodec
 	EthClient             ethclient.Client
 	AccountKeeper         types.AccountKeeper
