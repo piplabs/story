@@ -12,5 +12,5 @@ if [[ "${EXPECT}" != "${ACTUAL}" ]]; then
   go generate scripts/tools.go
 fi
 
-./scripts/buf_generate.sh
+./scripts/protocgen.sh
 buf lint
