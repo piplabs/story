@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 # Ensure we are in the root of the repo, so  ${pwd}/go.mod must exit
