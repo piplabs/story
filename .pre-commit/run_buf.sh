@@ -13,4 +13,4 @@ if [[ "${EXPECT}" != "${ACTUAL}" ]]; then
 fi
 
 ./scripts/protocgen.sh
-buf lint
+cd client/proto && buf lint && cd ../../
