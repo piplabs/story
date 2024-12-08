@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/piplabs/story/client/api/story/evmengine/v1/module"
 	"github.com/piplabs/story/client/comet"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/client/x/evmengine/types"
@@ -69,7 +70,8 @@ func NewKeeper(
 	dk types.DistrKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
-		{Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
+		// {Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
+		{Id: 1, ProtoFileName: module.File_story_evmengine_v1_module_module_proto.Path()},
 	}}
 
 	modDB, err := ormdb.NewModuleDB(schema, ormdb.ModuleDBOptions{KVStoreService: storeService})

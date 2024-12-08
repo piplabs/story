@@ -30,11 +30,11 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	evmenginemodule "github.com/piplabs/story/client/x/evmengine/module"
+	evmenginemodulev1 "github.com/piplabs/story/client/api/story/evmengine/v1/module"
+	evmstakingmodulev1 "github.com/piplabs/story/client/api/story/evmstaking/v1/module"
+	mintmodulev1 "github.com/piplabs/story/client/api/story/mint/v1/module"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
-	evmstakingmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
-	mintmodule "github.com/piplabs/story/client/x/mint/module"
 	minttypes "github.com/piplabs/story/client/x/mint/types"
 )
 
@@ -206,15 +206,15 @@ var (
 			},
 			{
 				Name:   evmstakingtypes.ModuleName,
-				Config: appconfig.WrapAny(&evmstakingmodule.Module{}),
+				Config: appconfig.WrapAny(&evmstakingmodulev1.Module{}),
 			},
 			{
 				Name:   evmenginetypes.ModuleName,
-				Config: appconfig.WrapAny(&evmenginemodule.Module{}),
+				Config: appconfig.WrapAny(&evmenginemodulev1.Module{}),
 			},
 			{
 				Name:   minttypes.ModuleName,
-				Config: appconfig.WrapAny(&mintmodule.Module{}),
+				Config: appconfig.WrapAny(&mintmodulev1.Module{}),
 			},
 		},
 	})
