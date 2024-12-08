@@ -12,25 +12,30 @@ cd client/proto
 echo "Generating proto files"
 proto_dirs=$(find ./ -path -prune -o -name '*.proto' -print0 | xargs -0 -n1 dirname | sort | uniq)
 for dir in $proto_dirs; do
-  proto_files=$(find "${dir}" -maxdepth 1 -name '*.proto')
-  for file in $proto_files; do
-    if grep -q "option go_package.*story" "$file" &> /dev/null; then
-      if [[ $file == *"/module/"* ]]; then
-        echo "  Generating for ${file} (pulsar)"
-        buf generate --template buf.gen.pulsar.yaml "$file"
-      elif [[ $file == *"/keeper/"* ]]; then
-        echo "  Generating for ${file} (orm)"
-        buf generate --template buf.gen.orm.yaml "$file"
-      else
-        echo "  Generating for ${file} (gogo)"
-        buf generate --template buf.gen.gogo.yaml "$file"
-      fi
-    fi
-  done
+  echo "DIR: ${dir}"
+  # TODO: check proto files has condition: `if grep -q "option go_package.*story" "$file" &> /dev/null; then`
+
+  if [[ $dir == *"/keeper" ]]; then
+    echo "- orm protos"
+    buf generate --template buf.gen.orm.yaml --path "${dir}"
+  fi
+
+  if [[ $dir == *"/module" ]]; then
+    echo "- pulsar protos"
+    buf generate --template buf.gen.pulsar.yaml --path "${dir}"
+  fi
+
+  if [[ $dir == *"/types" ]]; then
+    echo "- gogo protos"
+    buf generate --template buf.gen.gogo.yaml --path "${dir}"
+  fi
 done
 
 echo "Move generated gogo proto files to the right places"
 cp -r ./github.com/piplabs/story/client/* ../
 rm -rf ./github.com
+
+echo "Manually move orm proto files to the right places"
+mv ./story/evmengine/v1/keeper/*.go ../x/evmengine/keeper/
 
 cd ../..
