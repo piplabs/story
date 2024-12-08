@@ -1,10 +1,9 @@
 syntax = "proto3";
-
-package client.x.evmengine.types;
+package story.evmengine.v1.types;
 
 import "cosmos/msg/v1/msg.proto";
 
-option go_package = "client/x/evmengine/types";
+option go_package = "github.com/piplabs/story/client/x/evmengine/types";
 
 // MsgService defines all the gRPC methods exposed by the evmengine module.
 service MsgService {
