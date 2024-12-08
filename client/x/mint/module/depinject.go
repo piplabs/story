@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	"github.com/piplabs/story/client/api/story/mint/v1/module"
 	"github.com/piplabs/story/client/x/mint/keeper"
 	"github.com/piplabs/story/client/x/mint/types"
 )
@@ -24,7 +25,7 @@ func (am AppModule) IsAppModule() {}
 //nolint:gochecknoinits // depinject
 func init() {
 	appmodule.Register(
-		&Module{},
+		&module.Module{},
 		appmodule.Provide(ProvideModule),
 	)
 }
@@ -33,7 +34,7 @@ type ModuleInputs struct {
 	depinject.In
 
 	ModuleKey              depinject.OwnModuleKey
-	Config                 *Module
+	Config                 *module.Module
 	StoreService           store.KVStoreService
 	Cdc                    codec.Codec
 	InflationCalculationFn types.InflationCalculationFn `optional:"true"`

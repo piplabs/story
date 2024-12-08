@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	"github.com/piplabs/story/client/api/story/evmengine/v1/module"
 	"github.com/piplabs/story/client/x/evmengine/keeper"
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/ethclient"
@@ -17,7 +18,7 @@ import (
 //nolint:gochecknoinits // Cosmos-style
 func init() {
 	appmodule.Register(
-		&Module{},
+		&module.Module{},
 		appmodule.Provide(
 			ProvideModule,
 		),
@@ -29,7 +30,7 @@ type ModuleInputs struct {
 
 	StoreService     store.KVStoreService
 	Cdc              codec.Codec
-	Config           *Module
+	Config           *module.Module
 	TXConfig         client.TxConfig
 	EngineCl         ethclient.EngineClient
 	EthCl            ethclient.Client
