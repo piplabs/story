@@ -10,6 +10,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/v0_12_1"
 	"github.com/piplabs/story/client/app/upgrades/v0_13_0"
+	"github.com/piplabs/story/client/app/upgrades/v0_14_0"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 	Upgrades = []upgrades.Upgrade{
 		v0_12_1.Upgrade,
 		v0_13_0.Upgrade,
+		v0_14_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{}
