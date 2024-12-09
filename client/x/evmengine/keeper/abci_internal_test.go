@@ -476,7 +476,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			if tt.isNextProposer {
 				nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
 			} else {
-				nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(2).Proposer.PubKey)
+				nxtAddr = common.HexToAddress("0x0000000000000000000000000000000000000000")
 			}
 			require.NoError(t, err)
 

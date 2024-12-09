@@ -30,7 +30,7 @@ import (
 type args struct {
 	height         int64
 	validatorsFunc func(context.Context, int64) (*cmttypes.ValidatorSet, error)
-	incMoreTimes   int32
+	isNextProposer bool
 	header         func(height int64) cmtproto.Header
 }
 
@@ -70,7 +70,13 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 	cmtAPI := newMockCometAPI(t, args.validatorsFunc)
 	header := args.header(args.height)
 
-	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1 + args.incMoreTimes).Proposer.PubKey)
+	var nxtAddr common.Address
+	var err error
+	if args.isNextProposer {
+		nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
+	} else {
+		nxtAddr = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	}
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -295,8 +301,8 @@ func TestKeeper_isNextProposer(t *testing.T) {
 		{
 			name: "not proposer",
 			args: args{
-				height:       height,
-				incMoreTimes: 9,
+				height:         height,
+				isNextProposer: false,
 				header: func(height int64) cmtproto.Header {
 					return cmtproto.Header{Height: height}
 				},
@@ -307,7 +313,8 @@ func TestKeeper_isNextProposer(t *testing.T) {
 		{
 			name: "next proposer",
 			args: args{
-				height: height,
+				height:         height,
+				isNextProposer: true,
 				header: func(height int64) cmtproto.Header {
 					return cmtproto.Header{Height: height}
 				},
