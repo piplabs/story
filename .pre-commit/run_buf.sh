@@ -12,5 +12,8 @@ if [[ "${EXPECT}" != "${ACTUAL}" ]]; then
   go generate scripts/tools.go
 fi
 
+echo "buf version: $(buf --version)"
+echo "protoc-gen-go version: $(protoc-gen-go --version)"
+
 ./scripts/protocgen.sh
 cd client/proto && buf lint && cd ../../
