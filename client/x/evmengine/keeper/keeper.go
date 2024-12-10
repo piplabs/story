@@ -177,32 +177,23 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 	return payload, nil
 }
 
-// isNextProposer returns true if the local node is the proposer
-// for the next block. It also returns the next block height.
+// isNextProposer returns true if the local node is the proposer for the next block
 //
 // Note that the validator set can change, so this is an optimistic check.
-func (k *Keeper) isNextProposer(ctx context.Context, currentProposer []byte, currentHeight int64) (bool, error) {
+func (k *Keeper) isNextProposer(ctx context.Context, currentHeight int64) (bool, error) {
 	// PostFinalize can be called during block replay (performed in newCometNode),
 	// but cmtAPI is set only after newCometNode completes (see app.SetCometAPI), so a nil check is necessary.
 	if k.cmtAPI == nil {
 		return false, nil
 	}
 
-	valset, ok, err := k.cmtAPI.Validators(ctx, currentHeight)
+	valset, err := k.cmtAPI.Validators(ctx, currentHeight)
 	if err != nil {
 		return false, err
-	} else if !ok || len(valset.Validators) == 0 {
-		return false, errors.New("validators not available")
 	}
 
-	idx, _ := valset.GetByAddress(currentProposer)
-	if idx < 0 {
-		return false, errors.New("proposer not in validator set")
-	}
-
-	nextIdx := int(idx+1) % len(valset.Validators)
-	nextProposer := valset.Validators[nextIdx]
-	nextAddr, err := k1util.PubKeyToAddress(nextProposer.PubKey)
+	nextProposer := valset.CopyIncrementProposerPriority(1).Proposer
+	nextAddr, err := k1util.PubKeyToAddress(nextProposer.PubKey) // Convert to EVM address
 	if err != nil {
 		return false, err
 	}
