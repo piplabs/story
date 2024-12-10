@@ -6,11 +6,11 @@ import (
 
 // Staking params default values.
 const (
-	DefaultMaxWithdrawalPerBlock uint32 = 4
+	DefaultMaxWithdrawalPerBlock uint32 = 32
 
-	DefaultMaxSweepPerBlock uint32 = 1024
+	DefaultMaxSweepPerBlock uint32 = 128
 
-	DefaultMinPartialWithdrawalAmount uint64 = 600_000
+	DefaultMinPartialWithdrawalAmount uint64 = 8_000_000_000
 )
 
 // NewParams creates a new Params instance.
