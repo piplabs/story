@@ -1,13 +1,13 @@
 syntax = "proto3";
-package client.x.evmstaking.types;
+package story.evmstaking.v1.types;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
-import "client/x/evmstaking/types/params.proto";
-import "client/x/evmstaking/types/evmstaking.proto";
+import "story/evmstaking/v1/types/params.proto";
+import "story/evmstaking/v1/types/evmstaking.proto";
 
-option go_package = "client/x/evmstaking/types";
+option go_package = "github.com/piplabs/story/client/x/evmstaking/types";
 
 // Query defines the gRPC querier service.
 service Query {

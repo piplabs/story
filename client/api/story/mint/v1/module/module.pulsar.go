@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	md_Module           protoreflect.MessageDescriptor
-	fd_Module_authority protoreflect.FieldDescriptor
+	md_Module                    protoreflect.MessageDescriptor
+	fd_Module_fee_collector_name protoreflect.FieldDescriptor
 )
 
 func init() {
-	file_client_x_evmstaking_module_module_proto_init()
-	md_Module = File_client_x_evmstaking_module_module_proto.Messages().ByName("Module")
-	fd_Module_authority = md_Module.Fields().ByName("authority")
+	file_story_mint_v1_module_module_proto_init()
+	md_Module = File_story_mint_v1_module_module_proto.Messages().ByName("Module")
+	fd_Module_fee_collector_name = md_Module.Fields().ByName("fee_collector_name")
 }
 
 var _ protoreflect.Message = (*fastReflection_Module)(nil)
@@ -33,7 +33,7 @@ func (x *Module) ProtoReflect() protoreflect.Message {
 }
 
 func (x *Module) slowProtoReflect() protoreflect.Message {
-	mi := &file_client_x_evmstaking_module_module_proto_msgTypes[0]
+	mi := &file_story_mint_v1_module_module_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -89,9 +89,9 @@ func (x *fastReflection_Module) Interface() protoreflect.ProtoMessage {
 // While iterating, mutating operations may only be performed
 // on the current field descriptor.
 func (x *fastReflection_Module) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
-	if x.Authority != "" {
-		value := protoreflect.ValueOfString(x.Authority)
-		if !f(fd_Module_authority, value) {
+	if x.FeeCollectorName != "" {
+		value := protoreflect.ValueOfString(x.FeeCollectorName)
+		if !f(fd_Module_fee_collector_name, value) {
 			return
 		}
 	}
@@ -110,13 +110,13 @@ func (x *fastReflection_Module) Range(f func(protoreflect.FieldDescriptor, proto
 // a repeated field is populated if it is non-empty.
 func (x *fastReflection_Module) Has(fd protoreflect.FieldDescriptor) bool {
 	switch fd.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
-		return x.Authority != ""
+	case "story.mint.v1.module.Module.fee_collector_name":
+		return x.FeeCollectorName != ""
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -128,13 +128,13 @@ func (x *fastReflection_Module) Has(fd protoreflect.FieldDescriptor) bool {
 // Clear is a mutating operation and unsafe for concurrent use.
 func (x *fastReflection_Module) Clear(fd protoreflect.FieldDescriptor) {
 	switch fd.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
-		x.Authority = ""
+	case "story.mint.v1.module.Module.fee_collector_name":
+		x.FeeCollectorName = ""
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -146,14 +146,14 @@ func (x *fastReflection_Module) Clear(fd protoreflect.FieldDescriptor) {
 // of the value; to obtain a mutable reference, use Mutable.
 func (x *fastReflection_Module) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
 	switch descriptor.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
-		value := x.Authority
+	case "story.mint.v1.module.Module.fee_collector_name":
+		value := x.FeeCollectorName
 		return protoreflect.ValueOfString(value)
 	default:
 		if descriptor.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", descriptor.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", descriptor.FullName()))
 	}
 }
 
@@ -169,13 +169,13 @@ func (x *fastReflection_Module) Get(descriptor protoreflect.FieldDescriptor) pro
 // Set is a mutating operation and unsafe for concurrent use.
 func (x *fastReflection_Module) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
 	switch fd.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
-		x.Authority = value.Interface().(string)
+	case "story.mint.v1.module.Module.fee_collector_name":
+		x.FeeCollectorName = value.Interface().(string)
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -191,13 +191,13 @@ func (x *fastReflection_Module) Set(fd protoreflect.FieldDescriptor, value proto
 // Mutable is a mutating operation and unsafe for concurrent use.
 func (x *fastReflection_Module) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
 	switch fd.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
-		panic(fmt.Errorf("field authority of message client.x.evmstaking.module.Module is not mutable"))
+	case "story.mint.v1.module.Module.fee_collector_name":
+		panic(fmt.Errorf("field fee_collector_name of message story.mint.v1.module.Module is not mutable"))
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -206,13 +206,13 @@ func (x *fastReflection_Module) Mutable(fd protoreflect.FieldDescriptor) protore
 // For lists, maps, and messages, this returns a new, empty, mutable value.
 func (x *fastReflection_Module) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
 	switch fd.FullName() {
-	case "client.x.evmstaking.module.Module.authority":
+	case "story.mint.v1.module.Module.fee_collector_name":
 		return protoreflect.ValueOfString("")
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: client.x.evmstaking.module.Module"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: story.mint.v1.module.Module"))
 		}
-		panic(fmt.Errorf("message client.x.evmstaking.module.Module does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message story.mint.v1.module.Module does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -222,7 +222,7 @@ func (x *fastReflection_Module) NewField(fd protoreflect.FieldDescriptor) protor
 func (x *fastReflection_Module) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
 	switch d.FullName() {
 	default:
-		panic(fmt.Errorf("%s is not a oneof field in client.x.evmstaking.module.Module", d.FullName()))
+		panic(fmt.Errorf("%s is not a oneof field in story.mint.v1.module.Module", d.FullName()))
 	}
 	panic("unreachable")
 }
@@ -277,7 +277,7 @@ func (x *fastReflection_Module) ProtoMethods() *protoiface.Methods {
 		var n int
 		var l int
 		_ = l
-		l = len(x.Authority)
+		l = len(x.FeeCollectorName)
 		if l > 0 {
 			n += 1 + l + runtime.Sov(uint64(l))
 		}
@@ -310,10 +310,10 @@ func (x *fastReflection_Module) ProtoMethods() *protoiface.Methods {
 			i -= len(x.unknownFields)
 			copy(dAtA[i:], x.unknownFields)
 		}
-		if len(x.Authority) > 0 {
-			i -= len(x.Authority)
-			copy(dAtA[i:], x.Authority)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.Authority)))
+		if len(x.FeeCollectorName) > 0 {
+			i -= len(x.FeeCollectorName)
+			copy(dAtA[i:], x.FeeCollectorName)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.FeeCollectorName)))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -368,7 +368,7 @@ func (x *fastReflection_Module) ProtoMethods() *protoiface.Methods {
 			switch fieldNum {
 			case 1:
 				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Authority", wireType)
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field FeeCollectorName", wireType)
 				}
 				var stringLen uint64
 				for shift := uint(0); ; shift += 7 {
@@ -396,7 +396,7 @@ func (x *fastReflection_Module) ProtoMethods() *protoiface.Methods {
 				if postIndex > l {
 					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
 				}
-				x.Authority = string(dAtA[iNdEx:postIndex])
+				x.FeeCollectorName = string(dAtA[iNdEx:postIndex])
 				iNdEx = postIndex
 			default:
 				iNdEx = preIndex
@@ -437,7 +437,7 @@ func (x *fastReflection_Module) ProtoMethods() *protoiface.Methods {
 // versions:
 // 	protoc-gen-go v1.27.0
 // 	protoc        (unknown)
-// source: client/x/evmstaking/module/module.proto
+// source: story/mint/v1/module/module.proto
 
 const (
 	// Verify that this generated code is sufficiently up-to-date.
@@ -446,20 +446,19 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ModuleName is the config object for the evmstaking module.
+// Module is the config object of the mint module.
 type Module struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// authority defines the custom module authority. If not set, defaults to the governance module.
-	Authority string `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
+	FeeCollectorName string `protobuf:"bytes,1,opt,name=fee_collector_name,json=feeCollectorName,proto3" json:"fee_collector_name,omitempty"`
 }
 
 func (x *Module) Reset() {
 	*x = Module{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_client_x_evmstaking_module_module_proto_msgTypes[0]
+		mi := &file_story_mint_v1_module_module_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -473,66 +472,63 @@ func (*Module) ProtoMessage() {}
 
 // Deprecated: Use Module.ProtoReflect.Descriptor instead.
 func (*Module) Descriptor() ([]byte, []int) {
-	return file_client_x_evmstaking_module_module_proto_rawDescGZIP(), []int{0}
+	return file_story_mint_v1_module_module_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Module) GetAuthority() string {
+func (x *Module) GetFeeCollectorName() string {
 	if x != nil {
-		return x.Authority
+		return x.FeeCollectorName
 	}
 	return ""
 }
 
-var File_client_x_evmstaking_module_module_proto protoreflect.FileDescriptor
+var File_story_mint_v1_module_module_proto protoreflect.FileDescriptor
 
-var file_client_x_evmstaking_module_module_proto_rawDesc = []byte{
-	0x0a, 0x27, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2f, 0x78, 0x2f, 0x65, 0x76, 0x6d, 0x73, 0x74,
-	0x61, 0x6b, 0x69, 0x6e, 0x67, 0x2f, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2f, 0x6d, 0x6f, 0x64,
-	0x75, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x1a, 0x63, 0x6c, 0x69, 0x65, 0x6e,
-	0x74, 0x2e, 0x78, 0x2e, 0x65, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x6d,
-	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x1a, 0x20, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2f, 0x61, 0x70,
-	0x70, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2f, 0x6d, 0x6f, 0x64, 0x75, 0x6c,
-	0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x5c, 0x0a, 0x06, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
-	0x65, 0x12, 0x1c, 0x0a, 0x09, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x74, 0x79, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x74, 0x79, 0x3a,
-	0x34, 0xba, 0xc0, 0x96, 0xda, 0x01, 0x2e, 0x0a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x70, 0x6c, 0x61, 0x62, 0x73, 0x2f, 0x73, 0x74, 0x6f, 0x72,
-	0x79, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2f, 0x78, 0x2f, 0x65, 0x76, 0x6d, 0x73, 0x74,
-	0x61, 0x6b, 0x69, 0x6e, 0x67, 0x42, 0xe6, 0x01, 0x0a, 0x1e, 0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6c,
-	0x69, 0x65, 0x6e, 0x74, 0x2e, 0x78, 0x2e, 0x65, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e,
-	0x67, 0x2e, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x42, 0x0b, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
-	0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2b, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73,
-	0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74,
-	0x2f, 0x78, 0x2f, 0x65, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e, 0x67, 0x2f, 0x6d, 0x6f,
-	0x64, 0x75, 0x6c, 0x65, 0xa2, 0x02, 0x04, 0x43, 0x58, 0x45, 0x4d, 0xaa, 0x02, 0x1a, 0x43, 0x6c,
-	0x69, 0x65, 0x6e, 0x74, 0x2e, 0x58, 0x2e, 0x45, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e,
-	0x67, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0xca, 0x02, 0x1a, 0x43, 0x6c, 0x69, 0x65, 0x6e,
-	0x74, 0x5c, 0x58, 0x5c, 0x45, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e, 0x67, 0x5c, 0x4d,
-	0x6f, 0x64, 0x75, 0x6c, 0x65, 0xe2, 0x02, 0x26, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5c, 0x58,
-	0x5c, 0x45, 0x76, 0x6d, 0x73, 0x74, 0x61, 0x6b, 0x69, 0x6e, 0x67, 0x5c, 0x4d, 0x6f, 0x64, 0x75,
+var file_story_mint_v1_module_module_proto_rawDesc = []byte{
+	0x0a, 0x21, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x2f, 0x6d, 0x69, 0x6e, 0x74, 0x2f, 0x76, 0x31, 0x2f,
+	0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2f, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x12, 0x14, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x2e, 0x6d, 0x69, 0x6e, 0x74, 0x2e,
+	0x76, 0x31, 0x2e, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x1a, 0x20, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
+	0x73, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2f, 0x6d,
+	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x66, 0x0a, 0x06, 0x4d,
+	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x2c, 0x0a, 0x12, 0x66, 0x65, 0x65, 0x5f, 0x63, 0x6f, 0x6c,
+	0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x10, 0x66, 0x65, 0x65, 0x43, 0x6f, 0x6c, 0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x4e,
+	0x61, 0x6d, 0x65, 0x3a, 0x2e, 0xba, 0xc0, 0x96, 0xda, 0x01, 0x28, 0x0a, 0x26, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x70, 0x6c, 0x61, 0x62, 0x73, 0x2f,
+	0x73, 0x74, 0x6f, 0x72, 0x79, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2f, 0x78, 0x2f, 0x6d,
+	0x69, 0x6e, 0x74, 0x42, 0xc2, 0x01, 0x0a, 0x18, 0x63, 0x6f, 0x6d, 0x2e, 0x73, 0x74, 0x6f, 0x72,
+	0x79, 0x2e, 0x6d, 0x69, 0x6e, 0x74, 0x2e, 0x76, 0x31, 0x2e, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x42, 0x0b, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a,
+	0x25, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x61, 0x70,
+	0x69, 0x2f, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x2f, 0x6d, 0x69, 0x6e, 0x74, 0x2f, 0x76, 0x31, 0x2f,
+	0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0xa2, 0x02, 0x04, 0x53, 0x4d, 0x56, 0x4d, 0xaa, 0x02, 0x14,
+	0x53, 0x74, 0x6f, 0x72, 0x79, 0x2e, 0x4d, 0x69, 0x6e, 0x74, 0x2e, 0x56, 0x31, 0x2e, 0x4d, 0x6f,
+	0x64, 0x75, 0x6c, 0x65, 0xca, 0x02, 0x14, 0x53, 0x74, 0x6f, 0x72, 0x79, 0x5c, 0x4d, 0x69, 0x6e,
+	0x74, 0x5c, 0x56, 0x31, 0x5c, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0xe2, 0x02, 0x20, 0x53, 0x74,
+	0x6f, 0x72, 0x79, 0x5c, 0x4d, 0x69, 0x6e, 0x74, 0x5c, 0x56, 0x31, 0x5c, 0x4d, 0x6f, 0x64, 0x75,
 	0x6c, 0x65, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02,
-	0x1d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x3a, 0x3a, 0x58, 0x3a, 0x3a, 0x45, 0x76, 0x6d, 0x73,
-	0x74, 0x61, 0x6b, 0x69, 0x6e, 0x67, 0x3a, 0x3a, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x17, 0x53, 0x74, 0x6f, 0x72, 0x79, 0x3a, 0x3a, 0x4d, 0x69, 0x6e, 0x74, 0x3a, 0x3a, 0x56, 0x31,
+	0x3a, 0x3a, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_client_x_evmstaking_module_module_proto_rawDescOnce sync.Once
-	file_client_x_evmstaking_module_module_proto_rawDescData = file_client_x_evmstaking_module_module_proto_rawDesc
+	file_story_mint_v1_module_module_proto_rawDescOnce sync.Once
+	file_story_mint_v1_module_module_proto_rawDescData = file_story_mint_v1_module_module_proto_rawDesc
 )
 
-func file_client_x_evmstaking_module_module_proto_rawDescGZIP() []byte {
-	file_client_x_evmstaking_module_module_proto_rawDescOnce.Do(func() {
-		file_client_x_evmstaking_module_module_proto_rawDescData = protoimpl.X.CompressGZIP(file_client_x_evmstaking_module_module_proto_rawDescData)
+func file_story_mint_v1_module_module_proto_rawDescGZIP() []byte {
+	file_story_mint_v1_module_module_proto_rawDescOnce.Do(func() {
+		file_story_mint_v1_module_module_proto_rawDescData = protoimpl.X.CompressGZIP(file_story_mint_v1_module_module_proto_rawDescData)
 	})
-	return file_client_x_evmstaking_module_module_proto_rawDescData
+	return file_story_mint_v1_module_module_proto_rawDescData
 }
 
-var file_client_x_evmstaking_module_module_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_client_x_evmstaking_module_module_proto_goTypes = []interface{}{
-	(*Module)(nil), // 0: client.x.evmstaking.module.Module
+var file_story_mint_v1_module_module_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_story_mint_v1_module_module_proto_goTypes = []interface{}{
+	(*Module)(nil), // 0: story.mint.v1.module.Module
 }
-var file_client_x_evmstaking_module_module_proto_depIdxs = []int32{
+var file_story_mint_v1_module_module_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -540,13 +536,13 @@ var file_client_x_evmstaking_module_module_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_client_x_evmstaking_module_module_proto_init() }
-func file_client_x_evmstaking_module_module_proto_init() {
-	if File_client_x_evmstaking_module_module_proto != nil {
+func init() { file_story_mint_v1_module_module_proto_init() }
+func file_story_mint_v1_module_module_proto_init() {
+	if File_story_mint_v1_module_module_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_client_x_evmstaking_module_module_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_story_mint_v1_module_module_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Module); i {
 			case 0:
 				return &v.state
@@ -563,18 +559,18 @@ func file_client_x_evmstaking_module_module_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_client_x_evmstaking_module_module_proto_rawDesc,
+			RawDescriptor: file_story_mint_v1_module_module_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_client_x_evmstaking_module_module_proto_goTypes,
-		DependencyIndexes: file_client_x_evmstaking_module_module_proto_depIdxs,
-		MessageInfos:      file_client_x_evmstaking_module_module_proto_msgTypes,
+		GoTypes:           file_story_mint_v1_module_module_proto_goTypes,
+		DependencyIndexes: file_story_mint_v1_module_module_proto_depIdxs,
+		MessageInfos:      file_story_mint_v1_module_module_proto_msgTypes,
 	}.Build()
-	File_client_x_evmstaking_module_module_proto = out.File
-	file_client_x_evmstaking_module_module_proto_rawDesc = nil
-	file_client_x_evmstaking_module_module_proto_goTypes = nil
-	file_client_x_evmstaking_module_module_proto_depIdxs = nil
+	File_story_mint_v1_module_module_proto = out.File
+	file_story_mint_v1_module_module_proto_rawDesc = nil
+	file_story_mint_v1_module_module_proto_goTypes = nil
+	file_story_mint_v1_module_module_proto_depIdxs = nil
 }
