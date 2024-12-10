@@ -15,6 +15,14 @@
       "offset": 0,
       "slot": "1",
       "type": "t_mapping(t_uint256,t_mapping(t_bytes_memory_ptr,t_uint256))"
+    },
+    {
+      "astId": 1290,
+      "contract": "src/protocol/UBIPool.sol:UBIPool",
+      "label": "totalPendingClaims",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_uint256"
     }
   ],
   "types": {
