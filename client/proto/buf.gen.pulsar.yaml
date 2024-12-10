@@ -10,8 +10,8 @@ managed:
     override:
 plugins:
   - name: go-pulsar
-    out: .
+    out: ../api
     opt: paths=source_relative
   - name: go-grpc
-    out: .
+    out: ../api
     opt: paths=source_relative

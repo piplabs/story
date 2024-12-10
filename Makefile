@@ -33,7 +33,7 @@ lint: ## Runs linters via pre-commit.
 
 .PHONY: bufgen
 bufgen: ## Generates protobufs using buf generate.
-	@./scripts/buf_generate.sh
+	@./scripts/protocgen.sh
 
 .PHONY:
 secrets-baseline: ensure-detect-secrets ## Update secrets baseline.
