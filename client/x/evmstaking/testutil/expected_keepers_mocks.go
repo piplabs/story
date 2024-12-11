@@ -11,7 +11,6 @@ package testutil
 
 import (
 	context "context"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	reflect "reflect"
 	time "time"
 
@@ -29,37 +28,6 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
-	isgomock struct{}
-}
-
-func (m *MockAccountKeeper) NewAccount(ctx context.Context, i types0.AccountI) types0.AccountI {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAccountKeeper) GetAllAccounts(ctx context.Context) []types0.AccountI {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAccountKeeper) ValidatePermissions(macc types0.ModuleAccountI) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAccountKeeper) GetModuleAddressAndPermissions(moduleName string) (addr types0.AccAddress, permissions []string) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAccountKeeper) GetModuleAccountAndPermissions(ctx context.Context, moduleName string) (types0.ModuleAccountI, []string) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAccountKeeper) GetModulePermissions() map[string]authtypes.PermissionsForAddress {
-	//TODO implement me
-	panic("implement me")
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -203,7 +171,6 @@ func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(ctx, modAcc any) *gomo
 type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
@@ -409,7 +376,6 @@ func (mr *MockBankKeeperMockRecorder) UndelegateCoinsFromModuleToAccount(ctx, se
 type MockStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockStakingKeeperMockRecorder is the mock recorder for MockStakingKeeper.
@@ -717,7 +683,6 @@ func (mr *MockStakingKeeperMockRecorder) ValidatorAddressCodec() *gomock.Call {
 type MockSlashingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockSlashingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockSlashingKeeperMockRecorder is the mock recorder for MockSlashingKeeper.
@@ -755,7 +720,6 @@ func (mr *MockSlashingKeeperMockRecorder) Unjail(ctx, validatorAddr any) *gomock
 type MockDistributionKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistributionKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockDistributionKeeperMockRecorder is the mock recorder for MockDistributionKeeper.
