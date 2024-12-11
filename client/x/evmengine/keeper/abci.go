@@ -16,6 +16,7 @@ import (
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
@@ -280,7 +281,7 @@ func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, wi
 
 	attrs := &engine.PayloadAttributes{
 		Timestamp:             ts,
-		Random:                head.Hash(), // We use head block hash as randao.
+		Random:                crypto.RandomHash(),
 		SuggestedFeeRecipient: feeRecipient,
 		Withdrawals:           withdrawals,
 		BeaconRoot:            &appHash,

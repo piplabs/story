@@ -16,10 +16,10 @@ import (
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/expbackoff"
-	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
 )
@@ -39,7 +39,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 
-	sdkCtx, storeKey, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: tutil.RandomHash().Bytes()})
+	sdkCtx, storeKey, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: crypto.RandomHash().Bytes()})
 	sdkCtx = sdkCtx.WithExecMode(sdk.ExecModeFinalize)
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)

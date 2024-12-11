@@ -12,10 +12,10 @@ import (
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
-	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
 )
@@ -259,7 +259,7 @@ func setupTestEnvironment(t *testing.T) (*Keeper, sdk.Context, *gomock.Controlle
 	txConfig := authtx.NewTxConfig(cdc, nil)
 
 	cmtAPI := newMockCometAPI(t, nil)
-	header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes(), ProposerAddress: cmtAPI.validatorSet.Validators[0].Address}
+	header := cmtproto.Header{Height: 1, AppHash: crypto.RandomHash().Bytes(), ProposerAddress: cmtAPI.validatorSet.Validators[0].Address}
 	ctrl := gomock.NewController(t)
 	mockClient := mock.NewMockClient(ctrl)
 	ak := moduletestutil.NewMockAccountKeeper(ctrl)

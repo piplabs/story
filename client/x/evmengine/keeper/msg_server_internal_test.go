@@ -19,11 +19,11 @@ import (
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
-	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
 )
@@ -44,7 +44,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 	cmtAPI := newMockCometAPI(t, nil)
 	// set the header and proposer so we have the correct next proposer
-	header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes()}
+	header := cmtproto.Header{Height: 1, AppHash: crypto.RandomHash().Bytes()}
 	header.ProposerAddress = cmtAPI.validatorSet.Validators[0].Address
 	nxtAddr, err := k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
 	require.NoError(t, err)
@@ -399,7 +399,7 @@ func Test_pushPayload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			appHash := tutil.RandomHash()
+			appHash := crypto.RandomHash()
 			ctx, storeKey := ctxWithAppHash(t, appHash)
 
 			mockEngine, err := newMockEngineAPI(storeKey, 0)

@@ -17,8 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
+	crypto2 "github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/k1util"
-	"github.com/piplabs/story/lib/tutil"
 )
 
 //nolint:lll // No wrap
@@ -97,7 +97,7 @@ func TestCometBFT(t *testing.T) {
 	pv := privval.NewFilePV(key, filepath.Join(dir, "key"), filepath.Join(dir, "state"))
 
 	// Create a vote
-	block := cmttypes.BlockID{Hash: tutil.RandomBytes(32)}
+	block := cmttypes.BlockID{Hash: crypto2.RandomBytes(32)}
 	vote := newVote(pv.Key.Address, 1, 2, 3, cmtproto.PrecommitType, block, []byte("vote extension"))
 	votePB1 := vote.ToProto()
 	votePB2 := vote.ToProto()
