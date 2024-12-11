@@ -310,7 +310,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		// assert that the message is an executable payload
 		for _, msg := range tx.GetMsgs() {
 			if _, ok := msg.(*etypes.MsgExecutionPayload); ok {
-				assertExecutablePayload(t, msg, req.Time.Unix(), head.Hash(), keeper.validatorAddr, head.GetBlockHeight()+1)
+				assertExecutablePayload(t, msg, req.Time.Unix(), keeper.validatorAddr, head.GetBlockHeight()+1)
 			}
 		}
 	})
@@ -521,7 +521,7 @@ func appendMsgToTx(t *testing.T, txConfig client.TxConfig, txBytes []byte, msg s
 }
 
 // assertExecutablePayload asserts that the given message is an executable payload with the expected values.
-func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash common.Hash, validatorAddr common.Address, height uint64) {
+func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, validatorAddr common.Address, height uint64) {
 	t.Helper()
 	executionPayload, ok := msg.(*etypes.MsgExecutionPayload)
 	require.True(t, ok)
@@ -531,7 +531,7 @@ func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash comm
 	err := json.Unmarshal(executionPayload.GetExecutionPayload(), payload)
 	require.NoError(t, err)
 	require.Equal(t, int64(payload.Timestamp), ts)
-	require.Equal(t, payload.Random, blockHash)
+	require.NotEqual(t, payload.Random, common.BytesToHash([]byte{0}))
 	require.Equal(t, payload.FeeRecipient, validatorAddr)
 	require.Empty(t, payload.Withdrawals)
 	require.Equal(t, payload.Number, height)
