@@ -10,6 +10,7 @@ import (
 var (
 	upgradeEntrypointABI = mustGetABI(bindings.UpgradeEntrypointMetaData)
 	SoftwareUpgradeEvent = mustGetEvent(upgradeEntrypointABI, "SoftwareUpgrade")
+	CancelUpgradeEvent   = mustGetEvent(upgradeEntrypointABI, "CancelUpgrade")
 )
 
 // mustGetABI returns the metadata's ABI as an abi.ABI type.

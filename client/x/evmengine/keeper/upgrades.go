@@ -28,16 +28,25 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 			return err
 		}
 
-		//nolint:gocritic,revive // more cases later
 		switch ethlog.Topics[0] {
 		case types.SoftwareUpgradeEvent.ID:
 			ev, err := k.upgradeContract.ParseSoftwareUpgrade(ethlog)
 			if err != nil {
-				clog.Error(ctx, "Failed to parse SubmitProposal log", err)
+				clog.Error(ctx, "Failed to parse SoftwareUpgrade log", err)
 				continue
 			}
 			if err = k.ProcessSoftwareUpgrade(ctx, ev); err != nil {
-				clog.Error(ctx, "Failed to process submit proposal", err)
+				clog.Error(ctx, "Failed to process software upgrade", err)
+				continue
+			}
+		case types.CancelUpgradeEvent.ID:
+			ev, err := k.upgradeContract.ParseCancelUpgrade(ethlog)
+			if err != nil {
+				clog.Error(ctx, "Failed to parse CancelUpgrade log", err)
+				continue
+			}
+			if err = k.ProcessCancelUpgrade(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process cancel upgrade", err)
 				continue
 			}
 		}
@@ -81,6 +90,37 @@ func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.Upgrad
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "process software upgrade: schedule upgrade")
+	}
+
+	return nil
+}
+
+func (k *Keeper) ProcessCancelUpgrade(ctx context.Context, ev *bindings.UpgradeEntrypointCancelUpgrade) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
+		if err == nil {
+			writeCache()
+			return
+		}
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypeCancelUpgradeFailure,
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+			),
+		})
+	}()
+
+	if err = k.upgradeKeeper.ClearUpgradePlan(cachedCtx); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
+		return errors.Wrap(err, "process cancel upgrade: clear upgrade plan")
 	}
 
 	return nil
