@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /* solhint-disable max-line-length */
-pragma solidity ^0.8.23;
+pragma solidity 0.8.23;
 
 import { Vm } from "forge-std/Vm.sol";
 
