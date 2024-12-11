@@ -109,7 +109,7 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 	return k.validatorAddressCodec
 }
 
-//nolint:gocyclo // TODO
+//nolint:gocyclo // a lot of switch cases, could be refactored
 func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
@@ -122,11 +122,6 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 		if err != nil {
 			return err
 		}
-
-		// TODO: handle when each event processing fails.
-
-		// Convert the amount from wei to gwei (Eth2 spec withdrawal is specified in gwei) by dividing by 10^9.
-		// TODO: consider rounding and decimal precision when dividing bigint.
 
 		switch ethlog.Topics[0] {
 		case types.UpdateValidatorCommission.ID:
