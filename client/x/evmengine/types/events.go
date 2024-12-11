@@ -2,8 +2,9 @@ package types
 
 // evmstaking module event types.
 const (
-	EventTypeUpgradeFailure   = "upgrade_failure"
-	EventTypeUpdateUbiFailure = "update_ubi_failure"
+	EventTypeUpgradeFailure       = "upgrade_failure"
+	EventTypeUpdateUbiFailure     = "update_ubi_failure"
+	EventTypeCancelUpgradeFailure = "cancel_upgrade_failure"
 
 	AttributeKeyStatusCode    = "status_code"
 	AttributeKeyBlockHeight   = "block_height"

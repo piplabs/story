@@ -32,4 +32,9 @@ contract UpgradeEntrypoint is IUpgradeEntrypoint, Ownable2StepUpgradeable {
     function planUpgrade(string calldata name, int64 height, string calldata info) external onlyOwner {
         emit SoftwareUpgrade({ name: name, height: height, info: info });
     }
+
+    /// @notice Cancels an upgrade plan if there is one planned. Otherwise, it does nothing.
+    function cancelUpgrade() external onlyOwner {
+        emit CancelUpgrade();
+    }
 }

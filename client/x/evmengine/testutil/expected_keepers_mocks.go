@@ -26,7 +26,6 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -64,7 +63,6 @@ func (mr *MockAccountKeeperMockRecorder) GetModuleAddress(moduleName any) *gomoc
 type MockEvmStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockEvmStakingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockEvmStakingKeeperMockRecorder is the mock recorder for MockEvmStakingKeeper.
@@ -207,7 +205,6 @@ func (mr *MockEvmStakingKeeperMockRecorder) ProcessStakingEvents(ctx, height, lo
 type MockUpgradeKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockUpgradeKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockUpgradeKeeperMockRecorder is the mock recorder for MockUpgradeKeeper.
@@ -225,6 +222,20 @@ func NewMockUpgradeKeeper(ctrl *gomock.Controller) *MockUpgradeKeeper {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockUpgradeKeeper) EXPECT() *MockUpgradeKeeperMockRecorder {
 	return m.recorder
+}
+
+// ClearUpgradePlan mocks base method.
+func (m *MockUpgradeKeeper) ClearUpgradePlan(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearUpgradePlan", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearUpgradePlan indicates an expected call of ClearUpgradePlan.
+func (mr *MockUpgradeKeeperMockRecorder) ClearUpgradePlan(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearUpgradePlan", reflect.TypeOf((*MockUpgradeKeeper)(nil).ClearUpgradePlan), ctx)
 }
 
 // ScheduleUpgrade mocks base method.
@@ -245,7 +256,6 @@ func (mr *MockUpgradeKeeperMockRecorder) ScheduleUpgrade(ctx, plan any) *gomock.
 type MockDistrKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistrKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockDistrKeeperMockRecorder is the mock recorder for MockDistrKeeper.

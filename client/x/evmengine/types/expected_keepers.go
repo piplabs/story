@@ -28,6 +28,7 @@ type EvmStakingKeeper interface {
 }
 
 type UpgradeKeeper interface {
+	ClearUpgradePlan(ctx context.Context) error
 	ScheduleUpgrade(ctx context.Context, plan upgradetypes.Plan) error
 }
 
