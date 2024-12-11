@@ -40,11 +40,11 @@ import (
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	etypes "github.com/piplabs/story/client/x/evmengine/types"
+	"github.com/piplabs/story/lib/crypto"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
-	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
 )
@@ -469,7 +469,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			cmtAPI := newMockCometAPI(t, nil)
 
 			// set the header and proposer so we have the correct next proposer
-			header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes()}
+			header := cmtproto.Header{Height: 1, AppHash: crypto.RandomHash().Bytes()}
 			header.ProposerAddress = cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.Address
 
 			var nxtAddr common.Address
