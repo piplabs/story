@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	optionalLink    = `(fix\w*\s|close\w*\s|resolve\w*\s)?`    // Optional issue linking prefix, see https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue.
-	descRegex       = regexp.MustCompile(`^[a-z0-9 .&/-]+$`)   // e.g. "add foo-bar"
-	scopeRegex      = regexp.MustCompile(`^[*\w]+(/[*\w]+)?$`) // e.g. "*" or "foo" or "foo/bar"
-	issueRegexFull  = regexp.MustCompile(`^` + optionalLink + `https://github.com/piplabs/story/issues/\d+$`)
-	issueRegexShort = regexp.MustCompile(`^` + optionalLink + `#\d+$`) // e.g. "#1334"
+	optionalLink       = `(fix\w*\s|close\w*\s|resolve\w*\s)?`    // Optional issue linking prefix, see https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue.
+	descRegex          = regexp.MustCompile(`^[a-z0-9 .&/-]+$`)   // e.g. "add foo-bar"
+	scopeRegex         = regexp.MustCompile(`^[*\w]+(/[*\w]+)?$`) // e.g. "*" or "foo" or "foo/bar"
+	issueRegexFull     = regexp.MustCompile(`^` + optionalLink + `https://github.com/piplabs/story/issues/\d+$`)
+	issueRegexShort    = regexp.MustCompile(`^` + optionalLink + `#\d+$`)                       // e.g. "#1334"
+	issueRegexCrossRef = regexp.MustCompile(`^` + optionalLink + `piplabs\/[a-zA-Z0-9-]+#\d+$`) // e.g. "piplabs/story-geth#1559"
 )
 
 // run runs the verification.
@@ -143,6 +144,7 @@ func verifyFooter(commit *cc.ConventionalCommit) error {
 	}
 
 	issue := strings.TrimSpace(commit.Footers[issueFooter][0])
+	//nolint:nestif // nested ifs readability
 	if issue == "" {
 		return errors.New("issue section empty")
 	} else if issue == "none" {
@@ -151,6 +153,8 @@ func verifyFooter(commit *cc.ConventionalCommit) error {
 		// Full issue URL
 	} else if issueRegexShort.MatchString(issue) {
 		// Short issue URL
+	} else if issueRegexCrossRef.MatchString(issue) {
+		// Cross-repo (same org) issue URL
 	} else {
 		return errors.New("invalid issue section")
 	}
