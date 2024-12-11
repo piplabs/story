@@ -14,6 +14,9 @@ interface IUpgradeEntrypoint {
     /// could automatically upgrade to.
     event SoftwareUpgrade(string name, int64 height, string info);
 
+    /// @notice Emitted when a planned upgrade is to be cancelled.
+    event CancelUpgrade();
+
     /// @notice Submits an upgrade plan.
     /// @param name Sets the name for the upgrade. This name will be used by the upgraded version of the software to
     /// apply any special "on-upgrade" commands during the first BeginBlock method after the upgrade is applied. It is
@@ -24,4 +27,7 @@ interface IUpgradeEntrypoint {
     /// @param info Any application specific upgrade info to be included on-chain such as a git commit that validators
     /// could automatically upgrade to.
     function planUpgrade(string calldata name, int64 height, string calldata info) external;
+
+    /// @notice Cancels an upgrade plan if there is one planned. Otherwise, it does nothing.
+    function cancelUpgrade() external;
 }

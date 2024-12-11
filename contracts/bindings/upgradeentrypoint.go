@@ -31,8 +31,8 @@ var (
 
 // UpgradeEntrypointMetaData contains all meta data concerning the UpgradeEntrypoint contract.
 var UpgradeEntrypointMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"acceptOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pendingOwner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"planUpgrade\",\"inputs\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"height\",\"type\":\"int64\",\"internalType\":\"int64\"},{\"name\":\"info\",\"type\":\"string\",\"internalType\":\"string\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint64\",\"indexed\":false,\"internalType\":\"uint64\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferStarted\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SoftwareUpgrade\",\"inputs\":[{\"name\":\"name\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"},{\"name\":\"height\",\"type\":\"int64\",\"indexed\":false,\"internalType\":\"int64\"},{\"name\":\"info\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidInitialization\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInitializing\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]}]",
-	Bin: "0x608080604052346100b8577ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a009081549060ff8260401c166100a957506001600160401b036002600160401b031982821601610064575b60405161092d90816100be8239f35b6001600160401b031990911681179091556040519081527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d290602090a1388080610055565b63f92ee8a960e01b8152600490fd5b600080fdfe60406080815260048036101561001457600080fd5b600091823560e01c908163715018a61461062057816379ba5097146105755781638da5cb5b14610503578163c4d66de8146102b0578163e30c39781461023e578163ef176e0e14610161575063f2fde38b1461006f57600080fd5b3461015d5760207ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261015d573573ffffffffffffffffffffffffffffffffffffffff808216809203610159576100c661077a565b7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00827fffffffffffffffffffffffff00000000000000000000000000000000000000008254161790557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930054167f38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e227008380a380f35b8280fd5b5080fd5b9050346101595760607ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126101595767ffffffffffffffff91803583811161023a576101b29036908301610708565b919092602435908160070b80920361023657604435958611610236576101ff610230937f112749e79b2098b58eab36c21f123b2883c3ecbbb4f41623a744fa6d9b3e37c697369101610708565b9161020861077a565b61021e815197889760608952606089019161073b565b9360208701528584039086015261073b565b0390a180f35b8680fd5b8480fd5b83903461015d57817ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261015d5760209073ffffffffffffffffffffffffffffffffffffffff7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c0054169051908152f35b919050346101595760207ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261015957803573ffffffffffffffffffffffffffffffffffffffff81169081810361023a577ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a009283549260ff84871c16159367ffffffffffffffff8116801590816104fb575b60011490816104f1575b1590816104e8575b506104c0578460017fffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000831617875561048b575b501561040857506103a99061039c61089e565b6103a461089e565b6107ea565b6103b1578280f35b7fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d291817fffffffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffff602093541690555160018152a138808280f35b60849060208651917f08c379a0000000000000000000000000000000000000000000000000000000008352820152602f60248201527f55706772616465456e747279706f696e743a206f776e65722063616e6e6f742060448201527f6265207a65726f206164647265737300000000000000000000000000000000006064820152fd5b7fffffffffffffffffffffffffffffffffffffffffffffff000000000000000000166801000000000000000117855538610389565b8287517ff92ee8a9000000000000000000000000000000000000000000000000000000008152fd5b90501538610356565b303b15915061034e565b869150610344565b83903461015d57817ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261015d5760209073ffffffffffffffffffffffffffffffffffffffff7f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930054169051908152f35b90503461015957827ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc360112610159573373ffffffffffffffffffffffffffffffffffffffff7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c005416036105f057826105ed336107ea565b80f35b6024925051907f118cdaa70000000000000000000000000000000000000000000000000000000082523390820152fd5b833461070557807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126107055761065761077a565b8073ffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffff00000000000000000000000000000000000000007f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c008181541690557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930080549182169055167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a380f35b80fd5b9181601f840112156107365782359167ffffffffffffffff8311610736576020838186019501011161073657565b600080fd5b601f82602094937fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0938186528686013760008582860101520116010190565b73ffffffffffffffffffffffffffffffffffffffff7f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300541633036107ba57565b60246040517f118cdaa7000000000000000000000000000000000000000000000000000000008152336004820152fd5b7fffffffffffffffffffffffff0000000000000000000000000000000000000000907f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c008281541690557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930080549073ffffffffffffffffffffffffffffffffffffffff80931680948316179055167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3565b60ff7ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a005460401c16156108cd57565b60046040517fd7e6bcf8000000000000000000000000000000000000000000000000000000008152fdfea264697066735822122059500cb813acd29e68aeb621a023eb9894af6f262bb7237ebbf661107c66adc864736f6c63430008170033",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"acceptOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"cancelUpgrade\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pendingOwner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"planUpgrade\",\"inputs\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"height\",\"type\":\"int64\",\"internalType\":\"int64\"},{\"name\":\"info\",\"type\":\"string\",\"internalType\":\"string\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"CancelUpgrade\",\"inputs\":[],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint64\",\"indexed\":false,\"internalType\":\"uint64\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferStarted\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SoftwareUpgrade\",\"inputs\":[{\"name\":\"name\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"},{\"name\":\"height\",\"type\":\"int64\",\"indexed\":false,\"internalType\":\"int64\"},{\"name\":\"info\",\"type\":\"string\",\"indexed\":false,\"internalType\":\"string\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidInitialization\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInitializing\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]}]",
+	Bin: "0x608080604052346100b8577ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a009081549060ff8260401c166100a957506001600160401b036002600160401b031982821601610064575b60405161099690816100be8239f35b6001600160401b031990911681179091556040519081527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d290602090a1388080610055565b63f92ee8a960e01b8152600490fd5b600080fdfe60406080815260048036101561001457600080fd5b600091823560e01c90816355f2916614610713578163715018a61461062b57816379ba5097146105805781638da5cb5b1461050e578163c4d66de8146102bb578163e30c397814610249578163ef176e0e1461016c575063f2fde38b1461007a57600080fd5b346101685760207ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc360112610168573573ffffffffffffffffffffffffffffffffffffffff808216809203610164576100d16107e3565b7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00827fffffffffffffffffffffffff00000000000000000000000000000000000000008254161790557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930054167f38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e227008380a380f35b8280fd5b5080fd5b9050346101645760607ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126101645767ffffffffffffffff918035838111610245576101bd9036908301610771565b919092602435908160070b809203610241576044359586116102415761020a61023b937f112749e79b2098b58eab36c21f123b2883c3ecbbb4f41623a744fa6d9b3e37c697369101610771565b916102136107e3565b61022981519788976060895260608901916107a4565b936020870152858403908601526107a4565b0390a180f35b8680fd5b8480fd5b83903461016857817ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126101685760209073ffffffffffffffffffffffffffffffffffffffff7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c0054169051908152f35b919050346101645760207ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261016457803573ffffffffffffffffffffffffffffffffffffffff811690818103610245577ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a009283549260ff84871c16159367ffffffffffffffff811680159081610506575b60011490816104fc575b1590816104f3575b506104cb578460017fffffffffffffffffffffffffffffffffffffffffffffffff00000000000000008316178755610496575b501561041357506103b4906103a7610907565b6103af610907565b610853565b6103bc578280f35b7fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d291817fffffffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffff602093541690555160018152a138808280f35b60849060208651917f08c379a0000000000000000000000000000000000000000000000000000000008352820152602f60248201527f55706772616465456e747279706f696e743a206f776e65722063616e6e6f742060448201527f6265207a65726f206164647265737300000000000000000000000000000000006064820152fd5b7fffffffffffffffffffffffffffffffffffffffffffffff000000000000000000166801000000000000000117855538610394565b8287517ff92ee8a9000000000000000000000000000000000000000000000000000000008152fd5b90501538610361565b303b159150610359565b86915061034f565b83903461016857817ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126101685760209073ffffffffffffffffffffffffffffffffffffffff7f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930054169051908152f35b90503461016457827ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc360112610164573373ffffffffffffffffffffffffffffffffffffffff7f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c005416036105fb57826105f833610853565b80f35b6024925051907f118cdaa70000000000000000000000000000000000000000000000000000000082523390820152fd5b833461071057807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc360112610710576106626107e3565b8073ffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffff00000000000000000000000000000000000000007f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c008181541690557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930080549182169055167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a380f35b80fd5b833461071057807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3601126107105761074a6107e3565b7f812c36a273ff85c1871fc7c629fa4c010821a53f3a2492dcc0ea00a396b6a64f8180a180f35b9181601f8401121561079f5782359167ffffffffffffffff831161079f576020838186019501011161079f57565b600080fd5b601f82602094937fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0938186528686013760008582860101520116010190565b73ffffffffffffffffffffffffffffffffffffffff7f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c1993005416330361082357565b60246040517f118cdaa7000000000000000000000000000000000000000000000000000000008152336004820152fd5b7fffffffffffffffffffffffff0000000000000000000000000000000000000000907f237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c008281541690557f9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c19930080549073ffffffffffffffffffffffffffffffffffffffff80931680948316179055167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3565b60ff7ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a005460401c161561093657565b60046040517fd7e6bcf8000000000000000000000000000000000000000000000000000000008152fdfea2646970667358221220d8181f048f00c8b7033559a4136b66cd02d2459b4a9a0f38344b530c399c5a6464736f6c63430008170033",
 }
 
 // UpgradeEntrypointABI is the input ABI used to generate the binding from.
@@ -285,6 +285,27 @@ func (_UpgradeEntrypoint *UpgradeEntrypointTransactorSession) AcceptOwnership() 
 	return _UpgradeEntrypoint.Contract.AcceptOwnership(&_UpgradeEntrypoint.TransactOpts)
 }
 
+// CancelUpgrade is a paid mutator transaction binding the contract method 0x55f29166.
+//
+// Solidity: function cancelUpgrade() returns()
+func (_UpgradeEntrypoint *UpgradeEntrypointTransactor) CancelUpgrade(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _UpgradeEntrypoint.contract.Transact(opts, "cancelUpgrade")
+}
+
+// CancelUpgrade is a paid mutator transaction binding the contract method 0x55f29166.
+//
+// Solidity: function cancelUpgrade() returns()
+func (_UpgradeEntrypoint *UpgradeEntrypointSession) CancelUpgrade() (*types.Transaction, error) {
+	return _UpgradeEntrypoint.Contract.CancelUpgrade(&_UpgradeEntrypoint.TransactOpts)
+}
+
+// CancelUpgrade is a paid mutator transaction binding the contract method 0x55f29166.
+//
+// Solidity: function cancelUpgrade() returns()
+func (_UpgradeEntrypoint *UpgradeEntrypointTransactorSession) CancelUpgrade() (*types.Transaction, error) {
+	return _UpgradeEntrypoint.Contract.CancelUpgrade(&_UpgradeEntrypoint.TransactOpts)
+}
+
 // Initialize is a paid mutator transaction binding the contract method 0xc4d66de8.
 //
 // Solidity: function initialize(address owner) returns()
@@ -367,6 +388,139 @@ func (_UpgradeEntrypoint *UpgradeEntrypointSession) TransferOwnership(newOwner c
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_UpgradeEntrypoint *UpgradeEntrypointTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _UpgradeEntrypoint.Contract.TransferOwnership(&_UpgradeEntrypoint.TransactOpts, newOwner)
+}
+
+// UpgradeEntrypointCancelUpgradeIterator is returned from FilterCancelUpgrade and is used to iterate over the raw logs and unpacked data for CancelUpgrade events raised by the UpgradeEntrypoint contract.
+type UpgradeEntrypointCancelUpgradeIterator struct {
+	Event *UpgradeEntrypointCancelUpgrade // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *UpgradeEntrypointCancelUpgradeIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(UpgradeEntrypointCancelUpgrade)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(UpgradeEntrypointCancelUpgrade)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *UpgradeEntrypointCancelUpgradeIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *UpgradeEntrypointCancelUpgradeIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// UpgradeEntrypointCancelUpgrade represents a CancelUpgrade event raised by the UpgradeEntrypoint contract.
+type UpgradeEntrypointCancelUpgrade struct {
+	Raw types.Log // Blockchain specific contextual infos
+}
+
+// FilterCancelUpgrade is a free log retrieval operation binding the contract event 0x812c36a273ff85c1871fc7c629fa4c010821a53f3a2492dcc0ea00a396b6a64f.
+//
+// Solidity: event CancelUpgrade()
+func (_UpgradeEntrypoint *UpgradeEntrypointFilterer) FilterCancelUpgrade(opts *bind.FilterOpts) (*UpgradeEntrypointCancelUpgradeIterator, error) {
+
+	logs, sub, err := _UpgradeEntrypoint.contract.FilterLogs(opts, "CancelUpgrade")
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeEntrypointCancelUpgradeIterator{contract: _UpgradeEntrypoint.contract, event: "CancelUpgrade", logs: logs, sub: sub}, nil
+}
+
+// WatchCancelUpgrade is a free log subscription operation binding the contract event 0x812c36a273ff85c1871fc7c629fa4c010821a53f3a2492dcc0ea00a396b6a64f.
+//
+// Solidity: event CancelUpgrade()
+func (_UpgradeEntrypoint *UpgradeEntrypointFilterer) WatchCancelUpgrade(opts *bind.WatchOpts, sink chan<- *UpgradeEntrypointCancelUpgrade) (event.Subscription, error) {
+
+	logs, sub, err := _UpgradeEntrypoint.contract.WatchLogs(opts, "CancelUpgrade")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(UpgradeEntrypointCancelUpgrade)
+				if err := _UpgradeEntrypoint.contract.UnpackLog(event, "CancelUpgrade", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCancelUpgrade is a log parse operation binding the contract event 0x812c36a273ff85c1871fc7c629fa4c010821a53f3a2492dcc0ea00a396b6a64f.
+//
+// Solidity: event CancelUpgrade()
+func (_UpgradeEntrypoint *UpgradeEntrypointFilterer) ParseCancelUpgrade(log types.Log) (*UpgradeEntrypointCancelUpgrade, error) {
+	event := new(UpgradeEntrypointCancelUpgrade)
+	if err := _UpgradeEntrypoint.contract.UnpackLog(event, "CancelUpgrade", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // UpgradeEntrypointInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the UpgradeEntrypoint contract.
