@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity 0.8.23;
 
 library Secp256k1 {
     /// @notice Compress an uncompressed 65-byte Secp256k1 public key.

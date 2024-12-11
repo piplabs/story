@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.23;
+pragma solidity 0.8.23;
 
 interface IUpgradeEntrypoint {
     /// PROTO: https://github.com/cosmos/cosmos-sdk/blob/v0.50.9/proto/cosmos/upgrade/v1beta1/upgrade.proto

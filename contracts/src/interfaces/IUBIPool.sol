@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.23;
+pragma solidity 0.8.23;
 
 /// @title IUBIPool
 /// @notice Interface for the UBI Pool contract
