@@ -249,7 +249,7 @@ contract IPTokenStakingTest is Test {
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
         ipTokenStaking.stake{ value: stakeAmount }(
             delegatorUncmpPubkey,
-            hex"04e38d15ae6cc5d41cce27a2307903cb", // Malformed validator pubkey
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist-secret
             IIPTokenStaking.StakingPeriod.FLEXIBLE,
             ""
         );
@@ -259,7 +259,7 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
         ipTokenStaking.stake{ value: stakeAmount }(
-            hex"04e38d15ae6cc5d41cce27a2307903cb", // Malformed delegator pubkey
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist-secret
             validatorPubkey,
             IIPTokenStaking.StakingPeriod.FLEXIBLE,
             ""
