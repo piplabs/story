@@ -28,18 +28,21 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
-	_ "cosmossdk.io/api/cosmos/tx/config/v1"          // import for side-effects
-	_ "cosmossdk.io/x/evidence"                       // import for side-effects
-	_ "cosmossdk.io/x/upgrade"                        // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/auth"           // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config" // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/bank"           // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/consensus"      // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/distribution"   // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/genutil"        // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/gov"            // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/slashing"       // import for side-effects
-	_ "github.com/cosmos/cosmos-sdk/x/staking"        // import for side-effects
+	_ "cosmossdk.io/api/cosmos/tx/config/v1"                // import for side-effects
+	_ "cosmossdk.io/x/evidence"                             // import for side-effects
+	_ "cosmossdk.io/x/upgrade"                              // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/auth"                 // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"       // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/bank"                 // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/consensus"            // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/distribution"         // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/genutil"              // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/gov"                  // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/slashing"             // import for side-effects
+	_ "github.com/cosmos/cosmos-sdk/x/staking"              // import for side-effects
+	_ "github.com/piplabs/story/client/x/evmengine/module"  // import for side-effects
+	_ "github.com/piplabs/story/client/x/evmstaking/module" // import for side-effects
+	_ "github.com/piplabs/story/client/x/mint/module"       // import for side-effects
 )
 
 const Name = "story"
