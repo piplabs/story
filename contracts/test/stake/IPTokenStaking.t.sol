@@ -11,6 +11,7 @@ import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaki
 import { Test } from "../utils/Test.sol";
 
 contract IPTokenStakingTest is Test {
+    // Obtain more uncompressed pubkey using ethers@v6: `(new ethers.SigningKey(ethers.Wallet.createRandom().privateKey)).publicKey`
     bytes private delegatorUncmpPubkey =
         hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe47b"; // pragma: allowlist-secret
     // Address matching delegatorCmpPubkey
@@ -146,8 +147,9 @@ contract IPTokenStakingTest is Test {
         });
 
         // Network shall not allow anyone to create a new validator if the provided public key doesn’t match sender’s address.
+        // 0x6277DE0706F607722e135F7184A0f8bca5270Cd8
         bytes
-            memory delegatorUncmpPubkeyChanged = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
+            memory delegatorUncmpPubkeyChanged = hex"04ff4a6e0343d0545e0a6a8c6e05ff679d2cfa07b821ecf4f5fe0e9c83b8679c2b5dc334fade4c24bf0b0b9707f12655901fa1839243d644e4f307a51b3166de6f"; // pragma: allowlist-secret
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
@@ -376,10 +378,12 @@ contract IPTokenStakingTest is Test {
             bytes32(uint256(3)), // _delegationIdCounter
             bytes32(uint256(1))
         );
+        // 0x6277DE0706F607722e135F7184A0f8bca5270Cd8
         bytes
-            memory validatorUncmpSrcPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
+            memory validatorUncmpSrcPubkey = hex"04ff4a6e0343d0545e0a6a8c6e05ff679d2cfa07b821ecf4f5fe0e9c83b8679c2b5dc334fade4c24bf0b0b9707f12655901fa1839243d644e4f307a51b3166de6f"; // pragma: allowlist-secret
+        // 0x761D77d6788720079861167e9EBBA9F95B3010BD
         bytes
-            memory validatorUncmpDstPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
+            memory validatorUncmpDstPubkey = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist-secret
 
         vm.expectEmit(true, true, true, true);
         emit IIPTokenStaking.Redelegate(
@@ -480,10 +484,12 @@ contract IPTokenStakingTest is Test {
             bytes32(uint256(3)), // _delegationIdCounter
             bytes32(uint256(1))
         );
+        // 0x6277DE0706F607722e135F7184A0f8bca5270Cd8
         bytes
-            memory validatorUncmpSrcPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
+            memory validatorUncmpSrcPubkey = hex"04ff4a6e0343d0545e0a6a8c6e05ff679d2cfa07b821ecf4f5fe0e9c83b8679c2b5dc334fade4c24bf0b0b9707f12655901fa1839243d644e4f307a51b3166de6f"; // pragma: allowlist-secret
+        // 0x761D77d6788720079861167e9EBBA9F95B3010BD
         bytes
-            memory validatorUncmpDstPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
+            memory validatorUncmpDstPubkey = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist-secret
 
         address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
 
@@ -576,8 +582,9 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.setWithdrawalAddress{ value: feeAmount }(delegatorUncmpPubkey, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address for other delegators
+        // 0x761D77d6788720079861167e9EBBA9F95B3010BD
         bytes
-            memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
+            memory delegatorUncmpPubkey1 = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
         ipTokenStaking.setWithdrawalAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
@@ -600,8 +607,9 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.setRewardsAddress{ value: feeAmount }(delegatorUncmpPubkey, address(0xb0b));
 
         // Network shall not allow anyone to set withdrawal address for other delegators
+        // 0x761D77d6788720079861167e9EBBA9F95B3010BD
         bytes
-            memory delegatorUncmpPubkey1 = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
+            memory delegatorUncmpPubkey1 = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
         ipTokenStaking.setRewardsAddress{ value: feeAmount }(delegatorUncmpPubkey1, address(0xb0b));
@@ -642,8 +650,9 @@ contract IPTokenStakingTest is Test {
     function testIPTokenStaking_addOperator() public {
         // Network shall not allow others to add operators for a delegator
         address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        // 0x761D77d6788720079861167e9EBBA9F95B3010BD
         bytes
-            memory otherDelegatorUncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist secret
+            memory otherDelegatorUncmpPubkey = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
         ipTokenStaking.addOperator(otherDelegatorUncmpPubkey, operator);

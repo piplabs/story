@@ -14,6 +14,9 @@ importers:
       '@openzeppelin/contracts-upgradeable':
         specifier: 5.0.2
         version: 5.0.2(@openzeppelin/contracts@5.0.2)
+      elliptic-curve-solidity:
+        specifier: github:witnet/elliptic-curve-solidity
+        version: https://codeload.github.com/witnet/elliptic-curve-solidity/tar.gz/347547890840fd501809dfe0b855206407136ec0
       erc6551:
         specifier: ^0.3.1
         version: 0.3.1
@@ -374,6 +377,10 @@ packages:
   ds-test@https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0:
     resolution: {tarball: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0}
     version: 1.0.0
+
+  elliptic-curve-solidity@https://codeload.github.com/witnet/elliptic-curve-solidity/tar.gz/347547890840fd501809dfe0b855206407136ec0:
+    resolution: {tarball: https://codeload.github.com/witnet/elliptic-curve-solidity/tar.gz/347547890840fd501809dfe0b855206407136ec0}
+    version: 0.2.5
 
   elliptic@6.5.4:
     resolution: {integrity: sha512-iLhC6ULemrljPZb+QutR5TQGB+pdW6KGD5RSegS+8sorOZT+rdQFbsQFJgvN3eRqNALqJer4oQ16YvJHlU8hzQ==}
@@ -1115,6 +1122,8 @@ snapshots:
   diff@4.0.2: {}
 
   ds-test@https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0: {}
+
+  elliptic-curve-solidity@https://codeload.github.com/witnet/elliptic-curve-solidity/tar.gz/347547890840fd501809dfe0b855206407136ec0: {}
 
   elliptic@6.5.4:
     dependencies:
