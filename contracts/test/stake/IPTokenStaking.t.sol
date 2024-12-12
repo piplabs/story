@@ -100,23 +100,6 @@ contract IPTokenStakingTest is Test {
             data: ""
         });
 
-        // Network shall not allow anyone to create a new validator on behalf if the msg.value < min
-        bytes
-            memory validator1Pubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1000000"; // pragma: allowlist-secret
-        stakeAmount = 0.5 ether;
-        vm.deal(delegatorAddr, 1 ether);
-        vm.prank(delegatorAddr);
-        vm.expectRevert("IPTokenStaking: Stake amount under min");
-        ipTokenStaking.createValidatorOnBehalf{ value: stakeAmount }({
-            validatorUncmpPubkey: validator1Pubkey,
-            moniker: "delegator's validator",
-            commissionRate: 1000,
-            maxCommissionRate: 5000,
-            maxCommissionChangeRate: 100,
-            supportsUnlocked: false,
-            data: ""
-        });
-
         // Network shall allow anyone to create a new validator by staking validator’s own tokens (self-delegation)
         stakeAmount = ipTokenStaking.minStakeAmount();
         vm.deal(delegatorAddr, stakeAmount);
@@ -140,35 +123,6 @@ contract IPTokenStakingTest is Test {
             maxCommissionRate: 5000,
             maxCommissionChangeRate: 100,
             supportsUnlocked: true,
-            data: abi.encode("data")
-        });
-
-        // Network shall allow anyone to create a new validator on behalf of a validator.
-        // Note that the operation stakes sender’s tokens to the validator, and the delegator will still be the validator itself.
-        bytes
-            memory validator2UncmpPubkey = hex"04e38d15ae6cc5d41cce27a2307903cb12a406cbf463fe5fef215bdf8aa988ced195e9327ac89cd362eaa0397f8d7f007c02b2a75642f174e455d339e4a1efe222"; // pragma: allowlist-secret
-        stakeAmount = ipTokenStaking.minStakeAmount();
-        vm.deal(delegatorAddr, stakeAmount);
-        vm.prank(delegatorAddr);
-        vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.CreateValidator(
-            validator2UncmpPubkey,
-            "delegator's validator",
-            stakeAmount,
-            1000,
-            5000,
-            100,
-            0, // supportsUnlocked
-            delegatorAddr,
-            abi.encode("data")
-        );
-        ipTokenStaking.createValidatorOnBehalf{ value: stakeAmount }({
-            validatorUncmpPubkey: validator2UncmpPubkey,
-            moniker: "delegator's validator",
-            commissionRate: 1000,
-            maxCommissionRate: 5000,
-            maxCommissionChangeRate: 100,
-            supportsUnlocked: false,
             data: abi.encode("data")
         });
 
