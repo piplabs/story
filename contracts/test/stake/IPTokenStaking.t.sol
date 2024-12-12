@@ -242,6 +242,28 @@ contract IPTokenStakingTest is Test {
             ""
         );
         assertEq(delegationId, expectedDelegationId);
+
+        // Test revert for malformed validator pubkey
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
+        ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist-secret
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
+
+        // Test revert for malformed delegator pubkey
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
+        ipTokenStaking.stake{ value: stakeAmount }(
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // pragma: allowlist-secret
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
     }
 
     function testIPTokenStaking_stake_remainder() public {
@@ -366,6 +388,19 @@ contract IPTokenStakingTest is Test {
             ""
         );
         vm.stopPrank();
+
+        // Revert if amount is not rounded to STAKE_ROUNDING
+        uint256 unroundedAmount = ipTokenStaking.minUnstakeAmount() + ipTokenStaking.STAKE_ROUNDING() + 1;
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
+        ipTokenStaking.unstake{ value: feeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            delegationId,
+            unroundedAmount,
+            ""
+        );
     }
 
     function testIPTokenStaking_Redelegation() public {
