@@ -309,6 +309,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         external
         payable
         verifyUncmpPubkeyWithExpectedAddress(delegatorUncmpPubkey, msg.sender)
+        verifyUncmpPubkey(validatorUncmpPubkey)
         nonReentrant
         returns (uint256 delegationId)
     {
@@ -330,7 +331,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata validatorUncmpPubkey,
         IIPTokenStaking.StakingPeriod stakingPeriod,
         bytes calldata data
-    ) external payable verifyUncmpPubkey(delegatorUncmpPubkey) nonReentrant returns (uint256 delegationId) {
+    )
+        external
+        payable
+        verifyUncmpPubkey(delegatorUncmpPubkey)
+        verifyUncmpPubkey(validatorUncmpPubkey)
+        nonReentrant
+        returns (uint256 delegationId)
+    {
         return _stake(delegatorUncmpPubkey, validatorUncmpPubkey, stakingPeriod, data);
     }
 

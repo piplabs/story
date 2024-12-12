@@ -242,6 +242,28 @@ contract IPTokenStakingTest is Test {
             ""
         );
         assertEq(delegationId, expectedDelegationId);
+
+        // Test revert for malformed validator pubkey
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
+        ipTokenStaking.stake{ value: stakeAmount }(
+            delegatorUncmpPubkey,
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // Malformed validator pubkey
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
+
+        // Test revert for malformed delegator pubkey
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("PubKeyVerifier: Invalid pubkey length");
+        ipTokenStaking.stake{ value: stakeAmount }(
+            hex"04e38d15ae6cc5d41cce27a2307903cb", // Malformed delegator pubkey
+            validatorPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
+        );
     }
 
     function testIPTokenStaking_stake_remainder() public {
