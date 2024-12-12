@@ -90,7 +90,6 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		"amount_coin", amountCoin.String(),
 	)
 
-	// TODO: Check if we can instantiate the msgServer without type assertion
 	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
 	if !ok {
 		return errors.New("type assertion failed")
@@ -135,7 +134,6 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 
 	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
 	// The saving is done regardless of any error below, as the money is already minted and sent to the delegator, who can withdraw the minted amount.
-	// TODO: Confirm that bech32 address and evm address can be used interchangeably. Must be one-to-one or many-bech32-to-one-evm.
 	// NOTE: Do not overwrite the existing withdraw/reward address set by the validator.
 	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")

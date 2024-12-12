@@ -13,6 +13,7 @@ import (
 	cmtcfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
+	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	rpclocal "github.com/cometbft/cometbft/rpc/client/local"
 	cmttypes "github.com/cometbft/cometbft/types"
@@ -91,44 +92,10 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		return nil, errors.Wrap(err, "enable cosmos-sdk telemetry")
 	}
 
-	privVal, err := loadPrivVal(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "load validator key")
-	}
-
-	db, err := dbm.NewDB("application", cfg.BackendType(), cfg.DataDir())
-	if err != nil {
-		return nil, errors.Wrap(err, "create db")
-	}
-
-	baseAppOpts, err := makeBaseAppOpts(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "make base app opts")
-	}
-
-	engineCl, err := newEngineClient(ctx, cfg)
+	app, privVal, err := CreateApp(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	//nolint:contextcheck // False positive
-	app, err := newApp(
-		newSDKLogger(ctx),
-		db,
-		engineCl,
-		baseAppOpts...,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "create app")
-	}
-	app.Keepers.EVMEngKeeper.SetBuildDelay(cfg.EVMBuildDelay)
-	app.Keepers.EVMEngKeeper.SetBuildOptimistic(cfg.EVMBuildOptimistic)
-
-	addr, err := k1util.PubKeyToAddress(privVal.Key.PrivKey.PubKey())
-	if err != nil {
-		return nil, errors.Wrap(err, "convert validator pubkey to address")
-	}
-	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
 
 	cmtNode, err := newCometNode(ctx, &cfg.Comet, app, privVal)
 	if err != nil {
@@ -185,26 +152,25 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}, nil
 }
 
-// TODO: Refactor CreateApp() to be used within the Start function, as most of the code originates from there.
-func CreateApp(ctx context.Context, cfg Config) *App {
+func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	privVal, err := loadPrivVal(cfg)
 	if err != nil {
-		panic(errors.Wrap(err, "load validator key"))
+		return nil, nil, errors.Wrap(err, "load validator key")
 	}
 
 	db, err := dbm.NewDB("application", cfg.BackendType(), cfg.DataDir())
 	if err != nil {
-		panic(errors.Wrap(err, "create db"))
+		return nil, nil, errors.Wrap(err, "create db")
 	}
 
 	baseAppOpts, err := makeBaseAppOpts(cfg)
 	if err != nil {
-		panic(errors.Wrap(err, "make base app opts"))
+		return nil, nil, errors.Wrap(err, "make base app opts")
 	}
 
 	engineCl, err := newEngineClient(ctx, cfg)
 	if err != nil {
-		panic(err)
+		return nil, nil, errors.Wrap(err, "create engine client")
 	}
 
 	//nolint:contextcheck // False positive
@@ -215,18 +181,18 @@ func CreateApp(ctx context.Context, cfg Config) *App {
 		baseAppOpts...,
 	)
 	if err != nil {
-		panic(errors.Wrap(err, "create app"))
+		return nil, nil, errors.Wrap(err, "create app")
 	}
 	app.Keepers.EVMEngKeeper.SetBuildDelay(cfg.EVMBuildDelay)
 	app.Keepers.EVMEngKeeper.SetBuildOptimistic(cfg.EVMBuildOptimistic)
 
 	addr, err := k1util.PubKeyToAddress(privVal.Key.PrivKey.PubKey())
 	if err != nil {
-		panic(errors.Wrap(err, "convert validator pubkey to address"))
+		return nil, nil, errors.Wrap(err, "convert validator pubkey to address")
 	}
 	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
 
-	return app
+	return app, privVal, nil
 }
 
 func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator,
@@ -286,7 +252,7 @@ func makeBaseAppOpts(cfg Config) ([]func(*baseapp.BaseApp), error) {
 	}
 
 	return []func(*baseapp.BaseApp){
-		// baseapp.SetOptimisticExecution(), // TODO: Enable this.
+		baseapp.SetOptimisticExecution(),
 		baseapp.SetChainID(chainID),
 		baseapp.SetMinRetainBlocks(cfg.MinRetainBlocks),
 		baseapp.SetPruning(pruneOpts),

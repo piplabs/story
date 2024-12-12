@@ -53,8 +53,7 @@ func (WithdrawalType) EnumDescriptor() ([]byte, []int) {
 }
 
 type Withdrawal struct {
-	CreationHeight uint64 `protobuf:"varint,1,opt,name=creation_height,json=creationHeight,proto3" json:"creation_height,omitempty"`
-	// TODO: use ethcommon.Address type
+	CreationHeight   uint64         `protobuf:"varint,1,opt,name=creation_height,json=creationHeight,proto3" json:"creation_height,omitempty"`
 	ExecutionAddress string         `protobuf:"bytes,2,opt,name=execution_address,json=executionAddress,proto3" json:"execution_address,omitempty" yaml:"execution_address"`
 	Amount           uint64         `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty" yaml:"amount"`
 	WithdrawalType   WithdrawalType `protobuf:"varint,4,opt,name=withdrawal_type,json=withdrawalType,proto3,enum=story.evmstaking.v1.types.WithdrawalType" json:"withdrawal_type,omitempty" yaml:"withdrawal_type"`

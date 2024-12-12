@@ -58,19 +58,8 @@ func Alloc(_ netconf.ID) (types.GenesisAlloc, error) {
 
 	db := state.NewMemDB(emptyGenesis)
 
-	// setProxies(db)
-
-	// admin, err := eoa.Admin(network)
-	// if err != nil {
-	//	return nil, errors.Wrap(err, "network admin")
-	//}
-
 	if err := setStaking(db); err != nil {
 		return nil, errors.Wrap(err, "set staking")
-	}
-
-	if err := setSlashing(db); err != nil {
-		return nil, errors.Wrap(err, "set slashing")
 	}
 
 	return db.Genesis().Alloc, nil
@@ -81,14 +70,6 @@ func setStaking(db *state.MemDB) error {
 	storage := state.StorageValues{}
 
 	return setPredeploy(db, ipTokenStaking, ipTokenStakingCode, bindings.IPTokenStakingStorageLayout, storage)
-}
-
-// setSlashing sets the Slashing predeploy.
-// TODO: Slashing design.
-func setSlashing(db *state.MemDB) error {
-	storage := state.StorageValues{}
-
-	return setPredeploy(db, ubiPool, ipTokenStakingCode, bindings.IPTokenStakingStorageLayout, storage)
 }
 
 // setPredeploy sets the implementation code and proxy storage for the given predeploy.

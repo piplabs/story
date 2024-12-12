@@ -180,7 +180,6 @@ func (App) SimulationManager() *module.SimulationManager {
 }
 
 // SetCometAPI sets the comet API client.
-// TODO: Figure out how to use depinject to set this.
 func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
 }

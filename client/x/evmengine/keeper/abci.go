@@ -202,7 +202,6 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	logAttr := slog.Int64("next_height", nextHeight)
 	log.Info(ctx, "Starting optimistic EVM payload build", logAttr)
 
-	// TODO: This will fail because ctx provided in ABCI call in CometBFT 0.37 is context.TODO()
 	// If optimistic block is discarded, we need to restore the dequeued withdrawals back to the queue.
 	// Thus, we peek here. If this optimistic block is indeed used in the next block, then we dequeue there.
 	// If this block is not used in the next block, the block itself is discarded and the queue is unaffected.
@@ -211,7 +210,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 		log.Error(ctx, "Starting optimistic build failed; get max withdrawal", err, logAttr)
 		return errors.Wrap(err, "get max withdrawal per block")
 	}
-	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals) // context is "context.TODO()"" (empty) in CometBFT v0.38
+	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; withdrawals peek", err, logAttr)
 		return nil
@@ -300,7 +299,6 @@ func isUnknownPayload(err error) bool {
 		return false
 	}
 
-	// TODO: Add support for typed errors.
 	if strings.Contains(
 		strings.ToLower(err.Error()),
 		strings.ToLower(engine.UnknownPayload.Error()),

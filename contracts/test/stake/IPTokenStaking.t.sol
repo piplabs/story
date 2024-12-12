@@ -5,6 +5,7 @@ pragma solidity 0.8.23;
 /// NOTE: pragma allowlist-secret must be inline (same line as the pubkey hex string) to avoid false positive
 /// flag "Hex High Entropy String" in CI run detect-secrets
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
@@ -785,7 +786,12 @@ contract IPTokenStakingTest is Test {
 
         // Set using a non-owner address
         vm.prank(delegatorAddr);
-        vm.expectRevert(); // TODO: encode OwnableUnauthorizedAccount
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                address(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab)
+            )
+        );
         ipTokenStaking.setMinStakeAmount(1 ether);
     }
 

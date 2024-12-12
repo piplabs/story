@@ -16,13 +16,7 @@ type Network struct {
 
 // Validate returns an error if the configuration is invalid.
 func (n Network) Validate() error {
-	if err := n.ID.Verify(); err != nil {
-		return err
-	}
-
-	// TODO: Validate chains
-
-	return nil
+	return n.ID.Verify()
 }
 
 // Chain returns the chain config for the given ID or false if it does not exist.

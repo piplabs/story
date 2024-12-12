@@ -36,7 +36,6 @@ func (k *Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 	}
 }
 
-//nolint:revive // TODO: validate genesis
-func (k *Keeper) ValidateGenesis(gs *types.GenesisState) error {
+func (*Keeper) ValidateGenesis(gs *types.GenesisState) error {
 	return types.ValidateExecutionBlockHash(gs.Params.ExecutionBlockHash)
 }

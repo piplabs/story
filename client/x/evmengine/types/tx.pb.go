@@ -303,7 +303,6 @@ func _MsgService_ExecutionPayload_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-var MsgService_serviceDesc = _MsgService_serviceDesc
 var _MsgService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "story.evmengine.v1.types.MsgService",
 	HandlerType: (*MsgServiceServer)(nil),

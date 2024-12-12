@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cometbft/cometbft/privval"
 	"github.com/spf13/cobra"
 
 	"github.com/piplabs/story/client/app"
@@ -13,7 +14,7 @@ import (
 )
 
 // newRollbackCmd returns a new cobra command that rolls back one block of the story consensus client.
-func newRollbackCmd(appCreateFunc func(context.Context, app.Config) *app.App) *cobra.Command {
+func newRollbackCmd(appCreateFunc func(context.Context, app.Config) (*app.App, *privval.FilePV, error)) *cobra.Command {
 	rollbackCfg := cfg.DefaultRollbackConfig()
 	storyCfg := cfg.DefaultConfig()
 	logCfg := log.DefaultConfig()
@@ -46,7 +47,10 @@ CometBFT the transactions in blocks [n - X + 1, n] will be re-executed against t
 				Config: storyCfg,
 				Comet:  cometCfg,
 			}
-			a := appCreateFunc(ctx, appCfg)
+			a, _, err := appCreateFunc(ctx, appCfg)
+			if err != nil {
+				return err
+			}
 			lastHeight, lastHash, err := app.RollbackCometAndAppState(a, cometCfg, rollbackCfg)
 			if err != nil {
 				return err

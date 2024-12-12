@@ -14,10 +14,6 @@ message GenesisState {
 
 message ValidatorSweepIndex {
   uint64 next_val_index = 1 [
-    // TODO: use custom Int type, need to resolve issue in auto-generated pb.go
-    // (cosmos_proto.scalar)  = "cosmos.Int",
-    // (gogoproto.customtype) = "cosmossdk.io/math.Int",
-    // (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"next_val_index\""
   ];
   uint64 next_val_del_index = 2 [

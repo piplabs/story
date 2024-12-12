@@ -237,7 +237,6 @@ func defaultAppState(
 }
 
 func getCodec() *codec.ProtoCodec {
-	// TODO: Use depinject to get all of this.
 	sdkConfig := sdk.GetConfig()
 	reg, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
 		ProtoFiles: proto.HybridResolver,

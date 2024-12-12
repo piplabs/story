@@ -159,7 +159,6 @@ func (q Queue[T]) Rear(ctx context.Context) (uint64, error) {
 	return item, nil
 }
 
-// TODO: Iterate with a custom range, clamp the range to the front and rear.
 func (q Queue[T]) Iterate(ctx context.Context) (collections.Iterator[uint64, T], error) {
 	front, _ := q.front.Get(ctx)
 	rear, _ := q.rear.Get(ctx)
