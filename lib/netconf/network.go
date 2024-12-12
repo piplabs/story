@@ -35,6 +35,9 @@ const (
 
 	// Odyssey is the official Story Protocol public testnet.
 	Odyssey ID = "odyssey"
+
+	// Mainnet is the official Story Protocol public mainnet.
+	Mainnet ID = "mainnet"
 )
 
 // supported is a map of supported networks.
@@ -44,6 +47,7 @@ var supported = map[ID]bool{
 	Iliad:   true,
 	Odyssey: true,
 	Local:   true,
+	Mainnet: true,
 }
 
 // IsAny returns true if the `ID` matches any of the provided targets.

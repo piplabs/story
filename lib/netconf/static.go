@@ -71,6 +71,15 @@ var (
 	odysseyConsensusSeedsTXT []byte
 )
 
+//nolint:gochecknoglobals // Static addresses
+var (
+	//go:embed mainnet/genesis.json
+	mainnetConsensusGenesisJSON []byte
+
+	//go:embed mainnet/seeds.txt
+	mainnetConsensusSeedsTXT []byte
+)
+
 //nolint:gochecknoglobals // Static mappings.
 var statics = map[ID]Static{
 	Iliad: {
@@ -90,5 +99,11 @@ var statics = map[ID]Static{
 		StoryExecutionChainID: evmchain.IDOdyssey,
 		ConsensusGenesisJSON:  odysseyConsensusGenesisJSON,
 		ConsensusSeedTXT:      odysseyConsensusSeedsTXT,
+	},
+	Mainnet: {
+		Version:               "v0.0.1",
+		StoryExecutionChainID: evmchain.IDStoryMainnet,
+		ConsensusGenesisJSON:  mainnetConsensusGenesisJSON,
+		ConsensusSeedTXT:      mainnetConsensusSeedsTXT,
 	},
 }
