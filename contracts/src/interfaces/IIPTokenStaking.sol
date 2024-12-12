@@ -201,27 +201,6 @@ interface IIPTokenStaking {
         bytes calldata data
     ) external payable;
 
-    /// @notice Entry point for creating a new validator on behalf of someone else.
-    /// WARNING: If validatorUncmpPubkey is wrong, the stake will go to an address that the sender
-    /// won't be able to control and unstake from, funds will be lost. If you want to make sure the
-    /// caller is the owner of the validator, use createValidator instead.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    /// @param moniker The moniker of the validator.
-    /// @param commissionRate The commission rate of the validator.
-    /// @param maxCommissionRate The maximum commission rate of the validator.
-    /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
-    /// @param supportsUnlocked Whether the validator supports unlocked staking.
-    /// @param data Additional data for the validator.
-    function createValidatorOnBehalf(
-        bytes calldata validatorUncmpPubkey,
-        string calldata moniker,
-        uint32 commissionRate,
-        uint32 maxCommissionRate,
-        uint32 maxCommissionChangeRate,
-        bool supportsUnlocked,
-        bytes calldata data
-    ) external payable;
-
     /// @notice Entry point to stake (delegate) to the given validator. The consensus client (CL) is notified of
     /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
     /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
