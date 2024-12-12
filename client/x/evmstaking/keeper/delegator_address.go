@@ -102,7 +102,7 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 	return nil
 }
 
-func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStakingAddOperator) (err error) {
+func (k Keeper) ProcessSetOperator(ctx context.Context, ev *bindings.IPTokenStakingSetOperator) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
@@ -116,7 +116,7 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 		}
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			sdk.NewEvent(
-				types.EventTypeAddOperatorFailure,
+				types.EventTypeSetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
@@ -144,7 +144,7 @@ func (k Keeper) ProcessAddOperator(ctx context.Context, ev *bindings.IPTokenStak
 	return nil
 }
 
-func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenStakingRemoveOperator) (err error) {
+func (k Keeper) ProcessUnsetOperator(ctx context.Context, ev *bindings.IPTokenStakingUnsetOperator) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
@@ -158,10 +158,9 @@ func (k Keeper) ProcessRemoveOperator(ctx context.Context, ev *bindings.IPTokenS
 		}
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			sdk.NewEvent(
-				types.EventTypeRemoveOperatorFailure,
+				types.EventTypeUnsetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
