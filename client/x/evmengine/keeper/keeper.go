@@ -69,7 +69,7 @@ func NewKeeper(
 	dk types.DistrKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
-		{Id: 1, ProtoFileName: File_client_x_evmengine_keeper_evmengine_proto.Path()},
+		{Id: 1, ProtoFileName: File_story_evmengine_v1_keeper_evmengine_proto.Path()},
 	}}
 
 	modDB, err := ormdb.NewModuleDB(schema, ormdb.ModuleDBOptions{KVStoreService: storeService})

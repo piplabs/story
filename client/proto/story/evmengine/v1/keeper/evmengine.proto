@@ -1,10 +1,9 @@
 syntax = "proto3";
-
-package client.x.evmengine.keeper;
+package story.evmengine.v1.keeper;
 
 import "cosmos/orm/v1/orm.proto";
 
-option go_package = "client/x/evmengine/keeper";
+option go_package = "github.com/piplabs/story/client/x/evmengine/keeper";
 
 // ExecutionHead defines the execution chain head.
 // It is a singleton table; it only has a single row with ID==1.

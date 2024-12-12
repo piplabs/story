@@ -1,12 +1,12 @@
 syntax = "proto3";
-package client.x.mint.types;
+package story.mint.v1.types;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
-import "client/x/mint/types/mint.proto";
+import "story/mint/v1/types/mint.proto";
 import "amino/amino.proto";
 
-option go_package = "client/x/mint/types";
+option go_package = "github.com/piplabs/story/client/x/mint/types";
 
 // Query provides defines the gRPC querier service.
 service Query {
