@@ -511,6 +511,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     ) private {
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
         require(amount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
+        require(amount % STAKE_ROUNDING == 0, "IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
         emit Withdraw(delegatorUncmpPubkey, validatorUncmpPubkey, amount, delegationId, msg.sender, data);
     }
 

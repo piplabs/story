@@ -366,6 +366,19 @@ contract IPTokenStakingTest is Test {
             ""
         );
         vm.stopPrank();
+
+        // Revert if amount is not rounded to STAKE_ROUNDING
+        uint256 unroundedAmount = ipTokenStaking.minUnstakeAmount() + ipTokenStaking.STAKE_ROUNDING() + 1;
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
+        ipTokenStaking.unstake{ value: feeAmount }(
+            delegatorUncmpPubkey,
+            validatorPubkey,
+            delegationId,
+            unroundedAmount,
+            ""
+        );
     }
 
     function testIPTokenStaking_Redelegation() public {
