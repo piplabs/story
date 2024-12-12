@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"bytes"
-	"html/template"
 	"strings"
+	"text/template"
 
 	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtos "github.com/cometbft/cometbft/libs/os"
