@@ -24,8 +24,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type GenesisState struct {
-	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
-	// TODO: Add withdrawals collections field as ORM if needed
+	Params              Params              `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 	ValidatorSweepIndex ValidatorSweepIndex `protobuf:"bytes,2,opt,name=validator_sweep_index,json=validatorSweepIndex,proto3" json:"validator_sweep_index"`
 }
 
