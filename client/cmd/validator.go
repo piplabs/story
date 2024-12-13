@@ -464,7 +464,7 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 	_, err = prepareAndExecuteTransaction(
 		ctx,
 		&cfg.baseConfig,
-		"createValidatorOnBehalf",
+		"createValidator",
 		stakeAmount,
 		uncompressedPubKeyBytes,
 		cfg.Moniker,
