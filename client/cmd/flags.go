@@ -54,10 +54,10 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
-	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://storyrpc.io", "RPC URL to connect to the testnet")
+	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.PrivateKey, "private-key", "", "Private key used for the transaction")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
-	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1516, "Chain ID to use for the transaction")
+	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1415, "Chain ID to use for the transaction")
 }
 
 func bindValidatorCreateFlags(cmd *cobra.Command, cfg *createValidatorConfig) {
