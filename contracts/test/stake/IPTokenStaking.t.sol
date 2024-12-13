@@ -699,7 +699,7 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.updateValidatorCommission{ value: feeAmount - 1 }(delegatorUncmpPubkey, commissionRate);
     }
 
-    function testIPTokenStaking_addOperator() public {
+    function testIPTokenStaking_setOperator() public {
         // Network shall not allow others to add operators for a delegator
         address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
         // 0x761D77d6788720079861167e9EBBA9F95B3010BD
@@ -707,54 +707,47 @@ contract IPTokenStakingTest is Test {
             memory otherDelegatorUncmpPubkey = hex"044782dd017c45b9b07c23e2390cd3c43b1593afb39e808374b501dd781126eb475247632f0f2768488ad019b65a21fdd599ce6dad96d765f81047d961075eafed"; // pragma: allowlist secret
         vm.prank(delegatorAddr);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.addOperator(otherDelegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator(otherDelegatorUncmpPubkey, operator);
 
         // Network shall not allow anyone to add operators for a delegator if the fee is not paid.
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator(delegatorUncmpPubkey, operator);
 
         // Network shall not allow anyone to add operators for a delegator if the fee is wrong
         uint256 feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount + 1);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.addOperator{ value: feeAmount + 1 }(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount + 1 }(delegatorUncmpPubkey, operator);
 
         // Network should allow delegators to add operators for themselves
         feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.AddOperator(delegatorUncmpPubkey, operator);
-        ipTokenStaking.addOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
+        emit IIPTokenStaking.SetOperator(delegatorUncmpPubkey, operator);
+        ipTokenStaking.setOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
     }
 
-    function testIPTokenStaking_removeOperator() public {
-        uint256 feeAmount = ipTokenStaking.fee();
-        address operator = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+    function testIPTokenStaking_unsetOperator() public {
         // Network shall not allow others to remove operators for a delegator
         address otherAddress = address(0xf398c12A45BC409b6C652e25bb0A3e702492A4AA);
+        uint256 feeAmount = ipTokenStaking.fee();
         vm.deal(otherAddress, feeAmount);
         vm.prank(otherAddress);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.removeOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
+        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
 
         // Network shall allow delegators to remove their operators
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.RemoveOperator(delegatorUncmpPubkey, operator);
-        ipTokenStaking.removeOperator{ value: feeAmount }(delegatorUncmpPubkey, operator);
-
-        // Revert if fee is not paid
-        vm.deal(delegatorAddr, feeAmount);
-        vm.prank(delegatorAddr);
-        vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.removeOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey, operator);
+        emit IIPTokenStaking.UnsetOperator(delegatorUncmpPubkey);
+        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
     }
 
     function testIPTokenStaking_setMinStakeAmount() public {

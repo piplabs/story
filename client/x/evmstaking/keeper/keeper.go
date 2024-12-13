@@ -154,24 +154,24 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to process set reward address", err)
 				continue
 			}
-		case types.AddOperator.ID:
-			ev, err := k.ipTokenStakingContract.ParseAddOperator(ethlog)
+		case types.SetOperator.ID:
+			ev, err := k.ipTokenStakingContract.ParseSetOperator(ethlog)
 			if err != nil {
-				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
+				clog.Error(ctx, "Failed to parse SetOperator log", err)
 				continue
 			}
-			if err = k.ProcessAddOperator(ctx, ev); err != nil {
-				clog.Error(ctx, "Failed to process add operator", err)
+			if err = k.ProcessSetOperator(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process set operator", err)
 				continue
 			}
-		case types.RemoveOperator.ID:
-			ev, err := k.ipTokenStakingContract.ParseRemoveOperator(ethlog)
+		case types.UnsetOperator.ID:
+			ev, err := k.ipTokenStakingContract.ParseUnsetOperator(ethlog)
 			if err != nil {
-				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
+				clog.Error(ctx, "Failed to parse UnsetOperator log", err)
 				continue
 			}
-			if err = k.ProcessRemoveOperator(ctx, ev); err != nil {
-				clog.Error(ctx, "Failed to process add operator", err)
+			if err = k.ProcessUnsetOperator(ctx, ev); err != nil {
+				clog.Error(ctx, "Failed to process unset operator", err)
 				continue
 			}
 		case types.CreateValidatorEvent.ID:
