@@ -73,7 +73,6 @@ func NewProposalServer(keeper *Keeper) types.MsgServiceServer {
 
 var _ types.MsgServiceServer = proposalServer{}
 
-// TODO: benchmark this function, might be adding to overhead. Esp. the for loop. If so, parallelize since array checks are independent.
 func evmEventsEqual(a, b []*types.EVMEvent) error {
 	if len(a) != len(b) {
 		return errors.New("count mismatch")

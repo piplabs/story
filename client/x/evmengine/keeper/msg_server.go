@@ -37,14 +37,6 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, err
 	}
 
-	// TODO: should we compare and reject in a finalized block?
-	//// Ensure that the withdrawals in the payload are from the front indices of the queue.
-	// if err := s.compareWithdrawals(ctx, payload.Withdrawals); err != nil {
-	//	return nil, errors.Wrap(err, "compare local and received withdrawals")
-	//}
-
-	// TODO: We dequeue with assumption that the top items of the queue are the ones that are processed in the block.
-	// TODO: We might need to check that the withdrawals in the finalized block are the same as the ones dequeued.
 	// Since we already checked the withdrawals in the proposal server, we simply check the length here.
 	log.Debug(
 		ctx, "Dequeueing eligible withdrawals [BEFORE]",

@@ -15,7 +15,6 @@ import (
 
 // Query staking module's UnbondingDelegation (UBD Queue) to get the matured unbonding delegations. Then,
 // insert the matured unbonding delegations into the withdrawal queue.
-// TODO: check if unbonded delegations in staking module must be distinguished based on source of generation, CL or EL.
 func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	log.Debug(ctx, "EndBlock.evmstaking")
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)

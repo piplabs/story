@@ -17,16 +17,11 @@ message Withdrawal {
   option (gogoproto.goproto_getters) = false;
 
   uint64 creation_height = 1;
-  // TODO: use ethcommon.Address type
   string execution_address = 2 [
     (cosmos_proto.scalar) = "cosmos.AddressString",
     (gogoproto.moretags) = "yaml:\"execution_address\""
   ];
   uint64 amount = 3 [
-    // TODO: use custom Int type, need to resolve issue in auto-generated pb.go
-    // (cosmos_proto.scalar)  = "cosmos.Int",
-    // (gogoproto.customtype) = "cosmossdk.io/math.Int",
-    // (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"amount\""
   ];
   WithdrawalType withdrawal_type = 4 [

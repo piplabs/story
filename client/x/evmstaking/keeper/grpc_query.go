@@ -31,7 +31,6 @@ func (k Keeper) Params(ctx context.Context, request *types.QueryParamsRequest) (
 }
 
 // GetWithdrawalQueue returns the withdrawal queue in pagination.
-// TODO: GetWithdrawalQueue tests.
 func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetWithdrawalQueueRequest) (*types.QueryGetWithdrawalQueueResponse, error) {
 	if request == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")

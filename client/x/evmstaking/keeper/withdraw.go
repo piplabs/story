@@ -87,7 +87,6 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 	}
 
 	if nextValIndex >= uint64(len(validatorSet)) {
-		// TODO: TBD
 		log.Warn(
 			ctx, "NextValidatorIndex exceeds the validator set size",
 			errors.New("nextValidatorIndex overflow"),
@@ -414,8 +413,6 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	)
 
 	if !k.authKeeper.HasAccount(cachedCtx, depositorAddr) {
-		// TODO: gracefully handle when malicious or uninformed user tries to withdraw from non-existent account
-		// skip errors.Wrap(err) since err will be nil (since all prev errors were nil to reach this branch)
 		return errors.New("depositor account not found")
 	}
 

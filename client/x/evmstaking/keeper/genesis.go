@@ -91,8 +91,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 	}
 }
 
-//nolint:revive // TODO: validate genesis
-func (k Keeper) ValidateGenesis(gs *types.GenesisState) error {
+func (Keeper) ValidateGenesis(gs *types.GenesisState) error {
 	if err := gs.Params.Validate(); err != nil {
 		return errors.Wrap(err, "validate genesis state params")
 	}

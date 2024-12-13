@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	cosmossdk.io/api v0.7.5
-	// TODO(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
+	// NOTE(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
 	// should use v0.11.0. The Cosmos build fails with types/context.go:65:29: undefined: comet.BlockInfo otherwise.
 	// (Replace is done below)
 	cosmossdk.io/core v0.12.0
@@ -293,7 +293,7 @@ require (
 )
 
 replace (
-	// TODO(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
+	// NOTE(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
 	// should use v0.11.0. The Cosmos build fails with types/context.go:65:29: undefined: comet.BlockInfo otherwise.
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
