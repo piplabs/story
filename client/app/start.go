@@ -252,7 +252,7 @@ func makeBaseAppOpts(cfg Config) ([]func(*baseapp.BaseApp), error) {
 	}
 
 	return []func(*baseapp.BaseApp){
-		baseapp.SetOptimisticExecution(),
+		// baseapp.SetOptimisticExecution(), // TODO: research this feature
 		baseapp.SetChainID(chainID),
 		baseapp.SetMinRetainBlocks(cfg.MinRetainBlocks),
 		baseapp.SetPruning(pruneOpts),
