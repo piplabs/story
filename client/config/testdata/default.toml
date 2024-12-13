@@ -5,7 +5,7 @@
 # last modified the config file. Do not modify this.
 version = "v0.1.5"
 
-# Story network to participate in: mainnet, testnet, or devnet.
+# Story network to participate in: story, odyssey, or local.
 network = ""
 
 #######################################################################

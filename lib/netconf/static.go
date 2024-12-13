@@ -73,11 +73,11 @@ var (
 
 //nolint:gochecknoglobals // Static addresses
 var (
-	//go:embed mainnet/genesis.json
-	mainnetConsensusGenesisJSON []byte
+	//go:embed story/genesis.json
+	storyConsensusGenesisJSON []byte
 
-	//go:embed mainnet/seeds.txt
-	mainnetConsensusSeedsTXT []byte
+	//go:embed story/seeds.txt
+	storyConsensusSeedsTXT []byte
 )
 
 //nolint:gochecknoglobals // Static mappings.
@@ -100,10 +100,10 @@ var statics = map[ID]Static{
 		ConsensusGenesisJSON:  odysseyConsensusGenesisJSON,
 		ConsensusSeedTXT:      odysseyConsensusSeedsTXT,
 	},
-	Mainnet: {
+	Story: {
 		Version:               "v0.0.1",
-		StoryExecutionChainID: evmchain.IDStoryMainnet,
-		ConsensusGenesisJSON:  mainnetConsensusGenesisJSON,
-		ConsensusSeedTXT:      mainnetConsensusSeedsTXT,
+		StoryExecutionChainID: evmchain.IDStory,
+		ConsensusGenesisJSON:  storyConsensusGenesisJSON,
+		ConsensusSeedTXT:      storyConsensusSeedsTXT,
 	},
 }

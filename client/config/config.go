@@ -81,11 +81,11 @@ var (
 		Seeds:              "",
 		SeedMode:           false,
 	}
-	MainnetConfig = Config{
+	StoryConfig = Config{
 		HomeDir:            DefaultHomeDir(),
-		Network:            "mainnet",
+		Network:            "story",
 		EngineEndpoint:     DefaultEngineEndpoint,
-		EngineJWTFile:      DefaultJWTFile("mainnet"),
+		EngineJWTFile:      DefaultJWTFile("story"),
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),

@@ -8,8 +8,8 @@ import (
 type Token string
 
 const (
-	// Mainnets.
-	IDStoryMainnet uint64 = 1415
+	// Story Mainnet.
+	IDStory uint64 = 1415
 
 	// Local Testet.
 	IDLocal uint64 = 1511
