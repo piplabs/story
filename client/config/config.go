@@ -81,6 +81,25 @@ var (
 		Seeds:              "",
 		SeedMode:           false,
 	}
+	MainnetConfig = Config{
+		HomeDir:            DefaultHomeDir(),
+		Network:            "mainnet",
+		EngineEndpoint:     DefaultEngineEndpoint,
+		EngineJWTFile:      DefaultJWTFile("mainnet"),
+		SnapshotInterval:   defaultSnapshotInterval,
+		SnapshotKeepRecent: defaultSnapshotKeepRecent,
+		BackendType:        string(defaultDBBackend),
+		MinRetainBlocks:    defaultMinRetainBlocks,
+		PruningOption:      pruningtypes.PruningOptionDefault,
+		EVMBuildDelay:      defaultEVMBuildDelay,
+		EVMBuildOptimistic: true,
+		API:                apisvr.DefaultConfig(),
+		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
+	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "local",

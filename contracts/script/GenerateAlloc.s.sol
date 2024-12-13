@@ -48,7 +48,7 @@ contract GenerateAlloc is Script {
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
-    uint256 public constant MAINNET_CHAIN_ID = 1514; // TBD
+    uint256 public constant MAINNET_CHAIN_ID = 1415; // TBD
     // Optionally allocate 10k test accounts for devnets/testnets
     bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
