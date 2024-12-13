@@ -143,8 +143,8 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorStakeOnBehalfCmd(),
 		newValidatorUnstakeCmd(),
 		newValidatorUnstakeOnBehalfCmd(),
-		newValidatorAddOperatorCmd(),
-		newValidatorRemoveOperatorCmd(),
+		newValidatorSetOperatorCmd(),
+		newValidatorUnsetOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
 		newValidatorUnjailCmd(),
 		newValidatorUnjailOnBehalfCmd(),
@@ -177,44 +177,44 @@ func newValidatorCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newValidatorAddOperatorCmd() *cobra.Command {
+func newValidatorSetOperatorCmd() *cobra.Command {
 	var cfg operatorConfig
 
 	cmd := &cobra.Command{
-		Use:   "add-operator",
-		Short: "Add a new operator to your delegator",
+		Use:   "set-operator",
+		Short: "set an operator to your delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
 			validateOperatorFlags,
-			func(ctx context.Context) error { return addOperator(ctx, cfg) },
+			func(ctx context.Context) error { return setOperator(ctx, cfg) },
 		),
 	}
 
-	bindAddOperatorFlags(cmd, &cfg)
+	bindSetOperatorFlags(cmd, &cfg)
 
 	return cmd
 }
 
-func newValidatorRemoveOperatorCmd() *cobra.Command {
+func newValidatorUnsetOperatorCmd() *cobra.Command {
 	var cfg operatorConfig
 
 	cmd := &cobra.Command{
-		Use:   "remove-operator",
-		Short: "Removes an existing operator from your delegator",
+		Use:   "unset-operator",
+		Short: "Unsets an existing operator from your delegator",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
 			validateOperatorFlags,
-			func(ctx context.Context) error { return removeOperator(ctx, cfg) },
+			func(ctx context.Context) error { return unsetOperator(ctx, cfg) },
 		),
 	}
 
-	bindRemoveOperatorFlags(cmd, &cfg)
+	bindUnsetOperatorFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -507,7 +507,7 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 	return nil
 }
 
-func addOperator(ctx context.Context, cfg operatorConfig) error {
+func setOperator(ctx context.Context, cfg operatorConfig) error {
 	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		return err
@@ -520,19 +520,19 @@ func addOperator(ctx context.Context, cfg operatorConfig) error {
 		return err
 	}
 
-	fmt.Printf("Fee for adding operator: %s wei\n", fee.String())
+	fmt.Printf("Fee for setting operator: %s wei\n", fee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "addOperator", fee, uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setOperator", fee, uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Operator added successfully!")
+	fmt.Println("Operator set successfully!")
 
 	return nil
 }
 
-func removeOperator(ctx context.Context, cfg operatorConfig) error {
+func unsetOperator(ctx context.Context, cfg operatorConfig) error {
 	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		return err
@@ -545,18 +545,18 @@ func removeOperator(ctx context.Context, cfg operatorConfig) error {
 		return err
 	}
 
-	var removeOperatorFee *big.Int
-	err = cfg.ABI.UnpackIntoInterface(&removeOperatorFee, "fee", result)
+	var unsetOperatorFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&unsetOperatorFee, "fee", result)
 	if err != nil {
-		return errors.Wrap(err, "failed to unpack removeOperatorFee")
+		return errors.Wrap(err, "failed to unpack unsetOperatorFee")
 	}
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "removeOperator", removeOperatorFee, uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unsetOperator", unsetOperatorFee, uncompressedPubKey, operatorAddress)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Operator removed successfully!")
+	fmt.Println("Operator unset successfully!")
 
 	return nil
 }
