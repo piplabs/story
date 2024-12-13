@@ -8,19 +8,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/upgrades"
-	"github.com/piplabs/story/client/app/upgrades/v0_12_1"
-	"github.com/piplabs/story/client/app/upgrades/v0_13_0"
-	"github.com/piplabs/story/client/app/upgrades/v0_14_0"
 )
 
 var (
 	// `Upgrades` defines the upgrade handlers and store loaders for the application.
 	// New upgrades should be added to this slice after they are implemented.
-	Upgrades = []upgrades.Upgrade{
-		v0_12_1.Upgrade,
-		v0_13_0.Upgrade,
-		v0_14_0.Upgrade,
-	}
+	Upgrades = []upgrades.Upgrade{}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{}
 )
