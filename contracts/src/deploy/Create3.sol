@@ -55,7 +55,6 @@ contract Create3 {
      */
     function predictDeterministicAddress(bytes32 salt) external view returns (address deployed) {
         // hash salt with the deployer address to give each deployer its own namespace
-//        salt = keccak256(abi.encodePacked(address(this), salt));
         return CREATE3.getDeployed(salt);
     }
 }
