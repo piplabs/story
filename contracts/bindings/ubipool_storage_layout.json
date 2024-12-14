@@ -1,10 +1,54 @@
-
-╭-----------------------+-----------------------------------------------+------+--------+-------+----------------------------------╮
-| Name                  | Type                                          | Slot | Offset | Bytes | Contract                         |
-+==================================================================================================================================+
-| currentDistributionId | uint256                                       | 0    | 0      | 32    | src/protocol/UBIPool.sol:UBIPool |
-|-----------------------+-----------------------------------------------+------+--------+-------+----------------------------------|
-| validatorUBIAmounts   | mapping(uint256 => mapping(bytes => uint256)) | 1    | 0      | 32    | src/protocol/UBIPool.sol:UBIPool |
-|-----------------------+-----------------------------------------------+------+--------+-------+----------------------------------|
-| totalPendingClaims    | uint256                                       | 2    | 0      | 32    | src/protocol/UBIPool.sol:UBIPool |
-╰-----------------------+-----------------------------------------------+------+--------+-------+----------------------------------╯
+{
+  "storage": [
+    {
+      "astId": 2443,
+      "contract": "src/protocol/UBIPool.sol:UBIPool",
+      "label": "currentDistributionId",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 2450,
+      "contract": "src/protocol/UBIPool.sol:UBIPool",
+      "label": "validatorUBIAmounts",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_uint256,t_mapping(t_bytes_memory_ptr,t_uint256))"
+    },
+    {
+      "astId": 2453,
+      "contract": "src/protocol/UBIPool.sol:UBIPool",
+      "label": "totalPendingClaims",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_uint256"
+    }
+  ],
+  "types": {
+    "t_bytes_memory_ptr": {
+      "encoding": "bytes",
+      "label": "bytes",
+      "numberOfBytes": "32"
+    },
+    "t_mapping(t_bytes_memory_ptr,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_bytes_memory_ptr",
+      "label": "mapping(bytes => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_uint256,t_mapping(t_bytes_memory_ptr,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(bytes => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_bytes_memory_ptr,t_uint256)"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

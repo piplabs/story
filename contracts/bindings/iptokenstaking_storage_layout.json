@@ -1,14 +1,51 @@
-
-╭----------------------+---------+------+--------+-------+------------------------------------------------╮
-| Name                 | Type    | Slot | Offset | Bytes | Contract                                       |
-+=========================================================================================================+
-| minCommissionRate    | uint256 | 0    | 0      | 32    | src/protocol/IPTokenStaking.sol:IPTokenStaking |
-|----------------------+---------+------+--------+-------+------------------------------------------------|
-| minStakeAmount       | uint256 | 1    | 0      | 32    | src/protocol/IPTokenStaking.sol:IPTokenStaking |
-|----------------------+---------+------+--------+-------+------------------------------------------------|
-| minUnstakeAmount     | uint256 | 2    | 0      | 32    | src/protocol/IPTokenStaking.sol:IPTokenStaking |
-|----------------------+---------+------+--------+-------+------------------------------------------------|
-| _delegationIdCounter | uint256 | 3    | 0      | 32    | src/protocol/IPTokenStaking.sol:IPTokenStaking |
-|----------------------+---------+------+--------+-------+------------------------------------------------|
-| fee                  | uint256 | 4    | 0      | 32    | src/protocol/IPTokenStaking.sol:IPTokenStaking |
-╰----------------------+---------+------+--------+-------+------------------------------------------------╯
+{
+  "storage": [
+    {
+      "astId": 48774,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "minCommissionRate",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 48777,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "minStakeAmount",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 48780,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "minUnstakeAmount",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 48783,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "_delegationIdCounter",
+      "offset": 0,
+      "slot": "3",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 48786,
+      "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
+      "label": "fee",
+      "offset": 0,
+      "slot": "4",
+      "type": "t_uint256"
+    }
+  ],
+  "types": {
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}
