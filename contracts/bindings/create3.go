@@ -31,8 +31,8 @@ var (
 
 // Create3MetaData contains all meta data concerning the Create3 contract.
 var Create3MetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"creationCode\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"getDeployed\",\"inputs\":[{\"name\":\"deployer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"}]",
-	Bin: "0x6080806040523461001657610576908161001c8239f35b600080fdfe60806040908082526004918236101561001757600080fd5b600091823560e01c90816350f1c4641461027d575063cdcb760a1461003b57600080fd5b807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc360112610279576024359067ffffffffffffffff82116102755736602383011215610275578184013593610090856103ba565b9361009d83519586610379565b8585526020958686019436602483830101116102755781839260248a930188378701015282513360601b7fffffffffffffffffffffffffffffffffffffffff00000000000000000000000016878201908152833560148201529061012c81603484015b037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe08101835282610379565b51902093846101396103f4565b888151910184f59073ffffffffffffffffffffffffffffffffffffffff9586831615610219579183929161016d849361042d565b98519134905af1903d15610213573d90610186826103ba565b9161019386519384610379565b8252873d92013e5b80610209575b156101ae57505191168152f35b8460649251917f08c379a0000000000000000000000000000000000000000000000000000000008352820152601560248201527f494e495449414c495a4154494f4e5f4641494c454400000000000000000000006044820152fd5b50833b15156101a1565b5061019b565b6064858a8851917f08c379a0000000000000000000000000000000000000000000000000000000008352820152601160248201527f4445504c4f594d454e545f4641494c45440000000000000000000000000000006044820152fd5b8280fd5b5080fd5b8284863461027957827ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261027957359273ffffffffffffffffffffffffffffffffffffffff91828516850361032b575060609390931b7fffffffffffffffffffffffffffffffffffffffff000000000000000000000000166020848101918252602435603486015293610323919061031b8160548101610100565b51902061042d565b915191168152f35b80fd5b6040810190811067ffffffffffffffff82111761034a57604052565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b90601f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0910116810190811067ffffffffffffffff82111761034a57604052565b67ffffffffffffffff811161034a57601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe01660200190565b604051906104018261032e565b601082527f67363d3d37363d34f03d5260086018f3000000000000000000000000000000006020830152565b6104356103f4565b602081519101206040519060208201927fff0000000000000000000000000000000000000000000000000000000000000084523060601b602184015260358301526055820152605581526080810181811067ffffffffffffffff82111761034a577f010000000000000000000000000000000000000000000000000000000000000060b673ffffffffffffffffffffffffffffffffffffffff948360405284519020937fffffffffffffffffffffffffffffffffffffffff00000000000000000000000060a08201957fd694000000000000000000000000000000000000000000000000000000000000875260601b1660a28201520152601781526105398161032e565b519020169056fea2646970667358221220ae6ad00ab94c0c8c6287fcf226a86d455010dec06d16eb8e03322c891d8de38c64736f6c63430008170033",
+	ABI: "[{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"creationCode\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"deployDeterministic\",\"inputs\":[{\"name\":\"creationCode\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"getDeployed\",\"inputs\":[{\"name\":\"deployer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"predictDeterministicAddress\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"deployed\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"}]",
+	Bin: "0x6080806040523461001657610667908161001b8239f35b5f80fdfe6080604081815260049182361015610015575f80fd5b5f3560e01c90816350f1c464146101f0575080635414dff01461019f5780639881d195146101335763cdcb760a1461004b575f80fd5b807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261012f576024359167ffffffffffffffff831161012f5761012773ffffffffffffffffffffffffffffffffffffffff916100af60209536908301610358565b84513360601b7fffffffffffffffffffffffffffffffffffffffff000000000000000000000000168782019081529235601484015290919061011c81603484015b037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe081018352826102dd565b5190209034916104ea565b915191168152f35b5f80fd5b50807ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261012f57813567ffffffffffffffff811161012f5761012761019560209473ffffffffffffffffffffffffffffffffffffffff93369101610358565b34906024356104ea565b503461012f5760207ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261012f5773ffffffffffffffffffffffffffffffffffffffff610127602093356103d7565b82843461012f57817ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011261012f57359173ffffffffffffffffffffffffffffffffffffffff90818416840361012f5760609390931b7fffffffffffffffffffffffffffffffffffffffff000000000000000000000000166020848101918252602435603486015293610127919061028c81605481016100f0565b5190206103d7565b6040810190811067ffffffffffffffff8211176102b057604052565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b90601f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0910116810190811067ffffffffffffffff8211176102b057604052565b67ffffffffffffffff81116102b057601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe01660200190565b81601f8201121561012f5780359061036f8261031e565b9261037d60405194856102dd565b8284526020838301011161012f57815f926020809301838601378301015290565b604051906103ab82610294565b601082527f67363d3d37363d34f03d5260086018f3000000000000000000000000000000006020830152565b6103df61039e565b602081519101206040519060208201927fff0000000000000000000000000000000000000000000000000000000000000084523060601b602184015260358301526055820152605581526080810181811067ffffffffffffffff8211176102b0577f010000000000000000000000000000000000000000000000000000000000000060b673ffffffffffffffffffffffffffffffffffffffff948360405284519020937fffffffffffffffffffffffffffffffffffffffff00000000000000000000000060a08201957fd694000000000000000000000000000000000000000000000000000000000000875260601b1660a28201520152601781526104e381610294565b5190201690565b929192806104f661039e565b6020815191015ff59173ffffffffffffffffffffffffffffffffffffffff8316156105d3575f9261052784936103d7565b95602083519301915af13d156105ce573d6105418161031e565b9061054f60405192836102dd565b81525f60203d92013e5b806105c4575b1561056657565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601560248201527f494e495449414c495a4154494f4e5f4641494c454400000000000000000000006044820152fd5b50813b151561055f565b610559565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601160248201527f4445504c4f594d454e545f4641494c45440000000000000000000000000000006044820152fdfea26469706673582212203f5ac15a5d7253024be8653eb0cf2d7aa21c6b76cfa6a8d2a5f4f13f82e1cec864736f6c63430008170033",
 }
 
 // Create3ABI is the input ABI used to generate the binding from.
@@ -233,6 +233,37 @@ func (_Create3 *Create3CallerSession) GetDeployed(deployer common.Address, salt 
 	return _Create3.Contract.GetDeployed(&_Create3.CallOpts, deployer, salt)
 }
 
+// PredictDeterministicAddress is a free data retrieval call binding the contract method 0x5414dff0.
+//
+// Solidity: function predictDeterministicAddress(bytes32 salt) view returns(address deployed)
+func (_Create3 *Create3Caller) PredictDeterministicAddress(opts *bind.CallOpts, salt [32]byte) (common.Address, error) {
+	var out []interface{}
+	err := _Create3.contract.Call(opts, &out, "predictDeterministicAddress", salt)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// PredictDeterministicAddress is a free data retrieval call binding the contract method 0x5414dff0.
+//
+// Solidity: function predictDeterministicAddress(bytes32 salt) view returns(address deployed)
+func (_Create3 *Create3Session) PredictDeterministicAddress(salt [32]byte) (common.Address, error) {
+	return _Create3.Contract.PredictDeterministicAddress(&_Create3.CallOpts, salt)
+}
+
+// PredictDeterministicAddress is a free data retrieval call binding the contract method 0x5414dff0.
+//
+// Solidity: function predictDeterministicAddress(bytes32 salt) view returns(address deployed)
+func (_Create3 *Create3CallerSession) PredictDeterministicAddress(salt [32]byte) (common.Address, error) {
+	return _Create3.Contract.PredictDeterministicAddress(&_Create3.CallOpts, salt)
+}
+
 // Deploy is a paid mutator transaction binding the contract method 0xcdcb760a.
 //
 // Solidity: function deploy(bytes32 salt, bytes creationCode) payable returns(address deployed)
@@ -252,4 +283,25 @@ func (_Create3 *Create3Session) Deploy(salt [32]byte, creationCode []byte) (*typ
 // Solidity: function deploy(bytes32 salt, bytes creationCode) payable returns(address deployed)
 func (_Create3 *Create3TransactorSession) Deploy(salt [32]byte, creationCode []byte) (*types.Transaction, error) {
 	return _Create3.Contract.Deploy(&_Create3.TransactOpts, salt, creationCode)
+}
+
+// DeployDeterministic is a paid mutator transaction binding the contract method 0x9881d195.
+//
+// Solidity: function deployDeterministic(bytes creationCode, bytes32 salt) payable returns(address deployed)
+func (_Create3 *Create3Transactor) DeployDeterministic(opts *bind.TransactOpts, creationCode []byte, salt [32]byte) (*types.Transaction, error) {
+	return _Create3.contract.Transact(opts, "deployDeterministic", creationCode, salt)
+}
+
+// DeployDeterministic is a paid mutator transaction binding the contract method 0x9881d195.
+//
+// Solidity: function deployDeterministic(bytes creationCode, bytes32 salt) payable returns(address deployed)
+func (_Create3 *Create3Session) DeployDeterministic(creationCode []byte, salt [32]byte) (*types.Transaction, error) {
+	return _Create3.Contract.DeployDeterministic(&_Create3.TransactOpts, creationCode, salt)
+}
+
+// DeployDeterministic is a paid mutator transaction binding the contract method 0x9881d195.
+//
+// Solidity: function deployDeterministic(bytes creationCode, bytes32 salt) payable returns(address deployed)
+func (_Create3 *Create3TransactorSession) DeployDeterministic(creationCode []byte, salt [32]byte) (*types.Transaction, error) {
+	return _Create3.Contract.DeployDeterministic(&_Create3.TransactOpts, creationCode, salt)
 }

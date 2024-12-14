@@ -741,14 +741,20 @@ contract IPTokenStakingTest is Test {
         vm.deal(otherAddress, feeAmount);
         vm.prank(otherAddress);
         vm.expectRevert("PubKeyVerifier: Invalid pubkey derived address");
-        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
+        ipTokenStaking.unsetOperator{ value: feeAmount }(delegatorUncmpPubkey);
 
         // Network shall allow delegators to remove their operators
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
         emit IIPTokenStaking.UnsetOperator(delegatorUncmpPubkey);
-        ipTokenStaking.unsetOperator(delegatorUncmpPubkey);
+        ipTokenStaking.unsetOperator{ value: feeAmount }(delegatorUncmpPubkey);
+
+        // Revert if fee is not paid
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Invalid fee amount");
+        ipTokenStaking.unsetOperator{ value: feeAmount - 1 }(delegatorUncmpPubkey);
     }
 
     function testIPTokenStaking_setMinStakeAmount() public {
