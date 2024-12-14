@@ -183,3 +183,10 @@ We built the `story` consensus client leveraging the [Cosmos SDK](https://github
 ### License
 
 The `story` consensus implementation is licensed under the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html).
+
+## Local Development with Story-Localnet
+
+To simplify local development and testing, developers can use the **Story-Localnet** project, which allows multiple Story nodes to run locally using Docker. This setup facilitates easy testing and experimentation.
+
+Find more information and setup instructions here:
+[Story-Localnet GitHub Repository](https://github.com/piplabs/story-localnet).
