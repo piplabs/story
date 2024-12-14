@@ -48,7 +48,7 @@ contract Create3 {
         return CREATE3.deploy(salt, creationCode, msg.value);
     }
 
-    /** 
+    /**
      * @notice Predicts the address of a deployed contract
      * @param salt      The deployer-specific salt for determining the deployed contract's address
      * @return deployed The address of the contract that will be deployed
