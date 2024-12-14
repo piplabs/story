@@ -37,4 +37,25 @@ contract Create3 {
         salt = keccak256(abi.encodePacked(deployer, salt));
         return CREATE3.getDeployed(salt);
     }
+
+    /**
+     * @notice Deploys a contract using CREATE3
+     * @param salt          The deployer-specific salt for determining the deployed contract's address
+     * @param creationCode  The creation code of the contract to deploy
+     * @return deployed     The address of the deployed contract
+     */
+    function deployDeterministic(bytes memory creationCode, bytes32 salt) external payable returns (address deployed) {
+        return CREATE3.deploy(salt, creationCode, msg.value);
+    }
+
+    /** 
+     * @notice Predicts the address of a deployed contract
+     * @param salt      The deployer-specific salt for determining the deployed contract's address
+     * @return deployed The address of the contract that will be deployed
+     */
+    function predictDeterministicAddress(bytes32 salt) external view returns (address deployed) {
+        // hash salt with the deployer address to give each deployer its own namespace
+//        salt = keccak256(abi.encodePacked(address(this), salt));
+        return CREATE3.getDeployed(salt);
+    }
 }

@@ -35,4 +35,29 @@ contract Create3Test is Test {
         expected = create3.getDeployed(address(this), otherSalt);
         assertEq(deployed, expected);
     }
+
+    function testCreate3_deploy_onlySalt() public {
+        // deployDeterministic and predictDeterministicAddress return same address when deployed by the same salt.
+        bytes32 salt = 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef;
+        bytes memory creationCode = type(Create3).creationCode;
+        address deployed = create3.deployDeterministic(creationCode, salt);
+        address expected = create3.predictDeterministicAddress(salt);
+        assertEq(deployed, expected);
+
+        // Network shall generate the same address for the same salt.
+        vm.expectRevert("DEPLOYMENT_FAILED");
+        deployed = create3.deployDeterministic(creationCode, salt);
+
+        // Network shall generate same addresses for different deployers.
+        address otherAddr = address(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab);
+        vm.prank(otherAddr);
+        vm.expectRevert("DEPLOYMENT_FAILED");
+        deployed = create3.deployDeterministic(creationCode, salt);
+
+        // Network shall generate different addresses for different salts.
+        bytes32 otherSalt = 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890fedcba;
+        deployed = create3.deployDeterministic(creationCode, otherSalt);
+        expected = create3.predictDeterministicAddress(otherSalt);
+        assertEq(deployed, expected);
+    }
 }
