@@ -538,20 +538,7 @@ func unsetOperator(ctx context.Context, cfg operatorConfig) error {
 		return err
 	}
 
-	operatorAddress := common.HexToAddress(cfg.Operator)
-
-	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
-	if err != nil {
-		return err
-	}
-
-	var unsetOperatorFee *big.Int
-	err = cfg.ABI.UnpackIntoInterface(&unsetOperatorFee, "fee", result)
-	if err != nil {
-		return errors.Wrap(err, "failed to unpack unsetOperatorFee")
-	}
-
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unsetOperator", unsetOperatorFee, uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unsetOperator", common.Big0, uncompressedPubKey)
 	if err != nil {
 		return err
 	}

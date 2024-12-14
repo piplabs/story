@@ -78,7 +78,6 @@ func bindSetOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
 
 func bindUnsetOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.Operator, "operator", "", "Unsets an operator from your delegator")
 }
 
 func bindSetWithdrawalAddressFlags(cmd *cobra.Command, cfg *withdrawalConfig) {
