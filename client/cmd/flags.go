@@ -183,9 +183,7 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 }
 
 func validateOperatorFlags(cmd *cobra.Command) error {
-	return validateFlags(cmd, []string{
-		"operator",
-	})
+	return validateFlags(cmd, []string{})
 }
 
 func validateWithdrawalFlags(cmd *cobra.Command) error {
