@@ -127,7 +127,7 @@ func (s *Server) GetBalancesByAddressDenom(req *getBalancesByAddressDenomRequest
 }
 
 // GetSpendableBalancesByAddress queries the spendable balance of all coins for a single account.
-func (s *Server) GetSpendableBalancesByAddress(req *getBalancesByAddressRequest, r *http.Request) (resp any, err error) {
+func (s *Server) GetSpendableBalancesByAddress(req *getSpendableBalancesByAddressRequest, r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (s *Server) GetSpendableBalancesByAddress(req *getBalancesByAddressRequest,
 }
 
 // GetSpendableBalancesByAddressDenom queries the spendable balance of a single coin for a single account.
-func (s *Server) GetSpendableBalancesByAddressDenom(req *getBalancesByAddressDenomRequest, r *http.Request) (resp any, err error) {
+func (s *Server) GetSpendableBalancesByAddressDenom(req *getSpendableBalancesByAddressDenomRequest, r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
