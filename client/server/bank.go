@@ -20,6 +20,9 @@ func (s *Server) initBankRoute() {
 	s.httpMux.HandleFunc("/bank/balances/{address}", utils.AutoWrap(s.aminoCodec, s.GetBalancesByAddress))
 	s.httpMux.HandleFunc("/bank/balances/{address}/by_denom", utils.AutoWrap(s.aminoCodec, s.GetBalancesByAddressDenom))
 
+	s.httpMux.HandleFunc("/bank/spendable_balances/{address}", utils.AutoWrap(s.aminoCodec, s.GetSpendableBalancesByAddress))
+	s.httpMux.HandleFunc("/bank/spendable_balances/{address}/by_denom", utils.AutoWrap(s.aminoCodec, s.GetSpendableBalancesByAddressDenom))
+
 	s.httpMux.HandleFunc("/bank/denom_owners/{denom}", utils.AutoWrap(s.aminoCodec, s.GetDenomOwners))
 	s.httpMux.HandleFunc("/bank/denom_owners_by_query", utils.AutoWrap(s.aminoCodec, s.GetDenomOwnersByQuery))
 }
@@ -112,6 +115,49 @@ func (s *Server) GetBalancesByAddressDenom(req *getBalancesByAddressDenomRequest
 	}
 
 	queryResp, err := s.store.GetBankKeeper().Balance(queryContext, &banktypes.QueryBalanceRequest{
+		Address: mux.Vars(r)["address"],
+		Denom:   req.Denom,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetSpendableBalancesByAddress queries the spendable balance of all coins for a single account.
+func (s *Server) GetSpendableBalancesByAddress(req *getBalancesByAddressRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := s.store.GetBankKeeper().SpendableBalances(queryContext, &banktypes.QuerySpendableBalancesRequest{
+		Address: mux.Vars(r)["address"],
+		Pagination: &query.PageRequest{
+			Key:        []byte(req.Pagination.Key),
+			Offset:     req.Pagination.Offset,
+			Limit:      req.Pagination.Limit,
+			CountTotal: req.Pagination.CountTotal,
+			Reverse:    req.Pagination.Reverse,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetSpendableBalancesByAddressDenom queries the spendable balance of a single coin for a single account.
+func (s *Server) GetSpendableBalancesByAddressDenom(req *getBalancesByAddressDenomRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := s.store.GetBankKeeper().SpendableBalanceByDenom(queryContext, &banktypes.QuerySpendableBalanceByDenomRequest{
 		Address: mux.Vars(r)["address"],
 		Denom:   req.Denom,
 	})
