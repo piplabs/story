@@ -57,13 +57,13 @@ contract GenerateAlloc is Script {
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
-        require(block.chainid == ChainIds.LOCAL, "Only for local tests");
+        require(block.chainid == ChainIds.FOUNDRY, "Only for local tests");
         saveState = false;
     }
 
     /// @dev this call should only be available from Test.sol
     function setAdminAddresses(address protocol, address executor, address guardian) external {
-        require(block.chainid == ChainIds.LOCAL, "Only for local tests");
+        require(block.chainid == ChainIds.FOUNDRY, "Only for local tests");
         protocolAdmin = protocol;
         timelockExecutor = executor;
         timelockGuardian = guardian;
