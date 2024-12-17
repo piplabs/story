@@ -404,7 +404,7 @@ contract GenerateAlloc is Script {
         // Story's IPGraph precompile
         vm.deal(0x0000000000000000000000000000000000000101, 1);
         // Allocation
-        if (block.chainid == ChainIds.MAINNET) {
+        if (block.chainid == ChainIds.STORY_MAINNET) {
             // TBD
         } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
             // Odyssey devnet alloc
@@ -437,7 +437,7 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
         }
-        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != ChainIds.MAINNET) {
+        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
         }
     }
