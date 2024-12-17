@@ -33,6 +33,14 @@ type getBalancesByAddressDenomRequest struct {
 	Denom string `mapstructure:"denom"`
 }
 
+type getSpendableBalancesByAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getSpendableBalancesByAddressDenomRequest struct {
+	Denom string `mapstructure:"denom"`
+}
+
 type getDenomOwnersRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
