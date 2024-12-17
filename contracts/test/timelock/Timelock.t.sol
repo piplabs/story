@@ -102,4 +102,35 @@ contract TimelockTest is Test {
         timelock.execute(target, value, data3, id2, salt3);
         assertEq(ipTokenStaking.fee(), 4 ether);
     }
+
+    function testTimelockMinDelay() public {
+        address target = address(ipTokenStaking);
+        uint256 value = 0;
+        bytes memory data1 = abi.encodeWithSelector(IPTokenStaking.setFee.selector, 2 ether);
+        bytes32 salt1 = keccak256("SALT_1");
+        uint256 minDelay = timelock.getMinDelay();
+
+        // Scheduling under the min delay should fail
+        vm.expectRevert(
+            abi.encodeWithSelector(TimelockController.TimelockInsufficientDelay.selector, minDelay - 1, minDelay)
+        );
+        vm.prank(admin);
+        timelock.schedule(target, value, data1, bytes32(0), salt1, minDelay - 1);
+
+        // Scheduling over the min delay should succeed
+        vm.prank(admin);
+        timelock.schedule(target, value, data1, bytes32(0), salt1, minDelay + 1 minutes);
+
+        // Should revert if we try to execute before scheduled time
+        vm.warp(block.timestamp + minDelay);
+        vm.expectRevert();
+        vm.prank(executor);
+        timelock.execute(target, value, data1, bytes32(0), salt1);
+
+        // Should succeed if we wait for the delay to pass
+        vm.warp(block.timestamp + minDelay + 1 minutes);
+        vm.prank(executor);
+        timelock.execute(target, value, data1, bytes32(0), salt1);
+        assertEq(ipTokenStaking.fee(), 2 ether);
+    }
 }
