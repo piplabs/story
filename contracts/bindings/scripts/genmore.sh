@@ -21,7 +21,7 @@ gen_binding() {
 
   # gen storage layout json
   storage_layout_file=${DIR}/${name_lower}_storage_layout.json
-  forge inspect "${contract}" storageLayout > "${storage_layout_file}"
+  forge inspect "${contract}" storageLayout --json > "${storage_layout_file}"
 
   # abigen does not generate the deployedBytecode, so we add it manually to {name_lower}_more.go
 
