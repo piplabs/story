@@ -81,7 +81,9 @@ contract GenerateAlloc is Script {
             return "./odyssey-testnet-alloc.json";
         } else if (block.chainid == ChainIds.LOCAL) {
             return "./local-alloc.json";
-        } else if (block.chainid == ChainIds.MAINNET) {
+        } else if (block.chainid == ChainIds.FOUNDRY) {
+            return "./foundry-alloc.json";
+        } else if (block.chainid == ChainIds.STORY_MAINNET) {
             return "./mainnet-alloc.json";
         } else {
             revert("Unsupported chain id");
@@ -105,7 +107,10 @@ contract GenerateAlloc is Script {
         } else if (block.chainid == ChainIds.LOCAL) {
             // Local
             return 10 seconds;
-        } else if (block.chainid == ChainIds.MAINNET) {
+        } else if (block.chainid == ChainIds.FOUNDRY) {
+            // Foundry
+            return 10 seconds;
+        } else if (block.chainid == ChainIds.STORY_MAINNET) {
             // Mainnet
             return 2 days;
         } else {
@@ -133,7 +138,7 @@ contract GenerateAlloc is Script {
         }
         require(timelockGuardian != address(0), "canceller not set");
 
-        if (block.chainid == ChainIds.MAINNET) {
+        if (block.chainid == ChainIds.STORY_MAINNET) {
             require(!KEEP_TIMELOCK_ADMIN_ROLE, "Timelock admin role not allowed on mainnet");
         } else {
             console2.log("Will timelock admin role be assigned?", KEEP_TIMELOCK_ADMIN_ROLE);
@@ -194,8 +199,7 @@ contract GenerateAlloc is Script {
     /// @notice Deploy TimelockController to manage upgrades and admin actions
     /// @dev this is a deterministic deployment, not a predeploy (won't show in genesis file).
     function deployTimelock() internal {
-        // We deploy this with Create3 because we can't set storage variables in constructor with vm.etch
-
+        // WARNING: Make sure protocolAdmin and timelockGuardian are multisigs on mainnet
         uint256 minDelay = getTimelockMinDelay();
         address[] memory proposers = new address[](1);
         proposers[0] = protocolAdmin;
@@ -208,6 +212,7 @@ contract GenerateAlloc is Script {
             abi.encode(minDelay, proposers, executors, protocolAdmin)
         );
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER");
+        // We deploy this with Create3 because we can't set storage variables in constructor with vm.etch
         timelock = Create3(Predeploys.Create3).deploy(salt, creationCode);
         vm.stopPrank();
         bytes32 cancellerRole = TimelockController(payable(timelock)).CANCELLER_ROLE();
