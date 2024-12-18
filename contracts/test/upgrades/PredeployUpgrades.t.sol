@@ -191,4 +191,28 @@ contract PredeployUpgrades is Test {
             expectRevertTimelocked(address(proxyAdmin), upgradeAction, expectedReason);
         }
     }
+
+    function testUpgradeLastPredeploy() public {
+        address newImpl = address(new InitialImplementation());
+        address lastPredeploy = address(uint160(Predeploys.Namespace) + uint160(Predeploys.NamespaceSize));
+        ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(lastPredeploy));
+        assertEq(proxyAdmin.owner(), address(timelock));
+
+        // Upgrade last predeploy to new implementation
+        performTimelocked(
+            address(proxyAdmin),
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(lastPredeploy),
+                newImpl,
+                ""
+            )
+        );
+        assertEq(EIP1967Helper.getImplementation(lastPredeploy), newImpl, "Last predeploy not upgraded");
+        assertEq(
+            keccak256(abi.encode(InitialImplementation(lastPredeploy).foo())),
+            keccak256(abi.encode("bar")),
+            "Upgraded to wrong iface"
+        );
+    }
 }
