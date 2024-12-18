@@ -217,16 +217,10 @@ contract GenerateAlloc is Script {
         vm.stopPrank();
         bytes32 cancellerRole = TimelockController(payable(timelock)).CANCELLER_ROLE();
         vm.prank(protocolAdmin);
-        TimelockController(payable(timelock)).grantRole(
-            cancellerRole,
-            canceller
-        );
+        TimelockController(payable(timelock)).grantRole(cancellerRole, canceller);
         if (!KEEP_TIMELOCK_ADMIN_ROLE) {
             bytes32 adminRole = TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE();
-            TimelockController(payable(timelock)).renounceRole(
-                adminRole,
-                protocolAdmin
-            );
+            TimelockController(payable(timelock)).renounceRole(adminRole, protocolAdmin);
         }
         vm.stopPrank();
         vm.startPrank(deployer);
