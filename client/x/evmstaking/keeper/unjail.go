@@ -10,6 +10,7 @@ import (
 	"cosmossdk.io/collections"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	slashtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmstaking/types"
@@ -78,8 +79,15 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		}
 	}
 
-	err = k.slashingKeeper.Unjail(cachedCtx, valAddr)
-	if err != nil {
+	if err = k.slashingKeeper.Unjail(cachedCtx, valAddr); errors.Is(err, slashtypes.ErrNoValidatorForAddress) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if errors.Is(err, slashtypes.ErrMissingSelfDelegation) {
+		return errors.WrapErrWithCode(errors.MissingSelfDelegation, err)
+	} else if errors.Is(err, slashtypes.ErrValidatorNotJailed) {
+		return errors.WrapErrWithCode(errors.ValidatorNotJailed, err)
+	} else if errors.Is(err, slashtypes.ErrValidatorJailed) {
+		return errors.WrapErrWithCode(errors.ValidatorStillJailed, err)
+	} else if err != nil {
 		return errors.Wrap(err, "unjail")
 	}
 

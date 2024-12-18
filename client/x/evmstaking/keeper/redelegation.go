@@ -138,8 +138,19 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
 		ev.DelegationId.String(), amountCoin,
 	)
+
 	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
-	if err != nil {
+	if errors.Is(err, stypes.ErrSelfRedelegation) {
+		return errors.WrapErrWithCode(errors.SelfRedelegation, err)
+	} else if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if errors.Is(err, stypes.ErrTokenTypeMismatch) {
+		return errors.WrapErrWithCode(errors.TokenTypeMismatch, err)
+	} else if errors.Is(err, stypes.ErrNoDelegation) {
+		return errors.WrapErrWithCode(errors.DelegationNotFound, err)
+	} else if errors.Is(err, stypes.ErrNoPeriodDelegation) {
+		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
+	} else if err != nil {
 		return errors.Wrap(err, "failed to begin redelegation")
 	}
 
