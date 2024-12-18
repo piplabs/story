@@ -159,7 +159,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		depositorAddr.String(), validatorAddr.String(), amountCoin,
 		delID, periodType,
 	)
-	if _, err := skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+	if _, err = skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
 		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
 	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
 		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
