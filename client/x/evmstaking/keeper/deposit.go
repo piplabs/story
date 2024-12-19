@@ -97,22 +97,22 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		"amount_coin", amountCoin.String(),
 	)
 
-	delID := ev.DelegationId.String()
-	periodType := int32(ev.StakingPeriod.Int64())
-
-	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
-	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return errors.WrapErrWithCode(errors.ValidatorNotFound, errors.New("validator not exists"))
-	} else if err != nil {
-		return errors.Wrap(err, "get validator failed")
-	}
-
 	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "get locked token type")
 	}
 
-	// locked tokens can only be staked with flexible period
+	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+
+	// locked tokens can only be staked with flexible period,
+	// here we automatically set the period type to flexible period
+	delID := ev.DelegationId.String()
+	periodType := int32(ev.StakingPeriod.Int64())
 	if val.SupportTokenType == lockedTokenType {
 		flexPeriodType, err := k.stakingKeeper.GetFlexiblePeriodType(cachedCtx)
 		if err != nil {

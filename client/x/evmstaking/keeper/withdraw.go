@@ -416,7 +416,26 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.New("depositor account not found")
 	}
 
-	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), ev.DelegationId.String(), amountCoin)
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
+	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+
+	// locked tokens only have delegation with flexible period,
+	// here we automatically set the delegation id to the flexible period delegation id
+	delID := ev.DelegationId.String()
+	if val.SupportTokenType == lockedTokenType {
+		delID = stypes.FlexiblePeriodDelegationID
+	}
+
+	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), delID, amountCoin)
 
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
