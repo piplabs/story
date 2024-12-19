@@ -1,37 +1,50 @@
 info:
-  title: story-api
+  title: consensus-client-api
   description: ''
   version: 1.0.0
-tags: []
+tags:
+  - name: Cosmos Origin
+  - name: Cosmos Origin/Staking
+  - name: Cosmos Origin/Auth
+  - name: Cosmos Origin/Bank
+  - name: Cosmos Origin/Distribution
+  - name: Cosmos Origin/Mint
+  - name: Story Extend
+  - name: Story Extend/Staking
 paths:
   /staking/validators:
     get:
       summary: GetValidators
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
-        - name: status
-          in: query
-          description: ''
-          required: true
-          type: string
-          x-example: ''
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -40,16 +53,28 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
+        - name: status
+          in: query
+          description: status enables to query for validators matching a given status.
+          required: false
+          type: string
+          x-example: ''
       responses:
         '200':
           description: ''
@@ -174,11 +199,12 @@ paths:
       summary: GetValidatorByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: validator_addr
           in: path
-          description: ''
+          description: validator_addr defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -288,66 +314,69 @@ paths:
       security: []
       produces:
         - application/json
-  /staking/delegators/{delegator_addr}:
-    get:
-      summary: GetDelegatorByDelegatorAddress
-      deprecated: false
-      description: ''
-      tags: []
-      parameters:
-        - name: delegator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-      responses:
-        '200':
-          description: ''
-          headers: {}
-          schema:
-            type: object
-            properties:
-              code:
-                type: integer
-              msg:
-                type: object
-                properties:
-                  delegator_addr:
-                    type: string
-                  withdraw_address:
-                    type: string
-                  reward_address:
-                    type: string
-                  operator_address:
-                    type: string
-                required:
-                  - delegator_addr
-                  - withdraw_address
-                  - reward_address
-                  - operator_address
-              error:
-                type: string
-            required:
-              - code
-              - msg
-              - error
-      security: []
-      produces:
-        - application/json
   /staking/validators/{validator_addr}/delegations:
     get:
       summary: GetValidatorDelegationsByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: validator_addr
           in: path
-          description: ''
+          description: validator_addr defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: pagination.key
+          in: query
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
+          type: string
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
+        - name: pagination.offset
+          in: query
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
+          x-example: 'true'
       responses:
         '200':
           description: ''
@@ -418,14 +447,64 @@ paths:
       summary: GetDelegationsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: pagination.key
+          in: query
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
+          type: string
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
+        - name: pagination.offset
+          in: query
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
+          x-example: 'true'
       responses:
         '200':
           description: ''
@@ -496,36 +575,40 @@ paths:
       summary: GetRedelegationsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-        - name: status
-          in: query
-          description: ''
-          required: true
-          type: string
-          x-example: ''
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -534,16 +617,34 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
+        - name: src_validator_addr
+          in: query
+          description: src_validator_addr defines the validator address to redelegate from.
+          required: false
+          type: string
+          x-example: storyvaloper1l43wgqtf825k4qwx4lt6xremu0jjptv7w6q0ak
+        - name: dst_validator_addr
+          in: query
+          description: dst_validator_addr defines the validator address to redelegate to.
+          required: false
+          type: string
+          x-example: storyvaloper17mmqx2r9d5zq8z9jcajxpc64tkhh5tuxzl5rdl
       responses:
         '200':
           description: ''
@@ -559,14 +660,64 @@ paths:
       summary: GetValidatorsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: pagination.key
+          in: query
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
+          type: string
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
+        - name: pagination.offset
+          in: query
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
+          x-example: 'true'
       responses:
         '200':
           description: ''
@@ -688,17 +839,18 @@ paths:
       summary: GetValidatorsByDelegatorAddressValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
         - name: validator_addr
           in: path
-          description: ''
+          description: validator_addr defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -813,36 +965,40 @@ paths:
       summary: GetUnbondingDelegationsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-        - name: status
-          in: query
-          description: ''
-          required: true
-          type: string
-          x-example: ''
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -851,15 +1007,21 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
       responses:
         '200':
@@ -876,7 +1038,8 @@ paths:
       summary: GetStakingParams
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters: []
       responses:
         '200':
@@ -959,7 +1122,8 @@ paths:
       summary: GetStakingPool
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters: []
       responses:
         '200':
@@ -999,13 +1163,15 @@ paths:
       summary: GetHistoricalInfoByHeight
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: height
           in: path
-          description: ''
+          description: height defines at which height to query the historical info.
           required: true
           type: integer
+          x-example: 1
       responses:
         '200':
           description: ''
@@ -1149,17 +1315,18 @@ paths:
       summary: GetDelegationByValidatorAddressDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: validator_addr
           in: path
-          description: ''
+          description: validator_addr defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
         - name: delegator_addr
           in: path
-          description: ''
+          description: delegator_addr defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
@@ -1223,36 +1390,40 @@ paths:
       summary: GetValidatorUnbondingDelegations
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Staking
       parameters:
         - name: validator_addr
           in: path
-          description: ''
+          description: validator_addr defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
-        - name: status
-          in: query
-          description: ''
-          required: true
-          type: string
-          x-example: ''
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -1261,134 +1432,22 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
-      responses:
-        '200':
-          description: ''
-          headers: {}
-          schema:
-            type: object
-            properties: {}
-      security: []
-      produces:
-        - application/json
-  /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation:
-    get:
-      summary: GetDelegatorUnbondingDelegation
-      deprecated: false
-      description: ''
-      tags: []
-      parameters:
-        - name: validator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
-        - name: delegator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-      responses:
-        '200':
-          description: ''
-          headers: {}
-          schema:
-            type: object
-            properties: {}
-      security: []
-      produces:
-        - application/json
-  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations:
-    get:
-      summary: GetPeriodDelegationsByDelegatorAddress
-      deprecated: false
-      description: ''
-      tags: []
-      parameters:
-        - name: validator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
-        - name: delegator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-      responses:
-        '200':
-          description: ''
-          headers: {}
-          schema:
-            type: object
-            properties:
-              code:
-                type: integer
-              msg:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    delegator_address:
-                      type: string
-                    validator_address:
-                      type: string
-                    period_delegation_id:
-                      type: string
-                    shares:
-                      type: string
-                    rewards_shares:
-                      type: string
-                    end_time:
-                      type: string
-              error:
-                type: string
-            required:
-              - code
-              - msg
-              - error
-      security: []
-      produces:
-        - application/json
-  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}:
-    get:
-      summary: GetPeriodDelegationByDelegatorAddressAndID
-      deprecated: false
-      description: ''
-      tags: []
-      parameters:
-        - name: validator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
-        - name: delegator_addr
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
-        - name: period_delegation_id
-          in: path
-          description: ''
-          required: true
-          type: string
-          x-example: '1'
       responses:
         '200':
           description: ''
@@ -1401,25 +1460,50 @@ paths:
               msg:
                 type: object
                 properties:
-                  delegator_address:
-                    type: string
-                  validator_address:
-                    type: string
-                  period_delegation_id:
-                    type: string
-                  shares:
-                    type: string
-                  rewards_shares:
-                    type: string
-                  end_time:
-                    type: string
+                  unbonding_responses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        delegator_address:
+                          type: string
+                        validator_address:
+                          type: string
+                        entries:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              creation_height:
+                                type: string
+                              completion_time:
+                                type: string
+                              initial_balance:
+                                type: string
+                              balance:
+                                type: string
+                              unbonding_id:
+                                type: string
+                            required:
+                              - creation_height
+                              - completion_time
+                              - initial_balance
+                              - balance
+                              - unbonding_id
+                      required:
+                        - delegator_address
+                        - validator_address
+                        - entries
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
                 required:
-                  - delegator_address
-                  - validator_address
-                  - period_delegation_id
-                  - shares
-                  - rewards_shares
-                  - end_time
+                  - unbonding_responses
+                  - pagination
               error:
                 type: string
             required:
@@ -1429,29 +1513,69 @@ paths:
       security: []
       produces:
         - application/json
+  /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation:
+    get:
+      summary: GetDelegatorUnbondingDelegation
+      deprecated: false
+      description: ''
+      tags:
+        - Cosmos Origin/Staking
+      parameters:
+        - name: validator_addr
+          in: path
+          description: validator_addr defines the validator address to query for.
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: delegator_addr defines the delegator address to query for.
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties: {}
+      security: []
+      produces:
+        - application/json
   /auth/accounts:
     get:
       summary: GetAccounts
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Auth
       parameters:
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -1460,15 +1584,21 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
       responses:
         '200':
@@ -1537,7 +1667,8 @@ paths:
       summary: GetBech32Prefix
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Auth
       parameters: []
       responses:
         '200':
@@ -1569,7 +1700,8 @@ paths:
       summary: GetAuthParams
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Auth
       parameters: []
       responses:
         '200':
@@ -1618,7 +1750,8 @@ paths:
       summary: GetBankParams
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters: []
       responses:
         '200':
@@ -1651,24 +1784,34 @@ paths:
       summary: GetSupply
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -1677,15 +1820,21 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
       responses:
         '200':
@@ -1732,12 +1881,13 @@ paths:
       summary: GetSupplyByDenom
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: denom
           in: query
-          description: ''
-          required: true
+          description: denom is the coin denom to query balances for.
+          required: false
           type: string
           x-example: stake
       responses:
@@ -1778,30 +1928,40 @@ paths:
       summary: GetBalancesByAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: address
           in: path
-          description: ''
+          description: address is the address to query balances for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -1810,15 +1970,140 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: resolve_denom
+          in: query
+          description: >-
+            resolve_denom is the flag to resolve the denom into a human-readable
+            form from the metadata.
+          required: false
+          type: boolean
+          x-example: 'true'
+      responses:
+        '200':
           description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  balances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: string
+                    required:
+                      - total
+                required:
+                  - balances
+                  - pagination
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/spendable_balances/{address}:
+    get:
+      summary: GetSpendableBalancesByAddress
+      deprecated: false
+      description: ''
+      tags:
+        - Cosmos Origin/Bank
+      parameters:
+        - name: address
+          in: path
+          description: address is the address to query balances for.
           required: true
           type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: pagination.key
+          in: query
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
+          type: string
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
+        - name: pagination.offset
+          in: query
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
+          type: string
+          x-example: '0'
+        - name: pagination.limit
+          in: query
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
+          type: array
+          items:
+            type: string
+          x-example:
+            - '10'
+          collectionFormat: multi
+        - name: pagination.count_total
+          in: query
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: pagination.reverse
+          in: query
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
+          x-example: 'true'
+        - name: resolve_denom
+          in: query
+          description: >-
+            resolve_denom is the flag to resolve the denom into a human-readable
+            form from the metadata.
+          required: false
+          type: boolean
           x-example: 'true'
       responses:
         '200':
@@ -1865,17 +2150,71 @@ paths:
       summary: GetBalancesByAddressDenom
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: address
           in: path
-          description: ''
+          description: address is the address to query balances for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
         - name: denom
           in: query
+          description: denom is the coin denom to query balances for.
+          required: false
+          type: string
+          x-example: stake
+      responses:
+        '200':
           description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  balance:
+                    type: object
+                    properties:
+                      denom:
+                        type: string
+                      amount:
+                        type: string
+                    required:
+                      - denom
+                      - amount
+                required:
+                  - balance
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /bank/spendable_balances/{address}/by_denom:
+    get:
+      summary: GetSpendableBalancesByAddressDenom
+      deprecated: false
+      description: ''
+      tags:
+        - Cosmos Origin/Bank
+      parameters:
+        - name: address
+          in: path
+          description: address is the address to query balances for.
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: denom
+          in: query
+          description: denom is the coin denom to query balances for.
           required: false
           type: string
           x-example: stake
@@ -1917,30 +2256,42 @@ paths:
       summary: GetDenomOwners
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: denom
           in: path
-          description: ''
+          description: >-
+            denom defines the coin denomination to query all account holders
+            for.
           required: true
           type: string
           x-example: stake
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -1949,15 +2300,21 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
       responses:
         '200':
@@ -2015,24 +2372,34 @@ paths:
       summary: GetDenomOwnersByQuery
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Bank
       parameters:
         - name: pagination.key
           in: query
-          description: ''
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
           required: false
           type: string
-          x-example: stake
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -2041,19 +2408,27 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: denom
           in: query
-          description: ''
+          description: >-
+            denom defines the coin denomination to query all account holders
+            for.
           required: false
           type: string
           x-example: stake
@@ -2116,7 +2491,8 @@ paths:
       summary: GetDistributionParams
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters: []
       responses:
         '200':
@@ -2162,11 +2538,12 @@ paths:
       summary: GetDistributionValidatorsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: delegator_address
           in: path
-          description: ''
+          description: delegator_address defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
@@ -2202,11 +2579,12 @@ paths:
       summary: GetDelegatorWithdrawAddressByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: delegator_address
           in: path
-          description: ''
+          description: delegator_address defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
@@ -2225,11 +2603,12 @@ paths:
       summary: GetDelegatorRewardsByDelegatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: delegator_address
           in: path
-          description: ''
+          description: delegator_address defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
@@ -2293,17 +2672,18 @@ paths:
       summary: GetDelegatorRewardsByDelegatorAddressValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: delegator_address
           in: path
-          description: ''
+          description: delegator_address defines the delegator address to query for.
           required: true
           type: string
           x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
         - name: validator_address
           in: path
-          description: ''
+          description: validator_address defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -2344,11 +2724,12 @@ paths:
       summary: GetDistributionValidatorByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: validator_address
           in: path
-          description: ''
+          description: validator_address defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -2402,11 +2783,12 @@ paths:
       summary: GetValidatorCommissionByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: validator_address
           in: path
-          description: ''
+          description: validator_address defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -2452,11 +2834,12 @@ paths:
       summary: GetValidatorOutstandingRewardsByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: validator_address
           in: path
-          description: ''
+          description: validator_address defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
@@ -2502,30 +2885,40 @@ paths:
       summary: GetValidatorSlashesByValidatorAddress
       deprecated: false
       description: ''
-      tags: []
+      tags:
+        - Cosmos Origin/Distribution
       parameters:
         - name: validator_address
           in: path
-          description: ''
+          description: validator_address defines the validator address to query for.
           required: true
           type: string
           x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
         - name: pagination.key
           in: query
-          description: ''
-          required: true
+          description: >-
+            key is a value returned in PageResponse.next_key to begin querying
+            the next page most efficiently. Only one of offset or key should be
+            set.
+          required: false
           type: string
-          x-example: ''
+          x-example: FPoybu9dO+FCSV562u9keKVgUwur
         - name: pagination.offset
           in: query
-          description: ''
-          required: true
+          description: >-
+            offset is a numeric offset that can be used when key is unavailable.
+            It is less efficient than using key. Only one of offset or key
+            should be set.
+          required: false
           type: string
           x-example: '0'
         - name: pagination.limit
           in: query
-          description: ''
-          required: true
+          description: >-
+            limit is the total number of results to be returned in the result
+            page. If left empty it will default to a value to be set by each
+            app.
+          required: false
           type: array
           items:
             type: string
@@ -2534,16 +2927,38 @@ paths:
           collectionFormat: multi
         - name: pagination.count_total
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            count_total is set to true to indicate that the result set should
+            include a count of the total number of items available for
+            pagination in UIs. count_total is only respected when offset is
+            used. It is ignored when key is set.
+          required: false
+          type: boolean
           x-example: 'true'
         - name: pagination.reverse
           in: query
-          description: ''
-          required: true
-          type: string
+          description: >-
+            reverse is set to true if results are to be returned in the
+            descending order.
+          required: false
+          type: boolean
           x-example: 'true'
+        - name: starting_height
+          in: query
+          description: >-
+            starting_height defines the optional starting height to query the
+            slashes.
+          required: false
+          type: string
+          x-example: '1'
+        - name: ending_height
+          in: query
+          description: >-
+            ending_height defines the optional ending height to query the
+            slashes.
+          required: false
+          type: string
+          x-example: '100'
       responses:
         '200':
           description: ''
@@ -2575,36 +2990,224 @@ paths:
       security: []
       produces:
         - application/json
-  /distribution/all_validators/outstanding_rewards:
+  /mint/params:
     get:
-      summary: GetAllValidatorOutstandingRewards
+      summary: GetMintParams
       deprecated: false
       description: ''
-      tags: []
-      parameters:
-        - name: from
-          in: query
-          description: ''
-          required: false
-          type: integer
-          x-example: 100
-        - name: to
-          in: query
-          description: ''
-          required: false
-          type: integer
-          x-example: 200
+      tags:
+        - Cosmos Origin/Mint
+      parameters: []
       responses:
         '200':
           description: ''
           headers: {}
           schema:
             type: object
-            properties: {}
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  params:
+                    type: object
+                    properties:
+                      mint_denom:
+                        type: string
+                      inflations_per_year:
+                        type: string
+                      blocks_per_year:
+                        type: string
+                    required:
+                      - mint_denom
+                      - inflations_per_year
+                      - blocks_per_year
+                required:
+                  - params
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/delegators/{delegator_addr}:
+    get:
+      summary: GetDelegatorByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags:
+        - Story Extend/Staking
+      parameters:
+        - name: delegator_addr
+          in: path
+          description: delegator_addr defines the delegator address to query for.
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegator_addr:
+                    type: string
+                  withdraw_address:
+                    type: string
+                  reward_address:
+                    type: string
+                  operator_address:
+                    type: string
+                required:
+                  - delegator_addr
+                  - withdraw_address
+                  - reward_address
+                  - operator_address
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations:
+    get:
+      summary: GetPeriodDelegationsByDelegatorAddress
+      deprecated: false
+      description: ''
+      tags:
+        - Story Extend/Staking
+      parameters:
+        - name: validator_addr
+          in: path
+          description: validator_addr defines the validator address to query for.
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: delegator_addr defines the delegator address to query for.
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    delegator_address:
+                      type: string
+                    validator_address:
+                      type: string
+                    period_delegation_id:
+                      type: string
+                    shares:
+                      type: string
+                    rewards_shares:
+                      type: string
+                    end_time:
+                      type: string
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
+      security: []
+      produces:
+        - application/json
+  /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}:
+    get:
+      summary: GetPeriodDelegationByDelegatorAddressAndID
+      deprecated: false
+      description: ''
+      tags:
+        - Story Extend/Staking
+      parameters:
+        - name: validator_addr
+          in: path
+          description: validator_addr defines the validator address to query for.
+          required: true
+          type: string
+          x-example: storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw
+        - name: delegator_addr
+          in: path
+          description: delegator_addr defines the delegator address to query for.
+          required: true
+          type: string
+          x-example: story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3
+        - name: period_delegation_id
+          in: path
+          description: the id of delegation
+          required: true
+          type: string
+          x-example: '1'
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              msg:
+                type: object
+                properties:
+                  delegator_address:
+                    type: string
+                  validator_address:
+                    type: string
+                  period_delegation_id:
+                    type: string
+                  shares:
+                    type: string
+                  rewards_shares:
+                    type: string
+                  end_time:
+                    type: string
+                required:
+                  - delegator_address
+                  - validator_address
+                  - period_delegation_id
+                  - shares
+                  - rewards_shares
+                  - end_time
+              error:
+                type: string
+            required:
+              - code
+              - msg
+              - error
       security: []
       produces:
         - application/json
 swagger: '2.0'
+host: staking.odyssey.storyrpc.io
+schemes:
+  - https
+basePath: /api
 definitions: {}
 securityDefinitions: {}
 x-components: {}

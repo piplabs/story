@@ -1,11 +1,9 @@
-//nolint:wrapcheck // The api server is our server, so we don't need to wrap it.
+//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it.
 package server
 
 import (
-	"errors"
 	"net/http"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -21,7 +19,6 @@ func (s *Server) initDistributionRoute() {
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/commission", utils.SimpleWrap(s.aminoCodec, s.GetValidatorCommissionByValidatorAddress))
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/outstanding_rewards", utils.SimpleWrap(s.aminoCodec, s.GetValidatorOutstandingRewardsByValidatorAddress))
 	s.httpMux.HandleFunc("/distribution/validators/{validator_address}/slashes", utils.AutoWrap(s.aminoCodec, s.GetValidatorSlashesByValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/all_validators/outstanding_rewards", utils.AutoWrap(s.aminoCodec, s.GetAllValidatorOutstandingRewards))
 
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/validators", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/rewards", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddress))
@@ -95,47 +92,6 @@ func (s *Server) GetValidatorOutstandingRewardsByValidatorAddress(r *http.Reques
 	}
 
 	return queryResp, nil
-}
-
-// GetAllValidatorOutstandingRewards queries rewards of all validators.
-func (s *Server) GetAllValidatorOutstandingRewards(req *getAllValidatorOutstandingRewardsRequest, r *http.Request) (resp any, err error) {
-	if req.To-req.From > 100 {
-		return nil, errors.New("search max 100 blocks")
-	}
-
-	curBlock, err := s.cl.Block(r.Context(), nil)
-	if err != nil {
-		return nil, errors.Join(errors.New("curbock fetch fail"), err)
-	}
-
-	querier := keeper.NewQuerier(s.store.GetDistrKeeper())
-	result := make([]*getAllValidatorOutstandingRewardsRequestBlockResults, 0)
-
-	for i := req.From; i < min(req.To, curBlock.Block.Height); i++ {
-		queryContext, err := s.store.CreateQueryContext(i, false)
-		if err != nil {
-			return nil, errors.Join(errors.New("create query context fail"), err)
-		}
-
-		blockResult := &getAllValidatorOutstandingRewardsRequestBlockResults{
-			Height:     i,
-			Validators: make(map[string]sdk.DecCoins),
-		}
-		//nolint: contextcheck // false positive
-		querier.IterateValidatorOutstandingRewards(queryContext, func(val sdk.ValAddress, rewards distributiontypes.ValidatorOutstandingRewards) (stop bool) {
-			if len(rewards.Rewards) > 0 {
-				blockResult.Validators[val.String()] = rewards.Rewards
-			}
-
-			return false
-		})
-
-		if len(blockResult.Validators) > 0 {
-			result = append(result, blockResult)
-		}
-	}
-
-	return result, nil
 }
 
 // GetValidatorSlashesByValidatorAddress queries slash events of a validator.

@@ -96,13 +96,6 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	}
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
-	if _, err = k.stakingKeeper.GetValidator(cachedCtx, validatorAddr); err == nil {
-		return errors.WrapErrWithCode(errors.ValidatorAlreadyExists, errors.New("validator already exists"))
-	} else if !errors.Is(err, stypes.ErrNoValidatorFound) {
-		// Either the validator does not exist, or unknown error.
-		return errors.Wrap(err, "get validator")
-	}
-
 	moniker := ev.Moniker
 	if moniker == "" {
 		moniker = validatorAddr.String() // use validator address as moniker if not provided
@@ -158,7 +151,9 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	if _, err = skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrCommissionLTMinRate) {
+	if _, err := skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrValidatorOwnerExists) {
+		return errors.WrapErrWithCode(errors.ValidatorAlreadyExists, err)
+	} else if errors.Is(err, stypes.ErrCommissionLTMinRate) {
 		return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
 	} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
 		return errors.WrapErrWithCode(errors.InvalidMinSelfDelegation, err)

@@ -158,7 +158,7 @@ interface IIPTokenStaking {
 
     /// @notice Removes current operator for a delegator.
     /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function unsetOperator(bytes calldata uncmpPubkey) external;
+    function unsetOperator(bytes calldata uncmpPubkey) external payable;
 
     /// @notice Set/Update the withdrawal address that receives the withdrawals.
     /// Charges fee (CL spam prevention). Must be exact amount.
