@@ -1,16 +1,358 @@
+## GetStakingParams
+
+URL: [GET] /staking/params
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "params": {
+      "unbonding_time": "10000000000",
+      "max_validators": 32,
+      "max_entries": 14,
+      "historical_entries": 10000,
+      "bond_denom": "stake",
+      "min_commission_rate": "0.000000000000000000",
+      "min_delegation": "1024",
+      "periods": [
+        {
+          "duration": "0",
+          "rewards_multiplier": "1.000000000000000000"
+        },
+        {
+          "period_type": 1,
+          "duration": "60000000000",
+          "rewards_multiplier": "1.051000000000000000"
+        },
+        {
+          "period_type": 2,
+          "duration": "120000000000",
+          "rewards_multiplier": "1.160000000000000000"
+        },
+        {
+          "period_type": 3,
+          "duration": "180000000000",
+          "rewards_multiplier": "1.340000000000000000"
+        }
+      ],
+      "token_types": [
+        {
+          "rewards_multiplier": "0.500000000000000000"
+        },
+        {
+          "token_type": 1,
+          "rewards_multiplier": "1.000000000000000000"
+        }
+      ]
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetStakingPool
+
+URL: [GET] /staking/pool
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "pool": {
+      "not_bonded_tokens": "76461600000000",
+      "bonded_tokens": "80110471008000000"
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetHistoricalInfoByHeight
+
+URL: [GET] /staking/historical_info/{height}
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| height | integer | 1 | ✔ |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "hist": {
+      "header": {
+        "version": {},
+        "chain_id": "odyssey-devnet-1",
+        "height": "6666",
+        "time": "2024-10-22T14:09:17.546670477Z",
+        "last_block_id": {
+          "part_set_header": {}
+        },
+        "next_validators_hash": "bHIf/wtJa7OBLolGYkRxgiAr72c708itMxqPhAwC0O4=",
+        "app_hash": "UDRmZ+Tg6ZMW0ZIuErfYXE1VS+QnWbAj8BVm9p07f3c=",
+        "proposer_address": "Y/nE5kiyRMMZVjDDr0YiArKC4w4="
+      },
+      "valset": [
+        {
+          "operator_address": "storyvaloper1w69rjypm25h84etxxhw5ax64jg42l3gyhr0j42",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A9mdRUGE+sv2oD6jfrNvalDGmELqOtQgOKjVU3vRWyWU"
+          },
+          "status": 3,
+          "tokens": "10104447001000000",
+          "delegator_shares": "10104447001000000.000000000000000000",
+          "description": {
+            "moniker": "0x768A39103B552E7AE56635DD4E9B55922AAFC504"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "rewards_tokens": "5052223500500000.000000000000000000",
+          "delegator_rewards_shares": "5052223500500000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1q9vn6g9fj96rw2anyklt56v96rf20ap5z7zha7",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A3e5PxDT1PEstFxhGtoUShU32oIKCnnXtBp3IBi9bM/2"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x01593D20A99174372BB325BEBA6985D0D2A7F434"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "support_token_type": 1,
+          "rewards_tokens": "10000000001000000.000000000000000000",
+          "delegator_rewards_shares": "10000000001000000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1plzprxwwtzy53ps63k5x6uj6tgrn46g6c8w4xv",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "AqBVHHkyOfiie29Wrez6hMvC644kbZfPgXA1jFEs7Uwq"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x0FC41199CE588948861A8DA86D725A5A073AE91A"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "rewards_tokens": "5000000000500000.000000000000000000",
+          "delegator_rewards_shares": "5000000000500000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1v0uufejgkfzvxx2kxrp6733zq2eg9ccwgx5emd",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "AtJpE37ydCffhJT0NNkFm/8CEB64cYu5xBVs/btKqjWh"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x63F9C4E648B244C3195630C3AF462202B282E30E"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "support_token_type": 1,
+          "rewards_tokens": "10000000001000000.000000000000000000",
+          "delegator_rewards_shares": "10000000001000000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper106cyk87evdmf3z2rmkj5m9aut5xcchpwsrlrs7",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A+wUiPhFG58EShf9w6v6BDmdey3rsst5S17jR14fezbz"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x7EB04B1FD96376988943DDA54D97BC5D0D8C5C2E"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "support_token_type": 1,
+          "rewards_tokens": "10000000001000000.000000000000000000",
+          "delegator_rewards_shares": "10000000001000000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1n8pg4ccvhml07a0fr3nxjtlqhkf8nwrpc6a2t5",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A/9SMxZTnh3Rq96Eygg9MfB6g82euMXhjT5nMWrhLlyf"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x99C28AE30CBEFEFF75E91C66692FE0BD9279B861"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "rewards_tokens": "5000000000500000.000000000000000000",
+          "delegator_rewards_shares": "5000000000500000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1nh7zdfmxyyrwamz7s7eqewmfpn7wwws9gyue2t",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A6KRGirXFYsv5oVQz8d8YIl0Nj23bXo2jLHui72y12Bi"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0x9DFC26A7662106EEEC5E87B20CBB690CFCE73A05"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "rewards_tokens": "5000000000500000.000000000000000000",
+          "delegator_rewards_shares": "5000000000500000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1u60eyhv44w578au4lv982wjkcuhhhyss2ukqj9",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A9cvfpWD3qASAFaCzavpbSd7E+IRKKTDZkYBvxY5gRk7"
+          },
+          "status": 3,
+          "tokens": "10000000001000000",
+          "delegator_shares": "10000000001000000.000000000000000000",
+          "description": {
+            "moniker": "0xE69F925D95ABA9E3F795FB0A753A56C72F7B9210"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.000000000000000000",
+              "max_rate": "0.000000000000000000",
+              "max_change_rate": "0.000000000000000000"
+            },
+            "update_time": "2024-04-16T11:04:40.60280319Z"
+          },
+          "min_self_delegation": "1024",
+          "support_token_type": 1,
+          "rewards_tokens": "10000000001000000.000000000000000000",
+          "delegator_rewards_shares": "10000000001000000.000000000000000000"
+        },
+        {
+          "operator_address": "storyvaloper1rg0vphgl9nzy8njgkclxkr9wu9tvh4raly2eex",
+          "consensus_pubkey": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "AgSPN1XgoqtMqu0JJb5SC76FXvKO70Y+KXh3xjfqMalw"
+          },
+          "status": 3,
+          "tokens": "6024000000000",
+          "delegator_shares": "6024000000000.000000000000000000",
+          "description": {
+            "moniker": "validator-test"
+          },
+          "unbonding_time": "1970-01-01T00:00:00Z",
+          "commission": {
+            "commission_rates": {
+              "rate": "0.100000000000000000",
+              "max_rate": "0.500000000000000000",
+              "max_change_rate": "0.010000000000000000"
+            },
+            "update_time": "2024-10-22T13:54:22.256319155Z"
+          },
+          "min_self_delegation": "1024",
+          "support_token_type": 1,
+          "rewards_tokens": "6024000000000.000000000000000000",
+          "delegator_rewards_shares": "6024000000000.000000000000000000"
+        }
+      ]
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
 ## GetValidators
 
 URL: [GET] /staking/validators
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| status | string |  | ✔ |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+| status | string |  |  |
 
 ### Response Example
 ```json
@@ -324,6 +666,7 @@ URL: [GET] /staking/validators
 }
 ```
 
+---
 
 ## GetValidatorByValidatorAddress
 
@@ -375,30 +718,81 @@ URL: [GET] /staking/validators/{validator_addr}
 }
 ```
 
+---
 
-## GetDelegatorByDelegatorAddress
+## GetValidatorUnbondingDelegations
 
-URL: [GET] /staking/delegators/{delegator_addr}
+URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
 
 ### Path Params
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
 {
   "code": 200,
   "msg": {
-    "delegator_addr": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
-    "withdraw_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77",
-    "reward_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77",
-    "operator_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77"
+    "unbonding_responses": [
+      {
+        "delegator_address": "story178djghd2a0x3khnussy3npmy99fnf3spguuml2",
+        "validator_address": "storyvaloper1pdj0z84lau0l7vf2jl4qs7yggv48p3avy82spr",
+        "entries": [
+          {
+            "creation_height": "525632",
+            "completion_time": "2024-11-27T08:26:13.41935718Z",
+            "initial_balance": "1024000000000",
+            "balance": "1024000000000",
+            "unbonding_id": "53"
+          }
+        ]
+      },
+      {
+        "delegator_address": "story1f2p80ew7l6x2ltj5crnq2774l8zjpl7f6pp7ee",
+        "validator_address": "storyvaloper1pdj0z84lau0l7vf2jl4qs7yggv48p3avy82spr",
+        "entries": [
+          {
+            "creation_height": "510607",
+            "completion_time": "2024-11-26T17:31:04.69653005Z",
+            "initial_balance": "19500000000000000",
+            "balance": "19500000000000000",
+            "unbonding_id": "39"
+          }
+        ]
+      },
+      {
+        "delegator_address": "story1qsrhn46pf8z6wfqdjgautrzzua9fyxv8dmtmdx",
+        "validator_address": "storyvaloper1pdj0z84lau0l7vf2jl4qs7yggv48p3avy82spr",
+        "entries": [
+          {
+            "creation_height": "525364",
+            "completion_time": "2024-11-27T08:09:40.081635694Z",
+            "initial_balance": "1024000000000",
+            "balance": "1024000000000",
+            "unbonding_id": "51"
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "total": "3"
+    }
   },
   "error": ""
 }
 ```
 
+---
 
 ## GetValidatorDelegationsByValidatorAddress
 
@@ -408,6 +802,15 @@ URL: [GET] /staking/validators/{validator_addr}/delegations
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
@@ -448,14 +851,29 @@ URL: [GET] /staking/validators/{validator_addr}/delegations
 }
 ```
 
+---
 
-## GetDelegationsByDelegatorAddress
+## GetDelegatorUnbondingDelegation
 
-URL: [GET] /staking/delegations/{delegator_addr}
+URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation
 
 ### Path Params
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
+| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+
+---
+
+## GetDelegationByValidatorAddressDelegatorAddress
+
+URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Response Example
@@ -463,109 +881,24 @@ URL: [GET] /staking/delegations/{delegator_addr}
 {
   "code": 200,
   "msg": {
-    "delegation_responses": [
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper1rk277ak9enq422sevnf2yjjc6mhdv44wl8u30p",
-          "shares": "1024000000000.000000000000000000",
-          "rewards_shares": "1187840000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "1024000000000"
-        }
+    "delegation_response": {
+      "delegation": {
+        "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+        "validator_address": "storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw",
+        "shares": "1024000000000.000000000000000000",
+        "rewards_shares": "1076224000000.000000000000000000"
       },
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper1wk04lv2e2egfdt25e94xvwszny2ww8znancs5z",
-          "shares": "4096000000000.000000000000000000",
-          "rewards_shares": "2048000000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "4096000000000"
-        }
-      },
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper137yg6cc4gpvhdx5wt0q3g5pcjeljuqvs4eu8y2",
-          "shares": "1024000000000.000000000000000000",
-          "rewards_shares": "1076224000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "972800000000"
-        }
-      },
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper1hcx6v7887r7r7498ge3kxqxrmkt3ekpk7jj5c2",
-          "shares": "2048000000000.000000000000000000",
-          "rewards_shares": "2375680000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "2048000000000"
-        }
-      },
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper1mwgwgn6x5waumhg4tgnuhkezhamnaq4385mrgv",
-          "shares": "2048000000000.000000000000000000",
-          "rewards_shares": "1024000000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "1945600000000"
-        }
-      },
-      {
-        "delegation": {
-          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-          "validator_address": "storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw",
-          "shares": "1024000000000.000000000000000000",
-          "rewards_shares": "1076224000000.000000000000000000"
-        },
-        "balance": {
-          "denom": "stake",
-          "amount": "972800000000"
-        }
+      "balance": {
+        "denom": "stake",
+        "amount": "972800000000"
       }
-    ],
-    "pagination": {
-      "total": "6"
     }
   },
   "error": ""
 }
 ```
 
-
-## GetRedelegationsByDelegatorAddress
-
-URL: [GET] /staking/delegators/{delegator_addr}/redelegations
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-### Query Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| status | string |  | ✔ |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
-
-
+---
 
 ## GetValidatorsByDelegatorAddress
 
@@ -575,6 +908,15 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
@@ -776,6 +1118,158 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators
 }
 ```
 
+---
+
+## GetDelegationsByDelegatorAddress
+
+URL: [GET] /staking/delegations/{delegator_addr}
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "delegation_responses": [
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper1rk277ak9enq422sevnf2yjjc6mhdv44wl8u30p",
+          "shares": "1024000000000.000000000000000000",
+          "rewards_shares": "1187840000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "1024000000000"
+        }
+      },
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper1wk04lv2e2egfdt25e94xvwszny2ww8znancs5z",
+          "shares": "4096000000000.000000000000000000",
+          "rewards_shares": "2048000000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "4096000000000"
+        }
+      },
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper137yg6cc4gpvhdx5wt0q3g5pcjeljuqvs4eu8y2",
+          "shares": "1024000000000.000000000000000000",
+          "rewards_shares": "1076224000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "972800000000"
+        }
+      },
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper1hcx6v7887r7r7498ge3kxqxrmkt3ekpk7jj5c2",
+          "shares": "2048000000000.000000000000000000",
+          "rewards_shares": "2375680000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "2048000000000"
+        }
+      },
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper1mwgwgn6x5waumhg4tgnuhkezhamnaq4385mrgv",
+          "shares": "2048000000000.000000000000000000",
+          "rewards_shares": "1024000000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "1945600000000"
+        }
+      },
+      {
+        "delegation": {
+          "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
+          "validator_address": "storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw",
+          "shares": "1024000000000.000000000000000000",
+          "rewards_shares": "1076224000000.000000000000000000"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "972800000000"
+        }
+      }
+    ],
+    "pagination": {
+      "total": "6"
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetRedelegationsByDelegatorAddress
+
+URL: [GET] /staking/delegators/{delegator_addr}/redelegations
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+| src_validator_addr | string | storyvaloper1l43wgqtf825k4qwx4lt6xremu0jjptv7w6q0ak |  |
+| dst_validator_addr | string | storyvaloper17mmqx2r9d5zq8z9jcajxpc64tkhh5tuxzl5rdl |  |
+
+
+---
+
+## GetUnbondingDelegationsByDelegatorAddress
+
+URL: [GET] /staking/delegators/{delegator_addr}/unbonding_delegations
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+
+
+---
 
 ## GetValidatorsByDelegatorAddressValidatorAddress
 
@@ -828,31 +1322,11 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 }
 ```
 
+---
 
-## GetUnbondingDelegationsByDelegatorAddress
+## GetAuthParams
 
-URL: [GET] /staking/delegators/{delegator_addr}/unbonding_delegations
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-### Query Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| status | string |  | ✔ |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
-
-
-
-## GetStakingParams
-
-URL: [GET] /staking/params
+URL: [GET] /auth/params
 
 ### Response Example
 ```json
@@ -860,470 +1334,31 @@ URL: [GET] /staking/params
   "code": 200,
   "msg": {
     "params": {
-      "unbonding_time": "10000000000",
-      "max_validators": 32,
-      "max_entries": 14,
-      "historical_entries": 10000,
-      "bond_denom": "stake",
-      "min_commission_rate": "0.000000000000000000",
-      "min_delegation": "1024",
-      "periods": [
-        {
-          "duration": "0",
-          "rewards_multiplier": "1.000000000000000000"
-        },
-        {
-          "period_type": 1,
-          "duration": "60000000000",
-          "rewards_multiplier": "1.051000000000000000"
-        },
-        {
-          "period_type": 2,
-          "duration": "120000000000",
-          "rewards_multiplier": "1.160000000000000000"
-        },
-        {
-          "period_type": 3,
-          "duration": "180000000000",
-          "rewards_multiplier": "1.340000000000000000"
-        }
-      ],
-      "token_types": [
-        {
-          "rewards_multiplier": "0.500000000000000000"
-        },
-        {
-          "token_type": 1,
-          "rewards_multiplier": "1.000000000000000000"
-        }
-      ]
+      "max_memo_characters": "256",
+      "tx_sig_limit": "7",
+      "tx_size_cost_per_byte": "10",
+      "sig_verify_cost_ed25519": "590",
+      "sig_verify_cost_secp256k1": "1000"
     }
   },
   "error": ""
 }
 ```
 
-
-## GetStakingPool
-
-URL: [GET] /staking/pool
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "pool": {
-      "not_bonded_tokens": "76461600000000",
-      "bonded_tokens": "80110471008000000"
-    }
-  },
-  "error": ""
-}
-```
-
-
-## GetHistoricalInfoByHeight
-
-URL: [GET] /staking/historical_info/{height}
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| height | integer |  | ✔ |
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "hist": {
-      "header": {
-        "version": {},
-        "chain_id": "odyssey-devnet-1",
-        "height": "6666",
-        "time": "2024-10-22T14:09:17.546670477Z",
-        "last_block_id": {
-          "part_set_header": {}
-        },
-        "next_validators_hash": "bHIf/wtJa7OBLolGYkRxgiAr72c708itMxqPhAwC0O4=",
-        "app_hash": "UDRmZ+Tg6ZMW0ZIuErfYXE1VS+QnWbAj8BVm9p07f3c=",
-        "proposer_address": "Y/nE5kiyRMMZVjDDr0YiArKC4w4="
-      },
-      "valset": [
-        {
-          "operator_address": "storyvaloper1w69rjypm25h84etxxhw5ax64jg42l3gyhr0j42",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A9mdRUGE+sv2oD6jfrNvalDGmELqOtQgOKjVU3vRWyWU"
-          },
-          "status": 3,
-          "tokens": "10104447001000000",
-          "delegator_shares": "10104447001000000.000000000000000000",
-          "description": {
-            "moniker": "0x768A39103B552E7AE56635DD4E9B55922AAFC504"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "rewards_tokens": "5052223500500000.000000000000000000",
-          "delegator_rewards_shares": "5052223500500000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1q9vn6g9fj96rw2anyklt56v96rf20ap5z7zha7",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A3e5PxDT1PEstFxhGtoUShU32oIKCnnXtBp3IBi9bM/2"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x01593D20A99174372BB325BEBA6985D0D2A7F434"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "support_token_type": 1,
-          "rewards_tokens": "10000000001000000.000000000000000000",
-          "delegator_rewards_shares": "10000000001000000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1plzprxwwtzy53ps63k5x6uj6tgrn46g6c8w4xv",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "AqBVHHkyOfiie29Wrez6hMvC644kbZfPgXA1jFEs7Uwq"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x0FC41199CE588948861A8DA86D725A5A073AE91A"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "rewards_tokens": "5000000000500000.000000000000000000",
-          "delegator_rewards_shares": "5000000000500000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1v0uufejgkfzvxx2kxrp6733zq2eg9ccwgx5emd",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "AtJpE37ydCffhJT0NNkFm/8CEB64cYu5xBVs/btKqjWh"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x63F9C4E648B244C3195630C3AF462202B282E30E"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "support_token_type": 1,
-          "rewards_tokens": "10000000001000000.000000000000000000",
-          "delegator_rewards_shares": "10000000001000000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper106cyk87evdmf3z2rmkj5m9aut5xcchpwsrlrs7",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A+wUiPhFG58EShf9w6v6BDmdey3rsst5S17jR14fezbz"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x7EB04B1FD96376988943DDA54D97BC5D0D8C5C2E"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "support_token_type": 1,
-          "rewards_tokens": "10000000001000000.000000000000000000",
-          "delegator_rewards_shares": "10000000001000000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1n8pg4ccvhml07a0fr3nxjtlqhkf8nwrpc6a2t5",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A/9SMxZTnh3Rq96Eygg9MfB6g82euMXhjT5nMWrhLlyf"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x99C28AE30CBEFEFF75E91C66692FE0BD9279B861"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "rewards_tokens": "5000000000500000.000000000000000000",
-          "delegator_rewards_shares": "5000000000500000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1nh7zdfmxyyrwamz7s7eqewmfpn7wwws9gyue2t",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A6KRGirXFYsv5oVQz8d8YIl0Nj23bXo2jLHui72y12Bi"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0x9DFC26A7662106EEEC5E87B20CBB690CFCE73A05"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "rewards_tokens": "5000000000500000.000000000000000000",
-          "delegator_rewards_shares": "5000000000500000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1u60eyhv44w578au4lv982wjkcuhhhyss2ukqj9",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "A9cvfpWD3qASAFaCzavpbSd7E+IRKKTDZkYBvxY5gRk7"
-          },
-          "status": 3,
-          "tokens": "10000000001000000",
-          "delegator_shares": "10000000001000000.000000000000000000",
-          "description": {
-            "moniker": "0xE69F925D95ABA9E3F795FB0A753A56C72F7B9210"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.000000000000000000",
-              "max_rate": "0.000000000000000000",
-              "max_change_rate": "0.000000000000000000"
-            },
-            "update_time": "2024-04-16T11:04:40.60280319Z"
-          },
-          "min_self_delegation": "1024",
-          "support_token_type": 1,
-          "rewards_tokens": "10000000001000000.000000000000000000",
-          "delegator_rewards_shares": "10000000001000000.000000000000000000"
-        },
-        {
-          "operator_address": "storyvaloper1rg0vphgl9nzy8njgkclxkr9wu9tvh4raly2eex",
-          "consensus_pubkey": {
-            "type": "tendermint/PubKeySecp256k1",
-            "value": "AgSPN1XgoqtMqu0JJb5SC76FXvKO70Y+KXh3xjfqMalw"
-          },
-          "status": 3,
-          "tokens": "6024000000000",
-          "delegator_shares": "6024000000000.000000000000000000",
-          "description": {
-            "moniker": "validator-test"
-          },
-          "unbonding_time": "1970-01-01T00:00:00Z",
-          "commission": {
-            "commission_rates": {
-              "rate": "0.100000000000000000",
-              "max_rate": "0.500000000000000000",
-              "max_change_rate": "0.010000000000000000"
-            },
-            "update_time": "2024-10-22T13:54:22.256319155Z"
-          },
-          "min_self_delegation": "1024",
-          "support_token_type": 1,
-          "rewards_tokens": "6024000000000.000000000000000000",
-          "delegator_rewards_shares": "6024000000000.000000000000000000"
-        }
-      ]
-    }
-  },
-  "error": ""
-}
-```
-
-
-## GetDelegationByValidatorAddressDelegatorAddress
-
-URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "delegation_response": {
-      "delegation": {
-        "delegator_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3",
-        "validator_address": "storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw",
-        "shares": "1024000000000.000000000000000000",
-        "rewards_shares": "1076224000000.000000000000000000"
-      },
-      "balance": {
-        "denom": "stake",
-        "amount": "972800000000"
-      }
-    }
-  },
-  "error": ""
-}
-```
-
-
-## GetValidatorUnbondingDelegations
-
-URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-
-### Query Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| status | string |  | ✔ |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
-
-
-
-## GetDelegatorUnbondingDelegation
-
-URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-
-
-## GetPeriodDelegationsByDelegatorAddress
-
-URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": [
-    {
-      "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
-      "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
-      "period_delegation_id": "0",
-      "shares": "1025000000000.000000000000000000",
-      "rewards_shares": "1025000000000.000000000000000000",
-      "end_time": "2024-10-23T08:48:00.313756096Z"
-    }
-  ],
-  "error": ""
-}
-```
-
-
-## GetPeriodDelegationByDelegatorAddressAndID
-
-URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-| period_delegation_id | string | 1 | ✔ |
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
-    "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
-    "period_delegation_id": "0",
-    "shares": "1025000000000.000000000000000000",
-    "rewards_shares": "1025000000000.000000000000000000",
-    "end_time": "2024-10-23T08:48:00.313756096Z"
-  },
-  "error": ""
-}
-```
-
+---
 
 ## GetAccounts
 
 URL: [GET] /auth/accounts
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
@@ -1415,6 +1450,7 @@ URL: [GET] /auth/accounts
 }
 ```
 
+---
 
 ## GetBech32Prefix
 
@@ -1431,28 +1467,7 @@ URL: [GET] /auth/bech32
 }
 ```
 
-
-## GetAuthParams
-
-URL: [GET] /auth/params
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "params": {
-      "max_memo_characters": "256",
-      "tx_sig_limit": "7",
-      "tx_size_cost_per_byte": "10",
-      "sig_verify_cost_ed25519": "590",
-      "sig_verify_cost_secp256k1": "1000"
-    }
-  },
-  "error": ""
-}
-```
-
+---
 
 ## GetBankParams
 
@@ -1469,19 +1484,20 @@ URL: [GET] /bank/params
 }
 ```
 
+---
 
 ## GetSupply
 
 URL: [GET] /bank/supply
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
@@ -1502,15 +1518,16 @@ URL: [GET] /bank/supply
 }
 ```
 
+---
 
 ## GetSupplyByDenom
 
 URL: [GET] /bank/supply/by_denom
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| denom | string | stake | ✔ |
+| denom | string | stake |  |
 
 ### Response Example
 ```json
@@ -1526,6 +1543,7 @@ URL: [GET] /bank/supply/by_denom
 }
 ```
 
+---
 
 ## GetBalancesByAddress
 
@@ -1537,13 +1555,14 @@ URL: [GET] /bank/balances/{address}
 | address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+| resolve_denom | boolean | true |  |
 
 ### Response Example
 ```json
@@ -1564,6 +1583,7 @@ URL: [GET] /bank/balances/{address}
 }
 ```
 
+---
 
 ## GetBalancesByAddressDenom
 
@@ -1575,7 +1595,7 @@ URL: [GET] /bank/balances/{address}/by_denom
 | address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
 | denom | string | stake |  |
 
@@ -1593,6 +1613,77 @@ URL: [GET] /bank/balances/{address}/by_denom
 }
 ```
 
+---
+
+## GetSpendableBalancesByAddress
+
+URL: [GET] /bank/spendable_balances/{address}
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+| resolve_denom | boolean | true |  |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "balances": [
+      {
+        "denom": "stake",
+        "amount": "50301746"
+      }
+    ],
+    "pagination": {
+      "total": "1"
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetSpendableBalancesByAddressDenom
+
+URL: [GET] /bank/spendable_balances/{address}/by_denom
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| denom | string | stake |  |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "balance": {
+      "denom": "stake",
+      "amount": "50301746"
+    }
+  },
+  "error": ""
+}
+```
+
+---
 
 ## GetDenomOwners
 
@@ -1604,13 +1695,13 @@ URL: [GET] /bank/denom_owners/{denom}
 | denom | string | stake | ✔ |
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 
 ### Response Example
 ```json
@@ -1698,19 +1789,20 @@ URL: [GET] /bank/denom_owners/{denom}
 }
 ```
 
+---
 
 ## GetDenomOwnersByQuery
 
 URL: [GET] /bank/denom_owners_by_query
 
 ### Query Params
-| Name | Type | Example | Require |
+| Name | Type | Exampe | Require |
 | --- | --- | --- | --- |
-| pagination.key | string | stake |  |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
 | denom | string | stake |  |
 
 ### Response Example
@@ -1799,6 +1891,7 @@ URL: [GET] /bank/denom_owners_by_query
 }
 ```
 
+---
 
 ## GetDistributionParams
 
@@ -1820,6 +1913,133 @@ URL: [GET] /distribution/params
 }
 ```
 
+---
+
+## GetValidatorCommissionByValidatorAddress
+
+URL: [GET] /distribution/validators/{validator_address}/commission
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "commission": {
+      "commission": [
+        {
+          "denom": "stake",
+          "amount": "11129810.318708930942711499"
+        }
+      ]
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetValidatorOutstandingRewardsByValidatorAddress
+
+URL: [GET] /distribution/validators/{validator_address}/outstanding_rewards
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "rewards": {
+      "rewards": [
+        {
+          "denom": "stake",
+          "amount": "110356851.470660927219114823"
+        }
+      ]
+    }
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetValidatorSlashesByValidatorAddress
+
+URL: [GET] /distribution/validators/{validator_address}/slashes
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+| starting_height | string | 1 |  |
+| ending_height | string | 100 |  |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "slashes": [],
+    "pagination": {}
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetDistributionValidatorByValidatorAddress
+
+URL: [GET] /distribution/validators/{validator_address}
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "operator_address": "story17973uudyv484cgmy4sd4kjwdgrh86vfwecmj59",
+    "self_bond_rewards": [
+      {
+        "denom": "stake",
+        "amount": "82232804.757899250000000000"
+      }
+    ],
+    "commission": [
+      {
+        "denom": "stake",
+        "amount": "11129810.318708930942711499"
+      }
+    ]
+  },
+  "error": ""
+}
+```
+
+---
 
 ## GetDistributionValidatorsByDelegatorAddress
 
@@ -1848,27 +2068,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/validators
 }
 ```
 
-
-## GetDelegatorWithdrawAddressByDelegatorAddress
-
-URL: [GET] /distribution/delegators/{delegator_address}/withdraw_address
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
-
-### Response Example
-```json
-{
-  "code": 200,
-  "msg": {
-    "withdraw_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3"
-  },
-  "error": ""
-}
-```
-
+---
 
 ## GetDelegatorRewardsByDelegatorAddress
 
@@ -1951,6 +2151,7 @@ URL: [GET] /distribution/delegators/{delegator_address}/rewards
 }
 ```
 
+---
 
 ## GetDelegatorRewardsByDelegatorAddressValidatorAddress
 
@@ -1978,133 +2179,131 @@ URL: [GET] /distribution/delegators/{delegator_address}/rewards/{validator_addre
 }
 ```
 
+---
 
-## GetDistributionValidatorByValidatorAddress
+## GetDelegatorWithdrawAddressByDelegatorAddress
 
-URL: [GET] /distribution/validators/{validator_address}
+URL: [GET] /distribution/delegators/{delegator_address}/withdraw_address
 
 ### Path Params
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
-| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+| delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Response Example
 ```json
 {
   "code": 200,
   "msg": {
-    "operator_address": "story17973uudyv484cgmy4sd4kjwdgrh86vfwecmj59",
-    "self_bond_rewards": [
-      {
-        "denom": "stake",
-        "amount": "82232804.757899250000000000"
-      }
-    ],
-    "commission": [
-      {
-        "denom": "stake",
-        "amount": "11129810.318708930942711499"
-      }
-    ]
+    "withdraw_address": "story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3"
   },
   "error": ""
 }
 ```
 
+---
 
-## GetValidatorCommissionByValidatorAddress
+## GetMintParams
 
-URL: [GET] /distribution/validators/{validator_address}/commission
-
-### Path Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+URL: [GET] /mint/params
 
 ### Response Example
 ```json
 {
   "code": 200,
   "msg": {
-    "commission": {
-      "commission": [
-        {
-          "denom": "stake",
-          "amount": "11129810.318708930942711499"
-        }
-      ]
+    "params": {
+      "mint_denom": "stake",
+      "inflations_per_year": "24625000000000000.000000000000000000",
+      "blocks_per_year": "10368000"
     }
   },
   "error": ""
 }
 ```
 
+---
 
-## GetValidatorOutstandingRewardsByValidatorAddress
+## GetDelegatorByDelegatorAddress
 
-URL: [GET] /distribution/validators/{validator_address}/outstanding_rewards
+URL: [GET] /staking/delegators/{delegator_addr}
 
 ### Path Params
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
-| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
 ### Response Example
 ```json
 {
   "code": 200,
   "msg": {
-    "rewards": {
-      "rewards": [
-        {
-          "denom": "stake",
-          "amount": "110356851.470660927219114823"
-        }
-      ]
+    "delegator_addr": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
+    "withdraw_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77",
+    "reward_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77",
+    "operator_address": "0x6E5e0eFC2961ed81e663E53395C51b4154855e77"
+  },
+  "error": ""
+}
+```
+
+---
+
+## GetPeriodDelegationsByDelegatorAddress
+
+URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations
+
+### Path Params
+| Name | Type | Example | Require |
+| --- | --- | --- | --- |
+| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": [
+    {
+      "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
+      "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
+      "period_delegation_id": "0",
+      "shares": "1025000000000.000000000000000000",
+      "rewards_shares": "1025000000000.000000000000000000",
+      "end_time": "2024-10-23T08:48:00.313756096Z"
     }
-  },
+  ],
   "error": ""
 }
 ```
 
+---
 
-## GetValidatorSlashesByValidatorAddress
+## GetPeriodDelegationByDelegatorAddressAndID
 
-URL: [GET] /distribution/validators/{validator_address}/slashes
+URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}
 
 ### Path Params
 | Name | Type | Example | Require |
 | --- | --- | --- | --- |
-| validator_address | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
-
-### Query Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| pagination.key | string |  | ✔ |
-| pagination.offset | string | 0 | ✔ |
-| pagination.limit | string | 10 | ✔ |
-| pagination.count_total | string | true | ✔ |
-| pagination.reverse | string | true | ✔ |
+| validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
+| delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
+| period_delegation_id | string | 1 | ✔ |
 
 ### Response Example
 ```json
 {
   "code": 200,
   "msg": {
-    "slashes": [],
-    "pagination": {}
+    "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
+    "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
+    "period_delegation_id": "0",
+    "shares": "1025000000000.000000000000000000",
+    "rewards_shares": "1025000000000.000000000000000000",
+    "end_time": "2024-10-23T08:48:00.313756096Z"
   },
   "error": ""
 }
 ```
 
-
-## GetAllValidatorOutstandingRewards
-
-URL: [GET] /distribution/all_validators/outstanding_rewards
-
-### Query Params
-| Name | Type | Example | Require |
-| --- | --- | --- | --- |
-| from | integer | 100 |  |
-| to | integer | 200 |  |
+---
