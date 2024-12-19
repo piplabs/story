@@ -54,7 +54,9 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 
 	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
 	validator, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
-	if err != nil {
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
 		return errors.Wrap(err, "get validator")
 	}
 

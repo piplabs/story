@@ -1,9 +1,5 @@
 package server
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
-
 type pagination struct {
 	Key        string `mapstructure:"key"`
 	Offset     uint64 `mapstructure:"offset"`
@@ -48,16 +44,6 @@ type getDenomOwnersRequest struct {
 type getDenomOwnersByQueryRequest struct {
 	Denom      string     `mapstructure:"denom"`
 	Pagination pagination `mapstructure:"pagination"`
-}
-
-type getAllValidatorOutstandingRewardsRequest struct {
-	From int64 `mapstructure:"from"`
-	To   int64 `mapstructure:"to"`
-}
-
-type getAllValidatorOutstandingRewardsRequestBlockResults struct {
-	Height     int64                   `json:"height"`
-	Validators map[string]sdk.DecCoins `json:"validators"`
 }
 
 type getValidatorSlashesByValidatorAddressRequest struct {

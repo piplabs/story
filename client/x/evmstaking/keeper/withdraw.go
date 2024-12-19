@@ -420,7 +420,11 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
-	if errors.Is(err, stypes.ErrNoPeriodDelegation) {
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if errors.Is(err, stypes.ErrNoDelegation) {
+		return errors.WrapErrWithCode(errors.DelegationNotFound, err)
+	} else if errors.Is(err, stypes.ErrNoPeriodDelegation) {
 		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
 	} else if err != nil {
 		return errors.Wrap(err, "undelegate")
