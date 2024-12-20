@@ -174,6 +174,14 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 		return engine.ExecutableData{}, errors.New("invalid payload random", "proposed", payload.Random, "latest", head.Hash())
 	}
 
+	// Ensure the Withdrawals, BlobGasUsed, and ExcessBlobGas is not nil
+	if payload.Withdrawals == nil || payload.BlobGasUsed == nil || payload.ExcessBlobGas == nil {
+		return engine.ExecutableData{}, errors.New("the followings must not be nil",
+			"withdrawals", payload.Withdrawals,
+			"blob_gas_used", payload.BlobGasUsed,
+			"excess_blob_gas", payload.ExcessBlobGas)
+	}
+
 	return payload, nil
 }
 
