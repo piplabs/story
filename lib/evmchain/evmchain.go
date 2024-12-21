@@ -9,7 +9,7 @@ type Token string
 
 const (
 	// Story Mainnet.
-	IDStory uint64 = 1415
+	IDStory uint64 = 1514
 
 	// Local Testet.
 	IDLocal uint64 = 1511
