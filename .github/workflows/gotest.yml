@@ -16,7 +16,7 @@ jobs:
           go-version: '1.22.0'
       - name: Configure Git
         env:
-          TOKEN: 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 # TODO: This is a temporary token expired at Dec 22, 2024, please replace with a secret
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
       # TODO: add coverage
       - run: go test -timeout=5m -race -tags=verify_logs ./...
