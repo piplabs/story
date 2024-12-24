@@ -48,6 +48,20 @@
           "pub_key": null,
           "account_number": "1",
           "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1lm86a3ly3l4tvcmgn9rhyvxlrunlzy9xeus8lf",
+          "pub_key": null,
+          "account_number": "4",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
+          "pub_key": null,
+          "account_number": "5",
+          "sequence": "0"
         }
       ]
     },
@@ -73,6 +87,24 @@
         },
         {
           "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1lm86a3ly3l4tvcmgn9rhyvxlrunlzy9xeus8lf",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
           "coins": [
             {
               "denom": "stake",
@@ -193,6 +225,102 @@
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
                   "key": "AiKMp4V7I6VshkoKtYMuT5d0mZ3t8sTVHLpyDF6O+EFC"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Luganodes 1",
+                  "identity": "4F2E11CB85CB269B",
+                  "website": "https://luganodes.com",
+                  "security_contact": "hello@luganodes.com",
+                  "details": "Swiss-Operated Institutional Grade Staking Provider"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
+                "validator_address": "storyvaloper1pq2g6leapn2tsmnykk6y9rncuxxlwtzhj9v6yr",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "uiaF1qgrVojVWTOmb7ZkYFaSzoFpdDxAku1/0/imNag="
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 0
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Luganodes 2",
+                  "identity": "4F2E11CB85CB269B",
+                  "website": "https://luganodes.com",
+                  "security_contact": "hello@luganodes.com",
+                  "details": "Swiss-Operated Institutional Grade Staking Provider"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1lm86a3ly3l4tvcmgn9rhyvxlrunlzy9xeus8lf",
+                "validator_address": "storyvaloper1lm86a3ly3l4tvcmgn9rhyvxlrunlzy9xhnyx5z",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "Awv0GNBm10qwXIzmh/+dpTQunI2ibD2zKS1f2duvFF1/"
                 },
                 "value": {
                   "denom": "stake",
