@@ -34,7 +34,7 @@ interface IIPTokenStaking {
     event FeeSet(uint256 newFee);
 
     /// @notice Emitted when a new validator is created.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param moniker The moniker of the validator.
     /// @param stakeAmount Token staked to the validator as self-delegation.
     /// @param commissionRate The commission rate of the validator.
@@ -44,7 +44,7 @@ interface IIPTokenStaking {
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the validator
     event CreateValidator(
-        bytes validatorUncmpPubkey,
+        bytes validatorCmpPubkey,
         string moniker,
         uint256 stakeAmount,
         uint32 commissionRate,
@@ -56,31 +56,31 @@ interface IIPTokenStaking {
     );
 
     /// @notice Emitted when the withdrawal address is set/changed.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
     /// @param executionAddress Left-padded 32 bytes of the EVM address to receive stake and reward withdrawals.
-    event SetWithdrawalAddress(bytes delegatorUncmpPubkey, bytes32 executionAddress);
+    event SetWithdrawalAddress(address delegator, bytes32 executionAddress);
 
     /// @notice Emitted when the rewards address is set/changed.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
     /// @param executionAddress Left-padded 32 bytes of the EVM address to receive stake and reward withdrawals.
-    event SetRewardAddress(bytes delegatorUncmpPubkey, bytes32 executionAddress);
+    event SetRewardAddress(address delegator, bytes32 executionAddress);
 
     /// @notice Emitted when the validator commission is updated
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param commissionRate The new commission rate of the validator.
-    event UpdateValidatorCommssion(bytes validatorUncmpPubkey, uint32 commissionRate);
+    event UpdateValidatorCommission(bytes validatorCmpPubkey, uint32 commissionRate);
 
     /// @notice Emitted when a user deposits token into the contract.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
-    /// @param stakeAmount Token deposited.
-    /// @param stakingPeriod of the deposit
+    /// @param delegator The delegator's address
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param stakeAmount Token deposited
+    /// @param stakingPeriod The staking period of the deposit
     /// @param delegationId The ID of the delegation
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
     event Deposit(
-        bytes delegatorUncmpPubkey,
-        bytes validatorUncmpPubkey,
+        address delegator,
+        bytes validatorCmpPubkey,
         uint256 stakeAmount,
         uint256 stakingPeriod,
         uint256 delegationId,
@@ -89,15 +89,15 @@ interface IIPTokenStaking {
     );
 
     /// @notice Emitted when a user withdraws her stake and starts the unbonding period.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakeAmount Token deposited.
     /// @param delegationId The ID of the delegation, 0 if flexible
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
     event Withdraw(
-        bytes delegatorUncmpPubkey,
-        bytes validatorUncmpPubkey,
+        address delegator,
+        bytes validatorCmpPubkey,
         uint256 stakeAmount,
         uint256 delegationId,
         address operatorAddress,
@@ -105,29 +105,29 @@ interface IIPTokenStaking {
     );
 
     /// @notice Emitted when a user triggers redelegation of token from source validator to destination validator.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpSrcPubkey Source validator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpDstPubkey Destination validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
+    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId if delegation has staking period, 0 if flexible
     /// @param operatorAddress The caller's address
     /// @param amount Token redelegated.
     event Redelegate(
-        bytes delegatorUncmpPubkey,
-        bytes validatorUncmpSrcPubkey,
-        bytes validatorUncmpDstPubkey,
+        address delegator,
+        bytes validatorSrcCmpPubkey,
+        bytes validatorDstCmpPubkey,
         uint256 delegationId,
         address operatorAddress,
         uint256 amount
     );
 
-    /// @notice Emitted to request setting an operator address to a validator
-    /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param operator address
-    event SetOperator(bytes uncmpPubkey, address operator);
+    /// @notice Emitted to request setting an operator address to a delegator
+    /// @param delegator The delegator's address
+    /// @param operator The operator's address
+    event SetOperator(address delegator, address operator);
 
-    /// @notice Emitted to request removing the operator address to a validator
-    /// @param uncmpPubkey delegator's 65 bytes uncompressed secp256k1 public key.
-    event UnsetOperator(bytes uncmpPubkey);
+    /// @notice Emitted to request removing the operator address to a delegator
+    /// @param delegator The delegator's address
+    event UnsetOperator(address delegator);
 
     /// @notice Emitted when the minimum stake amount is set.
     /// @param minStakeAmount The new minimum stake amount.
@@ -142,7 +142,10 @@ interface IIPTokenStaking {
     event MinCommissionRateChanged(uint256 minCommissionRate);
 
     /// @notice Emitted when a validator is unjailed.
-    event Unjail(address unjailer, bytes validatorUncmpPubkey, bytes data);
+    /// @param unjailer The unjailer's address
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param data Additional data for the unjail.
+    event Unjail(address unjailer, bytes validatorCmpPubkey, bytes data);
 
     /// @notice Returns the rounded stake amount and the remainder.
     /// @param rawAmount The raw stake amount.
@@ -152,36 +155,32 @@ interface IIPTokenStaking {
 
     /// @notice Sets an operator for a delegator.
     /// Calling this method will override any existing operator.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
     /// @param operator The operator address to add.
-    function setOperator(bytes calldata uncmpPubkey, address operator) external payable;
+    function setOperator(address operator) external payable;
 
     /// @notice Removes current operator for a delegator.
-    /// @param uncmpPubkey 65 bytes uncompressed secp256k1 public key.
-    function unsetOperator(bytes calldata uncmpPubkey) external payable;
+    function unsetOperator() external payable;
 
     /// @notice Set/Update the withdrawal address that receives the withdrawals.
     /// Charges fee (CL spam prevention). Must be exact amount.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param newWithdrawalAddress EVM address to receive the  withdrawals.
-    function setWithdrawalAddress(bytes calldata delegatorUncmpPubkey, address newWithdrawalAddress) external payable;
+    function setWithdrawalAddress(address newWithdrawalAddress) external payable;
 
     /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
     /// Charges fee (CL spam prevention). Must be exact amount.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
     /// @param newRewardsAddress EVM address to receive the stake and reward withdrawals.
-    function setRewardsAddress(bytes calldata delegatorUncmpPubkey, address newRewardsAddress) external payable;
+    function setRewardsAddress(address newRewardsAddress) external payable;
 
     /// @notice Update the commission rate of a validator.
     /// Charges fee (CL spam prevention). Must be exact amount.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param commissionRate The new commission rate of the validator.
-    function updateValidatorCommission(bytes calldata validatorUncmpPubkey, uint32 commissionRate) external payable;
+    function updateValidatorCommission(bytes calldata validatorCmpPubkey, uint32 commissionRate) external payable;
 
     /// @notice Entry point for creating a new validator with self delegation.
     /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.
     /// Use this method to make sure the caller is the owner of the validator.
-    /// @param validatorUncmpPubkey 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param moniker The moniker of the validator.
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
@@ -189,7 +188,7 @@ interface IIPTokenStaking {
     /// @param supportsUnlocked Whether the validator supports unlocked staking.
     /// @param data Additional data for the validator.
     function createValidator(
-        bytes calldata validatorUncmpPubkey,
+        bytes calldata validatorCmpPubkey,
         string calldata moniker,
         uint32 commissionRate,
         uint32 maxCommissionRate,
@@ -202,15 +201,12 @@ interface IIPTokenStaking {
     /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
     /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
     /// withdrawal queue.
-    /// This method will revert if delegatorUncmpPubkey is not the sender of the validator.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakingPeriod The staking period.
     /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stake(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpPubkey,
+        bytes calldata validatorCmpPubkey,
         StakingPeriod stakingPeriod,
         bytes calldata data
     ) external payable returns (uint256 delegationId);
@@ -220,15 +216,15 @@ interface IIPTokenStaking {
     /// who will be the beneficiary of the stake.
     /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
     /// withdrawal queue.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakingPeriod The staking period.
     /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stakeOnBehalf(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpPubkey,
-        IIPTokenStaking.StakingPeriod stakingPeriod,
+        address delegator,
+        bytes calldata validatorCmpPubkey,
+        StakingPeriod stakingPeriod,
         bytes calldata data
     ) external payable returns (uint256 delegationId);
 
@@ -236,15 +232,13 @@ interface IIPTokenStaking {
     /// Charges fee (CL spam prevention). Must be exact amount.
     /// @dev For non flexible staking, your staking period will continue as is.
     /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount The amount of stake to redelegate.
     function redelegate(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpSrcPubkey,
-        bytes calldata validatorUncmpDstPubkey,
+        bytes calldata validatorSrcCmpPubkey,
+        bytes calldata validatorDstCmpPubkey,
         uint256 delegationId,
         uint256 amount
     ) external payable;
@@ -253,15 +247,15 @@ interface IIPTokenStaking {
     /// Charges fee (CL spam prevention). Must be exact amount.
     /// @dev For non flexible staking, your staking period will continue as is.
     /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpSrcPubkey Validator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpDstPubkey Validator's 65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
+    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount The amount of stake to redelegate.
     function redelegateOnBehalf(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpSrcPubkey,
-        bytes calldata validatorUncmpDstPubkey,
+        address delegator,
+        bytes calldata validatorSrcCmpPubkey,
+        bytes calldata validatorDstCmpPubkey,
         uint256 delegationId,
         uint256 amount
     ) external payable;
@@ -269,14 +263,12 @@ interface IIPTokenStaking {
     /// @notice Entry point for unstaking the previously staked token.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
     /// Charges fee (CL spam prevention). Must be exact amount.
-    /// @param delegatorUncmpPubkey Delegator's 65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
     /// @param data Additional data for the unstake.
     function unstake(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpPubkey,
+        bytes calldata validatorCmpPubkey,
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
@@ -285,14 +277,14 @@ interface IIPTokenStaking {
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
     /// Charges fee (CL spam prevention). Must be exact amount.
     /// @dev Must be an approved operator for the delegator.
-    /// @param delegatorUncmpPubkey Delegator's65 bytes uncompressed secp256k1 public key.
-    /// @param validatorUncmpPubkey Validator's65 bytes uncompressed secp256k1 public key.
+    /// @param delegator The delegator's address
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
     /// @param data Additional data for the unstake.
     function unstakeOnBehalf(
-        bytes calldata delegatorUncmpPubkey,
-        bytes calldata validatorUncmpPubkey,
+        address delegator,
+        bytes calldata validatorCmpPubkey,
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
@@ -300,13 +292,7 @@ interface IIPTokenStaking {
 
     /// @notice Requests to unjail the validator. Caller must pay a fee to prevent spamming.
     /// Fee must be exact amount.
-    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param data Additional data for the unjail.
-    function unjail(bytes calldata validatorUncmpPubkey, bytes calldata data) external payable;
-
-    /// @notice Requests to unjail a validator on behalf. Caller must pay a fee to prevent spamming.
-    /// Fee must be exact amount.
-    /// @param validatorUncmpPubkey The validator's 65-byte uncompressed Secp256k1 public key
-    /// @param data Additional data for the unjail.
-    function unjailOnBehalf(bytes calldata validatorUncmpPubkey, bytes calldata data) external payable;
+    function unjail(bytes calldata validatorCmpPubkey, bytes calldata data) external payable;
 }

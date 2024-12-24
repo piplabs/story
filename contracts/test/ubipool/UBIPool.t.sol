@@ -38,52 +38,52 @@ contract UBIPoolTest is Test, ValidatorData {
 
     function test_setUBIDistribution_claimUBI() public {
         uint256[] memory amounts = new uint256[](validators.length);
-        bytes[] memory validatorUncmpPubKeys = new bytes[](validators.length);
+        bytes[] memory validatorCmpPubKeys = new bytes[](validators.length);
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < validators.length; i++) {
             amounts[i] = 100 ether + i * 10 ether;
-            validatorUncmpPubKeys[i] = validators[i].uncompressedHex;
+            validatorCmpPubKeys[i] = validators[i].compressedHex;
             totalAmount += amounts[i];
             vm.prank(validators[i].evmAddress);
             vm.expectRevert("UBIPool: no UBI to claim");
-            ubiPool.claimUBI(1, validatorUncmpPubKeys[i]);
+            ubiPool.claimUBI(1, validatorCmpPubKeys[i]);
         }
         vm.deal(address(ubiPool), totalAmount);
         performTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts)
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorCmpPubKeys, amounts)
         );
         assertEq(ubiPool.currentDistributionId(), 1);
 
         for (uint256 i = 0; i < validators.length; i++) {
             uint256 amount = amounts[i];
-            assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), amount);
+            assertEq(ubiPool.validatorUBIAmounts(1, validatorCmpPubKeys[i]), amount);
             vm.prank(validators[i].evmAddress);
             uint256 balanceBefore = address(validators[i].evmAddress).balance;
             uint256 poolBalanceBefore = address(ubiPool).balance;
-            ubiPool.claimUBI(1, validatorUncmpPubKeys[i]);
+            ubiPool.claimUBI(1, validatorCmpPubKeys[i]);
             assertEq(address(validators[i].evmAddress).balance, balanceBefore + amount);
             assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
-            assertEq(ubiPool.validatorUBIAmounts(1, validatorUncmpPubKeys[i]), 0);
+            assertEq(ubiPool.validatorUBIAmounts(1, validatorCmpPubKeys[i]), 0);
         }
         vm.deal(address(ubiPool), totalAmount);
         performTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorCmpPubKeys, amounts),
             bytes32(keccak256("setUBIDistribution 2nd time"))
         );
         assertEq(ubiPool.currentDistributionId(), 2);
 
         for (uint256 i = 0; i < validators.length; i++) {
             uint256 amount = amounts[i];
-            assertEq(ubiPool.validatorUBIAmounts(2, validatorUncmpPubKeys[i]), amount);
+            assertEq(ubiPool.validatorUBIAmounts(2, validatorCmpPubKeys[i]), amount);
             vm.prank(validators[i].evmAddress);
             uint256 balanceBefore = address(validators[i].evmAddress).balance;
             uint256 poolBalanceBefore = address(ubiPool).balance;
-            ubiPool.claimUBI(2, validatorUncmpPubKeys[i]);
+            ubiPool.claimUBI(2, validatorCmpPubKeys[i]);
             assertEq(address(validators[i].evmAddress).balance, balanceBefore + amount);
             assertEq(address(ubiPool).balance, poolBalanceBefore - amount);
-            assertEq(ubiPool.validatorUBIAmounts(2, validatorUncmpPubKeys[i]), 0);
+            assertEq(ubiPool.validatorUBIAmounts(2, validatorCmpPubKeys[i]), 0);
         }
     }
 
@@ -92,14 +92,14 @@ contract UBIPoolTest is Test, ValidatorData {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
         ubiPool.setUBIDistribution(100 ether, new bytes[](0), new uint256[](0));
 
-        // Fail if validatorUncmpPubKeys is empty
+        // Fail if validatorCmpPubKeys is empty
         expectRevertTimelocked(
             address(ubiPool),
             abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, new bytes[](0), new uint256[](0)),
-            "UBIPool: validatorUncmpPubKeys cannot be empty"
+            "UBIPool: validatorCmpPubKeys cannot be empty"
         );
 
-        // Fail if validatorUncmpPubKeys and percentages do not match
+        // Fail if validatorCmpPubKeys and percentages do not match
         expectRevertTimelocked(
             address(ubiPool),
             abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, new bytes[](1), new uint256[](0)),
@@ -116,13 +116,13 @@ contract UBIPoolTest is Test, ValidatorData {
         // Fail if amounts do not sum to totalUBI
 
         uint256[] memory amounts = new uint256[](1);
-        bytes[] memory validatorUncmpPubKeys = new bytes[](1);
-        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        bytes[] memory validatorCmpPubKeys = new bytes[](1);
+        validatorCmpPubKeys[0] = validators[0].compressedHex;
         amounts[0] = 1 ether;
         vm.deal(address(ubiPool), 100 ether);
         expectRevertTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorUncmpPubKeys, amounts),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorCmpPubKeys, amounts),
             "UBIPool: total amount mismatch"
         );
 
@@ -130,11 +130,11 @@ contract UBIPoolTest is Test, ValidatorData {
         vm.deal(address(ubiPool), 100 ether);
         amounts = new uint256[](1);
         amounts[0] = 0;
-        validatorUncmpPubKeys = new bytes[](1);
-        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        validatorCmpPubKeys = new bytes[](1);
+        validatorCmpPubKeys[0] = validators[0].compressedHex;
         expectRevertTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorUncmpPubKeys, amounts),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorCmpPubKeys, amounts),
             "UBIPool: amounts cannot be zero"
         );
 
@@ -142,15 +142,15 @@ contract UBIPoolTest is Test, ValidatorData {
         vm.deal(address(ubiPool), 100 ether);
         amounts = new uint256[](1);
         amounts[0] = 100 ether;
-        validatorUncmpPubKeys = new bytes[](1);
+        validatorCmpPubKeys = new bytes[](1);
         // Invalid pubkey
-        validatorUncmpPubKeys[
+        validatorCmpPubKeys[
             0
         ] = hex"0482782124bc9cd03c38aa4cac234dc4e4e3cecf04d57914371baf7fa78ffb975f6d58e245bea952dd039f0fec4e9db418c3b00000"; // pragma: allowlist secret
         expectRevertTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorUncmpPubKeys, amounts),
-            "PubKeyVerifier: Invalid pubkey length"
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, 100 ether, validatorCmpPubKeys, amounts),
+            "Secp256k1Verifier: Invalid cmp pubkey length"
         );
     }
 
@@ -161,20 +161,20 @@ contract UBIPoolTest is Test, ValidatorData {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 60 ether;
         amounts[1] = 40 ether;
-        bytes[] memory validatorUncmpPubKeys = new bytes[](2);
-        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
-        validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
+        bytes[] memory validatorCmpPubKeys = new bytes[](2);
+        validatorCmpPubKeys[0] = validators[0].compressedHex;
+        validatorCmpPubKeys[1] = validators[1].compressedHex;
 
         vm.deal(address(ubiPool), totalAmount);
         performTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorCmpPubKeys, amounts),
             bytes32(keccak256("setUBIDistribution"))
         );
 
         // First validator claims their UBI
         vm.prank(validators[0].evmAddress);
-        ubiPool.claimUBI(1, validatorUncmpPubKeys[0]);
+        ubiPool.claimUBI(1, validatorCmpPubKeys[0]);
 
         // Try to set new distribution with not enough balance
         // Only 40 ether left in contract but 60 ether still pending claims
@@ -182,7 +182,7 @@ contract UBIPoolTest is Test, ValidatorData {
         uint256[] memory newAmounts = new uint256[](1);
         newAmounts[0] = 1 ether;
         bytes[] memory newValidatorUncmpPubKeys = new bytes[](1);
-        newValidatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        newValidatorUncmpPubKeys[0] = validators[0].compressedHex;
 
         expectRevertTimelocked(
             address(ubiPool),
@@ -202,20 +202,20 @@ contract UBIPoolTest is Test, ValidatorData {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 60 ether;
         amounts[1] = 40 ether;
-        bytes[] memory validatorUncmpPubKeys = new bytes[](2);
-        validatorUncmpPubKeys[0] = validators[0].uncompressedHex;
-        validatorUncmpPubKeys[1] = validators[1].uncompressedHex;
+        bytes[] memory validatorCmpPubKeys = new bytes[](2);
+        validatorCmpPubKeys[0] = validators[0].compressedHex;
+        validatorCmpPubKeys[1] = validators[1].compressedHex;
 
         vm.deal(address(ubiPool), totalAmount + 10 ether); // Extra balance for next distribution
         performTimelocked(
             address(ubiPool),
-            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorUncmpPubKeys, amounts),
+            abi.encodeWithSelector(IUBIPool.setUBIDistribution.selector, totalAmount, validatorCmpPubKeys, amounts),
             bytes32(keccak256("setUBIDistribution"))
         );
 
         // First validator claims their UBI
         vm.prank(validators[0].evmAddress);
-        ubiPool.claimUBI(1, validatorUncmpPubKeys[0]);
+        ubiPool.claimUBI(1, validatorCmpPubKeys[0]);
 
         // Set new distribution with enough balance
         // 40 ether pending claims + 10 ether extra balance = enough for 5 ether new distribution
@@ -223,7 +223,7 @@ contract UBIPoolTest is Test, ValidatorData {
         uint256[] memory newAmounts = new uint256[](1);
         newAmounts[0] = 5 ether;
         bytes[] memory newValidatorUncmpPubKeys = new bytes[](1);
-        newValidatorUncmpPubKeys[0] = validators[0].uncompressedHex;
+        newValidatorUncmpPubKeys[0] = validators[0].compressedHex;
 
         performTimelocked(
             address(ubiPool),
