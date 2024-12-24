@@ -48,6 +48,20 @@
           "pub_key": null,
           "account_number": "1",
           "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
+          "pub_key": null,
+          "account_number": "2",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
+          "pub_key": null,
+          "account_number": "3",
+          "sequence": "0"
         }
       ]
     },
@@ -73,6 +87,24 @@
         },
         {
           "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
           "coins": [
             {
               "denom": "stake",
@@ -193,6 +225,102 @@
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
                   "key": "AiKMp4V7I6VshkoKtYMuT5d0mZ3t8sTVHLpyDF6O+EFC"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "B-Harvest Validator 1",
+                  "identity": "8957C5091FBF4192",
+                  "website": "https://bharvest.io",
+                  "security_contact": "contact@bharvest.io",
+                  "details": "Provides secure validation services for dPoS networks"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
+                "validator_address": "storyvaloper1cfek77nua7jsttjj57fdqmdjhsmat9ymkh8qyy",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A/ruvLx/gThyQ23QdgX0Q4EvD8f6m75dlTXDKIkhAOUg"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 0
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "B-Harvest Validator 2",
+                  "identity": "8957C5091FBF4192",
+                  "website": "https://bharvest.io",
+                  "security_contact": "contact@bharvest.io",
+                  "details": "Provides secure validation services for dPoS networks"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
+                "validator_address": "storyvaloper144j83s9vvhju3qu389tc3dm3rpteg4kaagxaun",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A/zQ3jMHSBNMNf3jwpEURa7DcHtwot/03dZrowimqJtR"
                 },
                 "value": {
                   "denom": "stake",
