@@ -220,6 +220,7 @@ contract GenerateAlloc is Script {
         TimelockController(payable(timelock)).grantRole(cancellerRole, canceller);
         if (!KEEP_TIMELOCK_ADMIN_ROLE) {
             bytes32 adminRole = TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE();
+            vm.prank(protocolAdmin);
             TimelockController(payable(timelock)).renounceRole(adminRole, protocolAdmin);
         }
         vm.stopPrank();
