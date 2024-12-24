@@ -48,6 +48,20 @@
           "pub_key": null,
           "account_number": "1",
           "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
+          "pub_key": null,
+          "account_number": "2",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
+          "pub_key": null,
+          "account_number": "3",
+          "sequence": "0"
         }
       ]
     },
@@ -73,6 +87,24 @@
         },
         {
           "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
           "coins": [
             {
               "denom": "stake",
@@ -231,9 +263,9 @@
                   "details": "Provides secure validation services for dPoS networks"
                 },
                 "commission": {
-                  "rate": "0.100000000000000000",
+                  "rate": "0.070000000000000000",
                   "max_rate": "0.200000000000000000",
-                  "max_change_rate": "0.100000000000000000"
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story1cfek77nua7jsttjj57fdqmdjhsmat9ymccnp00",
@@ -279,9 +311,9 @@
                   "details": "Provides secure validation services for dPoS networks"
                 },
                 "commission": {
-                  "rate": "0.100000000000000000",
+                  "rate": "0.070000000000000000",
                   "max_rate": "0.200000000000000000",
-                  "max_change_rate": "0.100000000000000000"
+                  "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
                 "delegator_address": "story144j83s9vvhju3qu389tc3dm3rpteg4kan8juhc",
