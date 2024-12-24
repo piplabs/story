@@ -278,7 +278,7 @@
                   "denom": "stake",
                   "amount": "1000000"
                 },
-                "support_token_type": 1
+                "support_token_type": 0
               }
             ],
             "memo": "",
