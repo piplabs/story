@@ -48,6 +48,20 @@
           "pub_key": null,
           "account_number": "1",
           "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1eulvtgq8qqxwytyxrvp84wpjxgcl8qde54s40e",
+          "pub_key": null,
+          "account_number": "6",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1dvl7qfsnuddtxz98dpr73tdfmgvzsn4haamgjg",
+          "pub_key": null,
+          "account_number": "7",
+          "sequence": "0"
         }
       ]
     },
@@ -73,6 +87,24 @@
         },
         {
           "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1eulvtgq8qqxwytyxrvp84wpjxgcl8qde54s40e",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1dvl7qfsnuddtxz98dpr73tdfmgvzsn4haamgjg",
           "coins": [
             {
               "denom": "stake",
@@ -193,6 +225,102 @@
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
                   "key": "AiKMp4V7I6VshkoKtYMuT5d0mZ3t8sTVHLpyDF6O+EFC"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Blockdaemon 1",
+                  "identity": "35892AC552B8A0A8",
+                  "website": "https://blockdaemon.com",
+                  "security_contact": "support@blockdaemon.com",
+                  "details": "Blockdaemon provides maximum uptime for the Story network so that you can be confident your node will be there, ready and secure, for optimal reward generation. Contact us to stake on the Story network today."
+                },
+                "commission": {
+                  "rate": "0.100000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1eulvtgq8qqxwytyxrvp84wpjxgcl8qde54s40e",
+                "validator_address": "storyvaloper1eulvtgq8qqxwytyxrvp84wpjxgcl8qde66y5yj",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A11n3dOxo9x42GuyrAYpbZE/b0VaRNk6M8AKp461txEd"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 0
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Blockdaemon 2",
+                  "identity": "35892AC552B8A0A8",
+                  "website": "https://blockdaemon.com",
+                  "security_contact": "support@blockdaemon.com",
+                  "details": "Blockdaemon provides maximum uptime for the Story network so that you can be confident your node will be there, ready and secure, for optimal reward generation. Contact us to stake on the Story network today."
+                },
+                "commission": {
+                  "rate": "0.100000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1dvl7qfsnuddtxz98dpr73tdfmgvzsn4haamgjg",
+                "validator_address": "storyvaloper1dvl7qfsnuddtxz98dpr73tdfmgvzsn4hnj0fer",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "Azkjr0X+hOn6HzzuhuxWmHveMd/CzXuYRjVVP1rzNf9g"
                 },
                 "value": {
                   "denom": "stake",
