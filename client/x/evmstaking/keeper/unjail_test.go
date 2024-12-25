@@ -18,8 +18,6 @@ func (s *TestSuite) TestProcessUnjail() {
 
 	_ = valAddrs[0]
 	valPubKey := pubKeys[0]
-	valUncmpPubkey, err := keeper.CmpPubKeyToUncmpPubkey(valPubKey.Bytes())
-	require.NoError(err)
 	evmAddr, err := keeper.CmpPubKeyToEVMAddress(valPubKey.Bytes())
 	require.NoError(err)
 
@@ -44,10 +42,10 @@ func (s *TestSuite) TestProcessUnjail() {
 		{
 			name: "fail: invalid validator pubkey",
 			unjailEv: &bindings.IPTokenStakingUnjail{
-				ValidatorUncmpPubkey: valUncmpPubkey[10:],
-				Unjailer:             evmAddr,
+				ValidatorCmpPubkey: valPubKey.Bytes()[10:],
+				Unjailer:           evmAddr,
 			},
-			expectedErr: "invalid uncompressed public key length or format",
+			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
 		},
 		/*
 			{

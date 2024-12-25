@@ -9,7 +9,7 @@ import (
 
 var (
 	ipTokenStakingABI         = mustGetABI(bindings.IPTokenStakingMetaData)
-	UpdateValidatorCommission = mustGetEvent(ipTokenStakingABI, "UpdateValidatorCommssion")
+	UpdateValidatorCommission = mustGetEvent(ipTokenStakingABI, "UpdateValidatorCommission")
 	SetWithdrawalAddress      = mustGetEvent(ipTokenStakingABI, "SetWithdrawalAddress")
 	SetRewardAddress          = mustGetEvent(ipTokenStakingABI, "SetRewardAddress")
 	SetOperator               = mustGetEvent(ipTokenStakingABI, "SetOperator")

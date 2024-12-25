@@ -37,9 +37,9 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 			sdk.NewEvent(
 				types.EventTypeRedelegateFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeySrcValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpSrcPubkey)),
-				sdk.NewAttribute(types.AttributeKeyDstValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpDstPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeySrcValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorSrcCmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDstValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorDstCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
@@ -59,41 +59,20 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return nil
 	}
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	valSrcCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpSrcPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress src validator pubkey"))
-	}
-	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(valSrcCmpPubkey)
+	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorSrcCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to cosmos")
 	}
 
-	valDstCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpDstPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress dst validator pubkey"))
-	}
-	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(valDstCmpPubkey)
+	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorDstCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 	validatorSrcAddr := sdk.ValAddress(validatorSrcPubkey.Address().Bytes())
 	validatorDstAddr := sdk.ValAddress(validatorDstPubkey.Address().Bytes())
 
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
-	if err != nil {
-		return errors.Wrap(err, "deledator pubkey to evm address")
-	}
 	valSrcEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorSrcPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to evm address")
@@ -104,7 +83,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	}
 
 	// redelegateOnBehalf txn, need to check if it's from the operator
-	if delEvmAddr.String() != ev.OperatorAddress.String() {
+	if ev.Delegator.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
@@ -128,7 +107,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		"del_story", depositorAddr.String(),
 		"val_src_story", validatorSrcAddr.String(),
 		"val_dst_story", validatorDstAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
 		"val_src_evm_addr", valSrcEvmAddr.String(),
 		"val_dst_evm_addr", valDstEvmAddr.String(),
 		"amount_coin", amountCoin.String(),

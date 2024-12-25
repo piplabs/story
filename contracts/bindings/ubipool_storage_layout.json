@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 2443,
+      "astId": 2550,
       "contract": "src/protocol/UBIPool.sol:UBIPool",
       "label": "currentDistributionId",
       "offset": 0,
@@ -9,7 +9,7 @@
       "type": "t_uint256"
     },
     {
-      "astId": 2450,
+      "astId": 2557,
       "contract": "src/protocol/UBIPool.sol:UBIPool",
       "label": "validatorUBIAmounts",
       "offset": 0,
@@ -17,7 +17,7 @@
       "type": "t_mapping(t_uint256,t_mapping(t_bytes_memory_ptr,t_uint256))"
     },
     {
-      "astId": 2453,
+      "astId": 2560,
       "contract": "src/protocol/UBIPool.sol:UBIPool",
       "label": "totalPendingClaims",
       "offset": 0,

@@ -187,7 +187,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Entry point for creating a new validator with self delegation.
-    /// @dev The caller must provide the uncompressed public key that matches the expected EVM address.
+    /// @dev The caller must provide the compressed public key that matches the expected EVM address.
     /// Use this method to make sure the caller is the owner of the validator.
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param moniker The moniker of the validator.

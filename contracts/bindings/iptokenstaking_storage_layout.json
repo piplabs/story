@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 48774,
+      "astId": 49059,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "minCommissionRate",
       "offset": 0,
@@ -9,7 +9,7 @@
       "type": "t_uint256"
     },
     {
-      "astId": 48777,
+      "astId": 49062,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "minStakeAmount",
       "offset": 0,
@@ -17,7 +17,7 @@
       "type": "t_uint256"
     },
     {
-      "astId": 48780,
+      "astId": 49065,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "minUnstakeAmount",
       "offset": 0,
@@ -25,7 +25,7 @@
       "type": "t_uint256"
     },
     {
-      "astId": 48783,
+      "astId": 49068,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "_delegationIdCounter",
       "offset": 0,
@@ -33,7 +33,7 @@
       "type": "t_uint256"
     },
     {
-      "astId": 48786,
+      "astId": 49071,
       "contract": "src/protocol/IPTokenStaking.sol:IPTokenStaking",
       "label": "fee",
       "offset": 0,

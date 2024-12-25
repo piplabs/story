@@ -17,6 +17,7 @@ import (
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/log"
 )
 
 func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUnjail) (err error) {
@@ -35,7 +36,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 			sdk.NewEvent(
 				types.EventTypeUnjailFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.Unjailer.Hex()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
@@ -43,11 +44,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		})
 	}()
 
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
@@ -55,7 +52,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 	valAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
 	valDelAddr := sdk.AccAddress(validatorPubkey.Address().Bytes())
 
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(valCmpPubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
@@ -78,6 +75,11 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 			)
 		}
 	}
+
+	log.Debug(cachedCtx, "EVM unjail detected, unjail validator",
+		"val_story", valAddr.String(),
+		"unjailer_evm_addr", ev.Unjailer.String(),
+	)
 
 	if err = k.slashingKeeper.Unjail(cachedCtx, valAddr); errors.Is(err, slashtypes.ErrNoValidatorForAddress) {
 		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)

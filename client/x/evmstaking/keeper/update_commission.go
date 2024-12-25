@@ -19,7 +19,7 @@ import (
 	"github.com/piplabs/story/lib/k1util"
 )
 
-func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindings.IPTokenStakingUpdateValidatorCommssion) (err error) {
+func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindings.IPTokenStakingUpdateValidatorCommission) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
@@ -35,7 +35,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 			sdk.NewEvent(
 				types.EventTypeUpdateValidatorCommissionFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
@@ -43,11 +43,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 		})
 	}()
 
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}

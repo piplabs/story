@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"github.com/cometbft/cometbft/crypto"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/contracts/bindings"
@@ -15,7 +14,6 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 	pubKeys, accAddrs, _ := createAddresses(2)
 	delAddr := accAddrs[0]
 	delPubKey := pubKeys[0]
-	invalidPubKey := delPubKey.Bytes()[0:20]
 
 	execAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(err)
@@ -25,17 +23,17 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 	tcs := []struct {
 		name          string
 		sameAddr      bool
-		input         func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress
+		input         func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetWithdrawalAddress
 		expectedError string
 	}{
 		{
 			name:     "pass: delegator and execution address are the same",
 			sameAddr: true,
-			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
+			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorUncmpPubkey: cmpToUncmp(pubKey.Bytes()),
-					ExecutionAddress:     [32]byte(paddedExecAddr),
+					Delegator:        addr,
+					ExecutionAddress: [32]byte(paddedExecAddr),
 				}
 			},
 			expectedError: "",
@@ -43,26 +41,14 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 		{
 			name:     "pass: delegator and execution address are different",
 			sameAddr: false,
-			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
+			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorUncmpPubkey: cmpToUncmp(pubKey.Bytes()),
-					ExecutionAddress:     [32]byte(paddedExecAddr),
+					Delegator:        addr,
+					ExecutionAddress: [32]byte(paddedExecAddr),
 				}
 			},
 			expectedError: "",
-		},
-		{
-			name:     "fail: invalid delegator public key",
-			sameAddr: false,
-			input: func(execAddr common.Address, pubKey crypto.PubKey) *bindings.IPTokenStakingSetWithdrawalAddress {
-				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
-				return &bindings.IPTokenStakingSetWithdrawalAddress{
-					DelegatorUncmpPubkey: invalidPubKey,
-					ExecutionAddress:     [32]byte(paddedExecAddr),
-				}
-			},
-			expectedError: "invalid uncompressed public key length or format",
 		},
 	}
 
@@ -72,7 +58,7 @@ func (s *TestSuite) TestProcessSetWithdrawalAddress() {
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
-			ev := tc.input(evmAddr, pubKeys[0])
+			ev := tc.input(evmAddr, common.Address(accAddrs[0]))
 
 			cachedCtx, _ := ctx.CacheContext()
 			err := keeper.ProcessSetWithdrawalAddress(cachedCtx, ev)

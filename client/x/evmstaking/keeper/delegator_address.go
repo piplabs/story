@@ -13,7 +13,6 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
-	"github.com/piplabs/story/lib/k1util"
 )
 
 func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IPTokenStakingSetWithdrawalAddress) (err error) {
@@ -32,7 +31,7 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 			sdk.NewEvent(
 				types.EventTypeSetWithdrawalAddressFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyRewardAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
@@ -40,16 +39,7 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 		})
 	}()
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 	executionAddr := common.BytesToAddress(ev.ExecutionAddress[:])
 
 	if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), executionAddr.String()); err != nil {
@@ -75,7 +65,7 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 			sdk.NewEvent(
 				types.EventTypeSetRewardAddressFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
@@ -83,16 +73,7 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 		})
 	}()
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 	executionAddr := common.BytesToAddress(ev.ExecutionAddress[:])
 
 	if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), executionAddr.String()); err != nil {
@@ -118,24 +99,15 @@ func (k Keeper) ProcessSetOperator(ctx context.Context, ev *bindings.IPTokenStak
 			sdk.NewEvent(
 				types.EventTypeSetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.Hex()),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.String()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 
 	if err := k.DelegatorOperatorAddress.Set(cachedCtx, depositorAddr.String(), ev.Operator.String()); err != nil {
 		return errors.Wrap(err, "delegator operator address map set")
@@ -160,23 +132,14 @@ func (k Keeper) ProcessUnsetOperator(ctx context.Context, ev *bindings.IPTokenSt
 			sdk.NewEvent(
 				types.EventTypeUnsetOperatorFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.UncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.UncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 
 	if err := k.DelegatorOperatorAddress.Remove(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "delegator operator address map remove")

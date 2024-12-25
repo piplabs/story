@@ -54,12 +54,12 @@ func (s *TestSuite) TestProcessDeposit() {
 
 	createDeposit := func(delPubKey, valPubKey []byte, amount *big.Int) *bindings.IPTokenStakingDeposit {
 		return &bindings.IPTokenStakingDeposit{
-			DelegatorUncmpPubkey: cmpToUncmp(delPubKey),
-			ValidatorUncmpPubkey: cmpToUncmp(valPubKey),
-			StakeAmount:          amount,
-			StakingPeriod:        big.NewInt(0),
-			DelegationId:         big.NewInt(0),
-			OperatorAddress:      cmpToEVM(delPubKey),
+			Delegator:          common.Address(delAddr),
+			ValidatorCmpPubkey: valPubKey,
+			StakeAmount:        amount,
+			StakingPeriod:      big.NewInt(0),
+			DelegationId:       big.NewInt(0),
+			OperatorAddress:    cmpToEVM(delPubKey),
 		}
 	}
 
@@ -71,28 +71,16 @@ func (s *TestSuite) TestProcessDeposit() {
 		expectedErr    string
 	}{
 		{
-			name: "fail: invalid delegator pubkey",
-			deposit: &bindings.IPTokenStakingDeposit{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey.Bytes())[:16],
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
-				StakeAmount:          new(big.Int).SetUint64(1),
-				StakingPeriod:        big.NewInt(0),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey.Bytes()),
-			},
-			expectedErr: "invalid uncompressed public key length or format",
-		},
-		{
 			name: "fail: invalid validator pubkey",
 			deposit: &bindings.IPTokenStakingDeposit{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey.Bytes()),
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
-				StakeAmount:          new(big.Int).SetUint64(1),
-				StakingPeriod:        big.NewInt(0),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey.Bytes()),
+				Delegator:          common.Address(delAddr),
+				ValidatorCmpPubkey: valPubKey.Bytes()[:16],
+				StakeAmount:        new(big.Int).SetUint64(1),
+				StakingPeriod:      big.NewInt(0),
+				DelegationId:       big.NewInt(0),
+				OperatorAddress:    cmpToEVM(delPubKey.Bytes()),
 			},
-			expectedErr: "invalid uncompressed public key length or format",
+			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
 		},
 		// TODO: corrupted delegator and validator pubkey
 		{

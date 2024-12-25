@@ -125,7 +125,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 
 		switch ethlog.Topics[0] {
 		case types.UpdateValidatorCommission.ID:
-			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommssion(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommission(ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse UpdateValidatorCommission log", err)
 				continue

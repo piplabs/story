@@ -332,8 +332,8 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 			sdk.NewEvent(
 				types.EventTypeUndelegateFailure,
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
@@ -353,38 +353,21 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return nil
 	}
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
 	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
 
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(valCmpPubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "delegator pubkey to evm address")
-	}
 
 	// unstakeOnBehalf txn, need to check if it's from the operator
-	if delEvmAddr.String() != ev.OperatorAddress.String() {
+	if ev.Delegator.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
@@ -407,7 +390,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	log.Debug(cachedCtx, "Processing EVM staking withdraw",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
 		"val_evm_addr", valEvmAddr.String(),
 		"amount", ev.StakeAmount.String(),
 	)

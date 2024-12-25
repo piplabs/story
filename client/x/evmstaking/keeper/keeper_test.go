@@ -34,7 +34,6 @@ import (
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
@@ -71,15 +70,6 @@ func createAddresses(count int) ([]crypto.PubKey, []sdk.AccAddress, []sdk.ValAdd
 	}
 
 	return pubKeys, accAddrs, valAddrs
-}
-
-func cmpToUncmp(cmpPubKey []byte) []byte {
-	uncmpPubKey, err := keeper.CmpPubKeyToUncmpPubkey(cmpPubKey)
-	if err != nil {
-		panic(err)
-	}
-
-	return uncmpPubKey
 }
 
 type TestSuite struct {
@@ -263,14 +253,11 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	delEvmAddrBytes := delEvmAddr.Bytes()
 	startIndex := len(evmAddrBytes) - len(delEvmAddrBytes)
 	copy(evmAddrBytes[startIndex:], delEvmAddrBytes)
-	delSecp256k1PubKey, err := secp256k1.ParsePubKey(delPubKey.Bytes())
-	require.NoError(err)
-	uncompressedDelPubKeyBytes := delSecp256k1PubKey.SerializeUncompressed()
 	// validator info
 	// valAddr1 := valAddrs[1]
 	valPubKey1 := pubKeys[1]
 	// valAddr2 := valAddrs[2]
-	valPubKey2 := pubKeys[2]
+	// valPubKey2 := pubKeys[2]
 	// self delegation amount
 	// valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	// abis
@@ -384,28 +371,10 @@ func (s *TestSuite) TestProcessStakingEvents() {
 		// Only basic failure cases are validated. Various failure and success scenarios that may occur during the actual process
 		// are tested separately with unit tests in the files where each processing logic is defined.
 		{
-			name: "pass(continue): fail to process SetWithdrawalAddressEvent - invalid delegator pubkey",
-			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				invalidDelPubKey := cmpToUncmp(delPubKey.Bytes())[1:]
-				data, err := stakingAbi.Events["SetWithdrawalAddress"].Inputs.NonIndexed().Pack(
-					invalidDelPubKey,
-					evmAddrBytes,
-				)
-				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.SetWithdrawalAddress.ID}, Data: data, TxHash: dummyHash}}
-				evmEvents, err := ethLogsToEvmEvents(logs)
-				if err != nil {
-					return nil, err
-				}
-
-				return evmEvents, nil
-			},
-		},
-		{
 			name: "pass(continue): fail to process CreateValidatorEvent - corrupted pubkey",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
 				data, err := stakingAbi.Events["CreateValidator"].Inputs.NonIndexed().Pack(
-					createCorruptedPubKey(cmpToUncmp(delPubKey.Bytes())),
+					createCorruptedPubKey(delPubKey.Bytes()),
 					"moniker",
 					delAmtGwei,
 					uint32(1000),
@@ -417,70 +386,6 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				)
 				require.NoError(err)
 				logs := []ethtypes.Log{{Topics: []common.Hash{types.CreateValidatorEvent.ID}, Data: data, TxHash: dummyHash}}
-				evmEvents, err := ethLogsToEvmEvents(logs)
-				if err != nil {
-					return nil, err
-				}
-
-				return evmEvents, nil
-			},
-		},
-		{
-			name: "pass(continue): fail to process DepositEvent - corrupted delegator pubkey",
-			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				data, err := stakingAbi.Events["Deposit"].Inputs.NonIndexed().Pack(
-					uncompressedDelPubKeyBytes,
-					createCorruptedPubKey(cmpToUncmp(valPubKey1.Bytes())),
-					delAmtGwei,
-					big.NewInt(0),
-					big.NewInt(0),
-					cmpToEVM(delPubKey.Bytes()),
-					[]byte{},
-				)
-				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.DepositEvent.ID}, Data: data, TxHash: dummyHash}}
-				evmEvents, err := ethLogsToEvmEvents(logs)
-				if err != nil {
-					return nil, err
-				}
-
-				return evmEvents, nil
-			},
-		},
-		{
-			name: "pass(continue): fail to process RedelegateEvent - corrupted delegator pubkey",
-			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				data, err := stakingAbi.Events["Redelegate"].Inputs.NonIndexed().Pack(
-					createCorruptedPubKey(cmpToUncmp(delPubKey.Bytes())),
-					cmpToUncmp(valPubKey1.Bytes()),
-					cmpToUncmp(valPubKey2.Bytes()),
-					big.NewInt(0),
-					cmpToEVM(delPubKey.Bytes()),
-					delAmtGwei,
-				)
-				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.RedelegateEvent.ID}, Data: data, TxHash: dummyHash}}
-				evmEvents, err := ethLogsToEvmEvents(logs)
-				if err != nil {
-					return nil, err
-				}
-
-				return evmEvents, nil
-			},
-		},
-		{
-			name: "pass(continue): fail to process WithdrawEvent - corrupted delegator pubkey",
-			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
-				data, err := stakingAbi.Events["Withdraw"].Inputs.NonIndexed().Pack(
-					createCorruptedPubKey(cmpToUncmp(delPubKey.Bytes())),
-					cmpToUncmp(valPubKey1.Bytes()),
-					delAmtGwei,
-					big.NewInt(0),
-					cmpToEVM(delPubKey.Bytes()),
-					[]byte{},
-				)
-				require.NoError(err)
-				logs := []ethtypes.Log{{Topics: []common.Hash{types.WithdrawEvent.ID}, Data: data, TxHash: dummyHash}}
 				evmEvents, err := ethLogsToEvmEvents(logs)
 				if err != nil {
 					return nil, err
@@ -513,7 +418,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 			name: "pass: process SetWithdrawalAddressEvent",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
 				data, err := stakingAbi.Events["SetWithdrawalAddress"].Inputs.NonIndexed().Pack(
-					cmpToUncmp(delPubKey.Bytes()),
+					common.Address(delAddr),
 					evmAddrBytes,
 				)
 				require.NoError(err)
@@ -539,14 +444,14 @@ func (s *TestSuite) TestProcessStakingEvents() {
 			name: "pass: process CreateValidatorEvent",
 			evmEvents: func() ([]*evmenginetypes.EVMEvent, error) {
 				data, err := stakingAbi.Events["CreateValidator"].Inputs.NonIndexed().Pack(
-					uncompressedDelPubKeyBytes,
+					delPubKey.Bytes(),
 					"moniker",
 					delAmtGwei,
 					uint32(1000),
 					uint32(5000),
 					uint32(500),
 					uint8(0),
-					cmpToEVM(delPubKey.Bytes()),
+					common.Address(delAddr),
 					[]byte{},
 				)
 				require.NoError(err)
