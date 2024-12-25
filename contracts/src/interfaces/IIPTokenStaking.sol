@@ -247,6 +247,8 @@ interface IIPTokenStaking {
     /// Charges fee (CL spam prevention). Must be exact amount.
     /// @dev For non flexible staking, your staking period will continue as is.
     /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
+    /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
+    /// this method will succeed even if the caller is not the operator (but will fail in CL).
     /// @param delegator The delegator's address
     /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
@@ -276,7 +278,8 @@ interface IIPTokenStaking {
 
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
     /// Charges fee (CL spam prevention). Must be exact amount.
-    /// @dev Must be an approved operator for the delegator.
+    /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
+    /// this method will succeed even if the caller is not the operator (but will fail in CL).
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
