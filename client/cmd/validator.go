@@ -102,6 +102,15 @@ type unstakeConfig struct {
 	DelegationID uint32
 }
 
+type redelegateConfig struct {
+	baseConfig
+	DelegatorAddress   string
+	ValidatorSrcPubKey string
+	ValidatorDstPubKey string
+	DelegationID       uint32
+	StakeAmount        string
+}
+
 type unjailConfig struct {
 	baseConfig
 	ValidatorPubKey string
@@ -149,6 +158,8 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorStakeOnBehalfCmd(),
 		newValidatorUnstakeCmd(),
 		newValidatorUnstakeOnBehalfCmd(),
+		newValidatorRedelegateCmd(),
+		newValidatorRedelegateOnBehalfCmd(),
 		newValidatorSetOperatorCmd(),
 		newValidatorUnsetOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
@@ -360,6 +371,54 @@ func newValidatorUnstakeOnBehalfCmd() *cobra.Command {
 	}
 
 	bindValidatorUnstakeOnBehalfFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorRedelegateCmd() *cobra.Command {
+	var cfg redelegateConfig
+
+	cmd := &cobra.Command{
+		Use:   "redelegate",
+		Short: "Redelegate tokens as the delegator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorRedelegateFlags(ctx, cmd, &cfg)
+			},
+			func(ctx context.Context) error { return redelegate(ctx, cfg) },
+		),
+	}
+
+	bindValidatorRedelegateFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorRedelegateOnBehalfCmd() *cobra.Command {
+	var cfg redelegateConfig
+
+	cmd := &cobra.Command{
+		Use:   "redelegate-on-behalf",
+		Short: "Redelegate tokens on behalf of a delegator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorRedelegateOnBehalfFlags(ctx, cmd, &cfg)
+			},
+			func(ctx context.Context) error { return redelegateOnBehalf(ctx, cfg) },
+		),
+	}
+
+	bindValidatorRedelegateOnBehalfFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -669,7 +728,7 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
@@ -714,7 +773,7 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
@@ -746,6 +805,107 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 	}
 
 	fmt.Println("Tokens unstaked on behalf of delegator successfully!")
+
+	return nil
+}
+
+func redelegate(ctx context.Context, cfg redelegateConfig) error {
+	validatorSrcPubKeyBytes, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded src validator pub key")
+	}
+
+	validatorDstPubKeyBytes, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded dst validator pub key")
+	}
+
+	redelegateAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return errors.New("invalid redelegate amount", "amount", cfg.StakeAmount)
+	}
+
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var redelegateFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack redelegateFee")
+	}
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"redelegate",
+		redelegateFee,
+		validatorSrcPubKeyBytes,
+		validatorDstPubKeyBytes,
+		delegationID,
+		redelegateAmount,
+		[]byte{},
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Tokens redelegated successfully!")
+
+	return nil
+}
+
+func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
+	delegatorAddress := common.HexToAddress(cfg.DelegatorAddress)
+
+	validatorSrcPubKeyBytes, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded src validator pub key")
+	}
+
+	validatorDstPubKeyBytes, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded dst validator pub key")
+	}
+
+	redelegateAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return errors.New("invalid redelegate amount", "amount", cfg.StakeAmount)
+	}
+
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var redelegateFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack redelegateFee")
+	}
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"redelegateOnBehalf",
+		redelegateFee,
+		delegatorAddress,
+		validatorSrcPubKeyBytes,
+		validatorDstPubKeyBytes,
+		delegationID,
+		redelegateAmount,
+		[]byte{},
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Tokens redelegated on behalf of delegator successfully!")
 
 	return nil
 }
