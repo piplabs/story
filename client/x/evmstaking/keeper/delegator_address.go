@@ -23,17 +23,25 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeSetWithdrawalAddressSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeSetWithdrawalAddressFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyRewardAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -57,17 +65,25 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeSetRewardAddressSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeSetRewardAddressFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyWithdrawalAddress, hex.EncodeToString(ev.ExecutionAddress[:])),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -91,17 +107,25 @@ func (k Keeper) ProcessSetOperator(ctx context.Context, ev *bindings.IPTokenStak
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeSetOperatorSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeSetOperatorFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyOperatorAddress, ev.Operator.String()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -124,16 +148,24 @@ func (k Keeper) ProcessUnsetOperator(ctx context.Context, ev *bindings.IPTokenSt
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeUnsetOperatorSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeUnsetOperatorFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})

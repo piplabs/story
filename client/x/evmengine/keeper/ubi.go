@@ -56,16 +56,24 @@ func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPo
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeUpdateUbiSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeUpdateUbiFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyUbiPercentage, strconv.FormatUint(uint64(ev.Percentage), 10)),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})

@@ -27,21 +27,29 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeDelegateSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeDelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
-				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -79,7 +87,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		"del_evm_addr", ev.Delegator.String(),
 		"val_evm_addr", valEvmAddr.String(),
 		"operator_evm_addr", ev.OperatorAddress.String(),
-		"amount_coin", amountCoin.String(),
+		"amount", amountCoin.Amount.String(),
 	)
 
 	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)

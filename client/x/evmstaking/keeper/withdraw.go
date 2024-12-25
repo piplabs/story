@@ -320,24 +320,36 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
+	var actualAmount string
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeUndelegateSuccess,
+				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeUndelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
 				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -432,11 +444,14 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "undelegate")
 	}
 
-	log.Debug(cachedCtx, "EVM staking withdraw detected, undelegating from validator",
+	actualAmount = resp.Amount.Amount.String()
+
+	log.Debug(cachedCtx, "EVM staking withdraw processed",
 		"delegator", depositorAddr.String(),
 		"validator", validatorAddr.String(),
-		"amount", resp.Amount.String(),
-		"completion_time", resp.CompletionTime)
+		"actual_amount", actualAmount,
+		"completion_time", resp.CompletionTime,
+	)
 
 	return nil
 }
