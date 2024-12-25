@@ -66,13 +66,15 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-	delegatorAddr := sdk.AccAddress(validatorPubkey.Address().Bytes())
-
+	// derive validator EL address from given pubkey (as the contract already emits the pubkey)
 	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
+
+	// derive validator/delegator CL address from validator's EL address (self-delegation)
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
+	delegatorAddr := sdk.AccAddress(valEvmAddr.Bytes())
 
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
@@ -136,7 +138,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")
 	} else if !exists {
-		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, delegatorAddr.String(), ev.OperatorAddress.String()); err != nil {
+		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, delegatorAddr.String(), valEvmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}

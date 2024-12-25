@@ -35,15 +35,16 @@ func main() {
 	}
 	println("pubkey", pubkey.String())
 
-	accAddr := sdk.AccAddress(pubkey.Address().Bytes())
-	valAddr := sdk.ValAddress(pubkey.Address().Bytes())
-	println("accAddr", accAddr.String())
-	println("valAddr", valAddr.String())
-
 	evmAddr, err := k1util.CosmosPubkeyToEVMAddress(pubkey.Bytes())
 	if err != nil {
 		println(err.Error())
 		return
 	}
+
+	accAddr := sdk.AccAddress(evmAddr.Bytes())
+	valAddr := sdk.ValAddress(evmAddr.Bytes())
+	println("accAddr", accAddr.String())
+	println("valAddr", valAddr.String())
+
 	println("evmAddr", evmAddr.String())
 }

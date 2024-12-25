@@ -56,7 +56,13 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
+	// derive validator EL address from given pubkey (as the contract already emits the pubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "validator pubkey to evm address")
+	}
+
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
 	validator, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
 		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)

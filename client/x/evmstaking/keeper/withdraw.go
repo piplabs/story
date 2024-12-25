@@ -370,13 +370,13 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(ev.ValidatorCmpPubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
+
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
 
 	// unstakeOnBehalf txn, need to check if it's from the operator
 	if ev.Delegator.String() != ev.OperatorAddress.String() {

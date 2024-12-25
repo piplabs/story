@@ -20,6 +20,7 @@ import (
 	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -242,8 +243,12 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		}
 
 		// Derive the various addresses from the public key
-		accAddr := sdk.AccAddress(pubKey.Address().Bytes()).String()
-		valAddr := sdk.ValAddress(pubKey.Address().Bytes()).String()
+		evmAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey.Bytes())
+		if err != nil {
+			return errors.Wrap(err, "failed to convert to evm addr")
+		}
+		accAddr := sdk.AccAddress(evmAddr.Bytes()).String()
+		valAddr := sdk.ValAddress(evmAddr.Bytes()).String()
 		pubKeyBase64 := base64.StdEncoding.EncodeToString(pubKey.Bytes())
 		fmt.Println("Base64 Encoded Public Key:", pubKeyBase64)
 

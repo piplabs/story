@@ -60,13 +60,13 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-
 	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
+
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
 
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
@@ -126,14 +126,14 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")
 	} else if !exists {
-		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), ev.OperatorAddress.String()); err != nil {
+		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), ev.Delegator.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
 	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {
-		if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), ev.OperatorAddress.String()); err != nil {
+		if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), ev.Delegator.String()); err != nil {
 			return errors.Wrap(err, "set delegator reward address map")
 		}
 	}

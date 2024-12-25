@@ -62,8 +62,9 @@ func createAddresses(count int) ([]crypto.PubKey, []sdk.AccAddress, []sdk.ValAdd
 	var valAddrs []sdk.ValAddress
 	for range count {
 		pubKey := k1.GenPrivKey().PubKey()
+		evmAddr, _ := k1util.CosmosPubkeyToEVMAddress(pubKey.Bytes())
 		accAddr := sdk.AccAddress(pubKey.Address().Bytes())
-		valAddr := sdk.ValAddress(pubKey.Address().Bytes())
+		valAddr := sdk.ValAddress(evmAddr.Bytes())
 		pubKeys = append(pubKeys, pubKey)
 		accAddrs = append(accAddrs, accAddr)
 		valAddrs = append(valAddrs, valAddr)
@@ -243,7 +244,7 @@ func (s *TestSuite) TestProcessStakingEvents() {
 	ctx, evmstakingKeeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
 	// slashingKeeper := s.SlashingKeeper
 	// create addresses
-	pubKeys, addrs, _ := createAddresses(3)
+	pubKeys, addrs, valAddrs := createAddresses(3)
 	// delegator info
 	delAddr := addrs[0]
 	delPubKey := pubKeys[0]
@@ -470,13 +471,13 @@ func (s *TestSuite) TestProcessStakingEvents() {
 				// bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(c, delAddr, stypes.NotBondedPoolName, sdk.NewCoins(delCoin))
 			},
 			stateCheck: func(c context.Context) {
-				_, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+				_, err := stakingKeeper.GetValidator(c, valAddrs[0])
 				require.ErrorContains(err, "validator does not exist")
 			},
 			postStateCheck: func(c context.Context) {
-				newVal, err := stakingKeeper.GetValidator(c, sdk.ValAddress(delAddr))
+				newVal, err := stakingKeeper.GetValidator(c, valAddrs[0])
 				require.NoError(err)
-				require.Equal(sdk.ValAddress(delAddr).String(), newVal.OperatorAddress)
+				require.Equal(valAddrs[0].String(), newVal.OperatorAddress)
 				require.Equal("moniker", newVal.Description.GetMoniker())
 				require.Equal(sdkmath.NewInt(100), newVal.Tokens)
 				require.Equal("0.100000000000000000", newVal.Commission.Rate.String())

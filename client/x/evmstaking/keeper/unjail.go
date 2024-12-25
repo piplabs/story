@@ -57,13 +57,13 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	valAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-	valDelAddr := sdk.AccAddress(validatorPubkey.Address().Bytes())
-
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(ev.ValidatorCmpPubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
+
+	valAddr := sdk.ValAddress(valEvmAddr.Bytes())
+	valDelAddr := sdk.AccAddress(valEvmAddr.Bytes())
 
 	// unjailOnBehalf txn, need to check if it's from the operator
 	if valEvmAddr.String() != ev.Unjailer.String() {
