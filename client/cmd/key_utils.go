@@ -114,21 +114,6 @@ func cmpPubKeyToUncmpPubKey(compressedPubKeyBytes []byte) ([]byte, error) {
 	return uncompressedPubKeyBytes, nil
 }
 
-func uncompressPrivateKey(privateKeyHex string) ([]byte, error) {
-	evmPrivKey, err := crypto.HexToECDSA(privateKeyHex)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid EVM private key")
-	}
-
-	pubKey := evmPrivKey.PublicKey
-	uncompressedPubKey := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	if len(uncompressedPubKey) != 65 {
-		return nil, fmt.Errorf("invalid uncompressed public key length: %d", len(uncompressedPubKey))
-	}
-
-	return uncompressedPubKey, nil
-}
-
 func cmpPubKeyToEVMAddress(cmpPubKey []byte) (string, error) {
 	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
 		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))

@@ -82,7 +82,12 @@ func bindUnsetOperatorFlags(cmd *cobra.Command, cfg *operatorConfig) {
 
 func bindSetWithdrawalAddressFlags(cmd *cobra.Command, cfg *withdrawalConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
-	cmd.Flags().StringVar(&cfg.WithdrawalAddress, "withdrawal-address", "", "Address to receive staking and reward withdrawals")
+	cmd.Flags().StringVar(&cfg.WithdrawalAddress, "withdrawal-address", "", "Address to receive stake withdrawals")
+}
+
+func bindSetRewardsAddressFlags(cmd *cobra.Command, cfg *rewardsConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().StringVar(&cfg.RewardsAddress, "rewards-address", "", "Address to receive rewards")
 }
 
 func bindValidatorStakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
@@ -95,7 +100,7 @@ func bindValidatorStakeFlags(cmd *cobra.Command, cfg *stakeConfig) {
 func bindValidatorStakeOnBehalfFlags(cmd *cobra.Command, cfg *stakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorAddress, "delegator-address", "", "Delegator's EVM address")
 	cmd.Flags().StringVar(&cfg.StakeAmount, "stake", "", "Amount for the validator to self-delegate in wei")
 	cmd.Flags().Var(&cfg.StakePeriod, "staking-period", `Staking period (options: "flexible", "short", "medium", "long")`)
 }
@@ -110,7 +115,7 @@ func bindValidatorUnstakeFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 func bindValidatorUnstakeOnBehalfFlags(cmd *cobra.Command, cfg *unstakeConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
-	cmd.Flags().StringVar(&cfg.DelegatorPubKey, "delegator-pubkey", "", "Delegator's hex-encoded compressed 33-byte secp256k1 public key")
+	cmd.Flags().StringVar(&cfg.DelegatorAddress, "delegator-address", "", "Delegator's EVM address")
 	cmd.Flags().StringVar(&cfg.StakeAmount, "unstake", "", "Amount to unstake in wei")
 	cmd.Flags().Uint32Var(&cfg.DelegationID, "delegation-id", 0, "The delegation ID (0 for flexible staking)")
 }
@@ -192,6 +197,12 @@ func validateWithdrawalFlags(cmd *cobra.Command) error {
 	})
 }
 
+func validateRewardsFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{
+		"rewards-address",
+	})
+}
+
 func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *stakeConfig) error {
 	if err := validateFlags(cmd, []string{"validator-pubkey", "stake"}); err != nil {
 		return errors.Wrap(err, "failed to validate stake flags")
@@ -201,7 +212,7 @@ func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *s
 }
 
 func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *stakeConfig) error {
-	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "stake"}); err != nil {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-address", "stake"}); err != nil {
 		return errors.Wrap(err, "failed to validate stake-on-behalf flags")
 	}
 
@@ -217,7 +228,7 @@ func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg 
 }
 
 func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unstakeConfig) error {
-	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-pubkey", "unstake"}); err != nil {
+	if err := validateFlags(cmd, []string{"validator-pubkey", "delegator-address", "unstake"}); err != nil {
 		return errors.Wrap(err, "failed to validate unstake-on-behalf flags")
 	}
 
