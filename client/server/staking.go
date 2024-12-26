@@ -1,10 +1,9 @@
-//nolint:wrapcheck // The api server is our server, so we don't need to wrap it.
+//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it.
 package server
 
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -30,7 +29,6 @@ func (s *Server) initStakingRoute() {
 
 	s.httpMux.HandleFunc("/staking/delegations/{delegator_addr}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
 
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
@@ -87,6 +85,14 @@ func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error
 		return nil, err
 	}
 
+	for i := range queryResp.Hist.Valset {
+		evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Hist.Valset[i].OperatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.Hist.Valset[i].OperatorAddress = evmOperatorAddress
+	}
+
 	if err := s.prepareUnpackInterfaces(queryResp.Hist); err != nil {
 		return nil, err
 	}
@@ -111,13 +117,18 @@ func (s *Server) GetValidators(req *getValidatorsRequest, r *http.Request) (resp
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
-	for _, validator := range queryResp.Validators {
-		if err := s.prepareUnpackInterfaces(validator); err != nil {
+	for i := range queryResp.Validators {
+		evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Validators[i].OperatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.Validators[i].OperatorAddress = evmOperatorAddress
+
+		if err := s.prepareUnpackInterfaces(queryResp.Validators[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -132,13 +143,23 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Validator(queryContext, &stakingtypes.QueryValidatorRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
-	})
-
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
 	if err != nil {
 		return nil, err
 	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Validator(queryContext, &stakingtypes.QueryValidatorRequest{
+		ValidatorAddr: bech32ValAddress.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Validator.OperatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.Validator.OperatorAddress = evmOperatorAddress
 
 	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
@@ -154,8 +175,13 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 		return nil, err
 	}
 
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).ValidatorDelegations(queryContext, &stakingtypes.QueryValidatorDelegationsRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		ValidatorAddr: bech32ValAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -164,9 +190,22 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range queryResp.DelegationResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.DelegationResponses[i].Delegation.DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.DelegationResponses[i].Delegation.ValidatorAddress = evmValidatorAddress
 	}
 
 	return queryResp, nil
@@ -179,14 +218,35 @@ func (s *Server) GetDelegationByValidatorAddressDelegatorAddress(r *http.Request
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Delegation(queryContext, &stakingtypes.QueryDelegationRequest{
-		ValidatorAddr: muxVars["validator_addr"],
-		DelegatorAddr: muxVars["delegator_addr"],
+		ValidatorAddr: bech32ValAddress.String(),
+		DelegatorAddr: bech32AccAddress.String(),
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.DelegationResponse.Delegation.DelegatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.DelegationResponse.Delegation.DelegatorAddress = evmDelegatorAddress
+
+	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponse.Delegation.ValidatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.DelegationResponse.Delegation.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil
 }
@@ -198,8 +258,13 @@ func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDele
 		return nil, err
 	}
 
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).ValidatorUnbondingDelegations(queryContext, &stakingtypes.QueryValidatorUnbondingDelegationsRequest{
-		ValidatorAddr: mux.Vars(r)["validator_addr"],
+		ValidatorAddr: bech32ValAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -210,6 +275,20 @@ func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDele
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range queryResp.UnbondingResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.UnbondingResponses[i].DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.UnbondingResponses[i].DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.UnbondingResponses[i].ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.UnbondingResponses[i].ValidatorAddress = evmValidatorAddress
 	}
 
 	return queryResp, nil
@@ -222,14 +301,35 @@ func (s *Server) GetDelegatorUnbondingDelegation(r *http.Request) (resp any, err
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).UnbondingDelegation(queryContext, &stakingtypes.QueryUnbondingDelegationRequest{
-		ValidatorAddr: muxVars["validator_addr"],
-		DelegatorAddr: muxVars["delegator_addr"],
+		ValidatorAddr: bech32ValAddress.String(),
+		DelegatorAddr: bech32AccAddress.String(),
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.Unbond.DelegatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.Unbond.DelegatorAddress = evmDelegatorAddress
+
+	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Unbond.ValidatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.Unbond.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil
 }
@@ -241,8 +341,13 @@ func (s *Server) GetDelegationsByDelegatorAddress(req *getDelegationsByDelegator
 		return nil, err
 	}
 
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorDelegations(queryContext, &stakingtypes.QueryDelegatorDelegationsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: bech32AccAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -251,9 +356,22 @@ func (s *Server) GetDelegationsByDelegatorAddress(req *getDelegationsByDelegator
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range queryResp.DelegationResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.DelegationResponses[i].Delegation.DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.DelegationResponses[i].Delegation.ValidatorAddress = evmValidatorAddress
 	}
 
 	return queryResp, nil
@@ -266,10 +384,25 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 		return nil, err
 	}
 
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	bech32SrcValAddress, err := utils.EvmAddressToBech32ValAddress(req.SrcValidatorAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	bech32DstValAddress, err := utils.EvmAddressToBech32ValAddress(req.DstValidatorAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Redelegations(queryContext, &stakingtypes.QueryRedelegationsRequest{
-		DelegatorAddr:    mux.Vars(r)["delegator_addr"],
-		SrcValidatorAddr: req.SrcValidatorAddr,
-		DstValidatorAddr: req.DstValidatorAddr,
+		DelegatorAddr:    bech32AccAddress.String(),
+		SrcValidatorAddr: bech32SrcValAddress.String(),
+		DstValidatorAddr: bech32DstValAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -278,47 +411,31 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range queryResp.RedelegationResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.RedelegationResponses[i].Redelegation.DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.RedelegationResponses[i].Redelegation.DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorSrcAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.RedelegationResponses[i].Redelegation.ValidatorSrcAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.RedelegationResponses[i].Redelegation.ValidatorSrcAddress = evmValidatorSrcAddress
+
+		evmValidatorDstAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.RedelegationResponses[i].Redelegation.ValidatorDstAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.RedelegationResponses[i].Redelegation.ValidatorDstAddress = evmValidatorDstAddress
 	}
 
 	return queryResp, nil
-}
-
-// GetDelegatorByDelegatorAddress queries delegator info for given delegator address.
-func (s *Server) GetDelegatorByDelegatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	delAddr := mux.Vars(r)["delegator_addr"]
-
-	delWithdrawEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorWithdrawAddress.Get(queryContext, delAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	delRewardEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorRewardAddress.Get(queryContext, delAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	delOperatorEvmAddr, err := s.store.GetEvmStakingKeeper().DelegatorOperatorAddress.Get(queryContext, delAddr)
-	if err != nil {
-		if !strings.Contains(err.Error(), "not found") {
-			return nil, err
-		}
-		delOperatorEvmAddr = ""
-	}
-
-	return &DelegatorBaseInfo{
-		DelegatorAddr:   delAddr,
-		WithdrawAddress: delWithdrawEvmAddr,
-		RewardAddress:   delRewardEvmAddr,
-		OperatorAddress: delOperatorEvmAddr,
-	}, nil
 }
 
 // GetUnbondingDelegationsByDelegatorAddress queries all unbonding delegations of a given delegator address.
@@ -328,8 +445,13 @@ func (s *Server) GetUnbondingDelegationsByDelegatorAddress(req *getUnbondingDele
 		return nil, err
 	}
 
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorUnbondingDelegations(queryContext, &stakingtypes.QueryDelegatorUnbondingDelegationsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: bech32AccAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -338,9 +460,22 @@ func (s *Server) GetUnbondingDelegationsByDelegatorAddress(req *getUnbondingDele
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range queryResp.UnbondingResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.UnbondingResponses[i].DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.UnbondingResponses[i].DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.UnbondingResponses[i].ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.UnbondingResponses[i].ValidatorAddress = evmValidatorAddress
 	}
 
 	return queryResp, nil
@@ -353,8 +488,13 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 		return nil, err
 	}
 
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorValidators(queryContext, &stakingtypes.QueryDelegatorValidatorsRequest{
-		DelegatorAddr: mux.Vars(r)["delegator_addr"],
+		DelegatorAddr: bech32AccAddress.String(),
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
@@ -363,13 +503,18 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
-	for _, validator := range queryResp.Validators {
-		if err = s.prepareUnpackInterfaces(validator); err != nil {
+	for i := range queryResp.Validators {
+		evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Validators[i].OperatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp.Validators[i].OperatorAddress = evmOperatorAddress
+
+		if err := s.prepareUnpackInterfaces(queryResp.Validators[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -384,15 +529,29 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
-	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorValidator(queryContext, &stakingtypes.QueryDelegatorValidatorRequest{
-		DelegatorAddr: muxVars["delegator_addr"],
-		ValidatorAddr: muxVars["validator_addr"],
-	})
-
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
 	if err != nil {
 		return nil, err
 	}
+
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorValidator(queryContext, &stakingtypes.QueryDelegatorValidatorRequest{
+		DelegatorAddr: bech32AccAddress.String(),
+		ValidatorAddr: bech32ValAddress.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Validator.OperatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.Validator.OperatorAddress = evmOperatorAddress
 
 	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
 		return nil, err
@@ -408,18 +567,36 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetStakingKeeper().ValidatorAddressCodec().StringToBytes(muxVars["validator_addr"])
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
 	if err != nil {
 		return nil, err
 	}
 
-	return s.store.GetStakingKeeper().GetAllPeriodDelegationsByDelAndValAddr(queryContext, delAddr, valAddr)
+	queryResp, err := s.store.GetStakingKeeper().GetAllPeriodDelegationsByDelAndValAddr(queryContext, bech32AccAddress, bech32ValAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range queryResp {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp[i].DelegatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp[i].DelegatorAddress = evmDelegatorAddress
+
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp[i].ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		queryResp[i].ValidatorAddress = evmValidatorAddress
+	}
+
+	return queryResp, nil
 }
 
 // GetPeriodDelegationByDelegatorAddressAndID queries period delegation info for given validator delegator pair and period delegation id.
@@ -429,16 +606,32 @@ func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (re
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
-	valAddr, err := s.store.GetStakingKeeper().ValidatorAddressCodec().StringToBytes(muxVars["validator_addr"])
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
 	if err != nil {
 		return nil, err
 	}
 
-	delAddr, err := s.store.GetAccountKeeper().AddressCodec().StringToBytes(muxVars["delegator_addr"])
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
 	if err != nil {
 		return nil, err
 	}
 
-	return s.store.GetStakingKeeper().GetPeriodDelegation(queryContext, delAddr, valAddr, muxVars["period_delegation_id"])
+	queryResp, err := s.store.GetStakingKeeper().GetPeriodDelegation(queryContext, bech32AccAddress, bech32ValAddress, mux.Vars(r)["period_delegation_id"])
+	if err != nil {
+		return nil, err
+	}
+
+	evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.DelegatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.DelegatorAddress = evmDelegatorAddress
+
+	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.ValidatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.ValidatorAddress = evmValidatorAddress
+
+	return queryResp, nil
 }
