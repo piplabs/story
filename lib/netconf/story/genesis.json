@@ -58,7 +58,7 @@
         },
         {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
-          "address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
+          "address": "story1q3p2hmdnw7958h38q2c26ktrfepe92u4ufs2c4",
           "pub_key": null,
           "account_number": "5",
           "sequence": "0"
@@ -104,7 +104,7 @@
           ]
         },
         {
-          "address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
+          "address": "story1q3p2hmdnw7958h38q2c26ktrfepe92u4ufs2c4",
           "coins": [
             {
               "denom": "stake",
@@ -268,11 +268,11 @@
                   "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
-                "delegator_address": "story1pq2g6leapn2tsmnykk6y9rncuxxlwtzhu2cm0g",
-                "validator_address": "storyvaloper1pq2g6leapn2tsmnykk6y9rncuxxlwtzhj9v6yr",
+                "delegator_address": "story1q3p2hmdnw7958h38q2c26ktrfepe92u4ufs2c4",
+                "validator_address": "storyvaloper1q3p2hmdnw7958h38q2c26ktrfepe92u4jxytn7",
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
-                  "key": "uiaF1qgrVojVWTOmb7ZkYFaSzoFpdDxAku1/0/imNag="
+                  "key": "AxLwgAhMoWmijtl/3UVvpd+0I4JSAqy6VPtcdnGc3UAG"
                 },
                 "value": {
                   "denom": "stake",
