@@ -53,7 +53,7 @@ contract GenerateAlloc is Script {
     // Optionally allocate 10k test accounts for devnets/testnets
     bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
-    bool private constant KEEP_TIMELOCK_ADMIN_ROLE = true;
+    bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
