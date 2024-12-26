@@ -37,16 +37,51 @@
       "accounts": [
         {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
-          "address": "story1psgrdsmjxrm9mmf6yqpyjx5vxdl3658762lgqz",
+          "address": "story1adqh2hu5rvglceu8m60x57xm64jj8cl3l3jw9d",
           "pub_key": null,
           "account_number": "0",
           "sequence": "0"
         },
         {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
-          "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "address": "story1r8np5t083dzry4nkxnvd97z96tpx284fu4stqv",
           "pub_key": null,
           "account_number": "1",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1phn6xcqpv34amvv2lchp5a0gruq9j6mvjkh45e",
+          "pub_key": null,
+          "account_number": "2",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story170e578v0jzhufwz5vxkktjrtfdqnpknxxvghdp",
+          "pub_key": null,
+          "account_number": "3",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1wuxkq25pytegysf008elj7xmklkn7tnf0axa34",
+          "pub_key": null,
+          "account_number": "4",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story1ct5m5qwwth7anfkcv428jcc3lj6fvllrxm8yya",
+          "pub_key": null,
+          "account_number": "5",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "story15gwm3sdzsmsv7a9vp0xkufel0xw804xsp8zywn",
+          "pub_key": null,
+          "account_number": "6",
           "sequence": "0"
         }
       ]
@@ -63,7 +98,7 @@
       },
       "balances": [
         {
-          "address": "story1psgrdsmjxrm9mmf6yqpyjx5vxdl3658762lgqz",
+          "address": "story1adqh2hu5rvglceu8m60x57xm64jj8cl3l3jw9d",
           "coins": [
             {
               "denom": "stake",
@@ -72,7 +107,52 @@
           ]
         },
         {
-          "address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
+          "address": "story1r8np5t083dzry4nkxnvd97z96tpx284fu4stqv",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1phn6xcqpv34amvv2lchp5a0gruq9j6mvjkh45e",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story170e578v0jzhufwz5vxkktjrtfdqnpknxxvghdp",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1wuxkq25pytegysf008elj7xmklkn7tnf0axa34",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story1ct5m5qwwth7anfkcv428jcc3lj6fvllrxm8yya",
+          "coins": [
+            {
+              "denom": "stake",
+              "amount": "1000000"
+            }
+          ]
+        },
+        {
+          "address": "story15gwm3sdzsmsv7a9vp0xkufel0xw804xsp8zywn",
           "coins": [
             {
               "denom": "stake",
@@ -84,7 +164,7 @@
       "supply": [
         {
           "denom": "stake",
-          "amount": "8000000"
+          "amount": "7000000"
         }
       ],
       "denom_metadata": [],
@@ -140,8 +220,8 @@
                   "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
-                "delegator_address": "story1psgrdsmjxrm9mmf6yqpyjx5vxdl3658762lgqz",
-                "validator_address": "storyvaloper1psgrdsmjxrm9mmf6yqpyjx5vxdl3658759tftf",
+                "delegator_address": "story1adqh2hu5rvglceu8m60x57xm64jj8cl3l3jw9d",
+                "validator_address": "storyvaloper1adqh2hu5rvglceu8m60x57xm64jj8cl337x0wx",
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
                   "key": "Ap41e/XF4gx30LiOsdhwwpAXApryJSxioF4wmeVvra0F"
@@ -188,11 +268,251 @@
                   "max_change_rate": "0.010000000000000000"
                 },
                 "min_self_delegation": "1024000000000",
-                "delegator_address": "story18j06js6585pxqek3sm5sc5vyxd2w5ky8em9xuj",
-                "validator_address": "storyvaloper18j06js6585pxqek3sm5sc5vyxd2w5ky8h538he",
+                "delegator_address": "story1r8np5t083dzry4nkxnvd97z96tpx284fu4stqv",
+                "validator_address": "storyvaloper1r8np5t083dzry4nkxnvd97z96tpx284fj6y2t8",
                 "pubkey": {
                   "@type": "/cosmos.crypto.secp256k1.PubKey",
                   "key": "AiKMp4V7I6VshkoKtYMuT5d0mZ3t8sTVHLpyDF6O+EFC"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "B-Harvest Validator 1",
+                  "identity": "8957C5091FBF4192",
+                  "website": "https://bharvest.io",
+                  "security_contact": "contact@bharvest.io",
+                  "details": "Provides secure validation services for dPoS networks"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1phn6xcqpv34amvv2lchp5a0gruq9j6mvjkh45e",
+                "validator_address": "storyvaloper1phn6xcqpv34amvv2lchp5a0gruq9j6mvuer5lj",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A/ruvLx/gThyQ23QdgX0Q4EvD8f6m75dlTXDKIkhAOUg"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 0
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "B-Harvest Validator 2",
+                  "identity": "8957C5091FBF4192",
+                  "website": "https://bharvest.io",
+                  "security_contact": "contact@bharvest.io",
+                  "details": "Provides secure validation services for dPoS networks"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story170e578v0jzhufwz5vxkktjrtfdqnpknxxvghdp",
+                "validator_address": "storyvaloper170e578v0jzhufwz5vxkktjrtfdqnpknxgrukx2",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A/zQ3jMHSBNMNf3jwpEURa7DcHtwot/03dZrowimqJtR"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Blockdaemon 1",
+                  "identity": "35892AC552B8A0A8",
+                  "website": "https://blockdaemon.com",
+                  "security_contact": "support@blockdaemon.com",
+                  "details": "Blockdaemon provides maximum uptime for the Story network so that you can be confident your node will be there, ready and secure, for optimal reward generation. Contact us to stake on the Story network today."
+                },
+                "commission": {
+                  "rate": "0.100000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1wuxkq25pytegysf008elj7xmklkn7tnf0axa34",
+                "validator_address": "storyvaloper1wuxkq25pytegysf008elj7xmklkn7tnfpjju67",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "A11n3dOxo9x42GuyrAYpbZE/b0VaRNk6M8AKp461txEd"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 0
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Blockdaemon 2",
+                  "identity": "35892AC552B8A0A8",
+                  "website": "https://blockdaemon.com",
+                  "security_contact": "support@blockdaemon.com",
+                  "details": "Blockdaemon provides maximum uptime for the Story network so that you can be confident your node will be there, ready and secure, for optimal reward generation. Contact us to stake on the Story network today."
+                },
+                "commission": {
+                  "rate": "0.100000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story1ct5m5qwwth7anfkcv428jcc3lj6fvllrxm8yya",
+                "validator_address": "storyvaloper1ct5m5qwwth7anfkcv428jcc3lj6fvllrg5n90k",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "Azkjr0X+hOn6HzzuhuxWmHveMd/CzXuYRjVVP1rzNf9g"
+                },
+                "value": {
+                  "denom": "stake",
+                  "amount": "1000000"
+                },
+                "support_token_type": 1
+              }
+            ],
+            "memo": "",
+            "timeout_height": "0",
+            "extension_options": [],
+            "non_critical_extension_options": []
+          },
+          "auth_info": {
+            "signer_infos": [],
+            "fee": {
+              "amount": [],
+              "gas_limit": "0",
+              "payer": "",
+              "granter": ""
+            },
+            "tip": null
+          },
+          "signatures": []
+        },
+        {
+          "body": {
+            "messages": [
+              {
+                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+                "description": {
+                  "moniker": "Luganodes 2",
+                  "identity": "4F2E11CB85CB269B",
+                  "website": "https://luganodes.com",
+                  "security_contact": "hello@luganodes.com",
+                  "details": "Swiss-Operated Institutional Grade Staking Provider"
+                },
+                "commission": {
+                  "rate": "0.070000000000000000",
+                  "max_rate": "0.200000000000000000",
+                  "max_change_rate": "0.010000000000000000"
+                },
+                "min_self_delegation": "1024000000000",
+                "delegator_address": "story15gwm3sdzsmsv7a9vp0xkufel0xw804xsp8zywn",
+                "validator_address": "storyvaloper15gwm3sdzsmsv7a9vp0xkufel0xw804xs0gk99c",
+                "pubkey": {
+                  "@type": "/cosmos.crypto.secp256k1.PubKey",
+                  "key": "Awv0GNBm10qwXIzmh/+dpTQunI2ibD2zKS1f2duvFF1/"
                 },
                 "value": {
                   "denom": "stake",
