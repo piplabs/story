@@ -757,18 +757,6 @@ func createCorruptedPubKey(pubKey []byte) []byte {
 	return corruptedPubKey
 }
 
-// setupUnbonding creates unbondings for testing.
-func (s *TestSuite) setupUnbonding(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount string) {
-	require := s.Require()
-	stakingKeeper := s.StakingKeeper
-
-	// bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stypes.BondedPoolName, stypes.NotBondedPoolName, gomock.Any())
-	_, _, err := stakingKeeper.Undelegate(
-		ctx, delAddr, valAddr, stypes.FlexiblePeriodDelegationID, sdkmath.LegacyMustNewDecFromStr(amount),
-	)
-	require.NoError(err)
-}
-
 // ethLogsToEvmEvents converts Ethereum logs to a slice of EVM events.
 func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error) {
 	events := make([]*evmenginetypes.EVMEvent, 0, len(logs))
