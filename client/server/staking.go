@@ -19,20 +19,20 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/historical_info/{height}", utils.SimpleWrap(s.aminoCodec, s.GetHistoricalInfoByHeight))
 
 	s.httpMux.HandleFunc("/staking/validators", utils.AutoWrap(s.aminoCodec, s.GetValidators))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorDelegationsByValidatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorDelegationsByValidatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegations/{delegator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegations/{delegator_address}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
 
-	s.httpMux.HandleFunc("/staking/delegations/{delegator_addr}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegations/{delegator_address}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
 
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/delegators/{delegator_addr}/validators/{validator_addr}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/redelegations", utils.AutoWrap(s.aminoCodec, s.GetRedelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
 }
 
 // GetStakingParams queries the staking parameters.
@@ -388,21 +388,30 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 	if err != nil {
 		return nil, err
 	}
+	bech32AccAddr := bech32AccAddress.String()
 
-	bech32SrcValAddress, err := utils.EvmAddressToBech32ValAddress(req.SrcValidatorAddr)
-	if err != nil {
-		return nil, err
+	var bech32SrcValAddr string
+	if req.SrcValidatorAddr != "" {
+		bech32SrcValAddress, err := utils.EvmAddressToBech32ValAddress(req.SrcValidatorAddr)
+		if err != nil {
+			return nil, err
+		}
+		bech32SrcValAddr = bech32SrcValAddress.String()
 	}
 
-	bech32DstValAddress, err := utils.EvmAddressToBech32ValAddress(req.DstValidatorAddr)
-	if err != nil {
-		return nil, err
+	var bech32DstValAddr string
+	if req.DstValidatorAddr != "" {
+		bech32DstValAddress, err := utils.EvmAddressToBech32ValAddress(req.DstValidatorAddr)
+		if err != nil {
+			return nil, err
+		}
+		bech32DstValAddr = bech32DstValAddress.String()
 	}
 
 	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).Redelegations(queryContext, &stakingtypes.QueryRedelegationsRequest{
-		DelegatorAddr:    bech32AccAddress.String(),
-		SrcValidatorAddr: bech32SrcValAddress.String(),
-		DstValidatorAddr: bech32DstValAddress.String(),
+		DelegatorAddr:    bech32AccAddr,
+		SrcValidatorAddr: bech32SrcValAddr,
+		DstValidatorAddr: bech32DstValAddr,
 		Pagination: &query.PageRequest{
 			Key:        []byte(req.Pagination.Key),
 			Offset:     req.Pagination.Offset,
