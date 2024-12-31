@@ -36,6 +36,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Default minimum fee charged for adding to CL storage
     uint256 public immutable DEFAULT_MIN_FEE;
 
+    /// @notice The maximum size of the data field in the event logs.
+    uint256 public immutable MAX_DATA_LENGTH;
+
     /// @notice Global minimum commission rate for validators
     uint256 public minCommissionRate;
 
@@ -58,9 +61,10 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         _;
     }
 
-    constructor(uint256 defaultMinFee) {
+    constructor(uint256 defaultMinFee, uint256 maxDataLength) {
         require(defaultMinFee >= 1 gwei, "IPTokenStaking: Invalid default min fee");
         DEFAULT_MIN_FEE = defaultMinFee;
+        MAX_DATA_LENGTH = maxDataLength;
         _disableInitializers();
     }
 
@@ -195,13 +199,15 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param maxCommissionRate The maximum commission rate of the validator.
     /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
     /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
     function createValidator(
         bytes calldata validatorCmpPubkey,
         string calldata moniker,
         uint32 commissionRate,
         uint32 maxCommissionRate,
         uint32 maxCommissionChangeRate,
-        bool supportsUnlocked
+        bool supportsUnlocked,
+        bytes calldata data
     ) external payable verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) nonReentrant {
         _createValidator(
             validatorCmpPubkey,
@@ -209,7 +215,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             commissionRate,
             maxCommissionRate,
             maxCommissionChangeRate,
-            supportsUnlocked
+            supportsUnlocked,
+            data
         );
     }
 
@@ -220,19 +227,22 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param maxCommissionRate The maximum commission rate of the validator.
     /// @param maxCommissionChangeRate The maximum commission change rate of the validator.
     /// @param supportsUnlocked Whether the validator supports unlocked staking.
+    /// @param data Additional data for the validator.
     function _createValidator(
         bytes calldata validatorCmpPubkey,
         string memory moniker,
         uint32 commissionRate,
         uint32 maxCommissionRate,
         uint32 maxCommissionChangeRate,
-        bool supportsUnlocked
+        bool supportsUnlocked,
+        bytes calldata data
     ) internal {
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
         require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         require(commissionRate <= maxCommissionRate, "IPTokenStaking: Commission rate over max");
         require(bytes(moniker).length <= MAX_MONIKER_LENGTH, "IPTokenStaking: Moniker length over max");
+        require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
 
         payable(address(0)).transfer(stakeAmount);
         emit CreateValidator(
@@ -243,7 +253,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
             maxCommissionRate,
             maxCommissionChangeRate,
             supportsUnlocked ? 1 : 0,
-            msg.sender
+            msg.sender,
+            data
         );
         if (remainder > 0) {
             _refundRemainder(remainder);
@@ -275,12 +286,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// withdrawal queue.
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stake(
         bytes calldata validatorCmpPubkey,
-        IIPTokenStaking.StakingPeriod stakingPeriod
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
     ) external payable nonReentrant returns (uint256 delegationId) {
-        return _stake(msg.sender, validatorCmpPubkey, stakingPeriod);
+        return _stake(msg.sender, validatorCmpPubkey, stakingPeriod, data);
     }
 
     /// @notice Entry point for staking IP token to stake to the given validator. The consensus chain is notified of
@@ -291,13 +304,15 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
     function stakeOnBehalf(
         address delegator,
         bytes calldata validatorCmpPubkey,
-        IIPTokenStaking.StakingPeriod stakingPeriod
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
     ) external payable nonReentrant returns (uint256 delegationId) {
-        return _stake(delegator, validatorCmpPubkey, stakingPeriod);
+        return _stake(delegator, validatorCmpPubkey, stakingPeriod, data);
     }
 
     /// @dev Creates a validator (x/staking.MsgCreateValidator) if it does not exist. Then delegates the stake to the
@@ -305,13 +320,16 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param stakingPeriod The staking period.
+    /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
     function _stake(
         address delegator,
         bytes calldata validatorCmpPubkey,
-        IIPTokenStaking.StakingPeriod stakingPeriod
+        IIPTokenStaking.StakingPeriod stakingPeriod,
+        bytes calldata data
     ) internal verifyCmpPubkey(validatorCmpPubkey) returns (uint256) {
         require(delegator != address(0), "IPTokenStaking: invalid delegator");
+        require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
         // This can't be tested from Foundry (Solidity), but can be triggered from js/rpc
         require(stakingPeriod <= IIPTokenStaking.StakingPeriod.LONG, "IPTokenStaking: Invalid staking period");
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
@@ -321,7 +339,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
             delegationId = ++_delegationIdCounter;
         }
-        emit Deposit(delegator, validatorCmpPubkey, stakeAmount, uint8(stakingPeriod), delegationId, msg.sender);
+        emit Deposit(delegator, validatorCmpPubkey, stakeAmount, uint8(stakingPeriod), delegationId, msg.sender, data);
         // We burn staked tokens
         payable(address(0)).transfer(stakeAmount);
 
@@ -405,12 +423,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
+    /// @param data Additional data for the unstake.
     function unstake(
         bytes calldata validatorCmpPubkey,
         uint256 delegationId,
-        uint256 amount
+        uint256 amount,
+        bytes calldata data
     ) external payable chargesFee {
-        _unstake(msg.sender, validatorCmpPubkey, delegationId, amount);
+        _unstake(msg.sender, validatorCmpPubkey, delegationId, amount, data);
     }
 
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
@@ -420,25 +440,29 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
+    /// @param data Additional data for the unstake.
     function unstakeOnBehalf(
         address delegator,
         bytes calldata validatorCmpPubkey,
         uint256 delegationId,
-        uint256 amount
+        uint256 amount,
+        bytes calldata data
     ) external payable chargesFee {
-        _unstake(delegator, validatorCmpPubkey, delegationId, amount);
+        _unstake(delegator, validatorCmpPubkey, delegationId, amount, data);
     }
 
     function _unstake(
         address delegator,
         bytes calldata validatorCmpPubkey,
         uint256 delegationId,
-        uint256 amount
+        uint256 amount,
+        bytes calldata data
     ) private verifyCmpPubkey(validatorCmpPubkey) {
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
         require(amount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
         require(amount % STAKE_ROUNDING == 0, "IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
-        emit Withdraw(delegator, validatorCmpPubkey, amount, delegationId, msg.sender);
+        require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
+        emit Withdraw(delegator, validatorCmpPubkey, amount, delegationId, msg.sender, data);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -447,19 +471,25 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Requests to unjail the validator. Caller must pay a fee to prevent spamming.
     /// Fee must be exact amount.
+    /// @param data Additional data for the unjail.
     function unjail(
-        bytes calldata validatorCmpPubkey
+        bytes calldata validatorCmpPubkey,
+        bytes calldata data
     ) external payable chargesFee verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
-        emit Unjail(msg.sender, validatorCmpPubkey);
+        require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
+        emit Unjail(msg.sender, validatorCmpPubkey, data);
     }
 
     /// @notice Requests to unjail the validator on behalf of the delegator.
     /// @dev Must be an approved operator for the delegator.
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param data Additional data for the unjail.
     function unjailOnBehalf(
-        bytes calldata validatorCmpPubkey
+        bytes calldata validatorCmpPubkey,
+        bytes calldata data
     ) external payable chargesFee verifyCmpPubkey(validatorCmpPubkey) {
-        emit Unjail(msg.sender, validatorCmpPubkey);
+        require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
+        emit Unjail(msg.sender, validatorCmpPubkey, data);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

@@ -7,6 +7,7 @@ pragma solidity 0.8.23;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { console2 } from "forge-std/console2.sol";
 
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { Test } from "../utils/Test.sol";
@@ -21,11 +22,11 @@ contract Staker {
     }
 
     function stake(bytes calldata validatorCmpPubkey) external payable {
-        ipTokenStaking.stake{ value: msg.value }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE);
+        ipTokenStaking.stake{ value: msg.value }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE, "");
     }
 
     function unstake(bytes calldata validatorCmpPubkey, uint256 amount) external {
-        ipTokenStaking.unstake{ value: fee }(validatorCmpPubkey, 0, amount);
+        ipTokenStaking.unstake{ value: fee }(validatorCmpPubkey, 0, amount, "");
     }
 
     function redelegate(
@@ -49,6 +50,8 @@ contract IPTokenStakingTest is Test {
     // Address matching delegatorCmpPubkey
     address private otherValidatorAddr = address(0xf89D606F67a267E9dbCc813c8169988aB8aAeB5E);
 
+    bytes private dataOverMaxLen;
+
     event Received(address, uint256);
 
     // For some tests, we need to receive the native token to this contract
@@ -58,11 +61,15 @@ contract IPTokenStakingTest is Test {
 
     function setUp() public virtual override {
         super.setUp();
+
+        for (uint256 i = 0; i < ipTokenStaking.MAX_DATA_LENGTH() + 1; i++) {
+            dataOverMaxLen = abi.encodePacked(dataOverMaxLen, "a");
+        }
     }
 
     function testIPTokenStaking_Constructor() public {
         vm.expectRevert("IPTokenStaking: Invalid default min fee");
-        new IPTokenStaking(0 ether);
+        new IPTokenStaking(0 ether, 0);
 
         address impl;
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
@@ -74,7 +81,8 @@ contract IPTokenStakingTest is Test {
         });
         impl = address(
             new IPTokenStaking(
-                1 ether // Default min fee charged for adding to CL storage, 1 eth
+                1 ether, // Default min fee charged for adding to CL storage, 1 eth
+                256 // maxDataLength
             )
         );
         // IPTokenStaking: minStakeAmount cannot be 0
@@ -105,6 +113,7 @@ contract IPTokenStakingTest is Test {
         assertEq(ipTokenStaking.STAKE_ROUNDING(), 1 gwei);
         assertEq(ipTokenStaking.minCommissionRate(), 500);
         assertEq(ipTokenStaking.DEFAULT_MIN_FEE(), 1 ether);
+        assertEq(ipTokenStaking.MAX_DATA_LENGTH(), 256);
     }
 
     function testIPTokenStaking_CreateValidator() public {
@@ -118,7 +127,8 @@ contract IPTokenStakingTest is Test {
             commissionRate: 1000,
             maxCommissionRate: 5000,
             maxCommissionChangeRate: 100,
-            supportsUnlocked: false
+            supportsUnlocked: false,
+            data: ""
         });
 
         // Network shall allow anyone to create a new validator by staking validator’s own tokens (self-delegation)
@@ -134,7 +144,8 @@ contract IPTokenStakingTest is Test {
             5000,
             100,
             1, // supportsUnlocked
-            validatorAddr // self-delegation, validatorAddr = delegatorAddr
+            validatorAddr, // self-delegation, validatorAddr = delegatorAddr
+            abi.encode("data")
         );
         ipTokenStaking.createValidator{ value: stakeAmount }({
             validatorCmpPubkey: validatorCmpPubkey,
@@ -142,7 +153,8 @@ contract IPTokenStakingTest is Test {
             commissionRate: 1000,
             maxCommissionRate: 5000,
             maxCommissionChangeRate: 100,
-            supportsUnlocked: true
+            supportsUnlocked: true,
+            data: abi.encode("data")
         });
 
         // Network shall not allow a moniker longer than MAX_MONIKER_LENGTH
@@ -160,7 +172,22 @@ contract IPTokenStakingTest is Test {
             commissionRate: 1000,
             maxCommissionRate: 5000,
             maxCommissionChangeRate: 100,
-            supportsUnlocked: false
+            supportsUnlocked: false,
+            data: ""
+        });
+
+        stakeAmount = ipTokenStaking.minStakeAmount();
+        vm.deal(validatorAddr, stakeAmount);
+        vm.prank(validatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.createValidator{ value: stakeAmount }({
+            validatorCmpPubkey: validatorCmpPubkey,
+            moniker: "",
+            commissionRate: 1000,
+            maxCommissionRate: 5000,
+            maxCommissionChangeRate: 100,
+            supportsUnlocked: false,
+            data: dataOverMaxLen
         });
     }
 
@@ -169,7 +196,7 @@ contract IPTokenStakingTest is Test {
         IIPTokenStaking.StakingPeriod stkPeriod = IIPTokenStaking.StakingPeriod.FLEXIBLE;
         vm.deal(delegatorAddr, 10_000 ether);
         vm.prank(delegatorAddr);
-        uint256 delegationId = ipTokenStaking.stake{ value: 1024 ether }(validatorCmpPubkey, stkPeriod);
+        uint256 delegationId = ipTokenStaking.stake{ value: 1024 ether }(validatorCmpPubkey, stkPeriod, "");
         assertEq(delegationId, 0);
         // Staking for short period should produce incremented delegationId and correct duration
         // emitted event
@@ -184,11 +211,13 @@ contract IPTokenStakingTest is Test {
             stakeAmount,
             uint32(uint8(IIPTokenStaking.StakingPeriod.SHORT)),
             expectedDelegationId,
-            delegatorAddr
+            delegatorAddr,
+            ""
         );
         delegationId = ipTokenStaking.stake{ value: stakeAmount }(
             validatorCmpPubkey,
-            IIPTokenStaking.StakingPeriod.SHORT
+            IIPTokenStaking.StakingPeriod.SHORT,
+            ""
         );
         assertEq(delegationId, expectedDelegationId);
         expectedDelegationId++;
@@ -202,11 +231,13 @@ contract IPTokenStakingTest is Test {
             stakeAmount,
             uint32(uint8(IIPTokenStaking.StakingPeriod.MEDIUM)),
             expectedDelegationId,
-            delegatorAddr
+            delegatorAddr,
+            ""
         );
         delegationId = ipTokenStaking.stake{ value: stakeAmount }(
             validatorCmpPubkey,
-            IIPTokenStaking.StakingPeriod.MEDIUM
+            IIPTokenStaking.StakingPeriod.MEDIUM,
+            ""
         );
         assertEq(delegationId, expectedDelegationId);
         expectedDelegationId++;
@@ -220,11 +251,13 @@ contract IPTokenStakingTest is Test {
             stakeAmount,
             uint32(uint8(IIPTokenStaking.StakingPeriod.LONG)),
             expectedDelegationId,
-            delegatorAddr
+            delegatorAddr,
+            ""
         );
         delegationId = ipTokenStaking.stake{ value: stakeAmount }(
             validatorCmpPubkey,
-            IIPTokenStaking.StakingPeriod.LONG
+            IIPTokenStaking.StakingPeriod.LONG,
+            ""
         );
         assertEq(delegationId, expectedDelegationId);
 
@@ -233,10 +266,11 @@ contract IPTokenStakingTest is Test {
         bytes memory invalidValidatorCmpPubkey = hex"1234";
         ipTokenStaking.stake{ value: stakeAmount }(
             invalidValidatorCmpPubkey,
-            IIPTokenStaking.StakingPeriod.FLEXIBLE
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            ""
         );
         vm.expectRevert("Secp256k1Verifier: pubkey not on curve");
-        ipTokenStaking.stake{ value: stakeAmount }(wrongValidatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE);
+        ipTokenStaking.stake{ value: stakeAmount }(wrongValidatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE, "");
     }
 
     function testIPTokenStaking_stake_remainder() public {
@@ -246,7 +280,7 @@ contract IPTokenStakingTest is Test {
 
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        ipTokenStaking.stake{ value: stakeAmount }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE);
+        ipTokenStaking.stake{ value: stakeAmount }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE, "data");
         assertEq(
             address(ipTokenStaking).balance,
             predeployInitialBalance,
@@ -258,9 +292,31 @@ contract IPTokenStakingTest is Test {
         stakeAmount = 1024 ether + 1 wei;
         vm.deal(delegatorAddr, stakeAmount);
         vm.prank(delegatorAddr);
-        ipTokenStaking.stake{ value: stakeAmount }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE);
+        ipTokenStaking.stake{ value: stakeAmount }(validatorCmpPubkey, IIPTokenStaking.StakingPeriod.FLEXIBLE, "data");
         assertEq(address(ipTokenStaking).balance, predeployInitialBalance);
         assertEq(address(delegatorAddr).balance, 1 wei);
+    }
+
+    function testIPTokenStaking_Stake_data() public {
+        // Network shall not allow a data longer than MAX_DATA_LENGTH
+        uint256 stakeAmount = 1024 ether;
+        vm.deal(delegatorAddr, stakeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.stake{ value: stakeAmount }(
+            validatorCmpPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            dataOverMaxLen
+        );
+
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.stakeOnBehalf{ value: stakeAmount }(
+            delegatorAddr,
+            validatorCmpPubkey,
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            dataOverMaxLen
+        );
     }
 
     function testIPTokenStaking_Unstake_Flexible() public {
@@ -279,14 +335,14 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.startPrank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, stakeAmount, delegationId, delegatorAddr);
-        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount);
+        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, stakeAmount, delegationId, delegatorAddr, "");
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount, "");
         vm.stopPrank();
 
         vm.deal(delegatorAddr, feeAmount);
         vm.startPrank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Unstake amount under min");
-        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount - 1);
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount - 1, "");
         vm.stopPrank();
 
         // Smart contract allows non-operators of a stake owner to withdraw from the stake owner’s public key,
@@ -296,12 +352,13 @@ contract IPTokenStakingTest is Test {
         vm.deal(operator, feeAmount);
         vm.startPrank(operator);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, stakeAmount, delegationId, operator);
+        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, stakeAmount, delegationId, operator, "");
         ipTokenStaking.unstakeOnBehalf{ value: feeAmount }(
             delegatorAddr,
             validatorCmpPubkey,
             delegationId,
-            stakeAmount
+            stakeAmount,
+            ""
         );
         vm.stopPrank();
 
@@ -309,13 +366,13 @@ contract IPTokenStakingTest is Test {
         delegationId++;
         vm.startPrank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid delegation id");
-        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId + 2, stakeAmount);
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId + 2, stakeAmount, "");
         vm.stopPrank();
 
         // Revert if fee is not paid
         vm.startPrank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unstake{ value: feeAmount - 1 }(validatorCmpPubkey, delegationId + 2, stakeAmount);
+        ipTokenStaking.unstake{ value: feeAmount - 1 }(validatorCmpPubkey, delegationId + 2, stakeAmount, "");
         vm.stopPrank();
 
         // Revert if amount is not rounded to STAKE_ROUNDING
@@ -323,14 +380,47 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
-        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount);
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount, "");
 
         // Revert if validatorCmpPubkey is invalid
         bytes memory invalidValidatorCmpPubkey = hex"1234";
         vm.expectRevert("Secp256k1Verifier: Invalid cmp pubkey length");
-        ipTokenStaking.unstake{ value: feeAmount }(invalidValidatorCmpPubkey, delegationId, stakeAmount);
+        ipTokenStaking.unstake{ value: feeAmount }(invalidValidatorCmpPubkey, delegationId, stakeAmount, "");
         vm.expectRevert("Secp256k1Verifier: pubkey not on curve");
-        ipTokenStaking.unstake{ value: feeAmount }(wrongValidatorCmpPubkey, delegationId, stakeAmount);
+        ipTokenStaking.unstake{ value: feeAmount }(wrongValidatorCmpPubkey, delegationId, stakeAmount, "");
+    }
+
+    function testIPTokenStaking_Unstake_data() public {
+        uint256 feeAmount = ipTokenStaking.fee();
+        uint256 stakeAmount = ipTokenStaking.minUnstakeAmount();
+        uint256 delegationId = 1337;
+        // Use VM setStorage to set the counter to delegationId + 1
+        vm.store(
+            address(ipTokenStaking),
+            bytes32(uint256(3)), // _delegationIdCounter
+            bytes32(uint256(1338))
+        );
+
+        // Network shall not allow a data longer than MAX_DATA_LENGTH
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.unstake{ value: feeAmount }(
+            validatorCmpPubkey,
+            delegationId,
+            stakeAmount,
+            dataOverMaxLen
+        );
+
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.unstakeOnBehalf{ value: feeAmount }(
+            delegatorAddr,
+            validatorCmpPubkey,
+            delegationId,
+            stakeAmount,
+            dataOverMaxLen
+        );
     }
 
     function testIPTokenStaking_Redelegation() public {
@@ -754,38 +844,38 @@ contract IPTokenStakingTest is Test {
         // Network shall not allow anyone to unjail a validator if the fee is not paid.
         vm.prank(validatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjail(validatorCmpPubkey);
+        ipTokenStaking.unjail(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is not sufficient.
         feeAmount = 0.9 ether;
         vm.deal(validatorAddr, feeAmount);
         vm.prank(validatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey);
+        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall allow anyone to unjail a validator if the fee is paid.
         feeAmount = 1 ether;
         vm.deal(validatorAddr, feeAmount);
         vm.prank(validatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Unjail(validatorAddr, validatorCmpPubkey);
-        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey);
+        emit IIPTokenStaking.Unjail(validatorAddr, validatorCmpPubkey, "");
+        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is over.
         feeAmount = 1.1 ether;
         vm.deal(validatorAddr, feeAmount);
         vm.prank(validatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey);
+        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail with invalid pubkey
         feeAmount = 1 ether;
         vm.deal(validatorAddr, feeAmount);
         vm.prank(validatorAddr);
         vm.expectRevert("Secp256k1Verifier: Invalid cmp pubkey length");
-        ipTokenStaking.unjail{ value: feeAmount }(hex"");
+        ipTokenStaking.unjail{ value: feeAmount }(hex"", "");
         vm.expectRevert("Secp256k1Verifier: pubkey not on curve");
-        ipTokenStaking.unjail{ value: feeAmount }(wrongValidatorCmpPubkey);
+        ipTokenStaking.unjail{ value: feeAmount }(wrongValidatorCmpPubkey, "");
     }
 
     function testIPTokenStaking_UnjailOnBehalf() public {
@@ -795,38 +885,50 @@ contract IPTokenStakingTest is Test {
         // Network shall not allow anyone to unjail a validator if the fee is not paid.
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjailOnBehalf(validatorCmpPubkey);
+        ipTokenStaking.unjailOnBehalf(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is not sufficient.
         feeAmount = 0.9 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey);
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall allow anyone to unjail a validator if the fee is paid.
         feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Unjail(delegatorAddr, validatorCmpPubkey);
-        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey);
+        emit IIPTokenStaking.Unjail(delegatorAddr, validatorCmpPubkey, "");
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail a validator if the fee is over.
         feeAmount = 1.1 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
-        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey);
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey, "");
 
         // Network shall not allow anyone to unjail with invalid pubkey
         feeAmount = 1 ether;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("Secp256k1Verifier: Invalid cmp pubkey length");
-        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(hex"");
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(hex"", "");
         vm.expectRevert("Secp256k1Verifier: pubkey not on curve");
-        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(wrongValidatorCmpPubkey);
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(wrongValidatorCmpPubkey, "");
+    }
+
+    function testIPTokenStaking_Unjail_data() public {
+        uint256 feeAmount = ipTokenStaking.DEFAULT_MIN_FEE();
+        vm.deal(validatorAddr, feeAmount);
+        vm.prank(validatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.unjail{ value: feeAmount }(validatorCmpPubkey, dataOverMaxLen);
+
+        vm.prank(delegatorAddr);
+        vm.expectRevert("IPTokenStaking: Data length over max");
+        ipTokenStaking.unjailOnBehalf{ value: feeAmount }(validatorCmpPubkey, dataOverMaxLen);
     }
 
     function testIPTokenStaking_SetFee() public {
@@ -864,7 +966,8 @@ contract IPTokenStakingTest is Test {
             commissionRate: 1000,
             maxCommissionRate: 5000,
             maxCommissionChangeRate: 100,
-            supportsUnlocked: true
+            supportsUnlocked: true,
+            data: abi.encode("data")
         });
         uint256 expectedDelegationId = 0;
 
@@ -880,7 +983,8 @@ contract IPTokenStakingTest is Test {
             stakeAmount,
             uint32(uint8(IIPTokenStaking.StakingPeriod.FLEXIBLE)),
             expectedDelegationId,
-            address(staker)
+            address(staker),
+            ""
         );
         staker.stake{ value: stakeAmount }(validatorCmpPubkey);
 
@@ -906,7 +1010,8 @@ contract IPTokenStakingTest is Test {
             validatorCmpPubkey,
             stakeAmount,
             expectedDelegationId,
-            address(staker)
+            address(staker),
+            ""
         );
         staker.unstake(validatorCmpPubkey, stakeAmount);
     }

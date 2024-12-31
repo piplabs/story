@@ -265,7 +265,8 @@ contract GenerateAlloc is Script {
 
         address tmp = address(
             new IPTokenStaking(
-                1 ether // defaultMinFee, 1 IP
+                1 ether, // defaultMinFee, 1 IP
+                256 // maxDataLength
             )
         );
         console2.log("tpm", tmp);
