@@ -59,11 +59,11 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 		return nil, err
 	}
 
-	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.OperatorAddress)
+	evmOperatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.OperatorAddress)
 	if err != nil {
 		return nil, err
 	}
-	queryResp.OperatorAddress = evmValidatorAddress
+	queryResp.OperatorAddress = evmOperatorAddress
 
 	return queryResp, nil
 }
