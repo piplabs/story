@@ -50,8 +50,8 @@ contract GenerateAlloc is Script {
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
-    // Optionally allocate 10k test accounts for devnets/testnets
-    bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
+    // Optionally allocate 1k test accounts for devnets/testnets
+    bool private constant ALLOCATE_1K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
 
@@ -433,16 +433,16 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
         }
-        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
+        if (ALLOCATE_1K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
         }
     }
 
-    /// @notice Sets 10,000 test accounts with increasing balances
+    /// @notice Sets 1,000 test accounts with increasing balances
     function setTestAllocations() internal {
         address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
-        for (uint160 i = 1; i <= 10_000; i++) {
-            vm.deal(address(uint160(allocSpace) + i), i * 1 ether);
+        for (uint160 i = 1; i <= 1000; i++) {
+            vm.deal(address(uint160(allocSpace) + i), 1_000_000 ether);
         }
     }
 }
