@@ -15,6 +15,9 @@ library Predeploys {
     address internal constant UBIPool = 0xCccCCC0000000000000000000000000000000002;
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;
 
+    // test
+    address internal constant Mytoken = 0xCCcCCC00000000000000000000000000000003fF;
+    
     /// @notice Create3 factory address
     /// @dev We maximize compatibility with the contracts deployed by ZeframLou
     address internal constant Create3 = 0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf;
