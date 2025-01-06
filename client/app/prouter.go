@@ -46,7 +46,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 			}
 
 			return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_ACCEPT}, nil
-		} else if len(req.Txs) > 1 {
+		} else if len(req.Txs) != 1 {
 			return rejectProposal(ctx, errors.New("unexpected transactions in proposal"))
 		}
 
@@ -64,36 +64,40 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		}
 
 		// Ensure only expected messages types are included the expected number of times.
-		allowedMsgCounts := map[string]int{
+		expectedMsgCounts := map[string]int{
 			sdk.MsgTypeURL(&evmenginetypes.MsgExecutionPayload{}): 1, // Only a single EVM execution payload is allowed.
 		}
 
-		for _, rawTX := range req.Txs {
-			tx, err := txConfig.TxDecoder()(rawTX)
-			if err != nil {
-				return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
+		rawTX := req.Txs[0]
+		tx, err := txConfig.TxDecoder()(rawTX)
+		if err != nil {
+			return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
+		}
+
+		for _, msg := range tx.GetMsgs() {
+			typeURL := sdk.MsgTypeURL(msg)
+
+			// Ensure the message type is expected and not included too many times.
+			if i, ok := expectedMsgCounts[typeURL]; !ok {
+				return rejectProposal(ctx, errors.New("unexpected message type", "msg_type", typeURL))
+			} else if i <= 0 {
+				return rejectProposal(ctx, errors.New("message type included too many times", "msg_type", typeURL))
+			}
+			expectedMsgCounts[typeURL]--
+
+			handler := router.Handler(msg)
+			if handler == nil {
+				return rejectProposal(ctx, errors.New("msg handler not found [BUG]", "msg_type", typeURL))
 			}
 
-			for _, msg := range tx.GetMsgs() {
-				typeURL := sdk.MsgTypeURL(msg)
-
-				// Ensure the message type is expected and not included too many times.
-				if i, ok := allowedMsgCounts[typeURL]; !ok {
-					return rejectProposal(ctx, errors.New("unexpected message type", "msg_type", typeURL))
-				} else if i <= 0 {
-					return rejectProposal(ctx, errors.New("message type included too many times", "msg_type", typeURL))
-				}
-				allowedMsgCounts[typeURL]--
-
-				handler := router.Handler(msg)
-				if handler == nil {
-					return rejectProposal(ctx, errors.New("msg handler not found [BUG]", "msg_type", typeURL))
-				}
-
-				_, err := handler(ctx, msg)
-				if err != nil {
-					return rejectProposal(ctx, errors.Wrap(err, "execute message"))
-				}
+			if _, err := handler(ctx, msg); err != nil {
+				return rejectProposal(ctx, errors.Wrap(err, "execute message"))
+			}
+		}
+		// Ensure all expected messages types are included with enough times.
+		for typeURL, count := range expectedMsgCounts {
+			if count != 0 {
+				return rejectProposal(ctx, errors.New("message type not included with expected times", "msg_type", typeURL))
 			}
 		}
 
