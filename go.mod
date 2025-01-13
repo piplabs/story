@@ -1,6 +1,6 @@
 module github.com/piplabs/story
 
-go 1.22.0
+go 1.22.10
 
 require (
 	cosmossdk.io/api v0.7.5
