@@ -124,9 +124,28 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		"amount", amountCoin.Amount.String(),
 	)
 
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
+	valSrc, err := k.stakingKeeper.GetValidator(cachedCtx, validatorSrcAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get src validator failed")
+	}
+
+	// locked tokens only have delegation with flexible period,
+	// here we automatically set the delegation id to the flexible period delegation id
+	delID := ev.DelegationId.String()
+	if valSrc.SupportTokenType == lockedTokenType {
+		delID = stypes.FlexiblePeriodDelegationID
+	}
+
 	msg := stypes.NewMsgBeginRedelegate(
 		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
-		ev.DelegationId.String(), amountCoin,
+		delID, amountCoin,
 	)
 
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
