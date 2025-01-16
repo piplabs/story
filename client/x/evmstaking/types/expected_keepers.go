@@ -60,6 +60,7 @@ type StakingKeeper interface {
 	DeleteUnbondingIndex(ctx context.Context, id uint64) error
 
 	GetAllDelegations(ctx context.Context) (delegations []stakingtypes.Delegation, err error)
+	GetDelegation(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (delegation stakingtypes.Delegation, err error)
 	GetValidatorDelegations(ctx context.Context, valAddr sdk.ValAddress) (delegations []stakingtypes.Delegation, err error)
 	GetUnbondingDelegations(ctx context.Context, delegator sdk.AccAddress, maxRetrieve uint16) (unbondingDelegations []stakingtypes.UnbondingDelegation, err error)
 	GetUnbondingDelegationsFromValidator(ctx context.Context, valAddr sdk.ValAddress) (ubds []stakingtypes.UnbondingDelegation, err error)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"cosmossdk.io/collections"
@@ -27,24 +28,44 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
 
 	for _, entry := range unbondedEntries {
-		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.DelegatorAddress)
+		log.Debug(
+			ctx, "Unstake withdrawal of mature unbonding delegation",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", entry.Amount.String(),
+		)
+
+		// Check if the delegation is total unstaked
+		delegatorAddr, err := sdk.AccAddressFromBech32(entry.DelegatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "delegator address from bech32")
 		}
-
-		log.Debug(ctx, "Adding unstake to withdrawal queue",
-			"delegator", entry.DelegatorAddress,
-			"validator", entry.ValidatorAddress,
-			"amount", entry.Amount.String())
+		validatorAddr, err := sdk.ValAddressFromBech32(entry.ValidatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "validator address from bech32")
+		}
+		var totallyUnstaked bool
+		if _, err := k.stakingKeeper.GetDelegation(ctx, delegatorAddr, validatorAddr); err == nil {
+			totallyUnstaked = false
+		} else if errors.Is(err, stypes.ErrNoDelegation) {
+			totallyUnstaked = true
+		} else {
+			return errors.Wrap(err, "get delegation")
+		}
 
 		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
-		if err != nil {
+		coinAmount := entry.Amount.Uint64()
+		if totallyUnstaked {
+			accountBalance := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount.Uint64()
+			if accountBalance > coinAmount {
+				coinAmount = accountBalance
+			}
+		}
+		_, coins := IPTokenToBondCoin(big.NewInt(int64(coinAmount)))
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "send coins from account to module")
 		}
-		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
-		if err != nil {
+		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "burn coins")
 		}
 
@@ -56,14 +77,40 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		// push the undelegation to the withdrawal queue
-		err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			delEvmAddr,
 			entry.Amount.Uint64(),
 			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
-		))
-		if err != nil {
+		)); err != nil {
 			return errors.Wrap(err, "add unstake withdrawal to queue")
+		}
+
+		if coinAmount <= entry.Amount.Uint64() {
+			// No residue rewards, skip
+			continue
+		}
+
+		residueAmount := coinAmount - entry.Amount.Uint64()
+
+		log.Debug(ctx, "Residue rewards of mature unbonding delegation",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", residueAmount,
+		)
+
+		// Enqueue to the global reward withdrawal queue.
+		rewardsEVMAddr, err := k.DelegatorRewardAddress.Get(ctx, entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "map delegator bech32 address to evm reward address")
+		}
+		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+			rewardsEVMAddr,
+			residueAmount,
+			types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
+		)); err != nil {
+			return errors.Wrap(err, "add reward withdrawal to queue")
 		}
 	}
 
@@ -81,7 +128,7 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 	nextValIndex, nextValDelIndex := validatorSweepIndex.NextValIndex, validatorSweepIndex.NextValDelIndex
 
 	// Get all validators first, and then do a circular sweep
-	validatorSet, err := (k.stakingKeeper.(*skeeper.Keeper)).GetAllValidators(ctx)
+	validatorSet, err := k.stakingKeeper.GetAllValidators(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get all validators")
 	}
@@ -128,7 +175,7 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 		}
 
 		// Get all delegators of the validator.
-		delegations, err := (k.stakingKeeper.(*skeeper.Keeper)).GetValidatorDelegations(ctx, sdk.ValAddress(valAddr))
+		delegations, err := k.stakingKeeper.GetValidatorDelegations(ctx, sdk.ValAddress(valAddr))
 		if err != nil {
 			return errors.Wrap(err, "get validator delegations")
 		}
@@ -249,7 +296,10 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 	valAccAddr := sdk.AccAddress(valAddr).String()
 
 	// Withdraw delegation rewards.
-	delAddr := sdk.MustAccAddressFromBech32(delAddrBech32)
+	delAddr, err := sdk.AccAddressFromBech32(delAddrBech32)
+	if err != nil {
+		return errors.Wrap(err, "convert acc address from bech32 address")
+	}
 	delRewards, err := k.distributionKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	if err != nil {
 		return err
@@ -280,7 +330,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 
 	withdrawalEVMAddr, err := k.DelegatorRewardAddress.Get(ctx, delAddrBech32)
 	if err != nil {
-		return errors.Wrap(err, "map delegator pubkey to evm reward address")
+		return errors.Wrap(err, "map delegator bech32 address to evm reward address")
 	}
 
 	log.Debug(
@@ -288,7 +338,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		"validator_addr", valAddrBech32,
 		"validator_account_addr", valAccAddr,
 		"delegator_addr", delAddrBech32,
-		"amount_calculate", withdrawalEVMAddr,
+		"withdrawal_evm_addr", withdrawalEVMAddr,
 		"amount_claimed", claimedReward,
 		"amount_total_withdrawal", delRewardUint64,
 	)
@@ -303,7 +353,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		return err
 	}
 
-	// Enqueue to the global withdrawal queue.
+	// Enqueue to the global reward withdrawal queue.
 	if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 		uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 		withdrawalEVMAddr,
