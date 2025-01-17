@@ -36,8 +36,15 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	if len(req.Txs) > 0 {
 		return nil, errors.New("unexpected transactions in proposal")
-	} else if req.MaxTxBytes < cmttypes.MaxBlockSizeBytes*9/10 {
-		// ConsensusParams.Block.MaxBytes is set to -1, so req.MaxTxBytes should be close to MaxBlockSizeBytes.
+	}
+	var maxBytes int64
+	if ctx.ConsensusParams().Block.MaxBytes == -1 {
+		maxBytes = cmttypes.MaxBlockSizeBytes
+	} else {
+		maxBytes = ctx.ConsensusParams().Block.MaxBytes
+	}
+	if req.MaxTxBytes < maxBytes*9/10 {
+		// req.MaxTxBytes should be close to ConsensusParams().Block.MaxBytes.
 		return nil, errors.New("invalid max tx bytes [BUG]", "max_tx_bytes", req.MaxTxBytes)
 	}
 

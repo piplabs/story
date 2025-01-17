@@ -138,6 +138,11 @@ func (k *Keeper) RegisterProposalService(server grpc1.Server) {
 //
 
 func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.MsgExecutionPayload) (engine.ExecutableData, error) {
+	// validate execution payload
+	if err := types.ValidateExecPayload(msg); err != nil {
+		return engine.ExecutableData{}, errors.Wrap(err, "validate execution payload")
+	}
+
 	// Parse the payload.
 	var payload engine.ExecutableData
 	if err := json.Unmarshal(msg.ExecutionPayload, &payload); err != nil {
