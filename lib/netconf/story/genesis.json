@@ -1,6 +1,6 @@
 {
-  "genesis_time": "2025-01-08T15:00:00.00000000Z",
-  "chain_id": "story-0",
+  "genesis_time": "2025-01-19T15:00:00.00000000Z",
+  "chain_id": "story-1",
   "initial_height": "1",
   "consensus_params": {
     "block": {
@@ -193,7 +193,7 @@
     },
     "distribution": {
       "params": {
-        "ubi": "0.065000000000000000",
+        "ubi": "0.000000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true,
