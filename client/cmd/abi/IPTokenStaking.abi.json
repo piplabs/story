@@ -6,6 +6,11 @@
         "name": "defaultMinFee",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "maxDataLength",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -39,6 +44,19 @@
   {
     "type": "function",
     "name": "DEFAULT_MIN_FEE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_DATA_LENGTH",
     "inputs": [],
     "outputs": [
       {
