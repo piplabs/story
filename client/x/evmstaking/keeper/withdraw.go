@@ -2,6 +2,7 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -51,6 +52,13 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 			totallyUnstaked = true
 		} else {
 			return errors.Wrap(err, "get delegation")
+		}
+
+		// Withdraw commission if validator is totally self-unstaked
+		if totallyUnstaked && bytes.Equal(delegatorAddr.Bytes(), validatorAddr.Bytes()) {
+			if _, err := k.distributionKeeper.WithdrawValidatorCommission(ctx, validatorAddr); err != nil {
+				return errors.Wrap(err, "withdraw validator commission")
+			}
 		}
 
 		// Burn tokens from the delegator
