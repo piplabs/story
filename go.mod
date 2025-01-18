@@ -300,7 +300,7 @@ replace (
 	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.1-piplabs-v0.2
 
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.7, current branch: piplabs/v0.50.7
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.10-piplabs-v0.1
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.11-0.20250118021829-7ce4a34e92b1
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
