@@ -56,7 +56,12 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 
 		// Withdraw commission if validator is totally self-unstaked
 		if totallyUnstaked && bytes.Equal(delegatorAddr.Bytes(), validatorAddr.Bytes()) {
-			if _, err := k.distributionKeeper.WithdrawValidatorCommission(ctx, validatorAddr); err != nil {
+			if _, err := k.distributionKeeper.WithdrawValidatorCommission(ctx, validatorAddr); errors.Is(err, dtypes.ErrNoValidatorCommission) {
+				log.Debug(
+					ctx, "No remaining validator commission",
+					"validator_addr", validatorAddr.String(),
+				)
+			} else if err != nil {
 				return errors.Wrap(err, "withdraw validator commission")
 			}
 		}
