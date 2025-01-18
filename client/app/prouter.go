@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -74,6 +77,10 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 			return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
 		}
 
+		if err = validateTx(tx); err != nil {
+			return rejectProposal(ctx, errors.Wrap(err, "validate tx"))
+		}
+
 		for _, msg := range tx.GetMsgs() {
 			typeURL := sdk.MsgTypeURL(msg)
 
@@ -105,8 +112,44 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 	}
 }
 
+// rejectProposal rejects proposal with abci.ResponseProcessProposal_REJECT status
+//
 //nolint:unparam // Explicitly return nil error
 func rejectProposal(ctx context.Context, err error) (*abci.ResponseProcessProposal, error) {
 	log.Error(ctx, "Rejecting process proposal", err)
 	return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
+}
+
+// validateTx checks whether the transaction contains any disallowed data.
+func validateTx(tx sdk.Tx) error {
+	standardTx, ok := tx.(signing.Tx)
+	if !ok {
+		return errors.New("invalid standard tx message")
+	}
+
+	signatures, err := standardTx.GetSignaturesV2()
+	if err != nil {
+		return errors.Wrap(err, "get signatures from tx")
+	}
+	if len(signatures) != 0 {
+		return errors.New("disallowed signatures in tx")
+	}
+
+	if memo := standardTx.GetMemo(); len(memo) != 0 {
+		return errors.New("disallowed memo in tx")
+	}
+
+	if fee := standardTx.GetFee(); fee != nil {
+		return errors.New("disallowed fee in tx")
+	}
+
+	if !bytes.Equal(standardTx.FeePayer(), authtypes.NewModuleAddress(evmenginetypes.ModuleName).Bytes()) {
+		return errors.New("invalid payer in tx")
+	}
+
+	if feeGranter := standardTx.FeeGranter(); feeGranter != nil {
+		return errors.New("disallowed fee granter in tx")
+	}
+
+	return nil
 }
