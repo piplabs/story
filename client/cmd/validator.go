@@ -10,7 +10,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
@@ -911,7 +910,7 @@ func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
 }
 
 func unjail(ctx context.Context, cfg unjailConfig) error {
-	privKeyBytes, err := hexutil.Decode(cfg.PrivateKey)
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode private key")
 	}
