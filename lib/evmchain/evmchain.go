@@ -20,6 +20,9 @@ const (
 	// Odyssey Testnets.
 	IDOdyssey uint64 = 1516
 
+	// Homer.
+	IDHomer uint64 = 1315
+
 	storyEVMName        = "story_evm"
 	storyEVMBlockPeriod = time.Second * 2
 
