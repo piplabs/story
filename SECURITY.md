@@ -1,24 +1,31 @@
 # Security Policy
 
-## Reporting a Vulnerability
-
 The security of Story is critical. If you discover any security vulnerabilities, we appreciate your help in responsibly disclosing them to us.
 
-To report a vulnerability, please send an email to **security@storyprotocol.xyz**. We kindly request that you provide us with the following details:
+## Reporting a Vulnerability
+
+**Please do not file a public ticket** mentioning the vulnerability.
+
+We are in the process of setting up a bug bounty program. This document will be updated when ready, and the program will be announced on our channels.
+
+We recommend to wait for the program to be ready for reporting, but if you find a vulnerability that will put the network at risk, please send an email to **security@piplabs.xyz**. We kindly request that you provide us with the following details:
 
 - A clear description of the vulnerability and its potential impact.
 - Steps to reproduce the vulnerability.
 - Any additional information or proof of concept that can help us understand and address the issue.
 
-Upon receiving your report, the Story security team will create a confidential GitHub Security Advisory within our repository. This advisory will serve as a private discussion forum where you can communicate directly with our project maintainers about the vulnerability. This process ensures that sensitive information about security vulnerabilities is handled securely and responsibly until an appropriate fix can be developed and deployed.
+If applicable, rewards will be provided through the bug bounty program when ready.
+
+## Audit Reports, Known Issues and Ongoing Auditing Contest
+
+There is a series of known issues reported by our our multiple auditors. Please [review our audit reports](./audits/) to make sure you are not reporting a duplicate.
+
+Story has undergone a public [audit competition by Cantina](https://cantina.xyz/competitions/0561defa-eeb2-4a74-8884-5d7a873afa58). We will publish the report as soon as the judging period is over.
+Please be advised that there is a high chance that your reported vulnerability can be a duplicate if you do it before we publish the report.
 
 ## Responsible Disclosure
 
 We believe in responsible disclosure and request that you refrain from publicly disclosing any vulnerabilities until we have had sufficient time to investigate and address them. We appreciate your cooperation in helping us maintain the security and integrity of our blockchain network.
-
-## Bug Bounty Program
-
-At this time, we do not have a bug bounty program in place. However, we greatly value the contributions of security researchers and may consider offering rewards on a case-by-case basis for significant vulnerabilities.
 
 ## Disclaimer
 
