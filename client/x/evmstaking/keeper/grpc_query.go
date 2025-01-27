@@ -2,13 +2,15 @@ package keeper
 
 import (
 	"context"
+	"errors"
 
+	"cosmossdk.io/collections"
 	"cosmossdk.io/store/prefix"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/types/query"
 
-	"github.com/piplabs/story/client/collections"
+	addcollections "github.com/piplabs/story/client/collections"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 
 	"google.golang.org/grpc/codes"
@@ -37,7 +39,7 @@ func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetW
 	}
 
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
-	wqStore := prefix.NewStore(store, append(types.WithdrawalQueueKey, collections.QueueElementsPrefixSuffix)) // withdrawal queue store
+	wqStore := prefix.NewStore(store, append(types.WithdrawalQueueKey, addcollections.QueueElementsPrefixSuffix)) // withdrawal queue store
 
 	withdrawals, pageResp, err := query.GenericFilteredPaginate(k.cdc, wqStore, request.Pagination, func(_ []byte, wit *types.Withdrawal) (*types.Withdrawal, error) {
 		return wit, nil
@@ -58,4 +60,49 @@ func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetW
 	}
 
 	return &types.QueryGetWithdrawalQueueResponse{Withdrawals: ws, Pagination: pageResp}, nil
+}
+
+func (k Keeper) GetOperatorAddress(ctx context.Context, request *types.QueryGetOperatorAddressRequest) (*types.QueryGetOperatorAddressResponse, error) {
+	if request == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	operatorAddress, err := k.DelegatorOperatorAddress.Get(ctx, request.Address)
+	if errors.Is(err, collections.ErrNotFound) {
+		return &types.QueryGetOperatorAddressResponse{OperatorAddress: ""}, nil
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryGetOperatorAddressResponse{OperatorAddress: operatorAddress}, nil
+}
+
+func (k Keeper) GetWithdrawAddress(ctx context.Context, request *types.QueryGetWithdrawAddressRequest) (*types.QueryGetWithdrawAddressResponse, error) {
+	if request == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	withdrawAddress, err := k.DelegatorWithdrawAddress.Get(ctx, request.Address)
+	if errors.Is(err, collections.ErrNotFound) {
+		return &types.QueryGetWithdrawAddressResponse{WithdrawAddress: ""}, nil
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryGetWithdrawAddressResponse{WithdrawAddress: withdrawAddress}, nil
+}
+
+func (k Keeper) GetRewardAddress(ctx context.Context, request *types.QueryGetRewardAddressRequest) (*types.QueryGetRewardAddressResponse, error) {
+	if request == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	rewardAddress, err := k.DelegatorRewardAddress.Get(ctx, request.Address)
+	if errors.Is(err, collections.ErrNotFound) {
+		return &types.QueryGetRewardAddressResponse{RewardAddress: ""}, nil
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryGetRewardAddressResponse{RewardAddress: rewardAddress}, nil
 }

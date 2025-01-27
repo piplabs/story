@@ -22,7 +22,7 @@ abstract contract MockNewFeatures {
 }
 
 contract IPTokenStakingV2 is IPTokenStaking, MockNewFeatures {
-    constructor(uint256 defaultMinFee) IPTokenStaking(defaultMinFee) {}
+    constructor(uint256 defaultMinFee, uint256 maxDataLength) IPTokenStaking(defaultMinFee, maxDataLength) {}
 }
 
 contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
@@ -46,7 +46,8 @@ contract PredeployUpgrades is Test {
         // ---- Staking
         address newImpl = address(
             new IPTokenStakingV2(
-                1 ether // defaultMinFee
+                1 ether, // defaultMinFee
+                256 // maxDataLength
             )
         );
         ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.Staking));

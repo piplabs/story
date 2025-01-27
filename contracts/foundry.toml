@@ -2,7 +2,7 @@
 src = "src"
 out = "out"
 test = "test"
-libs = ["node_modules"]
+libs = ["node_modules", "lib"]
 optimizer = true
 optimizer_runs = 20000
 solc = "0.8.23"

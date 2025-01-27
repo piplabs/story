@@ -81,6 +81,25 @@ var (
 		Seeds:              "",
 		SeedMode:           false,
 	}
+	HomerConfig = Config{
+		HomeDir:            DefaultHomeDir(),
+		Network:            "homer",
+		EngineEndpoint:     DefaultEngineEndpoint,
+		EngineJWTFile:      DefaultJWTFile("homer"),
+		SnapshotInterval:   defaultSnapshotInterval,
+		SnapshotKeepRecent: defaultSnapshotKeepRecent,
+		BackendType:        string(defaultDBBackend),
+		MinRetainBlocks:    defaultMinRetainBlocks,
+		PruningOption:      pruningtypes.PruningOptionDefault,
+		EVMBuildDelay:      defaultEVMBuildDelay,
+		EVMBuildOptimistic: true,
+		API:                apisvr.DefaultConfig(),
+		Tracer:             tracer.DefaultConfig(),
+		RPCLaddr:           "tcp://127.0.0.1:26657",
+		ExternalAddress:    "",
+		Seeds:              "",
+		SeedMode:           false,
+	}
 	StoryConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "story",

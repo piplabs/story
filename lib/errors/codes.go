@@ -9,7 +9,7 @@ type ErrCode uint32
 const (
 	Unspecified              ErrCode = 0
 	UnexpectedCondition      ErrCode = 1
-	InvalidUncmpPubKey       ErrCode = 2
+	InvalidCmpPubKey         ErrCode = 2
 	ValidatorNotFound        ErrCode = 3
 	ValidatorAlreadyExists   ErrCode = 4
 	InvalidTokenType         ErrCode = 5
@@ -31,7 +31,7 @@ const (
 var (
 	ErrUnspecified              = stderrors.New("unspecified")
 	ErrUnexpectedCondition      = stderrors.New("unexpected_condition")
-	ErrInvalidUncmpPubKey       = stderrors.New("invalid_uncompressed_pubkey")
+	ErrInvalidCmpPubKey         = stderrors.New("invalid_compressed_pubkey")
 	ErrValidatorNotFound        = stderrors.New("validator_not_found")
 	ErrValidatorAlreadyExists   = stderrors.New("validator_already_exists")
 	ErrInvalidTokenType         = stderrors.New("invalid_token_type")
@@ -53,7 +53,7 @@ var (
 var codeToErr = map[ErrCode]error{
 	Unspecified:              ErrUnspecified,
 	UnexpectedCondition:      ErrUnexpectedCondition,
-	InvalidUncmpPubKey:       ErrInvalidUncmpPubKey,
+	InvalidCmpPubKey:         ErrInvalidCmpPubKey,
 	ValidatorNotFound:        ErrValidatorNotFound,
 	ValidatorAlreadyExists:   ErrValidatorAlreadyExists,
 	InvalidTokenType:         ErrInvalidTokenType,
@@ -95,8 +95,8 @@ func UnwrapErrCode(err error) ErrCode {
 		return Unspecified
 	case stderrors.Is(err, ErrUnexpectedCondition):
 		return UnexpectedCondition
-	case stderrors.Is(err, ErrInvalidUncmpPubKey):
-		return InvalidUncmpPubKey
+	case stderrors.Is(err, ErrInvalidCmpPubKey):
+		return InvalidCmpPubKey
 	case stderrors.Is(err, ErrValidatorNotFound):
 		return ValidatorNotFound
 	case stderrors.Is(err, ErrValidatorAlreadyExists):

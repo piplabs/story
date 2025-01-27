@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -46,7 +49,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 			}
 
 			return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_ACCEPT}, nil
-		} else if len(req.Txs) > 1 {
+		} else if len(req.Txs) != 1 {
 			return rejectProposal(ctx, errors.New("unexpected transactions in proposal"))
 		}
 
@@ -64,36 +67,44 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		}
 
 		// Ensure only expected messages types are included the expected number of times.
-		allowedMsgCounts := map[string]int{
+		expectedMsgCounts := map[string]int{
 			sdk.MsgTypeURL(&evmenginetypes.MsgExecutionPayload{}): 1, // Only a single EVM execution payload is allowed.
 		}
 
-		for _, rawTX := range req.Txs {
-			tx, err := txConfig.TxDecoder()(rawTX)
-			if err != nil {
-				return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
+		rawTX := req.Txs[0]
+		tx, err := txConfig.TxDecoder()(rawTX)
+		if err != nil {
+			return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
+		}
+
+		if err = validateTx(tx); err != nil {
+			return rejectProposal(ctx, errors.Wrap(err, "validate tx"))
+		}
+
+		for _, msg := range tx.GetMsgs() {
+			typeURL := sdk.MsgTypeURL(msg)
+
+			// Ensure the message type is expected and not included too many times.
+			if i, ok := expectedMsgCounts[typeURL]; !ok {
+				return rejectProposal(ctx, errors.New("unexpected message type", "msg_type", typeURL))
+			} else if i <= 0 {
+				return rejectProposal(ctx, errors.New("message type included too many times", "msg_type", typeURL))
+			}
+			expectedMsgCounts[typeURL]--
+
+			handler := router.Handler(msg)
+			if handler == nil {
+				return rejectProposal(ctx, errors.New("msg handler not found [BUG]", "msg_type", typeURL))
 			}
 
-			for _, msg := range tx.GetMsgs() {
-				typeURL := sdk.MsgTypeURL(msg)
-
-				// Ensure the message type is expected and not included too many times.
-				if i, ok := allowedMsgCounts[typeURL]; !ok {
-					return rejectProposal(ctx, errors.New("unexpected message type", "msg_type", typeURL))
-				} else if i <= 0 {
-					return rejectProposal(ctx, errors.New("message type included too many times", "msg_type", typeURL))
-				}
-				allowedMsgCounts[typeURL]--
-
-				handler := router.Handler(msg)
-				if handler == nil {
-					return rejectProposal(ctx, errors.New("msg handler not found [BUG]", "msg_type", typeURL))
-				}
-
-				_, err := handler(ctx, msg)
-				if err != nil {
-					return rejectProposal(ctx, errors.Wrap(err, "execute message"))
-				}
+			if _, err := handler(ctx, msg); err != nil {
+				return rejectProposal(ctx, errors.Wrap(err, "execute message"))
+			}
+		}
+		// Ensure all expected messages types are included with enough times.
+		for typeURL, count := range expectedMsgCounts {
+			if count != 0 {
+				return rejectProposal(ctx, errors.New("message type not included with expected times", "msg_type", typeURL))
 			}
 		}
 
@@ -101,8 +112,44 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 	}
 }
 
+// rejectProposal rejects proposal with abci.ResponseProcessProposal_REJECT status
+//
 //nolint:unparam // Explicitly return nil error
 func rejectProposal(ctx context.Context, err error) (*abci.ResponseProcessProposal, error) {
 	log.Error(ctx, "Rejecting process proposal", err)
 	return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
+}
+
+// validateTx checks whether the transaction contains any disallowed data.
+func validateTx(tx sdk.Tx) error {
+	standardTx, ok := tx.(signing.Tx)
+	if !ok {
+		return errors.New("invalid standard tx message")
+	}
+
+	signatures, err := standardTx.GetSignaturesV2()
+	if err != nil {
+		return errors.Wrap(err, "get signatures from tx")
+	}
+	if len(signatures) != 0 {
+		return errors.New("disallowed signatures in tx")
+	}
+
+	if memo := standardTx.GetMemo(); len(memo) != 0 {
+		return errors.New("disallowed memo in tx")
+	}
+
+	if fee := standardTx.GetFee(); fee != nil {
+		return errors.New("disallowed fee in tx")
+	}
+
+	if !bytes.Equal(standardTx.FeePayer(), authtypes.NewModuleAddress(evmenginetypes.ModuleName).Bytes()) {
+		return errors.New("invalid payer in tx")
+	}
+
+	if feeGranter := standardTx.FeeGranter(); feeGranter != nil {
+		return errors.New("disallowed fee granter in tx")
+	}
+
+	return nil
 }

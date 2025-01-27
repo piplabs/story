@@ -10,13 +10,13 @@ import (
 	"math/big"
 	"os"
 
-	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
 )
 
 type ValidatorKey struct {
@@ -114,54 +114,6 @@ func cmpPubKeyToUncmpPubKey(compressedPubKeyBytes []byte) ([]byte, error) {
 	return uncompressedPubKeyBytes, nil
 }
 
-func uncompressPrivateKey(privateKeyHex string) ([]byte, error) {
-	evmPrivKey, err := crypto.HexToECDSA(privateKeyHex)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid EVM private key")
-	}
-
-	pubKey := evmPrivKey.PublicKey
-	uncompressedPubKey := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	if len(uncompressedPubKey) != 65 {
-		return nil, fmt.Errorf("invalid uncompressed public key length: %d", len(uncompressedPubKey))
-	}
-
-	return uncompressedPubKey, nil
-}
-
-func cmpPubKeyToEVMAddress(cmpPubKey []byte) (string, error) {
-	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
-	}
-
-	pubKey, err := crypto.DecompressPubkey(cmpPubKey)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to decompress public key")
-	}
-	evmAddress := crypto.PubkeyToAddress(*pubKey).Hex()
-
-	return evmAddress, nil
-}
-
-func cmpPubKeyToDelegatorAddress(cmpPubKey []byte) (string, error) {
-	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
-	}
-
-	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
-
-	return cosmostypes.AccAddress(pubKey.Address().Bytes()).String(), nil
-}
-
-func cmpPubKeyToValidatorAddress(cmpPubKey []byte) (string, error) {
-	if len(cmpPubKey) != secp256k1.PubKeyBytesLenCompressed {
-		return "", fmt.Errorf("invalid compressed public key length: %d", len(cmpPubKey))
-	}
-	pubKey := &cosmosk1.PubKey{Key: cmpPubKey}
-
-	return cosmostypes.ValAddress(pubKey.Address().Bytes()).String(), nil
-}
-
 func uncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 	if len(uncmpPubKey) != 65 || uncmpPubKey[0] != 0x04 {
 		return nil, errors.New("invalid uncompressed public key length or format")
@@ -181,33 +133,27 @@ func uncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 
 func printKeyFormats(compressedPubKeyBytes []byte) error {
 	compressedPubKeyBase64 := base64.StdEncoding.EncodeToString(compressedPubKeyBytes)
-	evmAddress, err := cmpPubKeyToEVMAddress(compressedPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert compressed pub key to EVM address")
-	}
-
 	uncompressedPubKeyBytes, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert compressed pub key to uncompressed format")
 	}
+
 	uncompressedPubKeyHex := hex.EncodeToString(uncompressedPubKeyBytes)
 
-	validatorAddress, err := cmpPubKeyToValidatorAddress(compressedPubKeyBytes)
+	evmAddr, err := k1util.CosmosPubkeyToEVMAddress(compressedPubKeyBytes)
 	if err != nil {
-		return errors.Wrap(err, "failed to convert compressed pub key to validator address")
+		return errors.Wrap(err, "failed to convert to evm address")
 	}
 
-	delegatorAddress, err := cmpPubKeyToDelegatorAddress(compressedPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert compressed pub key to delegator address")
-	}
+	validatorAddress := cosmostypes.ValAddress(evmAddr.Bytes())
+	delegatorAddress := cosmostypes.AccAddress(evmAddr.Bytes())
 
 	fmt.Println("Compressed Public Key (hex):", hex.EncodeToString(compressedPubKeyBytes))
 	fmt.Println("Compressed Public Key (base64):", compressedPubKeyBase64)
 	fmt.Println("Uncompressed Public Key (hex):", uncompressedPubKeyHex)
-	fmt.Println("EVM Address:", evmAddress)
-	fmt.Println("Validator Address:", validatorAddress)
-	fmt.Println("Delegator Address:", delegatorAddress)
+	fmt.Println("EVM Address:", evmAddr.String())
+	fmt.Println("Validator Address:", validatorAddress.String())
+	fmt.Println("Delegator Address:", delegatorAddress.String())
 
 	return nil
 }

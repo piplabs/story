@@ -30,15 +30,24 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeCreateValidatorSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeCreateValidatorFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyMoniker, ev.Moniker),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeyCommissionRate, strconv.FormatUint(uint64(ev.CommissionRate), 10)),
@@ -46,29 +55,26 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 				sdk.NewAttribute(types.AttributeKeyMaxCommissionChangeRate, strconv.FormatUint(uint64(ev.MaxCommissionChangeRate), 10)),
 				sdk.NewAttribute(types.AttributeKeyTokenType, strconv.FormatUint(uint64(ev.SupportsUnlocked), 10)),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
 	// When creating a validator, it's self-delegation. Thus, validator pubkey is also delegation pubkey.
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-	delegatorAddr := sdk.AccAddress(validatorPubkey.Address().Bytes())
-
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
+	// derive validator EL address from given pubkey (as the contract already emits the pubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
+
+	// derive validator/delegator CL address from validator's EL address (self-delegation)
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
+	delegatorAddr := sdk.AccAddress(valEvmAddr.Bytes())
 
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
@@ -78,7 +84,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		k.authKeeper.SetAccount(cachedCtx, acc)
 		log.Debug(cachedCtx, "Created account for depositor",
 			"address", validatorAddr.String(),
-			"evm_address", delEvmAddr.String(),
+			"evm_address", ev.OperatorAddress.String(),
 		)
 	}
 
@@ -86,7 +92,8 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		"val_story", validatorAddr.String(),
 		"val_pubkey", validatorPubkey.String(),
 		"del_story", delegatorAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"val_evm_addr", valEvmAddr,
+		"operator_evm_addr", ev.OperatorAddress.String(),
 		"amount_coin", amountCoin.String(),
 	)
 
@@ -131,14 +138,14 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")
 	} else if !exists {
-		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, delegatorAddr.String(), valEvmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
 	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {
-		if err := k.DelegatorRewardAddress.Set(cachedCtx, delegatorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorRewardAddress.Set(cachedCtx, delegatorAddr.String(), ev.OperatorAddress.String()); err != nil {
 			return errors.Wrap(err, "set delegator reward address map")
 		}
 	}

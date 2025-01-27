@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	grpc1 "github.com/cosmos/gogoproto/grpc"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
@@ -138,6 +139,16 @@ func (k *Keeper) RegisterProposalService(server grpc1.Server) {
 //
 
 func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.MsgExecutionPayload) (engine.ExecutableData, error) {
+	// verify authority of execution payload message
+	if msg.Authority != authtypes.NewModuleAddress(types.ModuleName).String() {
+		return engine.ExecutableData{}, errors.New("invalid authority")
+	}
+
+	// validate execution payload
+	if err := types.ValidateExecPayload(msg); err != nil {
+		return engine.ExecutableData{}, errors.Wrap(err, "validate execution payload")
+	}
+
 	// Parse the payload.
 	var payload engine.ExecutableData
 	if err := json.Unmarshal(msg.ExecutionPayload, &payload); err != nil {
@@ -172,6 +183,14 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 	// Ensure the Randao Digest is equaled to parent hash as this is our workaround at this point.
 	if payload.Random != head.Hash() {
 		return engine.ExecutableData{}, errors.New("invalid payload random", "proposed", payload.Random, "latest", head.Hash())
+	}
+
+	// Ensure the Withdrawals, BlobGasUsed, and ExcessBlobGas is not nil
+	if payload.Withdrawals == nil || payload.BlobGasUsed == nil || payload.ExcessBlobGas == nil {
+		return engine.ExecutableData{}, errors.New("the followings must not be nil",
+			"withdrawals", payload.Withdrawals,
+			"blob_gas_used", payload.BlobGasUsed,
+			"excess_blob_gas", payload.ExcessBlobGas)
 	}
 
 	return payload, nil

@@ -22,9 +22,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 
 	pubKeys, _, _ := createAddresses(3)
 
-	uncmpPubKey0 := cmpToUncmp(pubKeys[0].Bytes())
-
-	corruptedPubKey := append([]byte{}, uncmpPubKey0...)
+	corruptedPubKey := append([]byte{}, pubKeys[0].Bytes()...)
 	corruptedPubKey[0] = 0x09
 	corruptedPubKey[1] = 0xFF
 
@@ -34,7 +32,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 		valAddr        sdk.ValAddress
 		valPubKey      crypto.PubKey
 		valPubKeyBytes []byte
-		valUncmpPubKey []byte
+		valCmpPubKey   []byte
 		valTokens      math.Int
 		moniker        string
 		preRun         func(t *testing.T, c sdk.Context, valDelAddr sdk.AccAddress, valPubKey crypto.PubKey, valTokens math.Int)
@@ -42,19 +40,19 @@ func (s *TestSuite) TestProcessCreateValidator() {
 		expectedError  string
 	}{
 		{
-			name:           "fail: nil validator pubkey",
-			valUncmpPubKey: nil,
-			expectedError:  "compress validator pubkey: invalid uncompressed public key length or format",
+			name:          "fail: nil validator pubkey",
+			valCmpPubKey:  nil,
+			expectedError: "compress validator pubkey: invalid uncompressed public key length or format",
 		},
 		{
-			name:           "fail: invalid validator pubkey",
-			valUncmpPubKey: uncmpPubKey0[1:],
-			expectedError:  "compress validator pubkey: invalid uncompressed public key length or format",
+			name:          "fail: invalid validator pubkey",
+			valCmpPubKey:  pubKeys[0].Bytes()[1:],
+			expectedError: "compress validator pubkey: invalid uncompressed public key length or format",
 		},
 		{
-			name:           "fail: corrupted validator pubkey",
-			valUncmpPubKey: corruptedPubKey,
-			expectedError:  "validator pubkey to evm address: invalid public key",
+			name:          "fail: corrupted validator pubkey",
+			valCmpPubKey:  corruptedPubKey,
+			expectedError: "validator pubkey to evm address: invalid public key",
 		},
 	}
 
@@ -70,7 +68,7 @@ func (s *TestSuite) TestProcessCreateValidator() {
 				moniker = "testing"
 			}
 			err := eskeeper.ProcessCreateValidator(cachedCtx, &bindings.IPTokenStakingCreateValidator{
-				ValidatorUncmpPubkey:    tc.valUncmpPubKey,
+				ValidatorCmpPubkey:      tc.valCmpPubKey,
 				Moniker:                 moniker,
 				StakeAmount:             new(big.Int).SetUint64(100),
 				CommissionRate:          1000, // 10%

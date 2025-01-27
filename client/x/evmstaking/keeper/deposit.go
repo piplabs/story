@@ -27,55 +27,46 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeDelegateSuccess,
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeDelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
-				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
-
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
 
 	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
-	if err != nil {
-		return errors.Wrap(err, "delegator pubkey to evm address")
-	}
+
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
 
 	amountCoin, amountCoins := IPTokenToBondCoin(ev.StakeAmount)
 
@@ -84,35 +75,37 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		acc := k.authKeeper.NewAccountWithAddress(cachedCtx, depositorAddr)
 		k.authKeeper.SetAccount(cachedCtx, acc)
 		log.Debug(cachedCtx, "Created account for depositor",
-			"address", depositorAddr.String(),
-			"evm_address", delEvmAddr.String(),
+			"del_story_addr", depositorAddr.String(),
+			"del_evm_addr", ev.Delegator.String(),
+			"operator_evm_addr", ev.OperatorAddress.String(),
 		)
 	}
 
 	log.Debug(cachedCtx, "EVM staking deposit detected, delegating to validator",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
 		"val_evm_addr", valEvmAddr.String(),
-		"amount_coin", amountCoin.String(),
+		"operator_evm_addr", ev.OperatorAddress.String(),
+		"amount", amountCoin.Amount.String(),
 	)
-
-	delID := ev.DelegationId.String()
-	periodType := int32(ev.StakingPeriod.Int64())
-
-	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
-	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return errors.WrapErrWithCode(errors.ValidatorNotFound, errors.New("validator not exists"))
-	} else if err != nil {
-		return errors.Wrap(err, "get validator failed")
-	}
 
 	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "get locked token type")
 	}
 
-	// locked tokens can only be staked with flexible period
+	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+
+	// locked tokens can only be staked with flexible period,
+	// here we automatically set the period type to flexible period
+	delID := ev.DelegationId.String()
+	periodType := int32(ev.StakingPeriod.Int64())
 	if val.SupportTokenType == lockedTokenType {
 		flexPeriodType, err := k.stakingKeeper.GetFlexiblePeriodType(cachedCtx)
 		if err != nil {
@@ -133,14 +126,14 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	if exists, err := k.DelegatorWithdrawAddress.Has(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator withdraw address existence")
 	} else if !exists {
-		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorWithdrawAddress.Set(cachedCtx, depositorAddr.String(), ev.Delegator.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
 	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {
-		if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), delEvmAddr.String()); err != nil {
+		if err := k.DelegatorRewardAddress.Set(cachedCtx, depositorAddr.String(), ev.Delegator.String()); err != nil {
 			return errors.Wrap(err, "set delegator reward address map")
 		}
 	}

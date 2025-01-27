@@ -50,10 +50,10 @@ contract GenerateAlloc is Script {
 
     string internal dumpPath = getDumpPath();
     bool public saveState = true;
-    // Optionally allocate 10k test accounts for devnets/testnets
-    bool private constant ALLOCATE_10K_TEST_ACCOUNTS = false;
+    // Optionally allocate 1k test accounts for devnets/testnets
+    bool private constant ALLOCATE_1K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
-    bool private constant KEEP_TIMELOCK_ADMIN_ROLE = true;
+    bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
@@ -75,8 +75,8 @@ contract GenerateAlloc is Script {
             return "./iliad-alloc.json";
         } else if (block.chainid == ChainIds.MININET) {
             return "./mininet-alloc.json";
-        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
-            return "./odyssey-devnet-alloc.json";
+        } else if (block.chainid == ChainIds.HOMER) {
+            return "./homer-alloc.json";
         } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             return "./odyssey-testnet-alloc.json";
         } else if (block.chainid == ChainIds.LOCAL) {
@@ -98,7 +98,7 @@ contract GenerateAlloc is Script {
         } else if (block.chainid == ChainIds.MININET) {
             // Mininet
             return 10 seconds;
-        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
+        } else if (block.chainid == ChainIds.HOMER) {
             // Odyssey devnet
             return 10 seconds;
         } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
@@ -220,6 +220,7 @@ contract GenerateAlloc is Script {
         TimelockController(payable(timelock)).grantRole(cancellerRole, canceller);
         if (!KEEP_TIMELOCK_ADMIN_ROLE) {
             bytes32 adminRole = TimelockController(payable(timelock)).DEFAULT_ADMIN_ROLE();
+            vm.prank(protocolAdmin);
             TimelockController(payable(timelock)).renounceRole(adminRole, protocolAdmin);
         }
         vm.stopPrank();
@@ -264,7 +265,8 @@ contract GenerateAlloc is Script {
 
         address tmp = address(
             new IPTokenStaking(
-                1 ether // defaultMinFee, 1 IP
+                1 ether, // defaultMinFee, 1 IP
+                256 // maxDataLength
             )
         );
         console2.log("tpm", tmp);
@@ -400,15 +402,15 @@ contract GenerateAlloc is Script {
         // Allocation
         if (block.chainid == ChainIds.STORY_MAINNET) {
             // TBD
-        } else if (block.chainid == ChainIds.ODYSSEY_DEVNET) {
-            // Odyssey devnet alloc
-            vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
-            vm.deal(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab, 100000000 ether);
-            vm.deal(0xEcB1D051475A7e330b1DD6683cdC7823Bbcf8Dcf, 100000000 ether);
-            vm.deal(0x5518D1BD054782792D2783509FbE30fa9D888888, 100000000 ether);
-            vm.deal(0xbd39FAe873F301b53e14d365383118cD4a222222, 100000000 ether);
-            vm.deal(0x00FCeC044cD73e8eC6Ad771556859b00C9011111, 100000000 ether);
-            vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
+        } else if (block.chainid == ChainIds.HOMER) {
+            // Homer alloc
+            vm.deal(0x5687400189B13551137e330F7ae081142EdfD866, 200000000 ether);
+            vm.deal(0x56A26642ad963D3542DdAe4d8fdECC396153c2f6, 200000000 ether);
+            vm.deal(0x12cBb8F6F2F7d48bB22B6A1b12452381A45bEb7c, 100000000 ether);
+            vm.deal(0xD26078bA39afccec71E0D68a151a853d21950FF0, 200000000 ether);
+            vm.deal(0xcA93A8f7a3971D208670876202D8353Ca3D6869a, 200000000 ether);
+            vm.deal(0x8Ffc89da28DD2F5f7582B0459505E9a615623791, 10000000 ether);
+            vm.deal(0xE8DA8e345Ab1556E5DeE19F9c369C827561Ff712, 10000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
         } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             // Odyssey testnet alloc
@@ -431,16 +433,16 @@ contract GenerateAlloc is Script {
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
         }
-        if (ALLOCATE_10K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
+        if (ALLOCATE_1K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
         }
     }
 
-    /// @notice Sets 10,000 test accounts with increasing balances
+    /// @notice Sets 1,000 test accounts with increasing balances
     function setTestAllocations() internal {
         address allocSpace = address(0xBBbbbB0000000000000000000000000000000000);
-        for (uint160 i = 1; i <= 10_000; i++) {
-            vm.deal(address(uint160(allocSpace) + i), i * 1 ether);
+        for (uint160 i = 1; i <= 1000; i++) {
+            vm.deal(address(uint160(allocSpace) + i), 1_000_000 ether);
         }
     }
 }

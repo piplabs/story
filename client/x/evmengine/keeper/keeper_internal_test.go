@@ -11,6 +11,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	fuzz "github.com/google/gofuzz"
@@ -136,9 +137,12 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "fail: unmarshal payload because of invalid json",
+			name: "fail: unmarshal payload because of invalid execution payload",
 			msg: func(_ context.Context) *types.MsgExecutionPayload {
-				return &types.MsgExecutionPayload{ExecutionPayload: []byte("invalid")}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: []byte("invalid"),
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 			expectedErr: "unmarshal payload",
 		},
@@ -151,7 +155,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 			expectedErr: "invalid proposed payload number",
 		},
@@ -167,7 +174,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 			expectedErr: "invalid proposed payload parent hash",
 		},
@@ -184,7 +194,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 			expectedErr: "invalid payload timestamp",
 		},
@@ -200,9 +213,31 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 			expectedErr: "invalid payload random",
+		},
+		{
+			name: "fail: invalid authority",
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        "story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
+				}
+			},
+			expectedErr: "invalid authority",
 		},
 		{
 			name: "pass: valid payload",
@@ -216,7 +251,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 		},
 		{
@@ -248,7 +286,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
-				return &types.MsgExecutionPayload{ExecutionPayload: marshaled}
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
 			},
 		},
 	}

@@ -4,7 +4,7 @@ pragma solidity 0.8.23;
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import { PubKeyVerifier } from "./PubKeyVerifier.sol";
+import { Secp256k1Verifier } from "./Secp256k1Verifier.sol";
 import { IUBIPool } from "../interfaces/IUBIPool.sol";
 
 /// @title UBIPool
@@ -18,7 +18,7 @@ contract UBIPool is
     IUBIPool,
     Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable,
-    PubKeyVerifier,
+    Secp256k1Verifier,
     MulticallUpgradeable
 {
     /// @notice The maximum UBI percentage
@@ -28,7 +28,7 @@ contract UBIPool is
     uint256 public currentDistributionId;
 
     /// @notice The amount of UBI for each validator for a given distribution
-    mapping(uint256 distributionId => mapping(bytes validatorUncmpPubkey => uint256 amount)) public validatorUBIAmounts;
+    mapping(uint256 distributionId => mapping(bytes validatorCmpPubkey => uint256 amount)) public validatorUBIAmounts;
 
     /// @notice The total amount of pending tokens to claim.
     /// Added when a distribution is set, and subtracted when a validator claims their UBI.
@@ -55,42 +55,42 @@ contract UBIPool is
 
     /// @notice Sets the UBI distribution for a given month
     /// @param totalUBI The total amount of UBI
-    /// @param validatorUncmpPubKeys The validator uncompressed public keys
+    /// @param validatorCmpPubKeys The validator compressed public keys
     /// @param amounts The amounts of UBI for each validator
     /// @return distributionId The distribution id
     function setUBIDistribution(
         uint256 totalUBI,
-        bytes[] calldata validatorUncmpPubKeys,
+        bytes[] calldata validatorCmpPubKeys,
         uint256[] calldata amounts
     ) external onlyOwner returns (uint256) {
-        require(validatorUncmpPubKeys.length > 0, "UBIPool: validatorUncmpPubKeys cannot be empty");
-        require(validatorUncmpPubKeys.length == amounts.length, "UBIPool: length mismatch");
+        require(validatorCmpPubKeys.length > 0, "UBIPool: validatorCmpPubKeys cannot be empty");
+        require(validatorCmpPubKeys.length == amounts.length, "UBIPool: length mismatch");
         require(totalUBI + totalPendingClaims <= address(this).balance, "UBIPool: not enough balance");
         totalPendingClaims += totalUBI;
         uint256 accAmount;
         currentDistributionId++;
         for (uint256 i = 0; i < amounts.length; i++) {
             require(amounts[i] > 0, "UBIPool: amounts cannot be zero");
-            _verifyUncmpPubkey(validatorUncmpPubKeys[i]);
-            validatorUBIAmounts[currentDistributionId][validatorUncmpPubKeys[i]] = amounts[i];
+            _verifyCmpPubkey(validatorCmpPubKeys[i]);
+            validatorUBIAmounts[currentDistributionId][validatorCmpPubKeys[i]] = amounts[i];
             accAmount += amounts[i];
         }
         require(accAmount == totalUBI, "UBIPool: total amount mismatch");
-        emit UBIDistributionSet(currentDistributionId, totalUBI, validatorUncmpPubKeys, amounts);
+        emit UBIDistributionSet(currentDistributionId, totalUBI, validatorCmpPubKeys, amounts);
         return currentDistributionId;
     }
 
     /// @notice Claims the UBI for a given month for a validator
     /// @dev The validator address must be the one who is set to receive the UBI
     /// @param distributionId The distribution id
-    /// @param validatorUncmpPubkey The validator uncompressed public key
+    /// @param validatorCmpPubkey The validator compressed public key
     function claimUBI(
         uint256 distributionId,
-        bytes calldata validatorUncmpPubkey
-    ) external nonReentrant verifyUncmpPubkeyWithExpectedAddress(validatorUncmpPubkey, msg.sender) {
-        uint256 amount = validatorUBIAmounts[distributionId][validatorUncmpPubkey];
+        bytes calldata validatorCmpPubkey
+    ) external nonReentrant verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
+        uint256 amount = validatorUBIAmounts[distributionId][validatorCmpPubkey];
         require(amount > 0, "UBIPool: no UBI to claim");
-        validatorUBIAmounts[distributionId][validatorUncmpPubkey] = 0;
+        validatorUBIAmounts[distributionId][validatorCmpPubkey] = 0;
         (bool success, ) = msg.sender.call{ value: amount }("");
         require(success, "UBIPool: failed to send UBI");
         totalPendingClaims -= amount;

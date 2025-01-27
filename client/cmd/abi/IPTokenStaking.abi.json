@@ -6,6 +6,11 @@
         "name": "defaultMinFee",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "maxDataLength",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -39,6 +44,19 @@
   {
     "type": "function",
     "name": "DEFAULT_MIN_FEE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_DATA_LENGTH",
     "inputs": [],
     "outputs": [
       {
@@ -100,7 +118,7 @@
     "name": "createValidator",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -261,17 +279,12 @@
     "name": "redelegate",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
+        "name": "validatorSrcCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
       {
-        "name": "validatorUncmpSrcPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "validatorUncmpDstPubkey",
+        "name": "validatorDstCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -294,17 +307,17 @@
     "name": "redelegateOnBehalf",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
+        "name": "delegator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "validatorSrcCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
       {
-        "name": "validatorUncmpSrcPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "validatorUncmpDstPubkey",
+        "name": "validatorDstCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -410,11 +423,6 @@
     "name": "setOperator",
     "inputs": [
       {
-        "name": "uncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
         "name": "operator",
         "type": "address",
         "internalType": "address"
@@ -427,11 +435,6 @@
     "type": "function",
     "name": "setRewardsAddress",
     "inputs": [
-      {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
       {
         "name": "newRewardsAddress",
         "type": "address",
@@ -446,11 +449,6 @@
     "name": "setWithdrawalAddress",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
         "name": "newWithdrawalAddress",
         "type": "address",
         "internalType": "address"
@@ -464,12 +462,7 @@
     "name": "stake",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -498,12 +491,12 @@
     "name": "stakeOnBehalf",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "delegator",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -545,7 +538,7 @@
     "name": "unjail",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -563,7 +556,7 @@
     "name": "unjailOnBehalf",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -579,13 +572,7 @@
   {
     "type": "function",
     "name": "unsetOperator",
-    "inputs": [
-      {
-        "name": "uncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
+    "inputs": [],
     "outputs": [],
     "stateMutability": "payable"
   },
@@ -594,12 +581,7 @@
     "name": "unstake",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -627,12 +609,12 @@
     "name": "unstakeOnBehalf",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "delegator",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -660,7 +642,7 @@
     "name": "updateValidatorCommission",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -678,7 +660,7 @@
     "name": "CreateValidator",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
@@ -739,13 +721,13 @@
     "name": "Deposit",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       },
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
@@ -891,19 +873,19 @@
     "name": "Redelegate",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
+        "name": "delegator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "validatorSrcCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
       },
       {
-        "name": "validatorUncmpSrcPubkey",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      },
-      {
-        "name": "validatorUncmpDstPubkey",
+        "name": "validatorDstCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
@@ -934,10 +916,10 @@
     "name": "SetOperator",
     "inputs": [
       {
-        "name": "uncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       },
       {
         "name": "operator",
@@ -953,10 +935,10 @@
     "name": "SetRewardAddress",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       },
       {
         "name": "executionAddress",
@@ -972,10 +954,10 @@
     "name": "SetWithdrawalAddress",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       },
       {
         "name": "executionAddress",
@@ -997,7 +979,7 @@
         "internalType": "address"
       },
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
@@ -1016,20 +998,20 @@
     "name": "UnsetOperator",
     "inputs": [
       {
-        "name": "uncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       }
     ],
     "anonymous": false
   },
   {
     "type": "event",
-    "name": "UpdateValidatorCommssion",
+    "name": "UpdateValidatorCommission",
     "inputs": [
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
@@ -1048,13 +1030,13 @@
     "name": "Withdraw",
     "inputs": [
       {
-        "name": "delegatorUncmpPubkey",
-        "type": "bytes",
+        "name": "delegator",
+        "type": "address",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "address"
       },
       {
-        "name": "validatorUncmpPubkey",
+        "name": "validatorCmpPubkey",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"

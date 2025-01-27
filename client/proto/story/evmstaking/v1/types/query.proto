@@ -20,6 +20,21 @@ service Query {
   rpc GetWithdrawalQueue(QueryGetWithdrawalQueueRequest) returns (QueryGetWithdrawalQueueResponse) {
     option (google.api.http).get = "/client/evmstaking/v1/withdrawal_queue";
   }
+
+  // GetOperatorAddress queries the operator address of a delegator.
+  rpc GetOperatorAddress(QueryGetOperatorAddressRequest) returns (QueryGetOperatorAddressResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/operator_address";
+  }
+
+  // GetWithdrawalAddress queries the withdrawal address of a delegator.
+  rpc GetWithdrawAddress(QueryGetWithdrawAddressRequest) returns (QueryGetWithdrawAddressResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/withdraw_address";
+  }
+
+  // GetRewardAddress queries the reward address of a delegator.
+  rpc GetRewardAddress(QueryGetRewardAddressRequest) returns (QueryGetRewardAddressResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/reward_address";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -41,4 +56,34 @@ message QueryGetWithdrawalQueueResponse {
 
   // pagination defines an optional pagination for the request.
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryGetOperatorAddressRequest is the request type for the Query/OperatorAddress RPC method.
+message QueryGetOperatorAddressRequest {
+  string address = 1;
+}
+
+// QueryGetOperatorAddressResponse is the response type for the Query/OperatorAddress RPC method.
+message QueryGetOperatorAddressResponse {
+  string operator_address = 1;
+}
+
+// QueryGetWithdrawAddressRequest is the request type for the Query/WithdrawAddress RPC method.
+message QueryGetWithdrawAddressRequest {
+  string address = 1;
+}
+
+// QueryGetWithdrawAddressResponse is the response type for the Query/WithdrawAddress RPC method.
+message QueryGetWithdrawAddressResponse {
+  string withdraw_address = 1;
+}
+
+// QueryGetRewardAddressRequest is the request type for the Query/RewardAddress RPC method.
+message QueryGetRewardAddressRequest {
+  string address = 1;
+}
+
+// QueryGetRewardAddressResponse is the response type for the Query/RewardAddress RPC method.
+message QueryGetRewardAddressResponse {
+  string reward_address = 1;
 }

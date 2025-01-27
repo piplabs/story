@@ -47,11 +47,7 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 			return err
 		}
 
-		delegatorPubkey, err := k1util.PubKeyBytesToCosmos(pk.Bytes())
-		if err != nil {
-			return err
-		}
-		delAddr := sdk.AccAddress(delegatorPubkey.Address().Bytes())
+		delAddr := sdk.AccAddress(evmAddr.Bytes())
 
 		log.Debug(ctx, "InitGenesis.evmstaking validator",
 			"validator", v.GetOperator(),

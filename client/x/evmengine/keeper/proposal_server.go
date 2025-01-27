@@ -129,7 +129,9 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		if expectedWithdrawals[i].Index != actualWithdrawals[pos].Index {
 			return errors.New("invalid withdrawal index")
 		}
-		// skip the Validator index equality check (always 0)
+		if expectedWithdrawals[i].Validator != actualWithdrawals[pos].Validator {
+			return errors.New("invalid withdrawal type")
+		}
 		if expectedWithdrawals[i].Address != actualWithdrawals[pos].Address {
 			return errors.New("invalid withdrawal address")
 		}
@@ -142,7 +144,9 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		if expectedRewardWithdrawals[i].Index != actualWithdrawals[pos].Index {
 			return errors.New("invalid withdrawal index")
 		}
-		// skip the Validator index equality check (always 0)
+		if expectedRewardWithdrawals[i].Validator != actualWithdrawals[pos].Validator {
+			return errors.New("invalid withdrawal type")
+		}
 		if expectedRewardWithdrawals[i].Address != actualWithdrawals[pos].Address {
 			return errors.New("invalid withdrawal address")
 		}

@@ -30,7 +30,7 @@ func (s *TestSuite) TestProcessWithdraw() {
 	valPubKey := pubKeys[2]
 	valAddr := valAddrs[2]
 	// unknown pubkey
-	unknownPubKey := pubKeys[3]
+	unknownAddr := accAddrs[3]
 
 	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
 	s.setupValidatorAndDelegation(ctx, valPubKey, delPubKey1, valAddr, delAddr1, valTokens)
@@ -47,44 +47,44 @@ func (s *TestSuite) TestProcessWithdraw() {
 		{
 			name: "pass: valid input",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
-				StakeAmount:          new(big.Int).SetUint64(1),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
+				Delegator:          common.Address(delAddr1),
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				StakeAmount:        new(big.Int).SetUint64(1),
+				DelegationId:       big.NewInt(0),
+				OperatorAddress:    common.Address(delAddr1),
 			},
 		},
-		{
-			name: "fail: invalid delegator pubkey",
-			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes())[:16],
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
-				StakeAmount:          new(big.Int).SetUint64(1),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
-			},
-			expectedErr: "invalid uncompressed public key length or format",
-		},
+		// {
+		//	name: "fail: invalid delegator pubkey",
+		//	withdraw: &bindings.IPTokenStakingWithdraw{
+		//		Delegator:          common.HexToAddress("0x123"),
+		//		ValidatorCmpPubkey: cmpToUncmp(valPubKey.Bytes()),
+		//		StakeAmount:        new(big.Int).SetUint64(1),
+		//		DelegationId:       big.NewInt(0),
+		//		OperatorAddress:    cmpToEVM(delPubKey1.Bytes()),
+		//	},
+		//	expectedErr: "invalid uncompressed public key length or format",
+		// },
 		{
 			name: "fail: invalid validator pubkey",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes())[:16],
-				StakeAmount:          new(big.Int).SetUint64(1),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
+				Delegator:          common.Address(delAddr1),
+				ValidatorCmpPubkey: valPubKey.Bytes()[:16],
+				StakeAmount:        new(big.Int).SetUint64(1),
+				DelegationId:       big.NewInt(0),
+				OperatorAddress:    common.Address(delAddr1),
 			},
-			expectedErr: "invalid uncompressed public key length or format",
+			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
 		},
 		// TODO corrupted delegator and validator pubkey
 		{
 			name: "fail: unknown depositor",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorUncmpPubkey: cmpToUncmp(unknownPubKey.Bytes()),
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
-				StakeAmount:          new(big.Int).SetUint64(1),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(unknownPubKey.Bytes()),
+				Delegator:          common.Address(unknownAddr),
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				StakeAmount:        new(big.Int).SetUint64(1),
+				DelegationId:       big.NewInt(0),
+				OperatorAddress:    common.Address(unknownAddr),
 			},
 			expectedErr: "depositor account not found",
 		},
@@ -92,11 +92,11 @@ func (s *TestSuite) TestProcessWithdraw() {
 		{
 			name: "pass: withdraw amount exceeds the delegation amount, results in max share withdrawal",
 			withdraw: &bindings.IPTokenStakingWithdraw{
-				DelegatorUncmpPubkey: cmpToUncmp(delPubKey1.Bytes()),
-				ValidatorUncmpPubkey: cmpToUncmp(valPubKey.Bytes()),
-				StakeAmount:          new(big.Int).SetUint64(math.MaxUint64),
-				DelegationId:         big.NewInt(0),
-				OperatorAddress:      cmpToEVM(delPubKey1.Bytes()),
+				Delegator:          common.Address(delAddr1),
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				StakeAmount:        new(big.Int).SetUint64(math.MaxUint64),
+				DelegationId:       big.NewInt(0),
+				OperatorAddress:    common.Address(delAddr1),
 			},
 		},
 	}

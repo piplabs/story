@@ -38,6 +38,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 
+	"github.com/piplabs/story/client/genutil"
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	etypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -557,6 +558,8 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 		header = &cmtproto.Header{Time: cmttime.Now()}
 	}
 	ctx := testCtx.Ctx.WithBlockHeader(*header)
+	defaultConsensusParams := genutil.DefaultConsensusParams()
+	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto())
 
 	return ctx, key, storeService
 }

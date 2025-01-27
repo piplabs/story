@@ -2,9 +2,11 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"cosmossdk.io/collections"
@@ -27,24 +29,56 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 	log.Debug(ctx, "Processing mature unbonding delegations", "count", len(unbondedEntries))
 
 	for _, entry := range unbondedEntries {
-		delegatorAddr, err := k.authKeeper.AddressCodec().StringToBytes(entry.DelegatorAddress)
+		log.Debug(
+			ctx, "Unstake withdrawal of mature unbonding delegation",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", entry.Amount.String(),
+		)
+
+		// Check if the delegation is total unstaked
+		delegatorAddr, err := sdk.AccAddressFromBech32(entry.DelegatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "delegator address from bech32")
 		}
+		validatorAddr, err := sdk.ValAddressFromBech32(entry.ValidatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "validator address from bech32")
+		}
+		var totallyUnstaked bool
+		if _, err := k.stakingKeeper.GetDelegation(ctx, delegatorAddr, validatorAddr); err == nil {
+			totallyUnstaked = false
+		} else if errors.Is(err, stypes.ErrNoDelegation) {
+			totallyUnstaked = true
+		} else {
+			return errors.Wrap(err, "get delegation")
+		}
 
-		log.Debug(ctx, "Adding unstake to withdrawal queue",
-			"delegator", entry.DelegatorAddress,
-			"validator", entry.ValidatorAddress,
-			"amount", entry.Amount.String())
+		// Withdraw commission if validator is totally self-unstaked
+		if totallyUnstaked && bytes.Equal(delegatorAddr.Bytes(), validatorAddr.Bytes()) {
+			if _, err := k.distributionKeeper.WithdrawValidatorCommission(ctx, validatorAddr); errors.Is(err, dtypes.ErrNoValidatorCommission) {
+				log.Debug(
+					ctx, "No remaining validator commission",
+					"validator_addr", validatorAddr.String(),
+				)
+			} else if err != nil {
+				return errors.Wrap(err, "withdraw validator commission")
+			}
+		}
 
 		// Burn tokens from the delegator
-		_, coins := IPTokenToBondCoin(entry.Amount.BigInt())
-		err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins)
-		if err != nil {
+		coinAmount := entry.Amount.Uint64()
+		if totallyUnstaked {
+			accountBalance := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount.Uint64()
+			if accountBalance > coinAmount {
+				coinAmount = accountBalance
+			}
+		}
+		_, coins := IPTokenToBondCoin(big.NewInt(int64(coinAmount)))
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "send coins from account to module")
 		}
-		err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
-		if err != nil {
+		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "burn coins")
 		}
 
@@ -56,14 +90,40 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		// push the undelegation to the withdrawal queue
-		err = k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			delEvmAddr,
 			entry.Amount.Uint64(),
 			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
-		))
-		if err != nil {
+		)); err != nil {
 			return errors.Wrap(err, "add unstake withdrawal to queue")
+		}
+
+		if coinAmount <= entry.Amount.Uint64() {
+			// No residue rewards, skip
+			continue
+		}
+
+		residueAmount := coinAmount - entry.Amount.Uint64()
+
+		log.Debug(ctx, "Residue rewards of mature unbonding delegation",
+			"delegator", entry.DelegatorAddress,
+			"validator", entry.ValidatorAddress,
+			"amount", residueAmount,
+		)
+
+		// Enqueue to the global reward withdrawal queue.
+		rewardsEVMAddr, err := k.DelegatorRewardAddress.Get(ctx, entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "map delegator bech32 address to evm reward address")
+		}
+		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+			rewardsEVMAddr,
+			residueAmount,
+			types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
+		)); err != nil {
+			return errors.Wrap(err, "add reward withdrawal to queue")
 		}
 	}
 
@@ -81,7 +141,7 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 	nextValIndex, nextValDelIndex := validatorSweepIndex.NextValIndex, validatorSweepIndex.NextValDelIndex
 
 	// Get all validators first, and then do a circular sweep
-	validatorSet, err := (k.stakingKeeper.(*skeeper.Keeper)).GetAllValidators(ctx)
+	validatorSet, err := k.stakingKeeper.GetAllValidators(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get all validators")
 	}
@@ -128,7 +188,7 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 		}
 
 		// Get all delegators of the validator.
-		delegations, err := (k.stakingKeeper.(*skeeper.Keeper)).GetValidatorDelegations(ctx, sdk.ValAddress(valAddr))
+		delegations, err := k.stakingKeeper.GetValidatorDelegations(ctx, sdk.ValAddress(valAddr))
 		if err != nil {
 			return errors.Wrap(err, "get validator delegations")
 		}
@@ -249,7 +309,10 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 	valAccAddr := sdk.AccAddress(valAddr).String()
 
 	// Withdraw delegation rewards.
-	delAddr := sdk.MustAccAddressFromBech32(delAddrBech32)
+	delAddr, err := sdk.AccAddressFromBech32(delAddrBech32)
+	if err != nil {
+		return errors.Wrap(err, "convert acc address from bech32 address")
+	}
 	delRewards, err := k.distributionKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	if err != nil {
 		return err
@@ -280,7 +343,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 
 	withdrawalEVMAddr, err := k.DelegatorRewardAddress.Get(ctx, delAddrBech32)
 	if err != nil {
-		return errors.Wrap(err, "map delegator pubkey to evm reward address")
+		return errors.Wrap(err, "map delegator bech32 address to evm reward address")
 	}
 
 	log.Debug(
@@ -288,7 +351,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		"validator_addr", valAddrBech32,
 		"validator_account_addr", valAccAddr,
 		"delegator_addr", delAddrBech32,
-		"amount_calculate", withdrawalEVMAddr,
+		"withdrawal_evm_addr", withdrawalEVMAddr,
 		"amount_claimed", claimedReward,
 		"amount_total_withdrawal", delRewardUint64,
 	)
@@ -303,7 +366,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		return err
 	}
 
-	// Enqueue to the global withdrawal queue.
+	// Enqueue to the global reward withdrawal queue.
 	if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 		uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 		withdrawalEVMAddr,
@@ -320,24 +383,36 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
+	var actualAmount string
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeUndelegateSuccess,
+				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeUndelegateFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -353,38 +428,21 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return nil
 	}
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	valCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress validator pubkey"))
-	}
-	validatorPubkey, err := k1util.PubKeyBytesToCosmos(valCmpPubkey)
+	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
-	validatorAddr := sdk.ValAddress(validatorPubkey.Address().Bytes())
-
-	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(valCmpPubkey)
+	valEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "validator pubkey to evm address")
 	}
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "delegator pubkey to evm address")
-	}
+
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
+	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
 
 	// unstakeOnBehalf txn, need to check if it's from the operator
-	if delEvmAddr.String() != ev.OperatorAddress.String() {
+	if ev.Delegator.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
@@ -407,7 +465,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	log.Debug(cachedCtx, "Processing EVM staking withdraw",
 		"del_story", depositorAddr.String(),
 		"val_story", validatorAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
 		"val_evm_addr", valEvmAddr.String(),
 		"amount", ev.StakeAmount.String(),
 	)
@@ -416,7 +474,26 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.New("depositor account not found")
 	}
 
-	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), ev.DelegationId.String(), amountCoin)
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
+	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get validator failed")
+	}
+
+	// locked tokens only have delegation with flexible period,
+	// here we automatically set the delegation id to the flexible period delegation id
+	delID := ev.DelegationId.String()
+	if val.SupportTokenType == lockedTokenType {
+		delID = stypes.FlexiblePeriodDelegationID
+	}
+
+	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), delID, amountCoin)
 
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
@@ -430,11 +507,14 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.Wrap(err, "undelegate")
 	}
 
-	log.Debug(cachedCtx, "EVM staking withdraw detected, undelegating from validator",
+	actualAmount = resp.Amount.Amount.String()
+
+	log.Debug(cachedCtx, "EVM staking withdraw processed",
 		"delegator", depositorAddr.String(),
 		"validator", validatorAddr.String(),
-		"amount", resp.Amount.String(),
-		"completion_time", resp.CompletionTime)
+		"actual_amount", actualAmount,
+		"completion_time", resp.CompletionTime,
+	)
 
 	return nil
 }

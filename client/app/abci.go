@@ -113,7 +113,7 @@ func (l abciWrapper) FinalizeBlock(ctx context.Context, req *abci.RequestFinaliz
 	sdkCtx := sdk.NewContext(l.multiStoreProvider(), header, false, nil)
 	if err := l.postFinalize(sdkCtx); err != nil {
 		log.Error(ctx, "PostFinalize callback failed [BUG]", err, "height", req.Height)
-		return resp, err
+		return resp, nil
 	}
 
 	attrs := []any{

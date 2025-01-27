@@ -90,15 +90,24 @@ type createValidatorConfig struct {
 
 type stakeConfig struct {
 	baseConfig
-	DelegatorPubKey string
-	ValidatorPubKey string
-	StakeAmount     string
-	StakePeriod     StakingPeriod
+	DelegatorAddress string
+	ValidatorPubKey  string
+	StakeAmount      string
+	StakePeriod      StakingPeriod
 }
 
 type unstakeConfig struct {
 	stakeConfig
 	DelegationID uint32
+}
+
+type redelegateConfig struct {
+	baseConfig
+	DelegatorAddress   string
+	ValidatorSrcPubKey string
+	ValidatorDstPubKey string
+	DelegationID       uint32
+	StakeAmount        string
 }
 
 type unjailConfig struct {
@@ -114,6 +123,11 @@ type operatorConfig struct {
 type withdrawalConfig struct {
 	baseConfig
 	WithdrawalAddress string
+}
+
+type rewardsConfig struct {
+	baseConfig
+	RewardsAddress string
 }
 
 type exportKeyConfig struct {
@@ -143,9 +157,12 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorStakeOnBehalfCmd(),
 		newValidatorUnstakeCmd(),
 		newValidatorUnstakeOnBehalfCmd(),
+		newValidatorRedelegateCmd(),
+		newValidatorRedelegateOnBehalfCmd(),
 		newValidatorSetOperatorCmd(),
 		newValidatorUnsetOperatorCmd(),
 		newValidatorSetWithdrawalAddressCmd(),
+		newValidatorSetRewardsAddressCmd(),
 		newValidatorUnjailCmd(),
 		newValidatorUnjailOnBehalfCmd(),
 	)
@@ -224,7 +241,7 @@ func newValidatorSetWithdrawalAddressCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "set-withdrawal-address",
-		Short: "Updates the withdrawal address that receives stake and reward withdrawals",
+		Short: "Updates the withdrawal address that receives stake withdrawals",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return initializeBaseConfig(&cfg.baseConfig)
@@ -236,6 +253,27 @@ func newValidatorSetWithdrawalAddressCmd() *cobra.Command {
 	}
 
 	bindSetWithdrawalAddressFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorSetRewardsAddressCmd() *cobra.Command {
+	var cfg rewardsConfig
+
+	cmd := &cobra.Command{
+		Use:   "set-rewards-address",
+		Short: "Updates the rewards address that receives rewards",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			validateRewardsFlags,
+			func(ctx context.Context) error { return setRewardsAddress(ctx, cfg) },
+		),
+	}
+
+	bindSetRewardsAddressFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -332,6 +370,54 @@ func newValidatorUnstakeOnBehalfCmd() *cobra.Command {
 	}
 
 	bindValidatorUnstakeOnBehalfFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorRedelegateCmd() *cobra.Command {
+	var cfg redelegateConfig
+
+	cmd := &cobra.Command{
+		Use:   "redelegate",
+		Short: "Redelegate tokens as the delegator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorRedelegateFlags(ctx, cmd, &cfg)
+			},
+			func(ctx context.Context) error { return redelegate(ctx, cfg) },
+		),
+	}
+
+	bindValidatorRedelegateFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newValidatorRedelegateOnBehalfCmd() *cobra.Command {
+	var cfg redelegateConfig
+
+	cmd := &cobra.Command{
+		Use:   "redelegate-on-behalf",
+		Short: "Redelegate tokens on behalf of a delegator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorRedelegateOnBehalfFlags(ctx, cmd, &cfg)
+			},
+			func(ctx context.Context) error { return redelegateOnBehalf(ctx, cfg) },
+		),
+	}
+
+	bindValidatorRedelegateOnBehalfFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -451,11 +537,6 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 		return errors.Wrap(err, "failed to extract compressed pub key")
 	}
 
-	uncompressedPubKeyBytes, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
-	if err != nil {
-		return err
-	}
-
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
 		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
@@ -466,7 +547,7 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 		&cfg.baseConfig,
 		"createValidator",
 		stakeAmount,
-		uncompressedPubKeyBytes,
+		compressedPubKeyBytes,
 		cfg.Moniker,
 		cfg.CommissionRate,
 		cfg.MaxCommissionRate,
@@ -484,20 +565,15 @@ func createValidator(ctx context.Context, cfg createValidatorConfig) error {
 }
 
 func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
-	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
-	if err != nil {
-		return err
-	}
-
 	withdrawalAddress := common.HexToAddress(cfg.WithdrawalAddress)
 
 	fee, err := getUint256(ctx, &cfg.baseConfig, "fee")
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Fee for withdrawing: %s wei\n", fee.String())
+	fmt.Printf("Fee for setting withdrawal address: %s wei\n", fee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setWithdrawalAddress", fee, uncompressedPubKey, withdrawalAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setWithdrawalAddress", fee, withdrawalAddress)
 	if err != nil {
 		return err
 	}
@@ -507,12 +583,26 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 	return nil
 }
 
-func setOperator(ctx context.Context, cfg operatorConfig) error {
-	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
+func setRewardsAddress(ctx context.Context, cfg rewardsConfig) error {
+	rewardsAddress := common.HexToAddress(cfg.RewardsAddress)
+
+	fee, err := getUint256(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Fee for setting rewards address: %s wei\n", fee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setRewardsAddress", fee, rewardsAddress)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Rewards address successfully set!")
+
+	return nil
+}
+
+func setOperator(ctx context.Context, cfg operatorConfig) error {
 	operatorAddress := common.HexToAddress(cfg.Operator)
 
 	fee, err := getUint256(ctx, &cfg.baseConfig, "fee")
@@ -522,7 +612,7 @@ func setOperator(ctx context.Context, cfg operatorConfig) error {
 
 	fmt.Printf("Fee for setting operator: %s wei\n", fee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setOperator", fee, uncompressedPubKey, operatorAddress)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setOperator", fee, operatorAddress)
 	if err != nil {
 		return err
 	}
@@ -533,11 +623,6 @@ func setOperator(ctx context.Context, cfg operatorConfig) error {
 }
 
 func unsetOperator(ctx context.Context, cfg operatorConfig) error {
-	uncompressedPubKey, err := uncompressPrivateKey(cfg.PrivateKey)
-	if err != nil {
-		return err
-	}
-
 	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
 	if err != nil {
 		return err
@@ -549,7 +634,7 @@ func unsetOperator(ctx context.Context, cfg operatorConfig) error {
 		return errors.Wrap(err, "failed to unpack unsetOperatorFee")
 	}
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unsetOperator", unsetOperatorFee, uncompressedPubKey)
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unsetOperator", unsetOperatorFee)
 	if err != nil {
 		return err
 	}
@@ -560,18 +645,9 @@ func unsetOperator(ctx context.Context, cfg operatorConfig) error {
 }
 
 func stake(ctx context.Context, cfg stakeConfig) error {
-	uncompressedDelegatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
-	if err != nil {
-		return err
-	}
-
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
-	}
-	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -582,10 +658,9 @@ func stake(ctx context.Context, cfg stakeConfig) error {
 	receipt, err := prepareAndExecuteTransaction(
 		ctx,
 		&cfg.baseConfig,
-		"stakeOnBehalf",
+		"stake",
 		stakeAmount,
-		uncompressedDelegatorPubKeyBytes,
-		uncompressedValidatorPubKeyBytes,
+		validatorPubKeyBytes,
 		uint8(cfg.StakePeriod),
 		[]byte{},
 	)
@@ -606,23 +681,11 @@ func stake(ctx context.Context, cfg stakeConfig) error {
 }
 
 func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
-	delegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode hex-encoded delegator public key")
-	}
-
-	uncompressedDelegatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(delegatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress delegator public key")
-	}
+	delegatorAddress := common.HexToAddress(cfg.DelegatorAddress)
 
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoed validator public key")
-	}
-	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress validator public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -635,8 +698,8 @@ func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 		&cfg.baseConfig,
 		"stakeOnBehalf",
 		stakeAmount,
-		uncompressedDelegatorPubKeyBytes,
-		uncompressedValidatorPubKeyBytes,
+		delegatorAddress,
+		validatorPubKeyBytes,
 		uint8(cfg.StakePeriod),
 		[]byte{},
 	)
@@ -657,23 +720,14 @@ func stakeOnBehalf(ctx context.Context, cfg stakeConfig) error {
 }
 
 func unstake(ctx context.Context, cfg unstakeConfig) error {
-	uncompressedDelegatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
-	if err != nil {
-		return err
-	}
-
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded validator pub key")
 	}
-	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress validator public key")
-	}
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
@@ -694,8 +748,7 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 		&cfg.baseConfig,
 		"unstake",
 		unstakeFee,
-		uncompressedDelegatorPubKeyBytes,
-		uncompressedValidatorPubKeyBytes,
+		validatorPubKeyBytes,
 		delegationID,
 		unstakeAmount,
 		[]byte{},
@@ -710,28 +763,16 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 }
 
 func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
-	delegatorPubKeyBytes, err := hex.DecodeString(cfg.DelegatorPubKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode hex-encoded delegator pub key")
-	}
-
-	uncompressedDelegatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(delegatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress delegator public key")
-	}
+	delegatorAddress := common.HexToAddress(cfg.DelegatorAddress)
 
 	validatorPubKeyBytes, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded validator pub key")
 	}
-	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress validator public key")
-	}
 
 	unstakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
 	if !ok {
-		return errors.New("invalid stake amount", "amount", cfg.StakeAmount)
+		return errors.New("invalid unstake amount", "amount", cfg.StakeAmount)
 	}
 
 	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
@@ -752,8 +793,8 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 		&cfg.baseConfig,
 		"unstakeOnBehalf",
 		unstakeOnBehalfFee,
-		uncompressedDelegatorPubKeyBytes,
-		uncompressedValidatorPubKeyBytes,
+		delegatorAddress,
+		validatorPubKeyBytes,
 		delegationID,
 		unstakeAmount,
 		[]byte{},
@@ -767,10 +808,116 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 	return nil
 }
 
-func unjail(ctx context.Context, cfg unjailConfig) error {
-	uncompressedValidatorPubKeyBytes, err := uncompressPrivateKey(cfg.PrivateKey)
+func redelegate(ctx context.Context, cfg redelegateConfig) error {
+	validatorSrcPubKeyBytes, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to get uncompressed pub key from private key")
+		return errors.Wrap(err, "failed to decode hex-encoded src validator pub key")
+	}
+
+	validatorDstPubKeyBytes, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded dst validator pub key")
+	}
+
+	redelegateAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return errors.New("invalid redelegate amount", "amount", cfg.StakeAmount)
+	}
+
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var redelegateFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack redelegateFee")
+	}
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"redelegate",
+		redelegateFee,
+		validatorSrcPubKeyBytes,
+		validatorDstPubKeyBytes,
+		delegationID,
+		redelegateAmount,
+		[]byte{},
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Tokens redelegated successfully!")
+
+	return nil
+}
+
+func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
+	delegatorAddress := common.HexToAddress(cfg.DelegatorAddress)
+
+	validatorSrcPubKeyBytes, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded src validator pub key")
+	}
+
+	validatorDstPubKeyBytes, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded dst validator pub key")
+	}
+
+	redelegateAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
+	if !ok {
+		return errors.New("invalid redelegate amount", "amount", cfg.StakeAmount)
+	}
+
+	delegationID := new(big.Int).SetUint64(uint64(cfg.DelegationID))
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var redelegateFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack redelegateFee")
+	}
+
+	_, err = prepareAndExecuteTransaction(
+		ctx,
+		&cfg.baseConfig,
+		"redelegateOnBehalf",
+		redelegateFee,
+		delegatorAddress,
+		validatorSrcPubKeyBytes,
+		validatorDstPubKeyBytes,
+		delegationID,
+		redelegateAmount,
+		[]byte{},
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Tokens redelegated on behalf of delegator successfully!")
+
+	return nil
+}
+
+func unjail(ctx context.Context, cfg unjailConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	compressedValidatorPubKeyBytes, err := privKeyToCmpPubKey(privKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to get compressed pub key from private key")
 	}
 
 	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
@@ -786,7 +933,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjail", unjailFee, uncompressedValidatorPubKeyBytes, []byte{})
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjail", unjailFee, compressedValidatorPubKeyBytes, []byte{})
 	if err != nil {
 		return err
 	}
@@ -802,11 +949,6 @@ func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 		return errors.Wrap(err, "failed to decode hex-encoded validator public key")
 	}
 
-	uncompressedValidatorPubKeyBytes, err := cmpPubKeyToUncmpPubKey(validatorPubKeyBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to uncompress validator public key")
-	}
-
 	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
 	if err != nil {
 		return err
@@ -820,7 +962,7 @@ func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 
 	fmt.Printf("Unjail fee: %s\n", unjailFee.String())
 
-	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjailOnBehalf", unjailFee, uncompressedValidatorPubKeyBytes, []byte{})
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "unjailOnBehalf", unjailFee, validatorPubKeyBytes, []byte{})
 	if err != nil {
 		return err
 	}
@@ -861,13 +1003,13 @@ func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*bi
 	for _, vLog := range receipt.Logs {
 		if vLog.Topics[0] == eventSignature {
 			eventData := struct {
-				DelegatorUncmpPubkey []byte
-				ValidatorUncmpPubkey []byte
-				StakeAmount          *big.Int
-				StakingPeriod        *big.Int
-				DelegationId         *big.Int //nolint:revive,stylecheck // Definition comes from ABI
-				OperatorAddress      common.Address
-				Data                 []byte
+				Delegator          common.Address
+				ValidatorCmpPubkey []byte
+				StakeAmount        *big.Int
+				StakingPeriod      *big.Int
+				DelegationId       *big.Int //nolint:revive,stylecheck // Definition comes from ABI
+				OperatorAddress    common.Address
+				Data               []byte
 			}{}
 
 			err := cfg.ABI.UnpackIntoInterface(&eventData, "Deposit", vLog.Data)

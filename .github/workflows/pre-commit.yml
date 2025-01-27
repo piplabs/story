@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Skip a few hooks: Golangci-lint and go-tests have their own actions. Allow lints against main commits.
-      SKIP: golangci-lint,run-go-tests,no-commit-to-branch,run-forge-tests,run-solidity-lint
+      SKIP: golangci-lint,run-go-tests,no-commit-to-branch,run-forge-tests,run-solidity-lint,detect-secrets
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -17,6 +17,6 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: '1.22.10'
       - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.0

@@ -118,7 +118,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 			"api_address", cfg.API.Address,
 			"enable_unsafe_cors", cfg.API.EnableUnsafeCORS,
 		)
-		apiSvr, err = apisvr.NewServer(&cfg.API, app, rpcClient)
+		apiSvr, err = apisvr.NewServer(&cfg.API, app)
 		if err != nil {
 			return nil, errors.Wrap(err, "create API server")
 		}
