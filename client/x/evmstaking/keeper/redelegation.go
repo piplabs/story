@@ -162,8 +162,6 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
 	case err != nil:
 		return errors.Wrap(err, "failed to begin redelegation")
-	default:
-		return nil
 	}
 
 	actualAmount = resp.Amount.Amount.String()

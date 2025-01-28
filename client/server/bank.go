@@ -1,4 +1,4 @@
-//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it
+//nolint:wrapcheck // The api server is our server, so we don't need to wrap it
 package server
 
 import (
@@ -52,8 +52,8 @@ func (s *Server) GetSupplyByDenom(req *getSupplyByDenomRequest, r *http.Request)
 	return queryResp, err
 }
 
-// GetSpendableBalancesByAddressDenom queries the spendable balance of a single coin for a single account.
-func (s *Server) GetSpendableBalancesByAddressDenom(req *getSpendableBalancesByAddressDenomRequest, r *http.Request) (resp any, err error) {
+// GetBalancesByAddressDenom queries the balance of a single coin for a single account.
+func (s *Server) GetBalancesByAddressDenom(req *getBalancesByAddressDenomRequest, r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
