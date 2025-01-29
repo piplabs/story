@@ -8,14 +8,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/upgrades"
+	singularityv1 "github.com/piplabs/story/client/app/upgrades/singularity/v1"
 )
 
 var (
 	// `Upgrades` defines the upgrade handlers and store loaders for the application.
 	// New upgrades should be added to this slice after they are implemented.
-	Upgrades = []upgrades.Upgrade{}
+	Upgrades = []upgrades.Upgrade{
+		singularityv1.Upgrade,
+	}
 	// Forks are for hard forks that breaks backward compatibility.
-	Forks = []upgrades.Fork{}
+	Forks = []upgrades.Fork{
+		singularityv1.Fork,
+	}
 )
 
 func (a *App) setupUpgradeHandlers() {
