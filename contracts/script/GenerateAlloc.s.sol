@@ -75,8 +75,8 @@ contract GenerateAlloc is Script {
             return "./iliad-alloc.json";
         } else if (block.chainid == ChainIds.MININET) {
             return "./mininet-alloc.json";
-        } else if (block.chainid == ChainIds.HOMER) {
-            return "./homer-alloc.json";
+        } else if (block.chainid == ChainIds.AENEID) {
+            return "./aeneid-alloc.json";
         } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
             return "./odyssey-testnet-alloc.json";
         } else if (block.chainid == ChainIds.LOCAL) {
@@ -98,7 +98,7 @@ contract GenerateAlloc is Script {
         } else if (block.chainid == ChainIds.MININET) {
             // Mininet
             return 10 seconds;
-        } else if (block.chainid == ChainIds.HOMER) {
+        } else if (block.chainid == ChainIds.AENEID) {
             // Odyssey devnet
             return 10 seconds;
         } else if (block.chainid == ChainIds.ODYSSEY_TESTNET) {
@@ -402,8 +402,8 @@ contract GenerateAlloc is Script {
         // Allocation
         if (block.chainid == ChainIds.STORY_MAINNET) {
             // TBD
-        } else if (block.chainid == ChainIds.HOMER) {
-            // Homer alloc
+        } else if (block.chainid == ChainIds.AENEID) {
+            // Aeneid alloc
             vm.deal(0x5687400189B13551137e330F7ae081142EdfD866, 200000000 ether);
             vm.deal(0x56A26642ad963D3542DdAe4d8fdECC396153c2f6, 200000000 ether);
             vm.deal(0x12cBb8F6F2F7d48bB22B6A1b12452381A45bEb7c, 100000000 ether);

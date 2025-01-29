@@ -81,11 +81,11 @@ var (
 		Seeds:              "",
 		SeedMode:           false,
 	}
-	HomerConfig = Config{
+	AeneidConfig = Config{
 		HomeDir:            DefaultHomeDir(),
-		Network:            "homer",
+		Network:            "aeneid",
 		EngineEndpoint:     DefaultEngineEndpoint,
-		EngineJWTFile:      DefaultJWTFile("homer"),
+		EngineJWTFile:      DefaultJWTFile("aeneid"),
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),

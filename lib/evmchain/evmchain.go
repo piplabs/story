@@ -11,17 +11,17 @@ const (
 	// Story Mainnet.
 	IDStory uint64 = 1514
 
-	// Local Testet.
+	// Local Devnet.
 	IDLocal uint64 = 1511
 
-	// Testnets.
+	// Iliad Testnets.
 	IDIliad uint64 = 1513
 
-	// Odyssey Testnets.
+	// Odyssey Testnet.
 	IDOdyssey uint64 = 1516
 
-	// Homer.
-	IDHomer uint64 = 1315
+	// Aeneid Testnet.
+	IDAeneid uint64 = 1315
 
 	storyEVMName        = "story_evm"
 	storyEVMBlockPeriod = time.Second * 2
