@@ -2249,7 +2249,7 @@ URL: [GET] /staking/delegators/{delegator_addr}
 
 ---
 
-## GetPeriodDelegationsByDelegatorAddress
+## GetPeriodDelegations
 
 URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations
 
@@ -2259,20 +2259,41 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 | validator_addr | string | storyvaloper17973uudyv484cgmy4sd4kjwdgrh86vfwhh0nlw | ✔ |
 | delegator_addr | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔ |
 
+### Query Params
+| Name | Type | Exampe | Require |
+| --- | --- | --- | --- |
+| pagination.key | string | FPoybu9dO+FCSV562u9keKVgUwur |  |
+| pagination.offset | string | 0 |  |
+| pagination.limit | array | 10 |  |
+| pagination.count_total | boolean | true |  |
+| pagination.reverse | boolean | true |  |
+
 ### Response Example
 ```json
 {
   "code": 200,
-  "msg": [
-    {
-      "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
-      "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
-      "period_delegation_id": "0",
-      "shares": "1025000000000.000000000000000000",
-      "rewards_shares": "1025000000000.000000000000000000",
-      "end_time": "2024-10-23T08:48:00.313756096Z"
+  "msg": {
+    "period_delegation_responses": [
+      {
+        "period_delegation": {
+          "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
+          "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
+          "period_delegation_id": "0",
+          "shares": "1025000000000.000000000000000000",
+          "rewards_shares": "1025000000000.000000000000000000",
+          "end_time": "2024-10-23T08:48:00.313756096Z"
+        },
+        "balance": {
+          "denom": "stake",
+          "amount": "1025000000000.000000000000000000"
+        }
+      }
+    ],
+    "pagination": {
+      "next_key": "FN80AOspT3VnYmzjLPoXTD2DEC9B",
+      "total": "66"
     }
-  ],
+  },
   "error": ""
 }
 ```
@@ -2295,12 +2316,20 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 {
   "code": 200,
   "msg": {
-    "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
-    "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
-    "period_delegation_id": "0",
-    "shares": "1025000000000.000000000000000000",
-    "rewards_shares": "1025000000000.000000000000000000",
-    "end_time": "2024-10-23T08:48:00.313756096Z"
+    "period_delegation_response": {
+      "period_delegation": {
+        "delegator_address": "story1l3ewm920n34gj2cam7lcfangyutn84574cpnl2",
+        "validator_address": "storyvaloper1l3ewm920n34gj2cam7lcfangyutn8457mh4j5p",
+        "period_delegation_id": "0",
+        "shares": "1025000000000.000000000000000000",
+        "rewards_shares": "1025000000000.000000000000000000",
+        "end_time": "2024-10-23T08:48:00.313756096Z"
+      },
+      "balance": {
+        "denom": "stake",
+        "amount": "1025000000000.000000000000000000"
+      }
+    }
   },
   "error": ""
 }
