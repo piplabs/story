@@ -298,7 +298,7 @@ replace (
 	cosmossdk.io/core v0.12.0 => cosmossdk.io/core v0.11.0
 
 	// replace evidence module to the story's evidence module
-	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk-private-fork/x/evidence v0.1.1-piplabs-v0.3
+	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.1-piplabs-v1.0
 
 	// replace cometbft and btcec temporally due to sent PEX request soon issue
 	// related issue: https://github.com/tendermint/tendermint/issues/3338
@@ -307,7 +307,7 @@ replace (
 	github.com/cometbft/cometbft v0.38.12 => github.com/cometbft/cometbft v0.38.9
 
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.10, current branch: piplabs/v0.50.10
-	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk-private-fork v0.50.10-piplabs-v0.9
+	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.10-piplabs-v1.0
 
 	// See https://github.com/cosmos/cosmos-sdk/pull/14952
 	// Also https://github.com/cosmos/cosmos-db/blob/main/go.mod#L11-L12
