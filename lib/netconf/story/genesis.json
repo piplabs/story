@@ -1,10 +1,10 @@
 {
-  "genesis_time": "2024-04-16T11:04:40.60280319Z",
-  "chain_id": "story-0",
+  "genesis_time": "2025-01-19T15:00:00.00000000Z",
+  "chain_id": "story-1",
   "initial_height": "1",
   "consensus_params": {
     "block": {
-      "max_bytes": "-1",
+      "max_bytes": "4194304",
       "max_gas": "-1"
     },
     "evidence": {
@@ -193,7 +193,7 @@
     },
     "distribution": {
       "params": {
-        "ubi": "0.065000000000000000",
+        "ubi": "0.000000000000000000",
         "base_proposer_reward": "0.000000000000000000",
         "bonus_proposer_reward": "0.000000000000000000",
         "withdraw_addr_enabled": true,
@@ -213,7 +213,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "+2Dl8i6ZrzyD0if3uLYlUrhUF1ZZAIdl0b+Cfe7T1tc="
+        "execution_block_hash": "Kbg6d+FwVSSmBVepSUFQY1NgzNnR9oJ4iD0tnm1MxrI="
       }
     },
     "genutil": {
@@ -625,7 +625,7 @@
         "min_commission_rate": "0.050000000000000000",
         "min_delegation": "1024000000000",
         "flexible_period_type": 0,
-        "singularity_height": "1209600",
+        "singularity_height": "1580851",
         "periods": [
           {
             "period_type": 0,
@@ -679,7 +679,7 @@
     "mint": {
       "params": {
         "mint_denom": "stake",
-        "inflations_per_year": "24625000000000000",
+        "inflations_per_year": "20000000000000000",
         "blocks_per_year": "10368000"
       }
     }

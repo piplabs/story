@@ -25,25 +25,36 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
+	var actualAmount string
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
 		}
+
+		var e sdk.Event
 		if err == nil {
 			writeCache()
-			return
-		}
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent(
+			e = sdk.NewEvent(
+				types.EventTypeRedelegateSuccess,
+				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
+			)
+		} else {
+			e = sdk.NewEvent(
 				types.EventTypeRedelegateFailure,
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorUncmpPubKey, hex.EncodeToString(ev.DelegatorUncmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeySrcValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpSrcPubkey)),
-				sdk.NewAttribute(types.AttributeKeyDstValidatorUncmpPubKey, hex.EncodeToString(ev.ValidatorUncmpDstPubkey)),
-				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyAmount, ev.Amount.String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+				sdk.NewAttribute(types.AttributeKeySrcValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorSrcCmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDstValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorDstCmpPubkey)),
+				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
 				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyStatusCode, errors.UnwrapErrCode(err).String()),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -59,41 +70,16 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return nil
 	}
 
-	delCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.DelegatorUncmpPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress delegator pubkey"))
-	}
-	depositorPubkey, err := k1util.PubKeyBytesToCosmos(delCmpPubkey)
-	if err != nil {
-		return errors.Wrap(err, "depositor pubkey to cosmos")
-	}
-
-	valSrcCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpSrcPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress src validator pubkey"))
-	}
-	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(valSrcCmpPubkey)
+	validatorSrcPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorSrcCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to cosmos")
 	}
 
-	valDstCmpPubkey, err := UncmpPubKeyToCmpPubKey(ev.ValidatorUncmpDstPubkey)
-	if err != nil {
-		return errors.WrapErrWithCode(errors.InvalidUncmpPubKey, errors.Wrap(err, "compress dst validator pubkey"))
-	}
-	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(valDstCmpPubkey)
+	validatorDstPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorDstCmpPubkey)
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to cosmos")
 	}
 
-	depositorAddr := sdk.AccAddress(depositorPubkey.Address().Bytes())
-	validatorSrcAddr := sdk.ValAddress(validatorSrcPubkey.Address().Bytes())
-	validatorDstAddr := sdk.ValAddress(validatorDstPubkey.Address().Bytes())
-
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(depositorPubkey.Bytes())
-	if err != nil {
-		return errors.Wrap(err, "deledator pubkey to evm address")
-	}
 	valSrcEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorSrcPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to evm address")
@@ -103,8 +89,12 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return errors.Wrap(err, "dst validator pubkey to evm address")
 	}
 
+	depositorAddr := sdk.AccAddress(ev.Delegator.Bytes())
+	validatorSrcAddr := sdk.ValAddress(valSrcEvmAddr.Bytes())
+	validatorDstAddr := sdk.ValAddress(valDstEvmAddr.Bytes())
+
 	// redelegateOnBehalf txn, need to check if it's from the operator
-	if delEvmAddr.String() != ev.OperatorAddress.String() {
+	if ev.Delegator.String() != ev.OperatorAddress.String() {
 		operatorAddr, err := k.DelegatorOperatorAddress.Get(cachedCtx, depositorAddr.String())
 		if errors.Is(err, collections.ErrNotFound) {
 			return errors.WrapErrWithCode(
@@ -124,22 +114,41 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	amountCoin, _ := IPTokenToBondCoin(ev.Amount)
 
-	log.Debug(cachedCtx, "EVM staking relegation detected",
+	log.Debug(cachedCtx, "Processing EVM staking relegation",
 		"del_story", depositorAddr.String(),
 		"val_src_story", validatorSrcAddr.String(),
 		"val_dst_story", validatorDstAddr.String(),
-		"del_evm_addr", delEvmAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
 		"val_src_evm_addr", valSrcEvmAddr.String(),
 		"val_dst_evm_addr", valDstEvmAddr.String(),
-		"amount_coin", amountCoin.String(),
+		"amount", amountCoin.Amount.String(),
 	)
+
+	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
+	if err != nil {
+		return errors.Wrap(err, "get locked token type")
+	}
+
+	valSrc, err := k.stakingKeeper.GetValidator(cachedCtx, validatorSrcAddr)
+	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+	} else if err != nil {
+		return errors.Wrap(err, "get src validator failed")
+	}
+
+	// locked tokens only have delegation with flexible period,
+	// here we automatically set the delegation id to the flexible period delegation id
+	delID := ev.DelegationId.String()
+	if valSrc.SupportTokenType == lockedTokenType {
+		delID = stypes.FlexiblePeriodDelegationID
+	}
 
 	msg := stypes.NewMsgBeginRedelegate(
 		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
-		ev.DelegationId.String(), amountCoin,
+		delID, amountCoin,
 	)
 
-	_, err = skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
+	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
 	switch {
 	case errors.Is(err, stypes.ErrSelfRedelegation):
 		return errors.WrapErrWithCode(errors.SelfRedelegation, err)
@@ -153,9 +162,21 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		return errors.WrapErrWithCode(errors.PeriodDelegationNotFound, err)
 	case err != nil:
 		return errors.Wrap(err, "failed to begin redelegation")
-	default:
-		return nil
 	}
+
+	actualAmount = resp.Amount.Amount.String()
+
+	log.Debug(cachedCtx, "EVM staking relegation processed",
+		"del_story", depositorAddr.String(),
+		"val_src_story", validatorSrcAddr.String(),
+		"val_dst_story", validatorDstAddr.String(),
+		"del_evm_addr", ev.Delegator.String(),
+		"val_src_evm_addr", valSrcEvmAddr.String(),
+		"val_dst_evm_addr", valDstEvmAddr.String(),
+		"actual_amount", actualAmount,
+	)
+
+	return nil
 }
 
 func (k Keeper) ParseRedelegateLog(ethLog ethtypes.Log) (*bindings.IPTokenStakingRedelegate, error) {

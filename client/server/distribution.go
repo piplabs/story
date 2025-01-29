@@ -1,4 +1,4 @@
-//nolint:wrapcheck,dupl // The api server is our server, so we don't need to wrap it.
+//nolint:wrapcheck // The api server is our server, so we don't need to wrap it.
 package server
 
 import (
@@ -23,7 +23,6 @@ func (s *Server) initDistributionRoute() {
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/validators", utils.SimpleWrap(s.aminoCodec, s.GetDistributionValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/rewards", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddress))
 	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/rewards/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorRewardsByDelegatorAddressValidatorAddress))
-	s.httpMux.HandleFunc("/distribution/delegators/{delegator_address}/withdraw_address", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorWithdrawAddressByDelegatorAddress))
 }
 
 // GetDistributionParams queries params of the distribution module.
@@ -48,12 +47,23 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 		return nil, err
 	}
 
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorDistributionInfo(queryContext, &distributiontypes.QueryValidatorDistributionInfoRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: bech32ValAddress.String(),
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	evmOperatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.OperatorAddress)
+	if err != nil {
+		return nil, err
+	}
+	queryResp.OperatorAddress = evmOperatorAddress
 
 	return queryResp, nil
 }
@@ -65,10 +75,14 @@ func (s *Server) GetValidatorCommissionByValidatorAddress(r *http.Request) (resp
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorCommission(queryContext, &distributiontypes.QueryValidatorCommissionRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
-	})
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
 
+	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorCommission(queryContext, &distributiontypes.QueryValidatorCommissionRequest{
+		ValidatorAddress: bech32ValAddress.String(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +97,14 @@ func (s *Server) GetValidatorOutstandingRewardsByValidatorAddress(r *http.Reques
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorOutstandingRewards(queryContext, &distributiontypes.QueryValidatorOutstandingRewardsRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
-	})
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
 
+	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorOutstandingRewards(queryContext, &distributiontypes.QueryValidatorOutstandingRewardsRequest{
+		ValidatorAddress: bech32ValAddress.String(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +119,13 @@ func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesB
 		return nil, err
 	}
 
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).ValidatorSlashes(queryContext, &distributiontypes.QueryValidatorSlashesRequest{
-		ValidatorAddress: mux.Vars(r)["validator_address"],
+		ValidatorAddress: bech32ValAddress.String(),
 		StartingHeight:   req.StartingHeight,
 		EndingHeight:     req.EndingHeight,
 		Pagination: &query.PageRequest{
@@ -113,7 +136,6 @@ func (s *Server) GetValidatorSlashesByValidatorAddress(req *getValidatorSlashesB
 			Reverse:    req.Pagination.Reverse,
 		},
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +150,25 @@ func (s *Server) GetDistributionValidatorsByDelegatorAddress(r *http.Request) (r
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorValidators(queryContext, &distributiontypes.QueryDelegatorValidatorsRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
-	})
-
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
 	if err != nil {
 		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorValidators(queryContext, &distributiontypes.QueryDelegatorValidatorsRequest{
+		DelegatorAddress: bech32AccAddress.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range queryResp.Validators {
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Validators[i])
+		if err != nil {
+			return nil, err
+		}
+
+		queryResp.Validators[i] = evmValidatorAddress
 	}
 
 	return queryResp, nil
@@ -146,10 +181,14 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddress(r *http.Request) (resp an
 		return nil, err
 	}
 
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationTotalRewards(queryContext, &distributiontypes.QueryDelegationTotalRewardsRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
-	})
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
 
+	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationTotalRewards(queryContext, &distributiontypes.QueryDelegationTotalRewardsRequest{
+		DelegatorAddress: bech32AccAddress.String(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -164,30 +203,20 @@ func (s *Server) GetDelegatorRewardsByDelegatorAddressValidatorAddress(r *http.R
 		return nil, err
 	}
 
-	muxVars := mux.Vars(r)
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	bech32ValAddress, err := utils.EvmAddressToBech32ValAddress(mux.Vars(r)["validator_address"])
+	if err != nil {
+		return nil, err
+	}
+
 	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegationRewards(queryContext, &distributiontypes.QueryDelegationRewardsRequest{
-		DelegatorAddress: muxVars["delegator_address"],
-		ValidatorAddress: muxVars["validator_address"],
+		DelegatorAddress: bech32AccAddress.String(),
+		ValidatorAddress: bech32ValAddress.String(),
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return queryResp, nil
-}
-
-// GetDelegatorWithdrawAddressByDelegatorAddress queries withdraw address of a delegator.
-func (s *Server) GetDelegatorWithdrawAddressByDelegatorAddress(r *http.Request) (resp any, err error) {
-	queryContext, err := s.createQueryContextByHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	queryResp, err := keeper.NewQuerier(s.store.GetDistrKeeper()).DelegatorWithdrawAddress(queryContext, &distributiontypes.QueryDelegatorWithdrawAddressRequest{
-		DelegatorAddress: mux.Vars(r)["delegator_address"],
-	})
-
 	if err != nil {
 		return nil, err
 	}

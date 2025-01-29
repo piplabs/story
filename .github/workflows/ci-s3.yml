@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-  # # TESTING ONLY
   # pull_request:
   #   branches:
   #     - main
@@ -23,7 +22,7 @@ env:
   BIN_NAME: story
 
 jobs:
-  # Add  timestamp
+  # Add timestamp
   Timestamp:
     uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
@@ -72,7 +71,10 @@ jobs:
 
           echo "Building for $GOOS/$GOARCH..."
           cd client
-          env GOOS=$GOOS GOARCH=$GOARCH go build -o $BIN_NAME > /dev/null 2>&1
+          env GOOS=$GOOS GOARCH=$GOARCH go build -o $BIN_NAME -v || {
+            echo "Build failed. Exiting..."
+            exit 1
+          }
 
           # Apply chmod only for non-windows platforms
           if [ "$GOOS" != "windows" ]; then

@@ -211,11 +211,287 @@ func (m *QueryGetWithdrawalQueueResponse) GetPagination() *query.PageResponse {
 	return nil
 }
 
+// QueryGetOperatorAddressRequest is the request type for the Query/OperatorAddress RPC method.
+type QueryGetOperatorAddressRequest struct {
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+}
+
+func (m *QueryGetOperatorAddressRequest) Reset()         { *m = QueryGetOperatorAddressRequest{} }
+func (m *QueryGetOperatorAddressRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetOperatorAddressRequest) ProtoMessage()    {}
+func (*QueryGetOperatorAddressRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{4}
+}
+func (m *QueryGetOperatorAddressRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetOperatorAddressRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetOperatorAddressRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetOperatorAddressRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetOperatorAddressRequest.Merge(m, src)
+}
+func (m *QueryGetOperatorAddressRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetOperatorAddressRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetOperatorAddressRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetOperatorAddressRequest proto.InternalMessageInfo
+
+func (m *QueryGetOperatorAddressRequest) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+// QueryGetOperatorAddressResponse is the response type for the Query/OperatorAddress RPC method.
+type QueryGetOperatorAddressResponse struct {
+	OperatorAddress string `protobuf:"bytes,1,opt,name=operator_address,json=operatorAddress,proto3" json:"operator_address,omitempty"`
+}
+
+func (m *QueryGetOperatorAddressResponse) Reset()         { *m = QueryGetOperatorAddressResponse{} }
+func (m *QueryGetOperatorAddressResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetOperatorAddressResponse) ProtoMessage()    {}
+func (*QueryGetOperatorAddressResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{5}
+}
+func (m *QueryGetOperatorAddressResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetOperatorAddressResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetOperatorAddressResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetOperatorAddressResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetOperatorAddressResponse.Merge(m, src)
+}
+func (m *QueryGetOperatorAddressResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetOperatorAddressResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetOperatorAddressResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetOperatorAddressResponse proto.InternalMessageInfo
+
+func (m *QueryGetOperatorAddressResponse) GetOperatorAddress() string {
+	if m != nil {
+		return m.OperatorAddress
+	}
+	return ""
+}
+
+// QueryGetWithdrawAddressRequest is the request type for the Query/WithdrawAddress RPC method.
+type QueryGetWithdrawAddressRequest struct {
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+}
+
+func (m *QueryGetWithdrawAddressRequest) Reset()         { *m = QueryGetWithdrawAddressRequest{} }
+func (m *QueryGetWithdrawAddressRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetWithdrawAddressRequest) ProtoMessage()    {}
+func (*QueryGetWithdrawAddressRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{6}
+}
+func (m *QueryGetWithdrawAddressRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetWithdrawAddressRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetWithdrawAddressRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetWithdrawAddressRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetWithdrawAddressRequest.Merge(m, src)
+}
+func (m *QueryGetWithdrawAddressRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetWithdrawAddressRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetWithdrawAddressRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetWithdrawAddressRequest proto.InternalMessageInfo
+
+func (m *QueryGetWithdrawAddressRequest) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+// QueryGetWithdrawAddressResponse is the response type for the Query/WithdrawAddress RPC method.
+type QueryGetWithdrawAddressResponse struct {
+	WithdrawAddress string `protobuf:"bytes,1,opt,name=withdraw_address,json=withdrawAddress,proto3" json:"withdraw_address,omitempty"`
+}
+
+func (m *QueryGetWithdrawAddressResponse) Reset()         { *m = QueryGetWithdrawAddressResponse{} }
+func (m *QueryGetWithdrawAddressResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetWithdrawAddressResponse) ProtoMessage()    {}
+func (*QueryGetWithdrawAddressResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{7}
+}
+func (m *QueryGetWithdrawAddressResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetWithdrawAddressResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetWithdrawAddressResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetWithdrawAddressResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetWithdrawAddressResponse.Merge(m, src)
+}
+func (m *QueryGetWithdrawAddressResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetWithdrawAddressResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetWithdrawAddressResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetWithdrawAddressResponse proto.InternalMessageInfo
+
+func (m *QueryGetWithdrawAddressResponse) GetWithdrawAddress() string {
+	if m != nil {
+		return m.WithdrawAddress
+	}
+	return ""
+}
+
+// QueryGetRewardAddressRequest is the request type for the Query/RewardAddress RPC method.
+type QueryGetRewardAddressRequest struct {
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+}
+
+func (m *QueryGetRewardAddressRequest) Reset()         { *m = QueryGetRewardAddressRequest{} }
+func (m *QueryGetRewardAddressRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetRewardAddressRequest) ProtoMessage()    {}
+func (*QueryGetRewardAddressRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{8}
+}
+func (m *QueryGetRewardAddressRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetRewardAddressRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetRewardAddressRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetRewardAddressRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetRewardAddressRequest.Merge(m, src)
+}
+func (m *QueryGetRewardAddressRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetRewardAddressRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetRewardAddressRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetRewardAddressRequest proto.InternalMessageInfo
+
+func (m *QueryGetRewardAddressRequest) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+// QueryGetRewardAddressResponse is the response type for the Query/RewardAddress RPC method.
+type QueryGetRewardAddressResponse struct {
+	RewardAddress string `protobuf:"bytes,1,opt,name=reward_address,json=rewardAddress,proto3" json:"reward_address,omitempty"`
+}
+
+func (m *QueryGetRewardAddressResponse) Reset()         { *m = QueryGetRewardAddressResponse{} }
+func (m *QueryGetRewardAddressResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetRewardAddressResponse) ProtoMessage()    {}
+func (*QueryGetRewardAddressResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c3aa04b15d8dc955, []int{9}
+}
+func (m *QueryGetRewardAddressResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetRewardAddressResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetRewardAddressResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetRewardAddressResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetRewardAddressResponse.Merge(m, src)
+}
+func (m *QueryGetRewardAddressResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetRewardAddressResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetRewardAddressResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetRewardAddressResponse proto.InternalMessageInfo
+
+func (m *QueryGetRewardAddressResponse) GetRewardAddress() string {
+	if m != nil {
+		return m.RewardAddress
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*QueryParamsRequest)(nil), "story.evmstaking.v1.types.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "story.evmstaking.v1.types.QueryParamsResponse")
 	proto.RegisterType((*QueryGetWithdrawalQueueRequest)(nil), "story.evmstaking.v1.types.QueryGetWithdrawalQueueRequest")
 	proto.RegisterType((*QueryGetWithdrawalQueueResponse)(nil), "story.evmstaking.v1.types.QueryGetWithdrawalQueueResponse")
+	proto.RegisterType((*QueryGetOperatorAddressRequest)(nil), "story.evmstaking.v1.types.QueryGetOperatorAddressRequest")
+	proto.RegisterType((*QueryGetOperatorAddressResponse)(nil), "story.evmstaking.v1.types.QueryGetOperatorAddressResponse")
+	proto.RegisterType((*QueryGetWithdrawAddressRequest)(nil), "story.evmstaking.v1.types.QueryGetWithdrawAddressRequest")
+	proto.RegisterType((*QueryGetWithdrawAddressResponse)(nil), "story.evmstaking.v1.types.QueryGetWithdrawAddressResponse")
+	proto.RegisterType((*QueryGetRewardAddressRequest)(nil), "story.evmstaking.v1.types.QueryGetRewardAddressRequest")
+	proto.RegisterType((*QueryGetRewardAddressResponse)(nil), "story.evmstaking.v1.types.QueryGetRewardAddressResponse")
 }
 
 func init() {
@@ -223,36 +499,47 @@ func init() {
 }
 
 var fileDescriptor_c3aa04b15d8dc955 = []byte{
-	// 463 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x93, 0x31, 0x6f, 0x13, 0x31,
-	0x14, 0xc7, 0xe3, 0x00, 0x19, 0x9c, 0xcd, 0x74, 0x80, 0xa8, 0x72, 0xe1, 0x44, 0x43, 0x84, 0x84,
-	0xad, 0x84, 0x09, 0x16, 0xa4, 0x0e, 0x64, 0x61, 0x68, 0x33, 0x80, 0xc4, 0x82, 0x7c, 0xc1, 0x72,
-	0x2c, 0xee, 0xce, 0xce, 0xd9, 0x77, 0x25, 0x2b, 0x3b, 0x12, 0x12, 0x1f, 0x85, 0x91, 0x2f, 0xd0,
-	0xb1, 0x12, 0x42, 0x62, 0x42, 0x28, 0xe1, 0x83, 0xa0, 0xb3, 0x4d, 0xef, 0x4a, 0xb9, 0x06, 0x75,
-	0x3b, 0x9d, 0xff, 0xff, 0xf7, 0xff, 0xbd, 0xf7, 0x6c, 0xb8, 0x6f, 0xac, 0xca, 0x57, 0x94, 0x97,
-	0xa9, 0xb1, 0xec, 0xad, 0xcc, 0x04, 0x2d, 0xc7, 0xd4, 0xae, 0x34, 0x37, 0x74, 0x59, 0xf0, 0x7c,
-	0x45, 0x74, 0xae, 0xac, 0x42, 0xb7, 0x9d, 0x8c, 0xd4, 0x32, 0x52, 0x8e, 0x89, 0x93, 0x0d, 0x76,
-	0x84, 0x12, 0xca, 0xa9, 0x68, 0xf5, 0xe5, 0x0d, 0x83, 0x5d, 0xa1, 0x94, 0x48, 0x38, 0x65, 0x5a,
-	0x52, 0x96, 0x65, 0xca, 0x32, 0x2b, 0x55, 0x66, 0xc2, 0xe9, 0x83, 0xb9, 0x32, 0xa9, 0x32, 0x34,
-	0x66, 0x86, 0xfb, 0x1c, 0x5a, 0x8e, 0x63, 0x6e, 0xd9, 0x98, 0x6a, 0x26, 0x64, 0xe6, 0xc4, 0x41,
-	0x3b, 0x6c, 0x27, 0xd4, 0x2c, 0x67, 0xe9, 0x59, 0xcd, 0x76, 0x5d, 0x03, 0xdb, 0x69, 0xa3, 0x1d,
-	0x88, 0x8e, 0xaa, 0xd4, 0x43, 0x57, 0x60, 0xc6, 0x97, 0x05, 0x37, 0x36, 0x7a, 0x01, 0x6f, 0x9e,
-	0xfb, 0x6b, 0xb4, 0xca, 0x0c, 0x47, 0x4f, 0x61, 0xcf, 0x07, 0xdd, 0x02, 0x77, 0xc0, 0xa8, 0x3f,
-	0xb9, 0x4b, 0x5a, 0x87, 0x41, 0xbc, 0xf5, 0xe0, 0xfa, 0xc9, 0x8f, 0xbd, 0xce, 0x2c, 0xd8, 0xa2,
-	0x05, 0xc4, 0xae, 0xee, 0x94, 0xdb, 0x97, 0xd2, 0x2e, 0xde, 0xe4, 0xec, 0x98, 0x25, 0x47, 0x05,
-	0x2f, 0x78, 0x48, 0x46, 0xcf, 0x20, 0xac, 0xfb, 0x0e, 0x31, 0x43, 0xe2, 0x87, 0x44, 0xaa, 0x21,
-	0x11, 0xbf, 0x8c, 0x30, 0x24, 0x72, 0xc8, 0xc4, 0x1f, 0xef, 0xac, 0xe1, 0x8c, 0x3e, 0x03, 0xb8,
-	0xd7, 0x1a, 0x15, 0xda, 0x99, 0xc2, 0xfe, 0xf1, 0xd9, 0x51, 0xd5, 0xd3, 0xb5, 0x51, 0x7f, 0xb2,
-	0x7f, 0x49, 0x4f, 0x75, 0xa1, 0x59, 0xd3, 0x89, 0xa6, 0xe7, 0xa0, 0xbb, 0x0e, 0xfa, 0xfe, 0x56,
-	0x68, 0x4f, 0xd1, 0xa4, 0x9e, 0x7c, 0xeb, 0xc2, 0x1b, 0x8e, 0x1a, 0x7d, 0x00, 0xb0, 0xe7, 0x47,
-	0x88, 0x1e, 0x5e, 0x42, 0x74, 0x71, 0x77, 0x03, 0xf2, 0xbf, 0x72, 0x9f, 0x1f, 0xdd, 0x7b, 0xff,
-	0xf5, 0xd7, 0xa7, 0x2e, 0x46, 0xbb, 0x74, 0x9e, 0x48, 0x9e, 0xd9, 0xbf, 0xee, 0x8d, 0xdf, 0x1c,
-	0xfa, 0x02, 0x20, 0xba, 0x38, 0x4a, 0xf4, 0x78, 0x5b, 0x58, 0xeb, 0xa6, 0x07, 0x4f, 0xae, 0x62,
-	0x0d, 0xcc, 0xc4, 0x31, 0x8f, 0xd0, 0xf0, 0xdf, 0xcc, 0xf5, 0x6e, 0x5e, 0x2f, 0x2b, 0xdf, 0xc1,
-	0xf3, 0x93, 0x35, 0x06, 0xa7, 0x6b, 0x0c, 0x7e, 0xae, 0x31, 0xf8, 0xb8, 0xc1, 0x9d, 0xd3, 0x0d,
-	0xee, 0x7c, 0xdf, 0xe0, 0xce, 0xab, 0x89, 0x90, 0x76, 0x51, 0xc4, 0x64, 0xae, 0x52, 0xaa, 0xa5,
-	0x4e, 0x58, 0x6c, 0xa8, 0x7f, 0x3e, 0xa1, 0xf2, 0xbb, 0x66, 0x6d, 0x47, 0x17, 0xf7, 0xdc, 0xd3,
-	0x79, 0xf4, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x9a, 0x09, 0x0c, 0x27, 0x32, 0x04, 0x00, 0x00,
+	// 627 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x95, 0x4f, 0x6f, 0x12, 0x41,
+	0x18, 0xc6, 0xd9, 0xaa, 0x6d, 0x1c, 0xa2, 0x36, 0x63, 0x0f, 0x95, 0xe0, 0x56, 0x37, 0x05, 0xd1,
+	0xe8, 0x4c, 0xc0, 0x83, 0xb5, 0x17, 0x63, 0x0f, 0xe5, 0xd2, 0xc4, 0x76, 0x0f, 0x9a, 0x78, 0x69,
+	0x06, 0x98, 0x2c, 0x1b, 0x61, 0x67, 0xd9, 0x19, 0x40, 0xae, 0x5e, 0x3c, 0x99, 0x98, 0xf8, 0x51,
+	0x7a, 0xf4, 0x0b, 0xf4, 0xd8, 0xc4, 0x8b, 0x27, 0x63, 0xc0, 0x0f, 0x62, 0x98, 0x99, 0xed, 0xfe,
+	0x81, 0x2d, 0xd0, 0x1b, 0xec, 0x3c, 0xcf, 0xfb, 0xfe, 0xde, 0x77, 0xe7, 0xc9, 0x82, 0x12, 0x17,
+	0x2c, 0x18, 0x61, 0x3a, 0xe8, 0x72, 0x41, 0x3e, 0xb9, 0x9e, 0x83, 0x07, 0x55, 0x2c, 0x46, 0x3e,
+	0xe5, 0xb8, 0xd7, 0xa7, 0xc1, 0x08, 0xf9, 0x01, 0x13, 0x0c, 0x3e, 0x90, 0x32, 0x14, 0xc9, 0xd0,
+	0xa0, 0x8a, 0xa4, 0xac, 0xb0, 0xe5, 0x30, 0x87, 0x49, 0x15, 0x9e, 0xfe, 0x52, 0x86, 0x42, 0xd1,
+	0x61, 0xcc, 0xe9, 0x50, 0x4c, 0x7c, 0x17, 0x13, 0xcf, 0x63, 0x82, 0x08, 0x97, 0x79, 0x5c, 0x9f,
+	0x3e, 0x6b, 0x32, 0xde, 0x65, 0x1c, 0x37, 0x08, 0xa7, 0xaa, 0x0f, 0x1e, 0x54, 0x1b, 0x54, 0x90,
+	0x2a, 0xf6, 0x89, 0xe3, 0x7a, 0x52, 0xac, 0xb5, 0xe5, 0x6c, 0x42, 0x9f, 0x04, 0xa4, 0x7b, 0x59,
+	0x33, 0x5b, 0x17, 0xc3, 0x96, 0x5a, 0x6b, 0x0b, 0xc0, 0x93, 0x69, 0xd7, 0x63, 0x59, 0xc0, 0xa6,
+	0xbd, 0x3e, 0xe5, 0xc2, 0x7a, 0x0f, 0xee, 0x27, 0x9e, 0x72, 0x9f, 0x79, 0x9c, 0xc2, 0x37, 0x60,
+	0x5d, 0x35, 0xda, 0x36, 0x1e, 0x19, 0x95, 0x7c, 0xed, 0x31, 0xca, 0x5c, 0x06, 0x52, 0xd6, 0x83,
+	0x9b, 0xe7, 0x7f, 0x76, 0x72, 0xb6, 0xb6, 0x59, 0x6d, 0x60, 0xca, 0xba, 0x75, 0x2a, 0x3e, 0xb8,
+	0xa2, 0xdd, 0x0a, 0xc8, 0x90, 0x74, 0x4e, 0xfa, 0xb4, 0x4f, 0x75, 0x67, 0x78, 0x08, 0x40, 0x34,
+	0xb7, 0x6e, 0x53, 0x46, 0x6a, 0x49, 0x68, 0xba, 0x24, 0xa4, 0x5e, 0x86, 0x5e, 0x12, 0x3a, 0x26,
+	0x4e, 0xe8, 0xb5, 0x63, 0x4e, 0xeb, 0xcc, 0x00, 0x3b, 0x99, 0xad, 0xf4, 0x38, 0x75, 0x90, 0x1f,
+	0x5e, 0x1e, 0x4d, 0x67, 0xba, 0x51, 0xc9, 0xd7, 0x4a, 0x57, 0xcc, 0x14, 0x15, 0xb2, 0xe3, 0x4e,
+	0x58, 0x4f, 0x40, 0xaf, 0x49, 0xe8, 0x27, 0x0b, 0xa1, 0x15, 0x45, 0x82, 0x7a, 0x3f, 0xda, 0xcf,
+	0x3b, 0x9f, 0x06, 0x44, 0xb0, 0xe0, 0x6d, 0xab, 0x15, 0x50, 0x1e, 0xbe, 0x19, 0xb8, 0x0d, 0x36,
+	0x88, 0x7a, 0x22, 0x97, 0x73, 0xdb, 0x0e, 0xff, 0x5a, 0x47, 0xd1, 0xc0, 0x33, 0x5e, 0x3d, 0xf0,
+	0x53, 0xb0, 0xc9, 0xf4, 0xd1, 0x69, 0xb2, 0xca, 0x3d, 0x96, 0xb4, 0xc4, 0x49, 0xc2, 0xa9, 0xaf,
+	0x43, 0x32, 0xe3, 0x8d, 0x48, 0xc2, 0x05, 0xa6, 0x49, 0x86, 0x49, 0x8b, 0xb5, 0x07, 0x8a, 0x61,
+	0x35, 0x9b, 0x0e, 0x49, 0xd0, 0x5a, 0x9a, 0xe3, 0x10, 0x3c, 0xcc, 0x70, 0x6a, 0x8a, 0x12, 0xb8,
+	0x1b, 0xc8, 0x83, 0x14, 0xc3, 0x9d, 0x20, 0x2e, 0xaf, 0x7d, 0xdd, 0x00, 0xb7, 0x64, 0x21, 0xf8,
+	0xcd, 0x00, 0xeb, 0xea, 0x62, 0xc3, 0x17, 0x57, 0xdc, 0x93, 0xd9, 0x44, 0x15, 0xd0, 0xb2, 0x72,
+	0x85, 0x66, 0xed, 0x7e, 0xf9, 0xf5, 0xef, 0xc7, 0x9a, 0x09, 0x8b, 0xb8, 0xd9, 0x71, 0xa9, 0x27,
+	0x52, 0x69, 0x56, 0x79, 0x82, 0x3f, 0x0d, 0x00, 0x67, 0x2f, 0x38, 0x7c, 0xbd, 0xa8, 0x59, 0x66,
+	0xfe, 0x0a, 0xfb, 0xd7, 0xb1, 0x6a, 0x66, 0x24, 0x99, 0x2b, 0xb0, 0x3c, 0x9f, 0x39, 0x4a, 0xcc,
+	0x69, 0x4f, 0x62, 0x6a, 0xfa, 0xd4, 0x6d, 0x5d, 0x8a, 0x7e, 0x7e, 0x3a, 0x96, 0xa2, 0xcf, 0x08,
+	0xc7, 0x22, 0xfa, 0x74, 0x70, 0xd2, 0xbb, 0x5f, 0x85, 0x7e, 0x7e, 0xa2, 0x56, 0xda, 0xfd, 0x8a,
+	0xf4, 0xe9, 0xb0, 0xc1, 0x33, 0x03, 0x6c, 0xa6, 0x73, 0x01, 0x5f, 0x2d, 0x01, 0x30, 0x2f, 0x83,
+	0x85, 0xbd, 0xd5, 0x8d, 0x9a, 0xfb, 0xb9, 0xe4, 0x2e, 0xc3, 0xdd, 0xf9, 0xdc, 0xc9, 0x78, 0x1e,
+	0x1c, 0x9d, 0x8f, 0x4d, 0xe3, 0x62, 0x6c, 0x1a, 0x7f, 0xc7, 0xa6, 0xf1, 0x7d, 0x62, 0xe6, 0x2e,
+	0x26, 0x66, 0xee, 0xf7, 0xc4, 0xcc, 0x7d, 0xac, 0x39, 0xae, 0x68, 0xf7, 0x1b, 0xa8, 0xc9, 0xba,
+	0xd8, 0x77, 0xfd, 0x0e, 0x69, 0x70, 0xac, 0x3e, 0x83, 0xba, 0xee, 0xe7, 0x78, 0x65, 0x49, 0xd6,
+	0x58, 0x97, 0x9f, 0xc0, 0x97, 0xff, 0x03, 0x00, 0x00, 0xff, 0xff, 0xbb, 0x4d, 0xa6, 0x5d, 0xfa,
+	0x07, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -271,6 +558,12 @@ type QueryClient interface {
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
 	// GetWithdrawalQueue queries the withdrawal queue of the module.
 	GetWithdrawalQueue(ctx context.Context, in *QueryGetWithdrawalQueueRequest, opts ...grpc.CallOption) (*QueryGetWithdrawalQueueResponse, error)
+	// GetOperatorAddress queries the operator address of a delegator.
+	GetOperatorAddress(ctx context.Context, in *QueryGetOperatorAddressRequest, opts ...grpc.CallOption) (*QueryGetOperatorAddressResponse, error)
+	// GetWithdrawalAddress queries the withdrawal address of a delegator.
+	GetWithdrawAddress(ctx context.Context, in *QueryGetWithdrawAddressRequest, opts ...grpc.CallOption) (*QueryGetWithdrawAddressResponse, error)
+	// GetRewardAddress queries the reward address of a delegator.
+	GetRewardAddress(ctx context.Context, in *QueryGetRewardAddressRequest, opts ...grpc.CallOption) (*QueryGetRewardAddressResponse, error)
 }
 
 type queryClient struct {
@@ -299,12 +592,45 @@ func (c *queryClient) GetWithdrawalQueue(ctx context.Context, in *QueryGetWithdr
 	return out, nil
 }
 
+func (c *queryClient) GetOperatorAddress(ctx context.Context, in *QueryGetOperatorAddressRequest, opts ...grpc.CallOption) (*QueryGetOperatorAddressResponse, error) {
+	out := new(QueryGetOperatorAddressResponse)
+	err := c.cc.Invoke(ctx, "/story.evmstaking.v1.types.Query/GetOperatorAddress", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) GetWithdrawAddress(ctx context.Context, in *QueryGetWithdrawAddressRequest, opts ...grpc.CallOption) (*QueryGetWithdrawAddressResponse, error) {
+	out := new(QueryGetWithdrawAddressResponse)
+	err := c.cc.Invoke(ctx, "/story.evmstaking.v1.types.Query/GetWithdrawAddress", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) GetRewardAddress(ctx context.Context, in *QueryGetRewardAddressRequest, opts ...grpc.CallOption) (*QueryGetRewardAddressResponse, error) {
+	out := new(QueryGetRewardAddressResponse)
+	err := c.cc.Invoke(ctx, "/story.evmstaking.v1.types.Query/GetRewardAddress", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	// Params queries the parameters of the module.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 	// GetWithdrawalQueue queries the withdrawal queue of the module.
 	GetWithdrawalQueue(context.Context, *QueryGetWithdrawalQueueRequest) (*QueryGetWithdrawalQueueResponse, error)
+	// GetOperatorAddress queries the operator address of a delegator.
+	GetOperatorAddress(context.Context, *QueryGetOperatorAddressRequest) (*QueryGetOperatorAddressResponse, error)
+	// GetWithdrawalAddress queries the withdrawal address of a delegator.
+	GetWithdrawAddress(context.Context, *QueryGetWithdrawAddressRequest) (*QueryGetWithdrawAddressResponse, error)
+	// GetRewardAddress queries the reward address of a delegator.
+	GetRewardAddress(context.Context, *QueryGetRewardAddressRequest) (*QueryGetRewardAddressResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -316,6 +642,15 @@ func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsReq
 }
 func (*UnimplementedQueryServer) GetWithdrawalQueue(ctx context.Context, req *QueryGetWithdrawalQueueRequest) (*QueryGetWithdrawalQueueResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWithdrawalQueue not implemented")
+}
+func (*UnimplementedQueryServer) GetOperatorAddress(ctx context.Context, req *QueryGetOperatorAddressRequest) (*QueryGetOperatorAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOperatorAddress not implemented")
+}
+func (*UnimplementedQueryServer) GetWithdrawAddress(ctx context.Context, req *QueryGetWithdrawAddressRequest) (*QueryGetWithdrawAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWithdrawAddress not implemented")
+}
+func (*UnimplementedQueryServer) GetRewardAddress(ctx context.Context, req *QueryGetRewardAddressRequest) (*QueryGetRewardAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRewardAddress not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -358,6 +693,60 @@ func _Query_GetWithdrawalQueue_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_GetOperatorAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetOperatorAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetOperatorAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.evmstaking.v1.types.Query/GetOperatorAddress",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetOperatorAddress(ctx, req.(*QueryGetOperatorAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_GetWithdrawAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetWithdrawAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetWithdrawAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.evmstaking.v1.types.Query/GetWithdrawAddress",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetWithdrawAddress(ctx, req.(*QueryGetWithdrawAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_GetRewardAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetRewardAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetRewardAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.evmstaking.v1.types.Query/GetRewardAddress",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetRewardAddress(ctx, req.(*QueryGetRewardAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var Query_serviceDesc = _Query_serviceDesc
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "story.evmstaking.v1.types.Query",
@@ -370,6 +759,18 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWithdrawalQueue",
 			Handler:    _Query_GetWithdrawalQueue_Handler,
+		},
+		{
+			MethodName: "GetOperatorAddress",
+			Handler:    _Query_GetOperatorAddress_Handler,
+		},
+		{
+			MethodName: "GetWithdrawAddress",
+			Handler:    _Query_GetWithdrawAddress_Handler,
+		},
+		{
+			MethodName: "GetRewardAddress",
+			Handler:    _Query_GetRewardAddress_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -516,6 +917,186 @@ func (m *QueryGetWithdrawalQueueResponse) MarshalToSizedBuffer(dAtA []byte) (int
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryGetOperatorAddressRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetOperatorAddressRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetOperatorAddressRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetOperatorAddressResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetOperatorAddressResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetOperatorAddressResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.OperatorAddress) > 0 {
+		i -= len(m.OperatorAddress)
+		copy(dAtA[i:], m.OperatorAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.OperatorAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetWithdrawAddressRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetWithdrawAddressRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetWithdrawAddressRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetWithdrawAddressResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetWithdrawAddressResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetWithdrawAddressResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.WithdrawAddress) > 0 {
+		i -= len(m.WithdrawAddress)
+		copy(dAtA[i:], m.WithdrawAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.WithdrawAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetRewardAddressRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetRewardAddressRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetRewardAddressRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetRewardAddressResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetRewardAddressResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetRewardAddressResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RewardAddress) > 0 {
+		i -= len(m.RewardAddress)
+		copy(dAtA[i:], m.RewardAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.RewardAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -574,6 +1155,84 @@ func (m *QueryGetWithdrawalQueueResponse) Size() (n int) {
 	}
 	if m.Pagination != nil {
 		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetOperatorAddressRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetOperatorAddressResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OperatorAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetWithdrawAddressRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetWithdrawAddressResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.WithdrawAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetRewardAddressRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetRewardAddressResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RewardAddress)
+	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
 	return n
@@ -902,6 +1561,498 @@ func (m *QueryGetWithdrawalQueueResponse) Unmarshal(dAtA []byte) error {
 			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetOperatorAddressRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetOperatorAddressRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetOperatorAddressRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetOperatorAddressResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetOperatorAddressResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetOperatorAddressResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OperatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OperatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetWithdrawAddressRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetWithdrawAddressRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetWithdrawAddressRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetWithdrawAddressResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetWithdrawAddressResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetWithdrawAddressResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithdrawAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WithdrawAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetRewardAddressRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetRewardAddressRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetRewardAddressRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetRewardAddressResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetRewardAddressResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetRewardAddressResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardAddress = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -28,3 +28,5 @@ dist
 local-alloc.json
 go.work
 go.work.sum
+
+story

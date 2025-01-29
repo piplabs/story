@@ -9,7 +9,7 @@ library Predeploys {
     /// @notice Predeploys
     /// @dev Address reserved for ERC20 wrapper for Story's native token, address starts with
     /// Story mainnet chain ID
-    address internal constant WIP = 0x1516000000000000000000000000000000000000;
+    address internal constant WIP = 0x1514000000000000000000000000000000000000;
 
     /// @dev We reserve the first 1024 addresses after Namespace for proxied predeploys.
     /// GenerateAlloc.s.sol will set a TransparentUpgradeableProxy for each of them, set to a

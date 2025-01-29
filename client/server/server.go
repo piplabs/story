@@ -11,7 +11,6 @@ import (
 	"cosmossdk.io/x/tx/signing"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 
-	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/std"
@@ -46,7 +45,6 @@ type Store interface {
 type Server struct {
 	errChan chan error
 	store   Store
-	cl      rpcclient.Client
 
 	httpMux    *mux.Router
 	httpServer *http.Server
@@ -54,12 +52,11 @@ type Server struct {
 	aminoCodec *codec.LegacyAmino
 }
 
-func NewServer(cfg *Config, store Store, cl rpcclient.Client) (*Server, error) {
+func NewServer(cfg *Config, store Store) (*Server, error) {
 	s := &Server{
 		errChan: make(chan error),
 		store:   store,
 		httpMux: mux.NewRouter(),
-		cl:      cl,
 	}
 
 	if err := s.registerCodec(); err != nil {
@@ -111,8 +108,7 @@ func (s *Server) registerCodec() error {
 }
 
 func (s *Server) prepareUnpackInterfaces(v codectypes.UnpackInterfacesMessage) error {
-	err := codectypes.UnpackInterfaces(v, s.protoCodec)
-	if err != nil {
+	if err := codectypes.UnpackInterfaces(v, s.protoCodec); err != nil {
 		return err
 	}
 
@@ -131,7 +127,7 @@ func (s *Server) registerHandle() {
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {
-	height, err := strconv.ParseInt(r.Header.Get("X-Height"), 10, 64)
+	height, err := strconv.ParseInt(r.Header.Get(APIBlockHeightHeader), 10, 64)
 	if err != nil {
 		height = 0
 	}
