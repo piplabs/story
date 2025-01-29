@@ -7,7 +7,6 @@ pragma solidity 0.8.23;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { console2 } from "forge-std/console2.sol";
 
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { Test } from "../utils/Test.sol";
@@ -405,12 +404,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Data length over max");
-        ipTokenStaking.unstake{ value: feeAmount }(
-            validatorCmpPubkey,
-            delegationId,
-            stakeAmount,
-            dataOverMaxLen
-        );
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount, dataOverMaxLen);
 
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Data length over max");

@@ -73,11 +73,11 @@ var (
 
 //nolint:gochecknoglobals // Static addresses
 var (
-	//go:embed homer/genesis.json
-	homerConsensusGenesisJSON []byte
+	//go:embed aeneid/genesis.json
+	aeneidConsensusGenesisJSON []byte
 
-	//go:embed homer/seeds.txt
-	homerConsensusSeedsTXT []byte
+	//go:embed aeneid/seeds.txt
+	aeneidConsensusSeedsTXT []byte
 )
 
 //nolint:gochecknoglobals // Static addresses
@@ -109,11 +109,11 @@ var statics = map[ID]Static{
 		ConsensusGenesisJSON:  odysseyConsensusGenesisJSON,
 		ConsensusSeedTXT:      odysseyConsensusSeedsTXT,
 	},
-	Homer: {
+	Aeneid: {
 		Version:               "v0.0.1",
-		StoryExecutionChainID: evmchain.IDHomer,
-		ConsensusGenesisJSON:  homerConsensusGenesisJSON,
-		ConsensusSeedTXT:      homerConsensusSeedsTXT,
+		StoryExecutionChainID: evmchain.IDAeneid,
+		ConsensusGenesisJSON:  aeneidConsensusGenesisJSON,
+		ConsensusSeedTXT:      aeneidConsensusSeedsTXT,
 	},
 	Story: {
 		Version:               "v0.0.1",
