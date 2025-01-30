@@ -4,9 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -26,11 +24,6 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 
 	if ubiBalance.Uint64() < params.MinPartialWithdrawalAmount {
 		return nil
-	}
-
-	moduleEVMAddr, err := utils.Bech32DelegatorAddressToEvmAddress(authtypes.NewModuleAddress(types.ModuleName).String())
-	if err != nil {
-		return errors.Wrap(err, "convert evmstaking module address to evm address")
 	}
 
 	// Withdraw and burn ubi coins.
@@ -54,7 +47,7 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 		params.UbiWithdrawAddress,
 		ubiBalance.Uint64(),
 		types.WithdrawalType_WITHDRAWAL_TYPE_UBI,
-		moduleEVMAddr,
+		"",
 	)); err != nil {
 		return errors.Wrap(err, "add ubi withdrawal to queue")
 	}
