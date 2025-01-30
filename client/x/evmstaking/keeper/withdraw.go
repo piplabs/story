@@ -18,6 +18,7 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
@@ -84,17 +85,23 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 
 		// This should not produce error, as all delegations are done via the evmstaking module via EL.
 		// However, we should gracefully handle in case Get fails.
-		delEvmAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
+		delEVMAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "map delegator pubkey to evm address")
+		}
+
+		valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(entry.ValidatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "convert validator bech32 address to evm address")
 		}
 
 		// push the undelegation to the withdrawal queue
 		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-			delEvmAddr,
+			delEVMAddr,
 			entry.Amount.Uint64(),
 			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
+			valEVMAddr,
 		)); err != nil {
 			return errors.Wrap(err, "add unstake withdrawal to queue")
 		}
@@ -117,11 +124,13 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		if err != nil {
 			return errors.Wrap(err, "map delegator bech32 address to evm reward address")
 		}
+
 		if err := k.AddRewardWithdrawalToQueue(ctx, types.NewWithdrawal(
 			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
 			rewardsEVMAddr,
 			residueAmount,
 			types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
+			valEVMAddr,
 		)); err != nil {
 			return errors.Wrap(err, "add reward withdrawal to queue")
 		}
@@ -346,6 +355,11 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		return errors.Wrap(err, "map delegator bech32 address to evm reward address")
 	}
 
+	valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(valAddrBech32)
+	if err != nil {
+		return errors.Wrap(err, "convert validator bech32 address to evm address")
+	}
+
 	log.Debug(
 		ctx, "Withdraw delegator rewards",
 		"validator_addr", valAddrBech32,
@@ -372,6 +386,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 		withdrawalEVMAddr,
 		delRewardUint64,
 		types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
+		valEVMAddr,
 	)); err != nil {
 		return errors.Wrap(err, "add reward withdrawal to queue")
 	}
