@@ -27,4 +27,7 @@ message Withdrawal {
   WithdrawalType withdrawal_type = 4 [
     (gogoproto.moretags) = "yaml:\"withdrawal_type\""
   ];
+  string validator_address = 5 [
+    (gogoproto.moretags) = "yaml:\"validator_address\""
+  ];
 }

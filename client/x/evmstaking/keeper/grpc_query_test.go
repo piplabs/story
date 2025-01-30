@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 )
 
@@ -31,11 +32,13 @@ func (s *TestSuite) TestGetWithdrawalQueue() {
 	// Prepare and add three withdrawals to the queue
 	delAddr = "story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y"
 	valAddr = "storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0"
+	valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(valAddr)
+	require.NoError(err)
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 	withdrawals := []types.Withdrawal{
-		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
-		types.NewWithdrawal(2, evmAddr.String(), 200, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
-		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
+		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
+		types.NewWithdrawal(2, evmAddr.String(), 200, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
+		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
 	}
 	require.Len(withdrawals, 3)
 	for _, w := range withdrawals {

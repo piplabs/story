@@ -12,11 +12,12 @@ import (
 var (
 	delAddr     = "story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y"
 	valAddr     = "storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0"
+	valEVMAddr  = "0xbee4e8859692e6d0a0ee0042e6ccfc6b4f1a003d"
 	evmAddr     = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 	withdrawals = []types.Withdrawal{
-		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
-		types.NewWithdrawal(2, evmAddr.String(), 200, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
-		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE),
+		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
+		types.NewWithdrawal(2, evmAddr.String(), 200, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
+		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
 	}
 )
 
@@ -40,7 +41,7 @@ func (s *TestSuite) TestAddWithdrawalToQueue() {
 	s.initQueue()
 
 	// Add a withdrawal to the queue
-	withdrawal := types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE)
+	withdrawal := types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valAddr)
 	err := s.EVMStakingKeeper.AddWithdrawalToQueue(s.Ctx, withdrawal)
 	require.NoError(err)
 
