@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,11 +12,13 @@ import (
 )
 
 const (
-	// UpgradeName defines the on-chain upgrade name for the Story singularity v1 upgrade.
+	// UpgradeName defines the on-chain upgrade name for the singularity v1 upgrade.
 	UpgradeName = "singularity_v1"
 
-	// UpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
-	UpgradeHeight = 1_000_000
+	// AeneidUpgradeHeight defines the block height at which the Aeneid singularity v1 upgrade is triggered.
+	AeneidUpgradeHeight = 1_000_000
+	// StoryUpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
+	StoryUpgradeHeight = 1_000_000
 )
 
 var Upgrade = upgrades.Upgrade{
@@ -24,8 +28,19 @@ var Upgrade = upgrades.Upgrade{
 }
 
 var Fork = upgrades.Fork{
-	UpgradeName:    UpgradeName,
-	UpgradeInfo:    "singularity upgrade to change singularity height and the duration of the short staking period",
-	UpgradeHeight:  UpgradeHeight,
+	UpgradeName: UpgradeName,
+	UpgradeInfo: "singularity upgrade to change singularity height and the duration of the short staking period",
+	// UpgradeHeight is set in `scheduleForkUpgrade`
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
+}
+
+func GetUpgradeHeight(chainID string) (int64, error) {
+	switch chainID {
+	case upgrades.AeneidChainID:
+		return AeneidUpgradeHeight, nil
+	case upgrades.StoryChainID:
+		return StoryUpgradeHeight, nil
+	default:
+		return 0, fmt.Errorf("unknown chain ID: %s", chainID)
+	}
 }

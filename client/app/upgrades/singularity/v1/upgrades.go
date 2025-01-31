@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -10,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 
 	"github.com/piplabs/story/client/app/keepers"
+	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
@@ -18,9 +20,22 @@ const (
 	// NewShortPeriodDuration defines the duration of the new short period.
 	NewShortPeriodDuration = time.Second * 7776000 // 90 days
 
-	// SingularityHeight defines the block height at which the Story singularity period ends.
-	NewSingularityHeight = 1_500_000
+	// NewAeneidSingularityHeight defines the block height at which the Aeneid singularity period ends.
+	NewAeneidSingularityHeight = 1_500_000
+	// NewStorySingularityHeight defines the block height at which the Story singularity period ends.
+	NewStorySingularityHeight = 1_500_000
 )
+
+func GetNewSingularityHeight(chainID string) (uint64, error) {
+	switch chainID {
+	case upgrades.AeneidChainID:
+		return NewAeneidSingularityHeight, nil
+	case upgrades.StoryChainID:
+		return NewStorySingularityHeight, nil
+	default:
+		return 0, fmt.Errorf("unknown chain ID: %s", chainID)
+	}
+}
 
 func CreateUpgradeHandler(
 	_ *module.Manager,
@@ -28,10 +43,20 @@ func CreateUpgradeHandler(
 	keepers *keepers.Keepers,
 ) upgradetypes.UpgradeHandler {
 	return func(ctx context.Context, _ upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
-		blockHeight := sdk.UnwrapSDKContext(ctx).BlockHeight()
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		blockHeight := sdkCtx.BlockHeight()
 		log.Info(ctx, "Current block height", "Height", blockHeight)
-		if NewSingularityHeight <= blockHeight {
-			return vm, errors.New("singularity height should be greater than current block height")
+
+		chainID := sdkCtx.ChainID()
+		newSingularityHeight, err := GetNewSingularityHeight(chainID)
+		if err != nil {
+			return vm, errors.Wrap(err, "failed to get new singularity height")
+		}
+		log.Info(ctx, "New singularity height", "ChainID", chainID, "Height", newSingularityHeight)
+
+		if newSingularityHeight <= uint64(blockHeight) {
+			return vm, errors.New("new singularity height should be greater than current block height")
 		}
 
 		log.Info(ctx, "Get current staking params...")
@@ -55,8 +80,8 @@ func CreateUpgradeHandler(
 			}
 		}
 
-		log.Info(ctx, "Update singularity height", "Existing", stakingParams.SingularityHeight, "New", NewSingularityHeight)
-		stakingParams.SingularityHeight = NewSingularityHeight
+		log.Info(ctx, "Update singularity height", "Existing", stakingParams.SingularityHeight, "New", newSingularityHeight)
+		stakingParams.SingularityHeight = newSingularityHeight
 
 		log.Info(ctx, "Apply staking param changes...")
 		if err := keepers.StakingKeeper.SetParams(ctx, stakingParams); err != nil {
@@ -82,7 +107,7 @@ func CreateUpgradeHandler(
 			}
 		}
 
-		if stakingParams.SingularityHeight != NewSingularityHeight {
+		if stakingParams.SingularityHeight != newSingularityHeight {
 			return vm, errors.New("new singularity height is not correct")
 		}
 
