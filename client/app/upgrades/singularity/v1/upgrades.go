@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -51,7 +50,8 @@ func CreateUpgradeHandler(
 		chainID := sdkCtx.ChainID()
 		newSingularityHeight, ok := GetNewSingularityHeight(chainID)
 		if !ok {
-			return vm, fmt.Errorf("invalid chain ID for singularity v1 upgrade: %s", chainID)
+			log.Info(ctx, "Singularity v1 upgrade not needed for current chain, skip", "ChainID", chainID)
+			return vm, nil
 		}
 		log.Info(ctx, "New singularity height", "ChainID", chainID, "Height", newSingularityHeight)
 

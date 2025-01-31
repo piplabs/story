@@ -65,6 +65,8 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 			singularityV1UpgradeHeight, ok := singularityv1.GetUpgradeHeight(ctx.ChainID())
 			if ok {
 				upgradeHeight = singularityV1UpgradeHeight
+			} else {
+				upgradeHeight = currentBlockHeight
 			}
 		}
 
