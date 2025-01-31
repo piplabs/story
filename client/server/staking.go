@@ -24,8 +24,8 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegations/{delegator_address}", utils.SimpleWrap(s.aminoCodec, s.GetDelegationByValidatorAddressDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/validators/{validator_address}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetValidatorUnbondingDelegations))
 	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegations/{delegator_address}/unbonding_delegation", utils.SimpleWrap(s.aminoCodec, s.GetDelegatorUnbondingDelegation))
-	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationsByDelegatorAddress))
-	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegationByDelegatorAddressAndID))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations", utils.AutoWrap(s.aminoCodec, s.GetPeriodDelegations))
+	s.httpMux.HandleFunc("/staking/validators/{validator_address}/delegators/{delegator_address}/period_delegations/{period_delegation_id}", utils.SimpleWrap(s.aminoCodec, s.GetPeriodDelegation))
 
 	s.httpMux.HandleFunc("/staking/delegations/{delegator_address}", utils.AutoWrap(s.aminoCodec, s.GetDelegationsByDelegatorAddress))
 
@@ -569,8 +569,8 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 	return queryResp, nil
 }
 
-// GetPeriodDelegationsByDelegatorAddress queries period delegations info for given validator delegator pair.
-func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp any, err error) {
+// GetPeriodDelegations queries period delegations info for given validator delegator pair.
+func (s *Server) GetPeriodDelegations(req *getPeriodDelegationsRequest, r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
@@ -586,30 +586,40 @@ func (s *Server) GetPeriodDelegationsByDelegatorAddress(r *http.Request) (resp a
 		return nil, err
 	}
 
-	queryResp, err := s.store.GetStakingKeeper().GetAllPeriodDelegationsByDelAndValAddr(queryContext, bech32AccAddress, bech32ValAddress)
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).PeriodDelegations(queryContext, &stakingtypes.QueryPeriodDelegationsRequest{
+		DelegatorAddr: bech32AccAddress.String(),
+		ValidatorAddr: bech32ValAddress.String(),
+		Pagination: &query.PageRequest{
+			Key:        []byte(req.Pagination.Key),
+			Offset:     req.Pagination.Offset,
+			Limit:      req.Pagination.Limit,
+			CountTotal: req.Pagination.CountTotal,
+			Reverse:    req.Pagination.Reverse,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range queryResp {
-		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp[i].DelegatorAddress)
+	for i := range queryResp.PeriodDelegationResponses {
+		evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.PeriodDelegationResponses[i].PeriodDelegation.DelegatorAddress)
 		if err != nil {
 			return nil, err
 		}
-		queryResp[i].DelegatorAddress = evmDelegatorAddress
+		queryResp.PeriodDelegationResponses[i].PeriodDelegation.DelegatorAddress = evmDelegatorAddress
 
-		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp[i].ValidatorAddress)
+		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.PeriodDelegationResponses[i].PeriodDelegation.ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
-		queryResp[i].ValidatorAddress = evmValidatorAddress
+		queryResp.PeriodDelegationResponses[i].PeriodDelegation.ValidatorAddress = evmValidatorAddress
 	}
 
 	return queryResp, nil
 }
 
-// GetPeriodDelegationByDelegatorAddressAndID queries period delegation info for given validator delegator pair and period delegation id.
-func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (resp any, err error) {
+// GetPeriodDelegation queries period delegation info for given validator delegator pair and period delegation id.
+func (s *Server) GetPeriodDelegation(r *http.Request) (resp any, err error) {
 	queryContext, err := s.createQueryContextByHeader(r)
 	if err != nil {
 		return nil, err
@@ -625,22 +635,26 @@ func (s *Server) GetPeriodDelegationByDelegatorAddressAndID(r *http.Request) (re
 		return nil, err
 	}
 
-	queryResp, err := s.store.GetStakingKeeper().GetPeriodDelegation(queryContext, bech32AccAddress, bech32ValAddress, mux.Vars(r)["period_delegation_id"])
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).PeriodDelegation(queryContext, &stakingtypes.QueryPeriodDelegationRequest{
+		DelegatorAddr:      bech32AccAddress.String(),
+		ValidatorAddr:      bech32ValAddress.String(),
+		PeriodDelegationId: mux.Vars(r)["period_delegation_id"],
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.DelegatorAddress)
+	evmDelegatorAddress, err := utils.Bech32DelegatorAddressToEvmAddress(queryResp.PeriodDelegationResponse.PeriodDelegation.DelegatorAddress)
 	if err != nil {
 		return nil, err
 	}
-	queryResp.DelegatorAddress = evmDelegatorAddress
+	queryResp.PeriodDelegationResponse.PeriodDelegation.DelegatorAddress = evmDelegatorAddress
 
-	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.ValidatorAddress)
+	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.PeriodDelegationResponse.PeriodDelegation.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
-	queryResp.ValidatorAddress = evmValidatorAddress
+	queryResp.PeriodDelegationResponse.PeriodDelegation.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil
 }

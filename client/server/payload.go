@@ -57,6 +57,10 @@ type getValidatorsByDelegatorAddressRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
+type getPeriodDelegationsRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getModuleVersionsRequest struct {
 	ModuleName string `mapstructure:"module_name"`
 }
