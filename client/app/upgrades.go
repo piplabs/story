@@ -62,16 +62,10 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 		upgradeHeight := fork.UpgradeHeight
 		// Retrieve the upgrade height dynamically based on the network for singularity v1 upgrade
 		if fork.UpgradeName == singularityv1.UpgradeName {
-			singularityV1UpgradeHeight, err := singularityv1.GetUpgradeHeight(ctx.ChainID())
-			if err != nil {
-				panic(fmt.Errorf(
-					"failed to get singularity v1 upgrade height for fork %s on chain %s: %w",
-					fork.UpgradeName,
-					ctx.ChainID(),
-					err,
-				))
+			singularityV1UpgradeHeight, ok := singularityv1.GetUpgradeHeight(ctx.ChainID())
+			if ok {
+				upgradeHeight = singularityV1UpgradeHeight
 			}
-			upgradeHeight = singularityV1UpgradeHeight
 		}
 
 		if currentBlockHeight == upgradeHeight {

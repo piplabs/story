@@ -26,14 +26,14 @@ const (
 	NewStorySingularityHeight = 1_500_000
 )
 
-func GetNewSingularityHeight(chainID string) (uint64, error) {
+func GetNewSingularityHeight(chainID string) (uint64, bool) {
 	switch chainID {
 	case upgrades.AeneidChainID:
-		return NewAeneidSingularityHeight, nil
+		return NewAeneidSingularityHeight, true
 	case upgrades.StoryChainID:
-		return NewStorySingularityHeight, nil
+		return NewStorySingularityHeight, true
 	default:
-		return 0, fmt.Errorf("unknown chain ID: %s", chainID)
+		return 0, false
 	}
 }
 
@@ -49,9 +49,9 @@ func CreateUpgradeHandler(
 		log.Info(ctx, "Current block height", "Height", blockHeight)
 
 		chainID := sdkCtx.ChainID()
-		newSingularityHeight, err := GetNewSingularityHeight(chainID)
-		if err != nil {
-			return vm, errors.Wrap(err, "failed to get new singularity height")
+		newSingularityHeight, ok := GetNewSingularityHeight(chainID)
+		if !ok {
+			return vm, fmt.Errorf("invalid chain ID for singularity v1 upgrade: %s", chainID)
 		}
 		log.Info(ctx, "New singularity height", "ChainID", chainID, "Height", newSingularityHeight)
 

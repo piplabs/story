@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"fmt"
-
 	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -34,13 +32,13 @@ var Fork = upgrades.Fork{
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
 }
 
-func GetUpgradeHeight(chainID string) (int64, error) {
+func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
 	case upgrades.AeneidChainID:
-		return AeneidUpgradeHeight, nil
+		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
-		return StoryUpgradeHeight, nil
+		return StoryUpgradeHeight, true
 	default:
-		return 0, fmt.Errorf("unknown chain ID: %s", chainID)
+		return 0, false
 	}
 }
