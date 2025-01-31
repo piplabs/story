@@ -59,7 +59,12 @@ func (a *App) setupUpgradeStoreLoaders() {
 func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 	currentBlockHeight := ctx.BlockHeight()
 	for _, fork := range Forks {
-		if currentBlockHeight == fork.UpgradeHeight {
+		upgradeHeight, err := singularityv1.GetUpgradeHeight(ctx.ChainID())
+		if err != nil {
+			panic(fmt.Errorf("failed to get upgrade height for fork %s on chain %s: %v", fork.UpgradeName, ctx.ChainID(), err))
+		}
+
+		if currentBlockHeight == upgradeHeight {
 			upgradePlan := upgradetypes.Plan{
 				Height: currentBlockHeight,
 				Name:   fork.UpgradeName,
