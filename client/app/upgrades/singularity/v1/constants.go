@@ -38,6 +38,9 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
 		return StoryUpgradeHeight, true
+	// (TODO) add additional chain ID and its desired height here
+	case "1512":
+		return 300, true
 	default:
 		return 0, false
 	}
