@@ -36,8 +36,8 @@ var Fork = upgrades.Fork{
 }
 
 func GetUpgradeHeight(chainID string) (int64, bool) {
-	switch chainID {
 	fmt.Println("chainID:", chainID)
+	switch chainID {
 	case upgrades.AeneidChainID:
 		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
