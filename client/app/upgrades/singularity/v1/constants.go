@@ -17,6 +17,8 @@ const (
 	AeneidUpgradeHeight = 345158
 	// StoryUpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
 	StoryUpgradeHeight = 677886
+
+	LocalnetUpgradeHeight = 400
 )
 
 var Upgrade = upgrades.Upgrade{
@@ -38,6 +40,8 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
 		return StoryUpgradeHeight, true
+    case upgrades.LocalnetChainID:
+		return LocalnetUpgradeHeight, true
 	default:
 		return 0, false
 	}
