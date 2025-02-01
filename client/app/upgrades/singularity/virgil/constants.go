@@ -1,4 +1,4 @@
-package v1
+package virgil
 
 import (
 	storetypes "cosmossdk.io/store/types"
@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	// UpgradeName defines the on-chain upgrade name for the singularity v1 upgrade.
-	UpgradeName = "singularity_v1"
+	// UpgradeName defines the on-chain upgrade name for the virgil upgrade.
+	UpgradeName = "virgil"
 
-	// AeneidUpgradeHeight defines the block height at which the Aeneid singularity v1 upgrade is triggered.
+	// AeneidUpgradeHeight defines the block height at which virgil upgrade is triggered on Aeneid.
 	AeneidUpgradeHeight = 345158
-	// StoryUpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
+	// StoryUpgradeHeight defines the block height at which virgil upgrade is triggered on Story.
 	StoryUpgradeHeight = 677886
 )
 
@@ -27,7 +27,7 @@ var Upgrade = upgrades.Upgrade{
 
 var Fork = upgrades.Fork{
 	UpgradeName: UpgradeName,
-	UpgradeInfo: "singularity upgrade to change the duration of the short staking period",
+	UpgradeInfo: "upgrade to change the duration of the short staking period during the singularity period",
 	// UpgradeHeight is set in `scheduleForkUpgrade`
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
 }

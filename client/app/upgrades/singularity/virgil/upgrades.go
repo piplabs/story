@@ -1,4 +1,4 @@
-package v1
+package virgil
 
 import (
 	"context"
@@ -33,10 +33,10 @@ func CreateUpgradeHandler(
 		// Check if the upgrade is needed for current chain
 		chainID := sdkCtx.ChainID()
 		if _, ok := GetUpgradeHeight(chainID); !ok {
-			log.Info(ctx, "Singularity v1 upgrade not needed for current chain, skip", "ChainID", chainID)
+			log.Info(ctx, "Virgil upgrade not needed for current chain, skip", "ChainID", chainID)
 			return vm, nil
 		}
-		log.Info(ctx, "Start singularity v1 upgrade", "ChainID", chainID)
+		log.Info(ctx, "Start Virgil upgrade", "ChainID", chainID)
 
 		log.Info(ctx, "Get current staking params...")
 		stakingParams, err := keepers.StakingKeeper.GetParams(ctx)
@@ -141,7 +141,7 @@ func CreateUpgradeHandler(
 			}
 		}
 
-		log.Info(ctx, "Singularity upgrade v1 complete")
+		log.Info(ctx, "Virgil upgrade complete")
 
 		return vm, nil
 	}
