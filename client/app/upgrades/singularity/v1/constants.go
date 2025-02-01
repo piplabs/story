@@ -27,7 +27,7 @@ var Upgrade = upgrades.Upgrade{
 
 var Fork = upgrades.Fork{
 	UpgradeName: UpgradeName,
-	UpgradeInfo: "singularity upgrade to change singularity height and the duration of the short staking period",
+	UpgradeInfo: "singularity upgrade to change the duration of the short staking period",
 	// UpgradeHeight is set in `scheduleForkUpgrade`
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
 }
