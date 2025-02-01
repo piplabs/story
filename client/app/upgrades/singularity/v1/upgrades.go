@@ -20,9 +20,9 @@ const (
 	NewShortPeriodDuration = time.Second * 7776000 // 90 days
 
 	// NewAeneidSingularityHeight defines the block height at which the Aeneid singularity period ends.
-	NewAeneidSingularityHeight = 1_500_000
+	NewAeneidSingularityHeight = 360158
 	// NewStorySingularityHeight defines the block height at which the Story singularity period ends.
-	NewStorySingularityHeight = 1_500_000
+	NewStorySingularityHeight = 1196110
 )
 
 func GetNewSingularityHeight(chainID string) (uint64, bool) {

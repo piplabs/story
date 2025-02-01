@@ -14,9 +14,9 @@ const (
 	UpgradeName = "singularity_v1"
 
 	// AeneidUpgradeHeight defines the block height at which the Aeneid singularity v1 upgrade is triggered.
-	AeneidUpgradeHeight = 1_000_000
+	AeneidUpgradeHeight = 345158
 	// StoryUpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
-	StoryUpgradeHeight = 1_000_000
+	StoryUpgradeHeight = 677886
 )
 
 var Upgrade = upgrades.Upgrade{
