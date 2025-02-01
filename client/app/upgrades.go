@@ -8,14 +8,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/upgrades"
+	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 )
 
 var (
 	// `Upgrades` defines the upgrade handlers and store loaders for the application.
 	// New upgrades should be added to this slice after they are implemented.
-	Upgrades = []upgrades.Upgrade{}
+	Upgrades = []upgrades.Upgrade{
+		virgil.Upgrade,
+	}
 	// Forks are for hard forks that breaks backward compatibility.
-	Forks = []upgrades.Fork{}
+	Forks = []upgrades.Fork{
+		virgil.Fork,
+	}
 )
 
 func (a *App) setupUpgradeHandlers() {
@@ -54,7 +59,18 @@ func (a *App) setupUpgradeStoreLoaders() {
 func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 	currentBlockHeight := ctx.BlockHeight()
 	for _, fork := range Forks {
-		if currentBlockHeight == fork.UpgradeHeight {
+		upgradeHeight := fork.UpgradeHeight
+		// Retrieve the upgrade height dynamically based on the network for virgil upgrade
+		if fork.UpgradeName == virgil.UpgradeName {
+			virgilUpgradeHeight, ok := virgil.GetUpgradeHeight(ctx.ChainID())
+			if !ok {
+				// Virgil upgrade not needed for current chain, skip
+				continue
+			}
+			upgradeHeight = virgilUpgradeHeight
+		}
+
+		if currentBlockHeight == upgradeHeight {
 			upgradePlan := upgradetypes.Plan{
 				Height: currentBlockHeight,
 				Name:   fork.UpgradeName,
