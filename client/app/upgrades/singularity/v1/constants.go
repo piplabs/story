@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,7 +19,7 @@ const (
 	// StoryUpgradeHeight defines the block height at which the Story singularity v1 upgrade is triggered.
 	StoryUpgradeHeight = 677886
 
-	LocalnetUpgradeHeight = 400
+	LocalnetUpgradeHeight = 100
 )
 
 var Upgrade = upgrades.Upgrade{
@@ -36,11 +37,13 @@ var Fork = upgrades.Fork{
 
 func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
+	fmt.Println("chainID:", chainID)
 	case upgrades.AeneidChainID:
 		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
 		return StoryUpgradeHeight, true
     case upgrades.LocalnetChainID:
+		fmt.Println("LocalnetChainID:", upgrades.LocalnetChainID)
 		return LocalnetUpgradeHeight, true
 	default:
 		return 0, false

@@ -58,8 +58,11 @@ func (a *App) setupUpgradeStoreLoaders() {
 //  2. Release the software defined in the upgrade-info.
 func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 	currentBlockHeight := ctx.BlockHeight()
+	ctx.Logger().Info("Checking fork upgrades", "currentBlockHeight", currentBlockHeight)
 	for _, fork := range Forks {
 		upgradeHeight := fork.UpgradeHeight
+		ctx.Logger().Info("Processing fork", "UpgradeName", fork.UpgradeName, "DefinedUpgradeHeight", upgradeHeight)
+
 		// Retrieve the upgrade height dynamically based on the network for singularity v1 upgrade
 		if fork.UpgradeName == singularityv1.UpgradeName {
 			singularityV1UpgradeHeight, ok := singularityv1.GetUpgradeHeight(ctx.ChainID())
