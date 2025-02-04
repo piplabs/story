@@ -4,7 +4,7 @@ ARG VERSION=""
 ARG BUILDNUM=""
 
 # Build Geth in a stock Go builder container
-FROM golang:1.22.10-alpine as builder
+FROM golang:1.22.11-alpine as builder
 
 # Set the Current Working Directory inside the container
 WORKDIR /story
