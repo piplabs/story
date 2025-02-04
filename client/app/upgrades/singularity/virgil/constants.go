@@ -18,6 +18,8 @@ const (
 	AeneidUpgradeHeight = 345158
 	// StoryUpgradeHeight defines the block height at which virgil upgrade is triggered on Story.
 	StoryUpgradeHeight = 809988
+	// DevnetUpgradeHeight defines the block height at which virgil upgrade is triggered on Internal Devnet.
+	DevnetUpgradeHeight = 300
 )
 
 var Upgrade = upgrades.Upgrade{
@@ -59,6 +61,12 @@ var DefaultRewardsMultiplier = RewardsMultipliers{
 func GetRewardsMultipliers(chainID string) RewardsMultipliers {
 	switch chainID {
 	case upgrades.StoryChainID:
+		return RewardsMultipliers{
+			Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
+			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
+			Long:   math.LegacyNewDecWithPrec(20, 1), // 2
+		}
+	case upgrades.DevnetChainID:
 		return RewardsMultipliers{
 			Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
 			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
