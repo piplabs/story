@@ -45,6 +45,7 @@ func CreateUpgradeHandler(
 		}
 
 		log.Info(ctx, "Update staking periods...")
+		newRewardsMultiplier := GetRewardsMultipliers(chainID)
 		var oldShortPeriodDuration time.Duration
 		for i := range stakingParams.Periods {
 			if stakingParams.Periods[i].PeriodType == 1 {
@@ -52,10 +53,16 @@ func CreateUpgradeHandler(
 				log.Info(ctx, "Existing short period duration", "Time", oldShortPeriodDuration.String())
 				log.Info(ctx, "Change short period duration to 90 days (7776000 seconds)")
 				stakingParams.Periods[i].Duration = NewShortPeriodDuration
+				log.Info(ctx, "Change short period rewards multiplier", "new_multiplier", newRewardsMultiplier.Short.String())
+				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Short
 			} else if stakingParams.Periods[i].PeriodType == 2 {
 				log.Info(ctx, "Existing medium period duration", "Time", stakingParams.Periods[i].Duration.String())
+				log.Info(ctx, "Change medium period rewards multiplier", "new_multiplier", newRewardsMultiplier.Medium.String())
+				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Medium
 			} else if stakingParams.Periods[i].PeriodType == 3 {
 				log.Info(ctx, "Existing long period duration", "Time", stakingParams.Periods[i].Duration.String())
+				log.Info(ctx, "Change long period rewards multiplier", "new_multiplier", newRewardsMultiplier.Long.String())
+				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Long
 			}
 		}
 
@@ -71,15 +78,24 @@ func CreateUpgradeHandler(
 		}
 
 		for _, p := range stakingParams.Periods {
-			if p.PeriodType == 1 {
+			if p.PeriodType == 1 { //nolint:nestif // no issue
 				log.Info(ctx, "New short period duration", "Time", p.Duration.String())
 				if p.Duration != NewShortPeriodDuration {
 					return vm, errors.New("new short period duration is not correct")
 				}
+				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Short) {
+					return vm, errors.New("new short period rewards multiplier is not correct")
+				}
 			} else if p.PeriodType == 2 {
 				log.Info(ctx, "New medium period duration", "Time", p.Duration.String())
+				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Medium) {
+					return vm, errors.New("new medium period rewards multiplier is not correct")
+				}
 			} else if p.PeriodType == 3 {
 				log.Info(ctx, "New long period duration", "Time", p.Duration.String())
+				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Long) {
+					return vm, errors.New("new long period rewards multiplier is not correct")
+				}
 			}
 		}
 

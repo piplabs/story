@@ -1,6 +1,7 @@
 package virgil
 
 import (
+	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,6 +33,12 @@ var Fork = upgrades.Fork{
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
 }
 
+type RewardsMultipliers struct {
+	Short  math.LegacyDec
+	Medium math.LegacyDec
+	Long   math.LegacyDec
+}
+
 func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
 	case upgrades.AeneidChainID:
@@ -40,5 +47,24 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 		return StoryUpgradeHeight, true
 	default:
 		return 0, false
+	}
+}
+
+var DefaultRewardsMultiplier = RewardsMultipliers{
+	Short:  math.LegacyNewDecWithPrec(1051, 3), // 1.051
+	Medium: math.LegacyNewDecWithPrec(116, 2),  // 1.16
+	Long:   math.LegacyNewDecWithPrec(134, 2),  // 1.34
+}
+
+func GetRewardsMultipliers(chainID string) RewardsMultipliers {
+	switch chainID {
+	case upgrades.StoryChainID:
+		return RewardsMultipliers{
+			Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
+			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
+			Long:   math.LegacyNewDecWithPrec(20, 1), // 2
+		}
+	default:
+		return DefaultRewardsMultiplier
 	}
 }
