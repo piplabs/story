@@ -17,7 +17,7 @@ const (
 	// AeneidUpgradeHeight defines the block height at which virgil upgrade is triggered on Aeneid.
 	AeneidUpgradeHeight = 345158
 	// StoryUpgradeHeight defines the block height at which virgil upgrade is triggered on Story.
-	StoryUpgradeHeight = 677886
+	StoryUpgradeHeight = 809988
 )
 
 var Upgrade = upgrades.Upgrade{
