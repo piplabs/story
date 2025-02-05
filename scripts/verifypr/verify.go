@@ -118,7 +118,7 @@ func verify(commitMsg string) error {
 }
 
 func verifyDescription(description string) error {
-	const maxLen = 50
+	const maxLen = 80
 	if len(description) > maxLen {
 		return errors.New("description too long")
 	}
