@@ -19,7 +19,7 @@ const (
 	// StoryUpgradeHeight defines the block height at which virgil upgrade is triggered on Story.
 	StoryUpgradeHeight = 809988
 	// DevnetUpgradeHeight defines the block height at which virgil upgrade is triggered on Internal Devnet.
-	DevnetUpgradeHeight = 800
+	DevnetUpgradeHeight = 100
 )
 
 var Upgrade = upgrades.Upgrade{
