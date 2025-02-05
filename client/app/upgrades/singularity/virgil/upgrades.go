@@ -16,7 +16,7 @@ import (
 
 const (
 	// NewShortPeriodDuration defines the duration of the new short period.
-	NewShortPeriodDuration = time.Second * 7776000 // 90 days
+	NewShortPeriodDuration = time.Second * 60 // internal-devnet 60s
 )
 
 func CreateUpgradeHandler(
