@@ -68,12 +68,12 @@ func GetRewardsMultipliers(chainID string) RewardsMultipliers {
 			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
 			Long:   math.LegacyNewDecWithPrec(20, 1), // 2
 		}
-	case upgrades.DevnetChainID:
-		return RewardsMultipliers{
-			Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
-			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
-			Long:   math.LegacyNewDecWithPrec(20, 1), // 2
-		}
+	// case upgrades.DevnetChainID:
+	// 	return RewardsMultipliers{
+	// 		Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
+	// 		Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
+	// 		Long:   math.LegacyNewDecWithPrec(20, 1), // 2
+	// 	}
 	default:
 		return DefaultRewardsMultiplier
 	}
