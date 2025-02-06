@@ -20,9 +20,9 @@ import { Secp256k1Verifier } from "./Secp256k1Verifier.sol";
  * 1. User calls a method in this contract, which will emit an event if checks pass.
  * 2. Modules on the consensus chain are listening for these events and execute the corresponding logic
  * (e.g. staking, create validator, etc.), minting tokens in CL if needed.
- * 3. If the action fails in CL, for example staking on a validator that doesn't exist, the deposited $IP tokens will be
- * returned to the user via the partial withdrawal queue, which may take some time. Same with fees. Remember that the EL
- * transaction of step 2 would not have reverted.
+ * 3. If the action fails in CL, for example staking on a validator that doesn't exist, the deposited $IP tokens will
+ * not be refunded to the user. Remember that the EL transaction of step 2 would not have reverted. So please be
+ * cautious when making transactions with this contract.
  */
 contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Secp256k1Verifier {
     using EnumerableSet for EnumerableSet.AddressSet;
