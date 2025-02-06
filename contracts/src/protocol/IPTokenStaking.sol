@@ -193,7 +193,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Entry point for creating a new validator with self delegation.
     /// @dev The caller must provide the compressed public key that matches the expected EVM address.
     /// Use this method to make sure the caller is the owner of the validator.
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param moniker The moniker of the validator.
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
@@ -221,7 +221,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     }
 
     /// @dev Validator is the delegator when creating a new validator (self-delegation).
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param moniker The moniker of the validator.
     /// @param commissionRate The commission rate of the validator.
     /// @param maxCommissionRate The maximum commission rate of the validator.
@@ -266,7 +266,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Update the commission rate of a validator.
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param commissionRate The new commission rate of the validator.
     function updateValidatorCommission(
         bytes calldata validatorCmpPubkey,
@@ -284,7 +284,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// the deposit and manages the stake accounting and validator onboarding. Payer must be the delegator.
     /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
     /// withdrawal queue.
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param stakingPeriod The staking period.
     /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
@@ -302,7 +302,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Staking burns tokens in Execution Layer (EL). Unstaking (withdrawal) will trigger minting through
     /// withdrawal queue.
     /// @param delegator The delegator's address
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param stakingPeriod The staking period.
     /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
@@ -318,7 +318,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Creates a validator (x/staking.MsgCreateValidator) if it does not exist. Then delegates the stake to the
     /// validator (x/staking.MsgDelegate).
     /// @param delegator The delegator's address
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param stakingPeriod The staking period.
     /// @param data Additional data for the stake.
     /// @return delegationId The delegation ID, always 0 for flexible staking.
@@ -353,8 +353,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice Entry point for redelegating the stake to another validator.
     /// @dev For non flexible staking, your staking period will continue as is.
     /// @dev For locked tokens, this will fail in CL if the validator doesn't support unlocked staking.
-    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
-    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key of source validator.
+    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key of destination validator.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount The amount of stake to redelegate.
     function redelegate(
@@ -372,8 +372,8 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
     /// this method will succeed even if the caller is not the operator (but will fail in CL).
     /// @param delegator The delegator's address
-    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key.
-    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorSrcCmpPubkey 33 bytes compressed secp256k1 public key of source validator.
+    /// @param validatorDstCmpPubkey 33 bytes compressed secp256k1 public key of destination validator.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount The amount of stake to redelegate.
     function redelegateOnBehalf(
@@ -420,7 +420,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Entry point for unstaking the previously staked token.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
     /// @param data Additional data for the unstake.
@@ -437,7 +437,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
     /// this method will succeed even if the caller is not the operator (but will fail in CL).
     /// @param delegator The delegator's address
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param delegationId The delegation ID, 0 for flexible staking.
     /// @param amount Token amount to unstake.
     /// @param data Additional data for the unstake.
@@ -482,7 +482,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
 
     /// @notice Requests to unjail the validator on behalf of the delegator.
     /// @dev Must be an approved operator for the delegator.
-    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
+    /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param data Additional data for the unjail.
     function unjailOnBehalf(
         bytes calldata validatorCmpPubkey,
