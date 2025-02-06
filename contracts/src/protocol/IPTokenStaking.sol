@@ -135,7 +135,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         emit MinUnstakeAmountSet(minUnstakeAmount);
     }
 
-    /// @dev Sets the minimum glolbal commission rate for validators.
+    /// @dev Sets the minimum global commission rate for validators.
     /// @param newValue The new minimum commission rate.
     function _setMinCommissionRate(uint256 newValue) private {
         require(newValue > 0, "IPTokenStaking: Zero min commission rate");
