@@ -154,9 +154,9 @@ This message is expected to fail if:
 - execution payload's timestamp is invalid
 - execution payload's RANDAO does not match CL head's hash (ie. parent hash)
 - execution payload's `Withdrawals`, `BlobGasUsed`, and `ExcessBlobGas` fields are nil
-- execution payload's `Withdrawals` count does not match local node's sum of dequeued stake & reward withdrawls
+- execution payload's `Withdrawals` count does not match local node's sum of dequeued stake & reward withdrawals
 
-The message must contain previous block's events, which gets processed at the current CL block (in other words, execution events from EL block n-1 are procssed at CL block n). In the future, the message will remove `prev_payload_events` and rely on Engine API to get the current finalized EL block's events.
+The message must contain previous block's events, which gets processed at the current CL block (in other words, execution events from EL block n-1 are processed at CL block n). In the future, the message will remove `prev_payload_events` and rely on Engine API to get the current finalized EL block's events.
 
 Also note that EVM events are processed in CL in the order they are generated in EL.
 

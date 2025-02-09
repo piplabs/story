@@ -1,4 +1,4 @@
-i# `evmstaking`
+# `evmstaking`
 
 ## Abstract
 
@@ -119,14 +119,48 @@ These operations incur a fixed gas cost to prevent spam.
 
 - Update Validator Commission: update the validator commission.
 - Set Withdrawal Address: delegator can modify their withdrawal address for future unstakes/undelegations.
-- Set Reward Address: delegator can modify their withdrawl address for future reward emissions.
-- Set Operator: delegator can modify their operator with privileges of delegation, undelegation, and redelgation.
+- Set Reward Address: delegator can modify their withdrawal address for future reward emissions.
+- Set Operator: delegator can modify their operator with privileges of delegation, undelegation, and redelegation.
 - Unset Operator: delegator can remove operator.
 
 These operations incur a fixed gas cost to prevent spam.
 
-## Withdrawing Delegations
+## Withdrawal
 
-## Withdrawing Rewards
+Both withdrawal queues hold withdrawals of type:
 
-## Withdrawing UBI
+```protobuf
+message Withdrawal {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_getters) = false;
+
+  uint64 creation_height = 1;
+  string execution_address = 2 [
+    (cosmos_proto.scalar) = "cosmos.AddressString",
+    (gogoproto.moretags) = "yaml:\"execution_address\""
+  ];
+  uint64 amount = 3 [
+    (gogoproto.moretags) = "yaml:\"amount\""
+  ];
+  WithdrawalType withdrawal_type = 4 [
+    (gogoproto.moretags) = "yaml:\"withdrawal_type\""
+  ];
+  string validator_address = 5 [
+    (gogoproto.moretags) = "yaml:\"validator_address\""
+  ];
+}
+```
+
+- `creation_height` is the block height at which the withdrawal is created.
+- `execution_address` is the EVM address receiving the withdrawn fund, which is burned in CL.
+- `amount` is the amount to burn on CL and mint on EL.
+- `withdrawal_type` is the type of withdrawal: $0$ for unstakes, $1$ for reward, and $2$ for UBI.
+- `validator_address` is the EVM validator address.
+
+### Withdrawing Delegations
+
+Delegations that have unbonded after 14 days of unbonding period (ie. unbonded entries) gets added to the (stake) withdrawal queue at the end of each block. If validator is totally-unstaked, ie. all delegations and self-delegations are unbonded, then validator's commission is also withdrawn.
+
+### Withdrawing Rewards
+
+Inflation rewards allocated to delegations are auto-swept at the end of each block. If a delegation's accrued reward is greater than the parameterized threshold, the reward is added to the reward withdrawal queue to be credited to the delegator's EVM reward address.
