@@ -583,7 +583,7 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators
 }
 ```
 
-## GetDelegartorValidator
+## GetDelegatorValidator
 
 URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 
