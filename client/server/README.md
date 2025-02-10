@@ -125,23 +125,23 @@ URL: [GET] /staking/pool
 URL: [GET] /staking/historical_info/{height}
 
 ### Path Params
-| Name   | Type    | Example | Require |
-|--------|---------|---------|---------|
-| height | integer | 1       | ✔       |
+| Name   | Type    | Example | Required |
+|--------|---------|---------|----------|
+| height | integer | 1       | ✔        |
 
 ## GetValidators
 
 URL: [GET] /staking/validators
 
 ### Query Params
-| Name                | Type    | Example                                    | Required |
-|---------------------|---------|--------------------------------------------|----------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
-| pagination.offset   | string  | 0                                          |          |
-| pagination.limit    | string  | 10                                         |          |
-| pagination.count_total | boolean | true                                 |          |
-| pagination.reverse  | boolean | true                                     |          |
-| status              | string  |                                            |          |
+| Name                   | Type    | Example                      | Required |
+|------------------------|---------|------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur |          |
+| pagination.offset      | string  | 0                            |          |
+| pagination.limit       | string  | 10                           |          |
+| pagination.count_total | boolean | true                         |          |
+| pagination.reverse     | boolean | true                         |          |
+| status                 | string  | 3                            |          |
 
 ### Response Example
 ```json
@@ -317,13 +317,13 @@ URL: [GET] /staking/validators/{validator_addr}/delegations
 | validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Required |
-|---------------------|---------|--------------------------------------------|----------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
-| pagination.offset   | string  | 0                                          |          |
-| pagination.limit    | string  | 10                                         |          |
-| pagination.count_total | boolean | true                                 |          |
-| pagination.reverse  | boolean | true                                     |          |
+| Name                   | Type    | Example                      | Required |
+|------------------------|---------|------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur |          |
+| pagination.offset      | string  | 0                            |          |
+| pagination.limit       | string  | 10                           |          |
+| pagination.count_total | boolean | true                         |          |
+| pagination.reverse     | boolean | true                         |          |
 
 ### Response Example
 ```json
@@ -357,10 +357,10 @@ URL: [GET] /staking/validators/{validator_addr}/delegations
 URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Response Example
 ```json
@@ -389,19 +389,19 @@ URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
 URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name               | Type    | Example               | Require |
-|--------------------|---------|-----------------------|---------|
-| pagination.key     | string  | FPoybu9dO+FCSV562u9keKVgUwur |         |
-| pagination.offset  | string  | 0                     |         |
-| pagination.limit   | array   | 10                    |         |
-| pagination.count_total | boolean | true             |         |
-| pagination.reverse | boolean | true                  |         |
+| Name                   | Type    | Example                      | Required |
+|------------------------|---------|------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur |          |
+| pagination.offset      | string  | 0                            |          |
+| pagination.limit       | string  | 10                           |          |
+| pagination.count_total | boolean | true                         |          |
+| pagination.reverse     | boolean | true                         |          |
 
 ### Response Example
 ```json
@@ -438,11 +438,11 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/period_delegations/{period_delegation_id}
 
 ### Path Params
-| Name                 | Type   | Example                                      | Require |
-|----------------------|--------|----------------------------------------------|---------|
-| validator_addr       | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| delegator_addr       | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| period_delegation_id | string | 0                                            | ✔       |
+| Name                 | Type   | Example                                      | Required |
+|----------------------|--------|----------------------------------------------|----------|
+| validator_addr       | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| delegator_addr       | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| period_delegation_id | string | 0                                            | ✔        |
 
 ### Response Example
 ```json
@@ -473,18 +473,18 @@ URL: [GET] /staking/validators/{validator_addr}/delegators/{delegator_addr}/peri
 URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Require |
-|---------------------|---------|--------------------------------------------|---------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |         |
-| pagination.offset   | string  | 0                                          |         |
-| pagination.limit    | string  | 10                                         |         |
-| pagination.count_total | boolean | true                                 |         |
-| pagination.reverse  | boolean | true                                       |         |
+| Name                   | Type       | Example                                    | Required |
+|------------------------|------------|--------------------------------------------|----------|
+| pagination.key         | string     | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string     | 0                                          |          |
+| pagination.limit       | string     | 10                                         |          |
+| pagination.count_total | boolean    | true                                       |          |
+| pagination.reverse     | boolean    | true                                       |          |
 
 ### Response Example
 ```json
@@ -519,28 +519,28 @@ URL: [GET] /staking/validators/{validator_addr}/unbonding_delegations
 URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}/unbonding_delegation
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ## GetDelegatorValidators
 
 URL: [GET] /staking/delegators/{delegator_addr}/validators
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Require |
-|---------------------|---------|--------------------------------------------|---------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |         |
-| pagination.offset   | string  | 0                                          |         |
-| pagination.limit    | array   | 10                                         |         |
-| pagination.count_total | boolean | true                                 |         |
-| pagination.reverse  | boolean | true                                       |         |
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | array   | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
 
 ### Response Example
 ```json
@@ -588,10 +588,10 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators
 URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Response Example
 ```json
@@ -639,18 +639,18 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 URL: [GET] /staking/delegations/{delegator_addr}
 
 ### Path Params
-| Name           | Type   | Example                                      | Require |
-|----------------|--------|----------------------------------------------|---------|
-| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Required |
-|---------------------|---------|--------------------------------------------|----------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
-| pagination.offset   | string  | 0                                          |          |
-| pagination.limit    | string  | 10                                         |          |
-| pagination.count_total | boolean | true                                 |          |
-| pagination.reverse  | boolean | true                                       |          |
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | string  | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
 
 ### Response Example
 ```json
@@ -689,15 +689,15 @@ URL: [GET] /staking/delegators/{delegator_addr}/redelegations
 | delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name               | Type    | Example                                    | Require |
-|--------------------|---------|--------------------------------------------|---------|
-| pagination.key     | string  | FPoybu9dO+FCSV562u9keKVgUwur               |         |
-| pagination.offset  | string  | 0                                          |         |
-| pagination.limit   | array   | 10                                         |         |
-| pagination.count_total | boolean | true                                 |         |
-| pagination.reverse | boolean | true                                       |         |
-| src_validator_addr | string  | 0x87f3cc50c84005f7130d37b849f6a71e05a8bf1f |         |
-| dst_validator_addr | string  | 0xc47c28f925179089b6b7b1b336ac1f943b240066 |         |
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | array   | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
+| src_validator_addr     | string  | 0x87f3cc50c84005f7130d37b849f6a71e05a8bf1f |          |
+| dst_validator_addr     | string  | 0xc47c28f925179089b6b7b1b336ac1f943b240066 |          |
 
 ## GetDelegatorUnbondingDelegations
 
@@ -709,13 +709,13 @@ URL: [GET] /staking/delegators/{delegator_addr}/unbonding_delegations
 | delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Require |
-|---------------------|---------|--------------------------------------------|---------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |         |
-| pagination.offset   | string  | 0                                          |         |
-| pagination.limit    | array   | 10                                         |         |
-| pagination.count_total | boolean | true                                 |         |
-| pagination.reverse  | boolean | true                                       |         |
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | array   | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
 
 # Auth Module
 
@@ -922,15 +922,15 @@ URL: [GET] /distribution/validators/{validator_address}/slashes
 | validator_address| string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Query Params
-| Name                | Type    | Example                                    | Required |
-|---------------------|---------|--------------------------------------------|----------|
-| pagination.key      | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
-| pagination.offset   | string  | 0                                          |          |
-| pagination.limit    | string  | 10                                         |          |
-| pagination.count_total | boolean | true                                 |          |
-| pagination.reverse  | boolean | true                                     |          |
-| starting_height     | string  | 1                                          |          |
-| ending_height       | string  | 100                                        |          |
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | string  | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
+| starting_height        | string  | 1                                          |          |
+| ending_height          | string  | 100                                        |          |
 
 ### Response Example
 ```json
@@ -949,9 +949,9 @@ URL: [GET] /distribution/validators/{validator_address}/slashes
 URL: [GET] /distribution/validators/{validator_address}
 
 ### Path Params
-| Name             | Type   | Example                                      | Require |
-|------------------|--------|----------------------------------------------|---------|
-| validator_address| string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name             | Type   | Example                                      | Required |
+|------------------|--------|----------------------------------------------|----------|
+| validator_address| string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Response Example
 ```json
@@ -981,9 +981,9 @@ URL: [GET] /distribution/validators/{validator_address}
 URL: [GET] /distribution/delegators/{delegator_address}/validators
 
 ### Path Params
-| Name              | Type   | Example                                      | Require |
-|-------------------|--------|----------------------------------------------|---------|
-| delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔       |
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | story1f5zuqhmwy39cv64g6laeeg264ydz06txlfqtg3 | ✔        |
 
 ### Response Example
 ```json
@@ -1003,9 +1003,9 @@ URL: [GET] /distribution/delegators/{delegator_address}/validators
 URL: [GET] /distribution/delegators/{delegator_address}/rewards
 
 ### Path Params
-| Name              | Type   | Example                                      | Require |
-|-------------------|--------|----------------------------------------------|---------|
-| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Response Example
 ```json
@@ -1039,10 +1039,10 @@ URL: [GET] /distribution/delegators/{delegator_address}/rewards
 URL: [GET] /distribution/delegators/{delegator_address}/rewards/{validator_address}
 
 ### Path Params
-| Name              | Type   | Example                                      | Require |
-|-------------------|--------|----------------------------------------------|---------|
-| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
-| validator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔       |
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+| validator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 ### Response Example
 ```json
@@ -1109,9 +1109,9 @@ URL: [GET] /slashing/params
 URL: [GET] /slashing/signing_infos/{pubkey}
 
 ### Path Params
-| Name   | Type   | Example                                                                 | Require |
-|--------|--------|-------------------------------------------------------------------------|---------|
-| pubkey | string | 0x03351618ca2810cf761fc44220ea976e3b5b7aeafedab3b380ff53fee9a77f5780    | ✔       |
+| Name   | Type   | Example                                                                 | Required |
+|--------|--------|-------------------------------------------------------------------------|----------|
+| pubkey | string | 0x03351618ca2810cf761fc44220ea976e3b5b7aeafedab3b380ff53fee9a77f5780    | ✔        |
 
 # Upgrade Module
 
@@ -1120,9 +1120,9 @@ URL: [GET] /slashing/signing_infos/{pubkey}
 URL: [GET] /upgrade/applied_plan/{name}
 
 ### Path Params
-| Name | Type   | Example   | Require |
-|------|--------|-----------|---------|
-| name | string | upgrade-1 |    ✔    |
+| Name | Type   | Example   | Required |
+|------|--------|-----------|----------|
+| name | string | upgrade-1 |    ✔     |
 
 ## GetAuthority
 
@@ -1137,6 +1137,6 @@ URL: [GET] /upgrade/current_plan
 URL: [GET] /upgrade/module_versions
 
 ### Query Params
-| Name        | Type   | Example | Require |
-|-------------|--------|---------|---------|
-| module_name | string | staking |    ✔    |
+| Name        | Type   | Example | Required |
+|-------------|--------|---------|----------|
+| module_name | string | staking |    ✔     |
