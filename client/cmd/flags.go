@@ -174,6 +174,11 @@ func bindValidatorUnjailOnBehalfFlags(cmd *cobra.Command, cfg *unjailConfig) {
 	cmd.Flags().StringVar(&cfg.ValidatorPubKey, "validator-pubkey", "", "Validator's hex-encoded compressed 33-byte secp256k1 public key")
 }
 
+func bindValidatorUpdateCommissionFlags(cmd *cobra.Command, cfg *updateCommissionConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().Uint32Var(&cfg.CommissionRate, "commission-rate", 0, "Commission rate to update (e.g. 1000 for 10%)")
+}
+
 // Flag Validation
 
 func validateFlags(cmd *cobra.Command, flags []string) error {
@@ -278,6 +283,10 @@ func validateValidatorUnjailFlags(cmd *cobra.Command) error {
 
 func validateValidatorUnjailOnBehalfFlags(cmd *cobra.Command) error {
 	return validateFlags(cmd, []string{"validator-pubkey"})
+}
+
+func validateUpdateValidatorCommissionFlags(cmd *cobra.Command) error {
+	return validateFlags(cmd, []string{"commission-rate"})
 }
 
 func validateMinStakeAmount(ctx context.Context, cfg *stakeConfig) error {
