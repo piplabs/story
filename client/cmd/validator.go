@@ -115,6 +115,11 @@ type unjailConfig struct {
 	ValidatorPubKey string
 }
 
+type updateCommissionConfig struct {
+	baseConfig
+	CommissionRate uint32
+}
+
 type operatorConfig struct {
 	baseConfig
 	Operator string
@@ -165,6 +170,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorSetRewardsAddressCmd(),
 		newValidatorUnjailCmd(),
 		newValidatorUnjailOnBehalfCmd(),
+		newUpdateValidatorCommission(),
 	)
 
 	return cmd
@@ -480,6 +486,29 @@ func newValidatorUnjailOnBehalfCmd() *cobra.Command {
 	}
 
 	bindValidatorUnjailOnBehalfFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newUpdateValidatorCommission() *cobra.Command {
+	var cfg updateCommissionConfig
+
+	cmd := &cobra.Command{
+		Use:   "update-validator-commission",
+		Short: "Update the commission rate of validator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			validateUpdateValidatorCommissionFlags,
+			func(ctx context.Context) error {
+				return updateValidatorCommission(ctx, cfg)
+			},
+		),
+	}
+
+	bindValidatorUpdateCommissionFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -968,6 +997,40 @@ func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 	}
 
 	fmt.Println("Validator successfully unjailed on behalf of validator!")
+
+	return nil
+}
+
+func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	compressedValidatorPubKeyBytes, err := privKeyToCmpPubKey(privKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to get compressed pub key from private key")
+	}
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var updateCommissionFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&updateCommissionFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack updateValidatorCommissionFee")
+	}
+
+	fmt.Printf("Update validator commission fee: %s\n", updateCommissionFee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "updateValidatorCommission", updateCommissionFee, compressedValidatorPubKeyBytes, cfg.CommissionRate)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Validator commission successfully updated!")
 
 	return nil
 }
