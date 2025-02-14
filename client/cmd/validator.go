@@ -76,6 +76,7 @@ type baseConfig struct {
 	ChainID      int64
 	ABI          *abi.ABI
 	ContractAddr common.Address
+	API          string
 }
 
 type createValidatorConfig struct {
@@ -459,7 +460,10 @@ func newValidatorUnjailCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjail(ctx, cfg) },
 		),
 	}
@@ -480,7 +484,10 @@ func newValidatorUnjailOnBehalfCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailOnBehalfFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailOnBehalfFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjailOnBehalf(ctx, cfg) },
 		),
 	}
@@ -501,7 +508,10 @@ func newUpdateValidatorCommission() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateUpdateValidatorCommissionFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateUpdateValidatorCommissionFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error {
 				return updateValidatorCommission(ctx, cfg)
 			},
@@ -875,7 +885,6 @@ func redelegate(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
@@ -927,7 +936,6 @@ func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
