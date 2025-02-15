@@ -1,14 +1,23 @@
-name: Build and Push to Docker Hub
+name: -> PUSH to GitHub Container Registry
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag version to use if triggered manually'
+        required: true
+        default: 'latest'
   push:
     tags:
       - '*'
 
 jobs:
   # Build and upload the geth binary
+  timestamp:
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+
   build_and_push:
+    needs: timestamp
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +28,11 @@ jobs:
         run: |
           echo "REPOSITORY_URI=${{ vars.REPOSITORY_URI }}" >> $GITHUB_ENV
           echo "COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          fi
           echo "BUILDNUM=${{ github.run_number }}" >> $GITHUB_ENV
 
       - name: Setup Docker Buildx
@@ -29,8 +42,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ github.ref }}-${{ hashFiles('Dockerfile') }}
           restore-keys: |
+            ${{ runner.os }}-buildx-${{ github.ref }}-
             ${{ runner.os }}-buildx-
 
       - name: Log in to GitHub Container Registry
@@ -40,13 +54,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Dockerize the geth and bootnode binary
+      - name: Dockerize the story-node binary
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker buildx create --use
           docker buildx build \
-            --platform linux/amd64,linux/arm64,linux/arm64/v8 \
+            --platform linux/amd64,linux/arm64 \
             --build-arg BUILDNUM=$BUILDNUM \
             --build-arg COMMIT=$COMMIT \
             --build-arg VERSION=$VERSION \
