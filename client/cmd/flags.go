@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -144,6 +145,11 @@ func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
 	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
 }
 
+func bindValidatorGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
+	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+}
+
 func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 	defaultKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "priv_validator_key.json")
 	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
@@ -275,6 +281,15 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 
 func validateKeyConvertFlags(cmd *cobra.Command) error {
 	return validateFlags(cmd, []string{})
+}
+
+func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
+	// if there is an existing priv_validator_key.json file, do not overwrite it.
+	if _, err := os.Stat(cfg.ValidatorKeyFile); err == nil {
+		return errors.New("priv_validator_key.json file already exists")
+	}
+
+	return nil
 }
 
 func validateValidatorUnjailFlags(cmd *cobra.Command) error {
