@@ -151,8 +151,7 @@ type genPrivKeyJSONConfig struct {
 }
 
 func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		fmt.Println("Warning: No .env file found")
 	}
 }
@@ -1094,12 +1093,10 @@ func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) 
 }
 
 func initializeBaseConfig(cfg *baseConfig) error {
+	loadEnv()
+	cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
 	if cfg.PrivateKey == "" {
-		loadEnv()
-		cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
-		if cfg.PrivateKey == "" {
-			return errors.New("missing required flag", "private-key", "EVM private key")
-		}
+		return errors.New("missing required flag", "private-key", "EVM private key")
 	}
 
 	_, err := crypto.HexToECDSA(cfg.PrivateKey)
