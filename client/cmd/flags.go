@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -55,7 +56,6 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://storyrpc.io", "RPC URL to connect to the network")
-	cmd.Flags().StringVar(&cfg.PrivateKey, "private-key", "", "Private key used for the transaction")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
 }
@@ -142,6 +142,11 @@ func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
 	defaultEVMKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "private_key.txt")
 	cmd.Flags().BoolVar(&cfg.ExportEVMKey, "export-evm-key", false, "Export the EVM private key")
 	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
+}
+
+func bindValidatorGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
+	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 }
 
 func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
@@ -275,6 +280,15 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 
 func validateKeyConvertFlags(cmd *cobra.Command) error {
 	return validateFlags(cmd, []string{})
+}
+
+func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
+	// if there is an existing priv_validator_key.json file, do not overwrite it.
+	if _, err := os.Stat(cfg.ValidatorKeyFile); err == nil {
+		return errors.New("priv_validator_key.json file already exists")
+	}
+
+	return nil
 }
 
 func validateValidatorUnjailFlags(cmd *cobra.Command) error {
