@@ -710,6 +710,9 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) 
 	if err != nil {
 		return stypes.Validator{}, errors.Wrap(err, "failed to get validator")
 	}
+	if resp.StatusCode != http.StatusOK {
+		return stypes.Validator{}, errors.New("failed to get validator")
+	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
