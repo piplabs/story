@@ -227,13 +227,13 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract compressed pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -273,13 +273,13 @@ func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *s
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -303,13 +303,13 @@ func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -333,13 +333,13 @@ func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg 
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -363,13 +363,13 @@ func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Comma
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -393,13 +393,18 @@ func validateValidatorRedelegateFlags(ctx context.Context, cmd *cobra.Command, c
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorSrcPubKey, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	validatorDstPubKey, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	existSrc, err := isValidatorFound(ctx, cfg.API, validatorSrcPubKey)
@@ -409,11 +414,6 @@ func validateValidatorRedelegateFlags(ctx context.Context, cmd *cobra.Command, c
 
 	if !existSrc {
 		return errors.New("the src validator doesn't exist")
-	}
-
-	validatorDstPubKey, err := hex.DecodeString(cfg.ValidatorDstPubKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
 	existDst, err := isValidatorFound(ctx, cfg.API, validatorDstPubKey)
@@ -437,13 +437,18 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorSrcPubKey, err := hex.DecodeString(cfg.ValidatorSrcPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	validatorDstPubKey, err := hex.DecodeString(cfg.ValidatorDstPubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode hex-encoded pub key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	existSrc, err := isValidatorFound(ctx, cfg.API, validatorSrcPubKey)
@@ -453,11 +458,6 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 
 	if !existSrc {
 		return errors.New("the src validator doesn't exist")
-	}
-
-	validatorDstPubKey, err := hex.DecodeString(cfg.ValidatorDstPubKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
 	existDst, err := isValidatorFound(ctx, cfg.API, validatorDstPubKey)
@@ -490,10 +490,6 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode private key")
@@ -502,6 +498,10 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 	validatorPubKey, err := privKeyToCmpPubKey(privKeyBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to get compressed pub key from private key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -521,13 +521,13 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	validatorPubKey, err := hex.DecodeString(cfg.ValidatorPubKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode hex-encoded validator public key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
@@ -547,10 +547,6 @@ func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Comm
 		return err
 	}
 
-	if cfg.API == "" {
-		return nil
-	}
-
 	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode private key")
@@ -559,6 +555,10 @@ func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Comm
 	validatorPubKey, err := privKeyToCmpPubKey(privKeyBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to get compressed pub key from private key")
+	}
+
+	if cfg.API == "" {
+		return nil
 	}
 
 	exist, err := isValidatorFound(ctx, cfg.API, validatorPubKey)
