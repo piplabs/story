@@ -131,7 +131,7 @@ func MockGenesisBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "make next payload")
 	}
-	genesisBlock, err := engine.ExecutableDataToBlock(genesisPayload, nil, &parentBeaconRoot)
+	genesisBlock, err := engine.ExecutableDataToBlock(genesisPayload, nil, &parentBeaconRoot, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "executable data to block")
 	}
@@ -379,7 +379,7 @@ func (m *engineMock) ForkchoiceUpdatedV3(ctx context.Context, update engine.Fork
 	if head.Hash() != update.HeadBlockHash {
 		var found bool
 		for _, args := range m.payloads {
-			block, err := engine.ExecutableDataToBlock(args.params, nil, args.beaconRoot)
+			block, err := engine.ExecutableDataToBlock(args.params, nil, args.beaconRoot, nil)
 			if err != nil {
 				return engine.ForkChoiceResponse{}, errors.Wrap(err, "executable data to block")
 			}
@@ -474,11 +474,11 @@ func MakePayload(fuzzer *fuzz.Fuzzer, height uint64, timestamp uint64, parentHas
 	block := types.NewBlock(&header, &types.Body{Withdrawals: make([]*types.Withdrawal, 0)}, nil, trie.NewStackTrie(nil))
 
 	// Convert block to payload
-	env := engine.BlockToExecutableData(block, big.NewInt(0), nil)
+	env := engine.BlockToExecutableData(block, big.NewInt(0), nil, nil)
 	payload := *env.ExecutionPayload
 
 	// Ensure the block is valid
-	_, err := engine.ExecutableDataToBlock(payload, nil, beaconRoot)
+	_, err := engine.ExecutableDataToBlock(payload, nil, beaconRoot, nil)
 	if err != nil {
 		return engine.ExecutableData{}, errors.Wrap(err, "executable data to block")
 	}

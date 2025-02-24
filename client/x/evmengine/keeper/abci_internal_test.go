@@ -772,11 +772,11 @@ func (m *mockEngineAPI) nextBlock(
 	block := types.NewBlock(&header, &types.Body{Withdrawals: make([]*types.Withdrawal, 0)}, nil, trie.NewStackTrie(nil))
 
 	// Convert block to payload
-	env := eengine.BlockToExecutableData(block, big.NewInt(0), nil)
+	env := eengine.BlockToExecutableData(block, big.NewInt(0), nil, nil)
 	payload := *env.ExecutionPayload
 
 	// Ensure the block is valid
-	_, err := eengine.ExecutableDataToBlock(payload, nil, beaconRoot)
+	_, err := eengine.ExecutableDataToBlock(payload, nil, beaconRoot, nil)
 	require.NoError(t, err)
 
 	return block, payload

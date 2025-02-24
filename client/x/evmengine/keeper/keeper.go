@@ -193,6 +193,11 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 			"excess_blob_gas", payload.ExcessBlobGas)
 	}
 
+	// Ensure no witness
+	if payload.ExecutionWitness != nil {
+		return engine.ExecutableData{}, errors.New("witness not allowed in payload")
+	}
+
 	return payload, nil
 }
 
