@@ -67,7 +67,7 @@ func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
-	cmd.Flags().StringVar(&cfg.StoryAPI, "story-api", "https://mainnet.storyrpc.io", "URL of Story API server for some validations. Use empty string (\"\") for skipping validations.")
+	cmd.Flags().StringVar(&cfg.StoryAPI, "story-api", "", "URL of Story API server for some validations")
 }
 
 func bindValidatorCreateFlags(cmd *cobra.Command, cfg *createValidatorConfig) {
