@@ -80,7 +80,7 @@ type baseConfig struct {
 	ChainID      int64
 	ABI          *abi.ABI
 	ContractAddr common.Address
-	API          string
+	StakingAPI   string
 }
 
 type createValidatorConfig struct {
