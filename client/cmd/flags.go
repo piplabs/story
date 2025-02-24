@@ -233,6 +233,7 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -279,6 +280,7 @@ func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *s
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -309,6 +311,7 @@ func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -339,6 +342,7 @@ func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg 
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -369,6 +373,7 @@ func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Comma
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -404,6 +409,7 @@ func validateValidatorRedelegateFlags(ctx context.Context, cmd *cobra.Command, c
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -448,6 +454,7 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -501,6 +508,7 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -527,6 +535,7 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
@@ -558,6 +567,7 @@ func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Comm
 	}
 
 	if cfg.StakingAPI == "" {
+		fmt.Println("No staking API is provided. Skip validator existence check and validation of new commission rate.")
 		return nil
 	}
 
