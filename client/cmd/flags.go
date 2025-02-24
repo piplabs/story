@@ -686,11 +686,16 @@ func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig,
 	return nil
 }
 
+type Validator struct {
+	OperatorAddress string            `json:"operator_address"`
+	Commission      stypes.Commission `json:"commission"`
+}
+
 type ValidatorResponse struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
 	Msg   struct {
-		Validator stypes.Validator `json:"validator"`
+		Validator Validator `json:"validator"`
 	} `json:"msg"`
 }
 
@@ -705,34 +710,34 @@ func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool
 }
 
 // getValidatorByEVMAddr gets a validator with the given public key.
-func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) (stypes.Validator, error) {
+func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) (Validator, error) {
 	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
 	if err != nil {
-		return stypes.Validator{}, errors.Wrap(err, "failed to convert pub key to evm address")
+		return Validator{}, errors.Wrap(err, "failed to convert pub key to evm address")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/staking/validators/%s", endpoint, valEVMAddr), nil)
 	if err != nil {
-		return stypes.Validator{}, errors.Wrap(err, "failed to create request for getting validator")
+		return Validator{}, errors.Wrap(err, "failed to create request for getting validator")
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return stypes.Validator{}, errors.Wrap(err, "failed to get validator")
+		return Validator{}, errors.Wrap(err, "failed to get validator")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return stypes.Validator{}, errors.New("failed to get validator")
+		return Validator{}, errors.New("failed to get validator")
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return stypes.Validator{}, errors.Wrap(err, "failed to read response body")
+		return Validator{}, errors.Wrap(err, "failed to read response body")
 	}
 
 	var response ValidatorResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return stypes.Validator{}, errors.Wrap(err, "failed to unmarshal response")
+		return Validator{}, errors.Wrap(err, "failed to unmarshal response")
 	}
 
 	return response.Msg.Validator, nil

@@ -152,7 +152,7 @@ type genPrivKeyJSONConfig struct {
 }
 
 func loadEnv() {
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: No .env file found")
 	}
 }
