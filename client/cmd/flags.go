@@ -67,7 +67,7 @@ func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
-	cmd.Flags().StringVar(&cfg.StakingAPI, "staking-api", "https://mainnet.storyrpc.io", "URL of Staking API server for some validations. Use empty string (\"\") for skipping validations.")
+	cmd.Flags().StringVar(&cfg.StoryAPI, "story-api", "https://mainnet.storyrpc.io", "URL of Story API server for some validations. Use empty string (\"\") for skipping validations.")
 }
 
 func bindValidatorCreateFlags(cmd *cobra.Command, cfg *createValidatorConfig) {
@@ -232,12 +232,12 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return errors.Wrap(err, "failed to extract compressed pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -279,12 +279,12 @@ func validateValidatorStakeFlags(ctx context.Context, cmd *cobra.Command, cfg *s
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -310,12 +310,12 @@ func validateValidatorStakeOnBehalfFlags(ctx context.Context, cmd *cobra.Command
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -341,12 +341,12 @@ func validateValidatorUnstakeFlags(ctx context.Context, cmd *cobra.Command, cfg 
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -372,12 +372,12 @@ func validateValidatorUnstakeOnBehalfFlags(ctx context.Context, cmd *cobra.Comma
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -408,12 +408,12 @@ func validateValidatorRedelegateFlags(ctx context.Context, cmd *cobra.Command, c
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	existSrc, err := isValidatorFound(ctx, cfg.StakingAPI, validatorSrcPubKey)
+	existSrc, err := isValidatorFound(ctx, cfg.StoryAPI, validatorSrcPubKey)
 	if err != nil {
 		return err
 	}
@@ -422,7 +422,7 @@ func validateValidatorRedelegateFlags(ctx context.Context, cmd *cobra.Command, c
 		return errors.New("the src validator doesn't exist")
 	}
 
-	existDst, err := isValidatorFound(ctx, cfg.StakingAPI, validatorDstPubKey)
+	existDst, err := isValidatorFound(ctx, cfg.StoryAPI, validatorDstPubKey)
 	if err != nil {
 		return err
 	}
@@ -453,12 +453,12 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 		return errors.Wrap(err, "failed to decode hex-encoded pub key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	existSrc, err := isValidatorFound(ctx, cfg.StakingAPI, validatorSrcPubKey)
+	existSrc, err := isValidatorFound(ctx, cfg.StoryAPI, validatorSrcPubKey)
 	if err != nil {
 		return err
 	}
@@ -467,7 +467,7 @@ func validateValidatorRedelegateOnBehalfFlags(ctx context.Context, cmd *cobra.Co
 		return errors.New("the src validator doesn't exist")
 	}
 
-	existDst, err := isValidatorFound(ctx, cfg.StakingAPI, validatorDstPubKey)
+	existDst, err := isValidatorFound(ctx, cfg.StoryAPI, validatorDstPubKey)
 	if err != nil {
 		return err
 	}
@@ -507,12 +507,12 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return errors.Wrap(err, "failed to get compressed pub key from private key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -534,12 +534,12 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 		return errors.Wrap(err, "failed to decode hex-encoded validator public key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -566,12 +566,12 @@ func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Comm
 		return errors.Wrap(err, "failed to get compressed pub key from private key")
 	}
 
-	if cfg.StakingAPI == "" {
+	if cfg.StoryAPI == "" {
 		fmt.Println("No staking API is provided. Skip validator existence check and validation of new commission rate.")
 		return nil
 	}
 
-	exist, err := isValidatorFound(ctx, cfg.StakingAPI, validatorPubKey)
+	exist, err := isValidatorFound(ctx, cfg.StoryAPI, validatorPubKey)
 	if err != nil {
 		return err
 	}
@@ -659,7 +659,7 @@ func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) err
 }
 
 func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig, pubKey []byte) error {
-	validator, err := getValidatorByEVMAddr(ctx, cfg.StakingAPI, pubKey)
+	validator, err := getValidatorByEVMAddr(ctx, cfg.StoryAPI, pubKey)
 	if err != nil {
 		return err
 	}
