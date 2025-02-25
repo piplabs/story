@@ -80,6 +80,7 @@ type baseConfig struct {
 	ChainID      int64
 	ABI          *abi.ABI
 	ContractAddr common.Address
+	StoryAPI     string
 }
 
 type createValidatorConfig struct {
@@ -151,7 +152,7 @@ type genPrivKeyJSONConfig struct {
 }
 
 func loadEnv() {
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: No .env file found")
 	}
 }
@@ -491,7 +492,10 @@ func newValidatorUnjailCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjail(ctx, cfg) },
 		),
 	}
@@ -512,7 +516,10 @@ func newValidatorUnjailOnBehalfCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailOnBehalfFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailOnBehalfFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjailOnBehalf(ctx, cfg) },
 		),
 	}
@@ -533,7 +540,10 @@ func newUpdateValidatorCommission() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateUpdateValidatorCommissionFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateUpdateValidatorCommissionFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error {
 				return updateValidatorCommission(ctx, cfg)
 			},
@@ -932,7 +942,6 @@ func redelegate(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
@@ -984,7 +993,6 @@ func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
