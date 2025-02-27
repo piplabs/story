@@ -639,6 +639,7 @@ func validateMinRedelegateAmount(ctx context.Context, cfg *redelegateConfig) err
 
 func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) error {
 	commissionRate := new(big.Int).SetUint64(uint64(cfg.CommissionRate))
+	maxCommissionChangeRate := new(big.Int).SetUint64(uint64(cfg.MaxCommissionChangeRate))
 
 	minCommissionRate, err := getUint256(ctx, &cfg.baseConfig, "minCommissionRate")
 	if err != nil {
@@ -653,6 +654,10 @@ func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) err
 
 	if commissionRate.Cmp(maxCommissionRate) > 0 {
 		return fmt.Errorf("commission rate exceeds the maximum allowed: %s", maxCommissionRate.String())
+	}
+
+	if maxCommissionChangeRate.Cmp(maxCommissionRate) > 0 {
+		return fmt.Errorf("commission change rate cannot be more than the max rate: maxCommissionChangeRate: %s, maxCommissionRate: %s", maxCommissionChangeRate.String(), maxCommissionRate.String())
 	}
 
 	return nil
