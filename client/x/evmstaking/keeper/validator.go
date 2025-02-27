@@ -158,8 +158,21 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	if _, err := skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrValidatorOwnerExists) {
-		return errors.WrapErrWithCode(errors.ValidatorAlreadyExists, err)
+	//nolint:nestif // nested ifs error handling
+	if _, err := skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrValidatorOwnerExists) || errors.Is(err, stypes.ErrValidatorPubKeyExists) {
+		// if validator exists, convert the request to a delegation
+		log.Debug(cachedCtx, "Validator already exists, converting stake from validator creation to delegation",
+			"val_story", validatorAddr,
+			"val_pubkey", validatorPubkey.String(),
+		)
+
+		if err = k.CreateDelegation(
+			cachedCtx, validatorAddr.String(), delegatorAddr.String(), amountCoin,
+			stypes.FlexiblePeriodDelegationID, // use flexible period delegation id
+			int32(0),                          // use flexible staking period
+		); err != nil {
+			return errors.Wrap(err, "convert validator creation to delegation as fallback")
+		}
 	} else if errors.Is(err, stypes.ErrCommissionLTMinRate) {
 		return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
 	} else if errors.Is(err, stypes.ErrMinSelfDelegationBelowMinDelegation) {
