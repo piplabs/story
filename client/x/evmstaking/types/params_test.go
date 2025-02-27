@@ -20,12 +20,13 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount := uint32(1), uint32(2), uint64(3)
-	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount)
+	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee := uint32(1), uint32(2), uint64(3), uint32(4)
+	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee)
 	// check values are set correctly
 	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(maxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(minPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	require.Equal(refundFee, params.RefundFeeBps)
 }
 
 func (suite *ParamsTestSuite) TestDefaultParams() {
@@ -35,6 +36,7 @@ func (suite *ParamsTestSuite) TestDefaultParams() {
 	require.Equal(types.DefaultMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(types.DefaultMaxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	require.Equal(types.DefaultRefundFeeBps, params.RefundFeeBps)
 }
 
 func (suite *ParamsTestSuite) TestValidateMaxWithdrawalPerBlock() {
@@ -137,6 +139,43 @@ func (suite *ParamsTestSuite) TestValidateMinPartialWithdrawatAmount() {
 	for _, tc := range tcs {
 		suite.Run(tc.name, func() {
 			err := types.ValidateMinPartialWithdrawalAmount(tc.input)
+			if tc.expectedErr == "" {
+				require.NoError(err)
+			} else {
+				require.Error(err)
+				require.Contains(err.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
+
+func (suite *ParamsTestSuite) TestValidateRefundFeePercentage() {
+	require := suite.Require()
+
+	tcs := []struct {
+		name        string
+		input       uint32
+		expectedErr string
+	}{
+		{
+			name:  "valid value",
+			input: 1,
+		},
+		{
+			name:        "invalid value",
+			input:       0,
+			expectedErr: "refund fee bps must be positive: 0",
+		},
+		{
+			name:        "invalid value",
+			input:       10001,
+			expectedErr: "refund fee bps must be less than or equal to 10000bps (100%): 10001",
+		},
+	}
+
+	for _, tc := range tcs {
+		suite.Run(tc.name, func() {
+			err := types.ValidateRefundFeeBps(tc.input)
 			if tc.expectedErr == "" {
 				require.NoError(err)
 			} else {

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -97,8 +99,64 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
 
+	//nolint:nestif // nested ifs error handling
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+		log.Debug(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
+			"val_story", validatorAddr,
+			"val_pubkey", validatorPubkey.String(),
+		)
+
+		// the min refund fee amount will be `refundFeeBps * minDelegationAmount (1024) / 10_000bps`
+		refundFeeBps, err := k.RefundFeeBps(cachedCtx)
+		if err != nil {
+			return errors.Wrap(err, "get refund fee")
+		}
+		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
+		refundAmount := amountCoin.Amount.Sub(refundFeeAmount)
+
+		defer func() {
+			if r := recover(); r != nil {
+				err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+			}
+
+			var e sdk.Event
+			if err == nil {
+				writeCache()
+				e = sdk.NewEvent(
+					types.EventTypeDelegationRefundSuccess,
+				)
+			} else {
+				e = sdk.NewEvent(
+					types.EventTypeDelegationRefundFailure,
+					sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+				)
+			}
+
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				e.AppendAttributes(
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeyRefundAmount, refundAmount.String()),
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+					sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+				),
+			})
+		}()
+
+		// push the refund to the withdrawal queue
+		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
+			ev.Delegator.String(),
+			refundAmount.Uint64(),
+			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
+			valEvmAddr.String(),
+		)); err != nil {
+			return errors.Wrap(err, "add unstake withdrawal to queue")
+		}
+
+		return nil // skip delegation logic
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
