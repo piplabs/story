@@ -96,6 +96,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 
 	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
 		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
 	} else if err != nil {
@@ -113,11 +114,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		}
 		periodType = flexPeriodType
 		delID = stypes.FlexiblePeriodDelegationID
-	}
-
-	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
-	if !ok {
-		return errors.New("type assertion failed")
 	}
 
 	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
@@ -146,13 +142,25 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
+	return k.CreateDelegation(cachedCtx, validatorAddr.String(), depositorAddr.String(), amountCoin, delID, periodType)
+}
+
+func (k Keeper) CreateDelegation(
+	cachedCtx context.Context, validatorAddr, depositorAddr string, amountCoin sdk.Coin, periodDelegationID string,
+	periodType int32,
+) error {
+	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
-		depositorAddr.String(), validatorAddr.String(), amountCoin,
-		delID, periodType,
+		depositorAddr, validatorAddr, amountCoin,
+		periodDelegationID, periodType,
 	)
-	if _, err = skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+	if _, err := skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
 		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
 	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
 		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
