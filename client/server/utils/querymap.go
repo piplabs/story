@@ -84,6 +84,7 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 			if parseUint > math.MaxUint {
 				return 0, strconv.ErrRange
 			}
+
 			return uint(parseUint), err
 		case reflect.Float32:
 			return strconv.ParseFloat(from, 32)
