@@ -24,6 +24,10 @@ const (
 	EventTypeRedelegateSuccess                = "redelegate_success"
 	EventTypeUndelegateSuccess                = "undelegate_success"
 	EventTypeUnjailSuccess                    = "unjail_success"
+	EventTypeDelegationRefundSuccess          = "delegation_refund_success"
+	EventTypeDelegationRefundFailure          = "delegation_refund_failure"
+	EventTypeFallbackSelfDelegationSuccess    = "fallback_self_delegation_success"
+	EventTypeFallbackSelfDelegationFailure    = "fallback_self_delegation_failure"
 
 	AttributeKeyErrorCode                  = "error_code"
 	AttributeKeyBlockHeight                = "block_height"
@@ -35,6 +39,7 @@ const (
 	AttributeKeyDelegateID                 = "delegation_id"
 	AttributeKeyPeriodType                 = "staking_period"
 	AttributeKeyAmount                     = "amount"
+	AttributeKeyRefundAmount               = "refund_amount"
 	AttributeKeySenderAddress              = "sender_address"
 	AttributeKeyWithdrawalAddress          = "withdrawal_address"
 	AttributeKeyRewardAddress              = "reward_address"
