@@ -68,6 +68,16 @@ func (s *TestSuite) TestMinPartialWithdrawalAmount() {
 	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
 }
 
+func (s *TestSuite) TestRefundFeeBps() {
+	require := s.Require()
+	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+
+	// params are set default during TestSuite.SetupTest
+	params, err := keeper.GetParams(ctx)
+	require.NoError(err)
+	require.Equal(types.DefaultRefundFeeBps, params.RefundFeeBps)
+}
+
 func (s *TestSuite) TestSetValidatorSweepIndex() {
 	require := s.Require()
 	ctx, keeper := s.Ctx, s.EVMStakingKeeper

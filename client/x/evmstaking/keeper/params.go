@@ -36,6 +36,15 @@ func (k Keeper) MinPartialWithdrawalAmount(ctx context.Context) (uint64, error) 
 	return params.MinPartialWithdrawalAmount, nil
 }
 
+func (k Keeper) RefundFeeBps(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return params.RefundFeeBps, nil
+}
+
 // This method performs no validation of the parameters.
 func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
 	store := k.storeService.OpenKVStore(ctx)
