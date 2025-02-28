@@ -178,6 +178,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorCreateCmd(),
 		newValidatorKeyExportCmd(),
 		newValidatorGenPrivKeyJSONCmd(),
+		newValidatorEncryptPrivKeyCmd(),
 		newValidatorStakeCmd(),
 		newValidatorStakeOnBehalfCmd(),
 		newValidatorUnstakeCmd(),
@@ -491,6 +492,29 @@ func newValidatorGenPrivKeyJSONCmd() *cobra.Command {
 	return cmd
 }
 
+func newValidatorEncryptPrivKeyCmd() *cobra.Command {
+	var cfg baseConfig
+
+	cmd := &cobra.Command{
+		Use:   "encrypt-key",
+		Short: "Encrypt the private key in .env",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+		RunE: runValidatorCommand(
+			func(_ *cobra.Command) error {
+				return validateEncryptPrivKeyFlags(&cfg)
+			},
+			func(_ context.Context) error { return encryptPrivKey(cfg) },
+		),
+	}
+
+	bindValidatorBaseFlags(cmd, &cfg)
+
+	return cmd
+}
+
 func newValidatorUnjailCmd() *cobra.Command {
 	var cfg unjailConfig
 
@@ -632,6 +656,26 @@ func genValidatorPrivKeyJSON(_ context.Context, cfg genPrivKeyJSONConfig) error 
 
 	if err := tempfile.WriteFileAtomic(cfg.ValidatorKeyFile, jsonBytes, 0600); err != nil {
 		return errors.Wrap(err, "failed to write file")
+	}
+
+	return nil
+}
+
+func encryptPrivKey(cfg baseConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	pk := k1.PrivKey(privKeyBytes)
+	pv := privval.FilePVKey{
+		PrivKey: pk,
+		PubKey:  pk.PubKey(),
+		Address: pk.PubKey().Address(),
+	}
+
+	if err := app.EncryptAndStoreKey(pv, cfg.EncPrivKeyFile()); err != nil {
+		return errors.Wrap(err, "failed to encrypt and store the key")
 	}
 
 	return nil
