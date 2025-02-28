@@ -6,19 +6,24 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/libs/tempfile"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/app"
+	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
@@ -74,6 +79,7 @@ func (*StakingPeriod) Type() string {
 var ipTokenStakingABI []byte
 
 type baseConfig struct {
+	HomeDir      string
 	RPC          string
 	PrivateKey   string
 	Explorer     string
@@ -81,6 +87,10 @@ type baseConfig struct {
 	ABI          *abi.ABI
 	ContractAddr common.Address
 	StoryAPI     string
+}
+
+func (cfg baseConfig) EncPrivKeyFile() string {
+	return filepath.Join(cfg.HomeDir, config.DefaultEncPrivKeyPath)
 }
 
 type createValidatorConfig struct {
@@ -1101,14 +1111,16 @@ func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) 
 }
 
 func initializeBaseConfig(cfg *baseConfig) error {
-	loadEnv()
-	cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
+	var err error
+	cfg.PrivateKey, err = loadPrivKey(cfg)
+	if err != nil {
+		return errors.Wrap(err, "failed to load private key")
+	}
 	if cfg.PrivateKey == "" {
-		return errors.New("missing required flag", "private-key", "EVM private key")
+		return errors.New("missing required private key")
 	}
 
-	_, err := crypto.HexToECDSA(cfg.PrivateKey)
-	if err != nil {
+	if _, err = crypto.HexToECDSA(cfg.PrivateKey); err != nil {
 		return errors.Wrap(err, "invalid EVM private key")
 	}
 
@@ -1121,6 +1133,23 @@ func initializeBaseConfig(cfg *baseConfig) error {
 	cfg.ContractAddr = common.HexToAddress(predeploys.IPTokenStaking)
 
 	return nil
+}
+
+func loadPrivKey(cfg *baseConfig) (string, error) {
+	encPrivKeyFile := cfg.EncPrivKeyFile()
+	if cmtos.FileExists(encPrivKeyFile) {
+		pv, err := app.LoadEncryptedPrivKey(encPrivKeyFile)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to load encrypted private key")
+		}
+
+		return strings.TrimPrefix(hexutil.Encode(pv.PrivKey.Bytes()), "0x"), nil
+	}
+
+	// TODO(0xHansLee): get priv key from priv_validator_key.json
+	loadEnv()
+
+	return os.Getenv("PRIVATE_KEY"), nil
 }
 
 func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*big.Int, error) {
