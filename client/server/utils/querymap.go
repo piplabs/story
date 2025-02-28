@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"math"
 	"math/big"
 	"net/url"
 	"reflect"
@@ -80,6 +81,10 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 			return strconv.ParseInt(from, 10, 64)
 		case reflect.Uint:
 			parseUint, err := strconv.ParseUint(from, 10, 64)
+			if parseUint > math.MaxUint {
+				return 0, strconv.ErrRange
+			}
+
 			return uint(parseUint), err
 		case reflect.Float32:
 			return strconv.ParseFloat(from, 32)
