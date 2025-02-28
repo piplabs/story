@@ -157,6 +157,11 @@ type genPrivKeyJSONConfig struct {
 	ValidatorKeyFile string
 }
 
+type showEncryptedConfig struct {
+	baseConfig
+	ShowPrivate bool
+}
+
 func loadEnv() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: No .env file found")

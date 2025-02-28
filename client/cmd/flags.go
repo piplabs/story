@@ -160,6 +160,11 @@ func bindKeyGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 }
 
+func bindKeyShowEncryptedFlags(cmd *cobra.Command, cfg *showEncryptedConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().BoolVar(&cfg.ShowPrivate, "show-private", false, "Show private key")
+}
+
 func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 	defaultKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "priv_validator_key.json")
 	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
@@ -509,6 +514,14 @@ func validateEncryptFlags(cfg *baseConfig) error {
 	}
 
 	cfg.PrivateKey = pk
+
+	return nil
+}
+
+func validateShowEncryptedFlags(cfg *showEncryptedConfig) error {
+	if !cmtos.FileExists(cfg.EncPrivKeyFile()) {
+		return errors.New("no encrypted private key file")
+	}
 
 	return nil
 }
