@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
@@ -35,6 +36,7 @@ func newKeyCmds() *cobra.Command {
 		newKeyConvertCmd(),
 		newKeyGenPrivKeyJSONCmd(),
 		newKeyEncryptCmd(),
+		newKeyShowEncryptedCmd(),
 	)
 
 	return cmd
@@ -100,6 +102,29 @@ func newKeyEncryptCmd() *cobra.Command {
 	}
 
 	bindValidatorBaseFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newKeyShowEncryptedCmd() *cobra.Command {
+	var cfg showEncryptedConfig
+
+	cmd := &cobra.Command{
+		Use:   "show-encrypted",
+		Short: "Show the encrypted private key after decryption",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+		RunE: runValidatorCommand(
+			func(_ *cobra.Command) error {
+				return validateShowEncryptedFlags(&cfg)
+			},
+			func(_ context.Context) error { return showEncryptedKey(cfg) },
+		),
+	}
+
+	bindKeyShowEncryptedFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -187,6 +212,29 @@ func encryptPrivKey(cfg baseConfig) error {
 
 	if err := app.EncryptAndStoreKey(pv, cfg.EncPrivKeyFile()); err != nil {
 		return errors.Wrap(err, "failed to encrypt and store the key")
+	}
+
+	return nil
+}
+
+func showEncryptedKey(cfg showEncryptedConfig) error {
+	encPrivKeyFile := cfg.EncPrivKeyFile()
+	pv, err := app.LoadEncryptedPrivKey(encPrivKeyFile)
+	if err != nil {
+		return errors.Wrap(err, "failed to load encrypted private key")
+	}
+
+	cmpPubKeyBytes, err := privKeyToCmpPubKey(pv.PrivKey.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "failed to get compressed public key from private key")
+	}
+
+	if err := printKeyFormats(cmpPubKeyBytes); err != nil {
+		return errors.Wrap(err, "failed to print key formats")
+	}
+
+	if cfg.ShowPrivate {
+		fmt.Println("Private Key (hex):", hex.EncodeToString(pv.PrivKey.Bytes()))
 	}
 
 	return nil
