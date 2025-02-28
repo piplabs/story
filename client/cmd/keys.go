@@ -6,8 +6,14 @@ import (
 	"encoding/hex"
 	"strings"
 
+	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
+	cmtjson "github.com/cometbft/cometbft/libs/json"
+	"github.com/cometbft/cometbft/libs/tempfile"
+	"github.com/cometbft/cometbft/privval"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/piplabs/story/client/app"
 )
 
 type keyConfig struct {
@@ -27,6 +33,8 @@ func newKeyCmds() *cobra.Command {
 
 	cmd.AddCommand(
 		newKeyConvertCmd(),
+		newKeyGenPrivKeyJSONCmd(),
+		newKeyEncryptCmd(),
 	)
 
 	return cmd
@@ -46,6 +54,52 @@ func newKeyConvertCmd() *cobra.Command {
 	}
 
 	bindKeyConvertFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newKeyGenPrivKeyJSONCmd() *cobra.Command {
+	var cfg genPrivKeyJSONConfig
+
+	cmd := &cobra.Command{
+		Use:   "gen-priv-key-json",
+		Short: "Generate a priv_validator_key.json file from EVM private key",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(_ *cobra.Command) error {
+				return validateGenPrivKeyJSONFlags(&cfg)
+			},
+			func(ctx context.Context) error { return genValidatorPrivKeyJSON(ctx, cfg) },
+		),
+	}
+
+	bindKeyGenPrivKeyJSONFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newKeyEncryptCmd() *cobra.Command {
+	var cfg baseConfig
+
+	cmd := &cobra.Command{
+		Use:   "encrypt",
+		Short: "Encrypt the private key stored in .env",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+		RunE: runValidatorCommand(
+			func(_ *cobra.Command) error {
+				return validateEncryptFlags(&cfg)
+			},
+			func(_ context.Context) error { return encryptPrivKey(cfg) },
+		),
+	}
+
+	bindValidatorBaseFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -91,4 +145,49 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 	}
 
 	return printKeyFormats(compressedPubKeyBytes)
+}
+
+func genValidatorPrivKeyJSON(_ context.Context, cfg genPrivKeyJSONConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	privKey := k1.PrivKey(privKeyBytes)
+	newPV := &privval.FilePVKey{
+		Address: privKey.PubKey().Address(),
+		PubKey:  privKey.PubKey(),
+		PrivKey: privKey,
+	}
+
+	jsonBytes, err := cmtjson.MarshalIndent(newPV, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal pv data")
+	}
+
+	if err := tempfile.WriteFileAtomic(cfg.ValidatorKeyFile, jsonBytes, 0600); err != nil {
+		return errors.Wrap(err, "failed to write file")
+	}
+
+	return nil
+}
+
+func encryptPrivKey(cfg baseConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	pk := k1.PrivKey(privKeyBytes)
+	pv := privval.FilePVKey{
+		PrivKey: pk,
+		PubKey:  pk.PubKey(),
+		Address: pk.PubKey().Address(),
+	}
+
+	if err := app.EncryptAndStoreKey(pv, cfg.EncPrivKeyFile()); err != nil {
+		return errors.Wrap(err, "failed to encrypt and store the key")
+	}
+
+	return nil
 }
