@@ -1,12 +1,15 @@
 package app
 
 import (
+	"encoding/json"
 	"os"
+	"strings"
 
 	"github.com/cometbft/cometbft/crypto"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	keystorev4 "github.com/wealdtech/go-eth2-wallet-encryptor-keystorev4"
 
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
@@ -15,16 +18,29 @@ import (
 // loadPrivVal returns a privval.FilePV by loading either a CometBFT priv validator key or an Ethereum keystore file.
 func loadPrivVal(cfg Config) (*privval.FilePV, error) {
 	cmtFile := cfg.Comet.PrivValidatorKeyFile()
+	encPrivKeyFile := cfg.EncPrivKeyFile()
 	cmtExists := exists(cmtFile)
+	encPrivExists := exists(encPrivKeyFile)
 
-	if !cmtExists {
-		return nil, errors.New("no cometBFT priv validator key file exists", "comet_file", cmtFile)
+	if !cmtExists && !encPrivExists {
+		return nil, errors.New("no cometBFT priv validator key file exists", "comet_file", cmtFile, "enc_priv_key_file", encPrivKeyFile)
 	}
 
-	var key crypto.PrivKey
-	key, err := loadCometFilePV(cmtFile)
-	if err != nil {
-		return nil, err
+	var (
+		key crypto.PrivKey
+		err error
+	)
+	if encPrivExists {
+		pv, err := LoadEncryptedPrivKey(encPrivKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		key = pv.PrivKey
+	} else {
+		key, err = loadCometFilePV(cmtFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	state, err := loadCometPVState(cfg.Comet.PrivValidatorStateFile())
@@ -97,4 +113,88 @@ func loadCometPVState(file string) (privval.FilePVLastSignState, error) {
 func exists(file string) bool {
 	_, err := os.Stat(file)
 	return !os.IsNotExist(err)
+}
+
+// EncryptedKeyRepresentation defines an internal representation of encrypted validator key.
+type EncryptedKeyRepresentation struct {
+	Crypto  map[string]interface{} `json:"crypto"` //nolint:revive // This is from Prysm.
+	Version uint                   `json:"version"`
+	Name    string                 `json:"name"`
+}
+
+func EncryptAndStoreKey(key privval.FilePVKey, filePath string) error {
+	password, err := InputPassword(
+		NewKeyPasswordPromptText,
+		ConfirmPasswordPromptText,
+		true, /* Should confirm password */
+		ValidatePasswordInput,
+	)
+	if err != nil {
+		return err
+	}
+
+	encodedKey, err := cmtjson.MarshalIndent(key, "", "\t")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal key for encryption")
+	}
+
+	encryptor := keystorev4.New()
+	encryptedKey, err := encryptor.Encrypt(encodedKey, password)
+	if err != nil {
+		return errors.Wrap(err, "could not encrypt key")
+	}
+
+	encKeyRepr := EncryptedKeyRepresentation{
+		Crypto:  encryptedKey,
+		Version: encryptor.Version(),
+		Name:    encryptor.Name(),
+	}
+
+	data, err := json.MarshalIndent(encKeyRepr, "", "\t")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal encrypted key")
+	}
+
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
+		return errors.Wrap(err, "failed to write enc_priv_key.json file")
+	}
+
+	return nil
+}
+
+func LoadEncryptedPrivKey(encPrivKeyFile string) (privval.FilePVKey, error) {
+	password, err := InputPassword(
+		PasswordPromptText,
+		"",
+		false,
+		ValidatePasswordInput,
+	)
+	if err != nil {
+		return privval.FilePVKey{}, err
+	}
+
+	data, err := os.ReadFile(encPrivKeyFile)
+	if err != nil {
+		return privval.FilePVKey{}, errors.Wrap(err, "failed to read enc_priv_key.json file")
+	}
+
+	var encKeyRepr EncryptedKeyRepresentation
+	if err := json.Unmarshal(data, &encKeyRepr); err != nil {
+		return privval.FilePVKey{}, errors.Wrap(err, "failed to unmarshal enc_priv_key.json data")
+	}
+
+	decryptor := keystorev4.New()
+	decryptedKey, err := decryptor.Decrypt(encKeyRepr.Crypto, password)
+	if err != nil && strings.Contains(err.Error(), "invalid checksum") {
+		return privval.FilePVKey{}, errors.Wrap(err, "wrong password for wallet entered")
+	} else if err != nil {
+		return privval.FilePVKey{}, errors.Wrap(err, "could not decrypt key")
+	}
+
+	var key privval.FilePVKey
+	if err := cmtjson.Unmarshal(decryptedKey, &key); err != nil {
+		return privval.FilePVKey{}, errors.Wrap(err, "failed to unmarshal decrypted key")
+	}
+
+	return key, nil
 }
