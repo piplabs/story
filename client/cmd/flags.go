@@ -26,9 +26,6 @@ import (
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
-
-	// Used for ABI embedding of the staking contract.
-	_ "embed"
 )
 
 func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
@@ -61,9 +58,11 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
 	flags.StringVar(&cfg.PersistentPeers, "persistent-peers", "", "Override the persistent peers (comma-separated)")
 	flags.StringVar(&cfg.Moniker, "moniker", "", "Declare a custom moniker for your node")
+	flags.BoolVar(&cfg.EncryptPrivKey, "encrypt-priv-key", false, "Encrypt the validator's private key")
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
+	libcmd.BindHomeFlag(cmd.Flags(), &cfg.HomeDir)
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
