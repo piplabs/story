@@ -155,7 +155,7 @@ func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
 	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
 }
 
-func bindValidatorGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
+func bindKeyGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
 	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
 }
@@ -493,7 +493,7 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	return nil
 }
 
-func validateEncryptPrivKeyFlags(cfg *baseConfig) error {
+func validateEncryptFlags(cfg *baseConfig) error {
 	if cmtos.FileExists(cfg.EncPrivKeyFile()) {
 		return errors.New("already encrypted private key exists")
 	}
