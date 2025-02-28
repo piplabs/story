@@ -15,7 +15,9 @@ import (
 
 	"cosmossdk.io/math"
 
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -487,6 +489,26 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	if _, err := os.Stat(cfg.ValidatorKeyFile); err == nil {
 		return errors.New("priv_validator_key.json file already exists")
 	}
+
+	return nil
+}
+
+func validateEncryptPrivKeyFlags(cfg *baseConfig) error {
+	if cmtos.FileExists(cfg.EncPrivKeyFile()) {
+		return errors.New("already encrypted private key exists")
+	}
+
+	loadEnv()
+	pk := os.Getenv("PRIVATE_KEY")
+	if pk == "" {
+		return errors.New("no private key is provided")
+	}
+
+	if _, err := crypto.HexToECDSA(pk); err != nil {
+		return errors.New("invalid secp256k1 private key")
+	}
+
+	cfg.PrivateKey = pk
 
 	return nil
 }
