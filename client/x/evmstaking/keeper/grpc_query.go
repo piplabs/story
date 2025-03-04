@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
-	"errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"cosmossdk.io/collections"
 	"cosmossdk.io/store/prefix"
@@ -12,9 +14,7 @@ import (
 
 	addcollections "github.com/piplabs/story/client/collections"
 	"github.com/piplabs/story/client/x/evmstaking/types"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/piplabs/story/lib/errors"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -115,7 +115,7 @@ func (k Keeper) paginateWithdrawalQueue(ctx context.Context, queueKey []byte, pa
 		return &types.Withdrawal{}
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to paginate withdrawal queue")
 	}
 
 	var ws []*types.Withdrawal
