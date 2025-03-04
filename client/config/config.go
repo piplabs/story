@@ -219,7 +219,9 @@ type Config struct {
 	ExternalAddress    string
 	Seeds              string
 	SeedMode           bool
-	WithComet          bool // See cosmos-sdk/server/start.go
+	WithComet          bool   // See cosmos-sdk/server/start.go
+	Address            string // See cosmos-sdk/server/start.go
+	Transport          string // See cosmos-sdk/server/start.go
 }
 
 // ConfigFile returns the default path to the toml story config file.
