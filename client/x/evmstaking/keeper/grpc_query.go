@@ -3,9 +3,6 @@ package keeper
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"cosmossdk.io/collections"
 	"cosmossdk.io/store/prefix"
 
@@ -15,6 +12,9 @@ import (
 	addcollections "github.com/piplabs/story/client/collections"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ types.QueryServer = Keeper{}
