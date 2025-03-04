@@ -56,10 +56,44 @@ func (k Keeper) GetWithdrawalQueue(ctx context.Context, request *types.QueryGetW
 			CreationHeight:   w.CreationHeight,
 			ExecutionAddress: w.ExecutionAddress,
 			Amount:           w.Amount,
+			WithdrawalType:   w.WithdrawalType,
+			ValidatorAddress: w.ValidatorAddress,
 		})
 	}
 
 	return &types.QueryGetWithdrawalQueueResponse{Withdrawals: ws, Pagination: pageResp}, nil
+}
+
+// GetRewardWithdrawalQueue returns the withdrawal queue in pagination.
+func (k Keeper) GetRewardWithdrawalQueue(ctx context.Context, request *types.QueryGetRewardWithdrawalQueueRequest) (*types.QueryGetRewardWithdrawalQueueResponse, error) {
+	if request == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	wqStore := prefix.NewStore(store, append(types.RewardWithdrawalQueueKey, addcollections.QueueElementsPrefixSuffix)) // reward withdrawal queue store
+
+	withdrawals, pageResp, err := query.GenericFilteredPaginate(k.cdc, wqStore, request.Pagination, func(_ []byte, wit *types.Withdrawal) (*types.Withdrawal, error) {
+		return wit, nil
+	}, func() *types.Withdrawal {
+		return &types.Withdrawal{}
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var ws []*types.Withdrawal
+	for _, w := range withdrawals {
+		ws = append(ws, &types.Withdrawal{
+			CreationHeight:   w.CreationHeight,
+			ExecutionAddress: w.ExecutionAddress,
+			Amount:           w.Amount,
+			WithdrawalType:   w.WithdrawalType,
+			ValidatorAddress: w.ValidatorAddress,
+		})
+	}
+
+	return &types.QueryGetRewardWithdrawalQueueResponse{Withdrawals: ws, Pagination: pageResp}, nil
 }
 
 func (k Keeper) GetOperatorAddress(ctx context.Context, request *types.QueryGetOperatorAddressRequest) (*types.QueryGetOperatorAddressResponse, error) {

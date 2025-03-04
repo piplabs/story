@@ -26,6 +26,14 @@ type getValidatorSlashesByValidatorAddressRequest struct {
 	Pagination     pagination `mapstructure:"pagination"`
 }
 
+type getWithdrawalQueueRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type getRewardWithdrawalQueueRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getValidatorsRequest struct {
 	Status     string     `mapstructure:"status"`
 	Pagination pagination `mapstructure:"pagination"`

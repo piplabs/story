@@ -21,6 +21,11 @@ service Query {
     option (google.api.http).get = "/client/evmstaking/v1/withdrawal_queue";
   }
 
+  // GetRewardWithdrawalQueue queries the reward withdrawal queue of the module.
+  rpc GetRewardWithdrawalQueue(QueryGetRewardWithdrawalQueueRequest) returns (QueryGetRewardWithdrawalQueueResponse) {
+    option (google.api.http).get = "/client/evmstaking/v1/reward_withdrawal_queue";
+  }
+
   // GetOperatorAddress queries the operator address of a delegator.
   rpc GetOperatorAddress(QueryGetOperatorAddressRequest) returns (QueryGetOperatorAddressResponse) {
     option (google.api.http).get = "/client/evmstaking/v1/operator_address";
@@ -52,6 +57,19 @@ message QueryGetWithdrawalQueueRequest {
 
 // QueryGetWithdrawalQueueResponse is the response type for the Query/WithdrawalQueue RPC method.
 message QueryGetWithdrawalQueueResponse {
+  repeated Withdrawal withdrawals = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryGetRewardWithdrawalQueueRequest is the request type for the Query/RewardWithdrawalQueue RPC method.
+message QueryGetRewardWithdrawalQueueRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryGetRewardWithdrawalQueueResponse is the response type for the Query/RewardWithdrawalQueue RPC method.
+message QueryGetRewardWithdrawalQueueResponse {
   repeated Withdrawal withdrawals = 1;
 
   // pagination defines an optional pagination for the request.
