@@ -99,7 +99,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		return nil, err
 	}
 
-	cmtNode, err := newCometNode(ctx, &cfg.Comet, app, privVal, cfg.WithComet)
+	cmtNode, err := newCometNode(ctx, &cfg.Comet, app, privVal, cfg.WithComet, cfg.Address, cfg.Transport)
 	if err != nil {
 		return nil, errors.Wrap(err, "create comet node")
 	}
@@ -205,7 +205,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	return app, privVal, nil
 }
 
-func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator, withComet bool,
+func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmttypes.PrivValidator, withComet bool, addr, transport string,
 ) (service.Service, error) {
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
@@ -240,7 +240,7 @@ func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmt
 			return nil, errors.Wrap(err, "create node")
 		}
 	} else {
-		cmtNode, err = abciserver.NewServer(cfg.ProxyApp, cfg.ABCI, wrapper)
+		cmtNode, err = abciserver.NewServer(addr, transport, wrapper)
 		if err != nil {
 			return nil, errors.Wrap(err, "create abci server")
 		}
