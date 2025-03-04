@@ -20,6 +20,62 @@ URL: [GET] /evmstaking/params
 }
 ```
 
+## GetWithdrawalQueue
+
+URL: [GET] /evmstaking/withdrawal_queue
+
+### Query Params
+| Name                   | Type    | Example                      | Required |
+|------------------------|---------|------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur |          |
+| pagination.offset      | string  | 0                            |          |
+| pagination.limit       | string  | 10                           |          |
+| pagination.count_total | boolean | true                         |          |
+| pagination.reverse     | boolean | true                         |          |
+
+### Response
+
+- withdrawals: The list of withdrawals.
+  - creation_height: The height of the withdrawal creation.
+  - execution_address: The address to get the withdrawal.
+  - amount: The amount of the withdrawal.
+  - withdrawal_type: The type of the withdrawal.
+    - 0: Unstake
+    - 1: Reward
+    - 2: UBI
+  - validator_address: The address of the associated validator.
+- pagination: The pagination info.
+  - next_key: The key to query the next page.
+  - total: The total number of withdrawals.
+
+## GetRewardWithdrawalQueue
+
+URL: [GET] /evmstaking/reward_withdrawal_queue
+
+### Query Params
+| Name                   | Type    | Example                      | Required |
+|------------------------|---------|------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur |          |
+| pagination.offset      | string  | 0                            |          |
+| pagination.limit       | string  | 10                           |          |
+| pagination.count_total | boolean | true                         |          |
+| pagination.reverse     | boolean | true                         |          |
+
+### Response
+
+- withdrawals: The list of withdrawals.
+  - creation_height: The height of the withdrawal creation.
+  - execution_address: The address to get the withdrawal.
+  - amount: The amount of the withdrawal.
+  - withdrawal_type: The type of the withdrawal.
+    - 0: Unstake
+    - 1: Reward
+    - 2: UBI
+  - validator_address: The address of the associated validator.
+- pagination: The pagination info.
+  - next_key: The key to query the next page.
+  - total: The total number of withdrawals.
+
 ## GetOperatorAddress
 
 URL: [GET] /evmstaking/delegators/{delegator_address}/operator_address
