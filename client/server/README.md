@@ -20,33 +20,6 @@ URL: [GET] /evmstaking/params
 }
 ```
 
-## GetOperatorAddress
-
-URL: [GET] /evmstaking/delegators/{delegator_address}/operator_address
-
-### Path Params
-| Name              | Type   | Example                                      | Required |
-|-------------------|--------|----------------------------------------------|----------|
-| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
-
-## GetWithdrawAddress
-
-URL: [GET] /evmstaking/delegators/{delegator_address}/withdraw_address
-
-### Path Params
-| Name              | Type   | Example                                      | Required |
-|-------------------|--------|----------------------------------------------|----------|
-| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
-
-## GetRewardAddress
-
-URL: [GET] /evmstaking/delegators/{delegator_address}/reward_address
-
-### Path Params
-| Name              | Type   | Example                                      | Required |
-|-------------------|--------|----------------------------------------------|----------|
-| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
-
 ## GetWithdrawalQueue
 
 URL: [GET] /evmstaking/withdrawal_queue
@@ -102,6 +75,33 @@ URL: [GET] /evmstaking/reward_withdrawal_queue
 - pagination: The pagination info.
   - next_key: The key to query the next page.
   - total: The total number of withdrawals.
+
+## GetOperatorAddress
+
+URL: [GET] /evmstaking/delegators/{delegator_address}/operator_address
+
+### Path Params
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+## GetWithdrawAddress
+
+URL: [GET] /evmstaking/delegators/{delegator_address}/withdraw_address
+
+### Path Params
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+## GetRewardAddress
+
+URL: [GET] /evmstaking/delegators/{delegator_address}/reward_address
+
+### Path Params
+| Name              | Type   | Example                                      | Required |
+|-------------------|--------|----------------------------------------------|----------|
+| delegator_address | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
 
 # Staking Module
 
