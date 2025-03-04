@@ -268,6 +268,12 @@ func makeBaseAppOpts(cfg Config) ([]func(*baseapp.BaseApp), error) {
 		// Override the default cosmosSDK pruning values with much more aggressive defaults
 		// since historical state isn't very important for most use-cases.
 		pruneOpts = pruningtypes.NewCustomPruningOptions(defaultPruningKeep, defaultPruningInterval)
+	} else if cfg.PruningOption == pruningtypes.PruningOptionCustom {
+		pruneOpts = pruningtypes.NewCustomPruningOptions(cfg.PruningKeepRecent, cfg.PruningInterval)
+	}
+
+	if err := pruneOpts.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid custom pruning option")
 	}
 
 	return []func(*baseapp.BaseApp){
