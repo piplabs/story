@@ -47,6 +47,10 @@ min-retain-blocks = 0
 # everything: 2 latest states will be kept; pruning at 10 block intervals.
 pruning = "nothing"
 
+# These are applied if and only if the pruning strategy is custom.
+pruning-keep-recent = "72000"
+pruning-interval = "300"
+
 # AppDBBackend defines the database backend type to use for the application and snapshots DBs.
 # An empty string indicates that a fallback will be used.
 # The fallback is the db_backend value set in CometBFT's config.toml.
