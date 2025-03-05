@@ -27,7 +27,7 @@ func newABCIWrapper(
 	app abci.Application,
 	finalizeCallback postFinalizeCallback,
 	multiStoreProvider multiStoreProvider,
-) abci.Application {
+) *abciWrapper {
 	return &abciWrapper{
 		Application:        app,
 		postFinalize:       finalizeCallback,
