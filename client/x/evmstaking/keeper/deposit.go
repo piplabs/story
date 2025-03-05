@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
 
 	"cosmossdk.io/math"
 
@@ -114,6 +115,9 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
 		refundAmount := amountCoin.Amount.Sub(refundFeeAmount)
 
+		// refund completion time is 1 day after the deposit
+		completionTime := sdkCtx.BlockTime().Add(time.Hour * 24)
+
 		defer func() {
 			if r := recover(); r != nil {
 				err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
@@ -141,20 +145,30 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 					sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
 					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
 					sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+					sdk.NewAttribute(types.AttributeKeyRefundCompletionTime, completionTime.String()),
 				),
 			})
 		}()
 
-		// push the refund to the withdrawal queue
-		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
-			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-			ev.Delegator.String(),
-			refundAmount.Uint64(),
-			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
-			valEvmAddr.String(),
-		)); err != nil {
-			return errors.Wrap(err, "add unstake withdrawal to queue")
+		// push the refund to the unbonding queue
+		_, err = k.stakingKeeper.SetUnbondingDelegationEntry(
+			ctx,
+			depositorAddr,
+			validatorAddr,
+			sdkCtx.BlockHeight(),
+			completionTime,
+			refundAmount,
+		)
+		if err != nil {
+			return errors.Wrap(err, "set unbonding delegation entry")
 		}
+
+		log.Debug(cachedCtx, "Added refund to unbonding queue",
+			"del_addr", depositorAddr.String(),
+			"val_addr", validatorAddr.String(),
+			"amount", refundAmount.String(),
+			"completion_time", completionTime,
+		)
 
 		return nil // skip delegation logic
 	} else if err != nil {

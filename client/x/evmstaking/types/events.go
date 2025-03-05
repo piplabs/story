@@ -40,6 +40,7 @@ const (
 	AttributeKeyPeriodType                 = "staking_period"
 	AttributeKeyAmount                     = "amount"
 	AttributeKeyRefundAmount               = "refund_amount"
+	AttributeKeyRefundCompletionTime       = "refund_completion_time"
 	AttributeKeySenderAddress              = "sender_address"
 	AttributeKeyWithdrawalAddress          = "withdrawal_address"
 	AttributeKeyRewardAddress              = "reward_address"
