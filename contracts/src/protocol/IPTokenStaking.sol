@@ -460,12 +460,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     ) private verifyCmpPubkey(validatorCmpPubkey) {
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
-        uint256 unstakeAmount = amount;
-        // Due to CL having less decimals, we need to round down to the nearest STAKE_ROUNDING.
-        // Dust may be left over, this is currently a known issue.
-        if (amount % STAKE_ROUNDING != 0) {
-            unstakeAmount = amount / STAKE_ROUNDING * STAKE_ROUNDING;
-        }
+        (uint256 unstakeAmount, ) = roundedStakeAmount(amount);
         require(unstakeAmount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
         require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
 
