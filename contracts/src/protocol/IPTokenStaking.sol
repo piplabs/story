@@ -335,8 +335,6 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
         require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
 
-        // REvert if msg.value is not rounded to STAKE_ROUNDING
-
         uint256 delegationId = 0;
         if (stakingPeriod != IIPTokenStaking.StakingPeriod.FLEXIBLE) {
             delegationId = ++_delegationIdCounter;
