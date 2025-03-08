@@ -434,12 +434,13 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     }
 
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
+    /// NOTE: If the amount is not divisible by STAKE_ROUNDING, it will be rounded down.
     /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
-    /// this method will succeed even if the caller is not the operator (but will fail in CL).
+    /// this method will succeed even if the caller is not the operator (but will fail in CL)
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key of validator.
     /// @param delegationId The delegation ID, 0 for flexible staking.
-    /// @param amount Token amount to unstake.
+    /// @param amount Token amount to unstake. This amount will be rounded to STAKE_ROUNDING.
     /// @param data Additional data for the unstake.
     function unstakeOnBehalf(
         address delegator,
@@ -459,10 +460,11 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     ) private verifyCmpPubkey(validatorCmpPubkey) {
         require(delegationId <= _delegationIdCounter, "IPTokenStaking: Invalid delegation id");
-        require(amount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
-        require(amount % STAKE_ROUNDING == 0, "IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
+        (uint256 unstakeAmount, ) = roundedStakeAmount(amount);
+        require(unstakeAmount >= minUnstakeAmount, "IPTokenStaking: Unstake amount under min");
         require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
-        emit Withdraw(delegator, validatorCmpPubkey, amount, delegationId, msg.sender, data);
+
+        emit Withdraw(delegator, validatorCmpPubkey, unstakeAmount, delegationId, msg.sender, data);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

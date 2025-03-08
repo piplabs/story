@@ -91,7 +91,7 @@ interface IIPTokenStaking {
     /// @notice Emitted when a user withdraws her stake and starts the unbonding period.
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
-    /// @param stakeAmount Token deposited.
+    /// @param stakeAmount Token unstaked. WARNING: This amount is rounded down to STAKE_ROUNDING.
     /// @param delegationId The ID of the delegation, 0 if flexible
     /// @param operatorAddress The caller's address
     /// @param data Additional data for the deposit
@@ -263,11 +263,12 @@ interface IIPTokenStaking {
     ) external payable;
 
     /// @notice Entry point for unstaking the previously staked token.
+    /// NOTE: If the amount is not divisible by STAKE_ROUNDING, it will be rounded down.
     /// @dev Unstake (withdrawal) will trigger native minting, so token in this contract is considered as burned.
     /// Charges fee (CL spam prevention). Must be exact amount.
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
-    /// @param amount Token amount to unstake.
+    /// @param amount Token amount to unstake. This amount will be rounded down to STAKE_ROUNDING.
     /// @param data Additional data for the unstake.
     function unstake(
         bytes calldata validatorCmpPubkey,
@@ -278,12 +279,13 @@ interface IIPTokenStaking {
 
     /// @notice Entry point for unstaking the previously staked token on behalf of the delegator.
     /// Charges fee (CL spam prevention). Must be exact amount.
+    /// NOTE: If the amount is not divisible by STAKE_ROUNDING, it will be rounded down.
     /// @dev Caller must be the operator for the delegator, set via `setOperator`. The operator check is done in CL, so
     /// this method will succeed even if the caller is not the operator (but will fail in CL).
     /// @param delegator The delegator's address
     /// @param validatorCmpPubkey 33 bytes compressed secp256k1 public key.
     /// @param delegationId The delegation ID, 0 for flexible staking.
-    /// @param amount Token amount to unstake.
+    /// @param amount Token amount to unstake. This amount will be rounded down to STAKE_ROUNDING.
     /// @param data Additional data for the unstake.
     function unstakeOnBehalf(
         address delegator,
