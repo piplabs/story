@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
+
+	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -96,8 +99,78 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	}
 
 	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+
+	//nolint:nestif // nested ifs error handling
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
+		log.Debug(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
+			"val_story", validatorAddr,
+			"val_pubkey", validatorPubkey.String(),
+		)
+
+		// the min refund fee amount will be `refundFeeBps * minDelegationAmount (1024) / 10_000bps`
+		refundFeeBps, err := k.RefundFeeBps(cachedCtx)
+		if err != nil {
+			return errors.Wrap(err, "get refund fee")
+		}
+		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
+		refundAmount := amountCoin.Amount.Sub(refundFeeAmount)
+
+		// refund completion time is 1 day after the deposit
+		completionTime := sdkCtx.BlockTime().Add(time.Hour * 24)
+
+		defer func() {
+			if r := recover(); r != nil {
+				err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+			}
+
+			var e sdk.Event
+			if err == nil {
+				writeCache()
+				e = sdk.NewEvent(
+					types.EventTypeDelegationRefundSuccess,
+				)
+			} else {
+				e = sdk.NewEvent(
+					types.EventTypeDelegationRefundFailure,
+					sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+				)
+			}
+
+			sdkCtx.EventManager().EmitEvents(sdk.Events{
+				e.AppendAttributes(
+					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+					sdk.NewAttribute(types.AttributeKeyRefundAmount, refundAmount.String()),
+					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+					sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+					sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
+					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+					sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+					sdk.NewAttribute(types.AttributeKeyRefundCompletionTime, completionTime.String()),
+				),
+			})
+		}()
+
+		// push the refund to the unbonding queue
+		_, err = k.stakingKeeper.SetUnbondingDelegationEntry(
+			ctx,
+			depositorAddr,
+			validatorAddr,
+			sdkCtx.BlockHeight(),
+			completionTime,
+			refundAmount,
+		)
+		if err != nil {
+			return errors.Wrap(err, "set unbonding delegation entry")
+		}
+
+		log.Debug(cachedCtx, "Added refund to unbonding queue",
+			"del_addr", depositorAddr.String(),
+			"val_addr", validatorAddr.String(),
+			"amount", refundAmount.String(),
+			"completion_time", completionTime,
+		)
+
+		return nil // skip delegation logic
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
@@ -113,11 +186,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		}
 		periodType = flexPeriodType
 		delID = stypes.FlexiblePeriodDelegationID
-	}
-
-	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
-	if !ok {
-		return errors.New("type assertion failed")
 	}
 
 	// Note that, after minting, we save the mapping between delegator bech32 address and evm address, which will be used in the withdrawal queue.
@@ -146,13 +214,25 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
+	return k.CreateDelegation(cachedCtx, validatorAddr.String(), depositorAddr.String(), amountCoin, delID, periodType)
+}
+
+func (k Keeper) CreateDelegation(
+	cachedCtx context.Context, validatorAddr, depositorAddr string, amountCoin sdk.Coin, periodDelegationID string,
+	periodType int32,
+) error {
+	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
-		depositorAddr.String(), validatorAddr.String(), amountCoin,
-		delID, periodType,
+		depositorAddr, validatorAddr, amountCoin,
+		periodDelegationID, periodType,
 	)
-	if _, err = skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
+	if _, err := skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
 		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
 	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {
 		return errors.WrapErrWithCode(errors.InvalidPeriodType, err)
