@@ -47,6 +47,10 @@ min-retain-blocks = {{ .MinRetainBlocks }}
 # everything: 2 latest states will be kept; pruning at 10 block intervals.
 pruning = "{{ .PruningOption }}"
 
+# These are applied if and only if the pruning strategy is custom.
+pruning-keep-recent = "{{ .PruningKeepRecent }}"
+pruning-interval = "{{ .PruningInterval }}"
+
 # AppDBBackend defines the database backend type to use for the application and snapshots DBs.
 # An empty string indicates that a fallback will be used.
 # The fallback is the db_backend value set in CometBFT's config.toml.
@@ -61,6 +65,9 @@ evm-build-delay = "{{ .EVMBuildDelay }}"
 # If true, the EVM payload will be triggered on previous finalisation. This allows
 # more time for block building while ensuring faster consensus blocks.
 evm-build-optimistic = {{ .EVMBuildOptimistic }}
+
+# WithComet defines whether to run abci app with CometBFT.
+with-comet = {{ .WithComet }}
 
 #######################################################################
 ###                           API Options                           ###
