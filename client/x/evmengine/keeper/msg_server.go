@@ -100,8 +100,11 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 			return false, err // Don't retry, error out.
 		} else if isSyncing(status) {
-			log.Warn(ctx, "Processing finalized payload; evm syncing", nil)
-		} /* else isValid(status) */
+			s.SetIsExecEngSyncing(true)
+			log.Warn(ctx, "Push finalized payload while evm syncing", nil)
+		} else if s.IsExecEngSyncing() {
+			s.SetIsExecEngSyncing(false)
+		}
 
 		return true, nil // We are done, don't retry
 	})
@@ -124,9 +127,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 			return false, nil // Retry
 		} else if isSyncing(fcr.PayloadStatus) {
-			log.Warn(ctx, "Processing finalized payload halted while evm syncing (will retry)", nil, "payload_height", payload.Number)
-
-			return false, nil // Retry
+			log.Warn(ctx, "Processing finalized payload while evm syncing", nil, "payload_height", payload.Number)
 		} else if invalid, err := isInvalid(fcr.PayloadStatus); invalid {
 			// This should never happen. This node will stall now.
 			log.Error(ctx, "Processing finalized payload failed; forkchoice update invalid [BUG]", err,
