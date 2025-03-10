@@ -15,7 +15,9 @@ import (
 
 	"cosmossdk.io/math"
 
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -26,9 +28,6 @@ import (
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tracer"
-
-	// Used for ABI embedding of the staking contract.
-	_ "embed"
 )
 
 func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
@@ -61,9 +60,11 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.BoolVar(&cfg.SeedMode, "seed-mode", false, "Enable seed mode")
 	flags.StringVar(&cfg.PersistentPeers, "persistent-peers", "", "Override the persistent peers (comma-separated)")
 	flags.StringVar(&cfg.Moniker, "moniker", "", "Declare a custom moniker for your node")
+	flags.BoolVar(&cfg.EncryptPrivKey, "encrypt-priv-key", false, "Encrypt the validator's private key")
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
+	libcmd.BindHomeFlag(cmd.Flags(), &cfg.HomeDir)
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
@@ -154,9 +155,14 @@ func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
 	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
 }
 
-func bindValidatorGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
+func bindKeyGenPrivKeyJSONFlags(cmd *cobra.Command, cfg *genPrivKeyJSONConfig) {
 	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
 	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+}
+
+func bindKeyShowEncryptedFlags(cmd *cobra.Command, cfg *showEncryptedConfig) {
+	bindValidatorBaseFlags(cmd, &cfg.baseConfig)
+	cmd.Flags().BoolVar(&cfg.ShowPrivate, "show-private", false, "Show private key")
 }
 
 func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
@@ -487,6 +493,34 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	// if there is an existing priv_validator_key.json file, do not overwrite it.
 	if _, err := os.Stat(cfg.ValidatorKeyFile); err == nil {
 		return errors.New("priv_validator_key.json file already exists")
+	}
+
+	return nil
+}
+
+func validateEncryptFlags(cfg *baseConfig) error {
+	if cmtos.FileExists(cfg.EncPrivKeyFile()) {
+		return errors.New("already encrypted private key exists")
+	}
+
+	loadEnv()
+	pk := os.Getenv("PRIVATE_KEY")
+	if pk == "" {
+		return errors.New("no private key is provided")
+	}
+
+	if _, err := crypto.HexToECDSA(pk); err != nil {
+		return errors.New("invalid secp256k1 private key")
+	}
+
+	cfg.PrivateKey = pk
+
+	return nil
+}
+
+func validateShowEncryptedFlags(cfg *showEncryptedConfig) error {
+	if !cmtos.FileExists(cfg.EncPrivKeyFile()) {
+		return errors.New("no encrypted private key file")
 	}
 
 	return nil
