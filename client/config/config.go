@@ -11,6 +11,7 @@ import (
 
 	pruningtypes "cosmossdk.io/store/pruning/types"
 
+	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	db "github.com/cosmos/cosmos-db"
 
@@ -25,11 +26,12 @@ import (
 )
 
 const (
-	configFile      = "story.toml"
-	dataDir         = "data"
-	configDir       = "config"
-	snapshotDataDir = "snapshots"
-	networkFile     = "network.json"
+	configFile            = "story.toml"
+	dataDir               = "data"
+	configDir             = "config"
+	snapshotDataDir       = "snapshots"
+	networkFile           = "network.json"
+	DefaultEncPrivKeyName = "enc_priv_key.json"
 
 	DefaultEngineEndpoint     = "http://localhost:8551" // Default host endpoint for the Engine API
 	defaultSnapshotInterval   = 1000                    // Roughly once an hour (given 3s blocks)
@@ -42,6 +44,9 @@ const (
 	defaultEVMBuildOptimistic = true
 )
 
+var DefaultEncPrivKeyPath = filepath.Join(cmtconfig.DefaultConfigDir, DefaultEncPrivKeyName)
+
+// network config.
 var (
 	IliadConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -227,6 +232,10 @@ func (c Config) AppStateDir() string {
 
 func (c Config) SnapshotDir() string {
 	return filepath.Join(c.DataDir(), snapshotDataDir)
+}
+
+func (c Config) EncPrivKeyFile() string {
+	return filepath.Join(c.HomeDir, DefaultEncPrivKeyPath)
 }
 
 func (c Config) Verify() error {
