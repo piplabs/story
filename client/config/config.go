@@ -53,6 +53,8 @@ var (
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: false,
 		API:                apisvr.DefaultConfig(),
@@ -61,6 +63,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	OdysseyConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -72,6 +75,8 @@ var (
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
@@ -80,6 +85,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	AeneidConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -91,6 +97,8 @@ var (
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
@@ -110,6 +118,8 @@ var (
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
@@ -129,6 +139,8 @@ var (
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      pruningtypes.PruningOptionDefault,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: false,
 		API:                apisvr.DefaultConfig(),
@@ -137,6 +149,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 )
 
@@ -152,6 +165,8 @@ func DefaultConfig() Config {
 		BackendType:        string(defaultDBBackend),
 		MinRetainBlocks:    defaultMinRetainBlocks,
 		PruningOption:      defaultPruningOption,
+		PruningKeepRecent:  72000,
+		PruningInterval:    300,
 		EVMBuildDelay:      defaultEVMBuildDelay,
 		EVMBuildOptimistic: defaultEVMBuildOptimistic,
 		API:                apisvr.DefaultConfig(),
@@ -160,6 +175,7 @@ func DefaultConfig() Config {
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 }
 
@@ -202,6 +218,8 @@ type Config struct {
 	BackendType        string // See cosmos-db/db.go
 	MinRetainBlocks    uint64
 	PruningOption      string // See cosmossdk.io/store/pruning/types/options.go
+	PruningKeepRecent  uint64 // See cosmossdk.io/store/pruning/types/options.go
+	PruningInterval    uint64 // See cosmossdk.io/store/pruning/types/options.go
 	EVMBuildDelay      time.Duration
 	EVMBuildOptimistic bool
 	API                apisvr.Config
@@ -210,6 +228,9 @@ type Config struct {
 	ExternalAddress    string
 	Seeds              string
 	SeedMode           bool
+	WithComet          bool   // See cosmos-sdk/server/start.go
+	Address            string // See cosmos-sdk/server/start.go
+	Transport          string // See cosmos-sdk/server/start.go
 }
 
 // ConfigFile returns the default path to the toml story config file.
