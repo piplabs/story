@@ -22,4 +22,7 @@ message Params {
   uint32 refund_fee_bps = 5 [
     (gogoproto.moretags) = "yaml:\"refund_fee_bps\""
   ];
+  uint32 refund_period = 6 [
+    (gogoproto.moretags) = "yaml:\"refund_period\""
+  ];
 }

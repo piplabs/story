@@ -20,13 +20,14 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee := uint32(1), uint32(2), uint64(3), uint32(4)
-	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee)
+	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee, refundPeriod := uint32(1), uint32(2), uint64(3), uint32(4), uint32(5)
+	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee, refundPeriod)
 	// check values are set correctly
 	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.Equal(maxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(minPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
 	require.Equal(refundFee, params.RefundFeeBps)
+	require.Equal(refundPeriod, params.RefundPeriod)
 }
 
 func (suite *ParamsTestSuite) TestDefaultParams() {
@@ -37,6 +38,7 @@ func (suite *ParamsTestSuite) TestDefaultParams() {
 	require.Equal(types.DefaultMaxSweepPerBlock, params.MaxSweepPerBlock)
 	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
 	require.Equal(types.DefaultRefundFeeBps, params.RefundFeeBps)
+	require.Equal(types.DefaultRefundPeriod, params.RefundPeriod)
 }
 
 func (suite *ParamsTestSuite) TestValidateMaxWithdrawalPerBlock() {
@@ -176,6 +178,43 @@ func (suite *ParamsTestSuite) TestValidateRefundFeePercentage() {
 	for _, tc := range tcs {
 		suite.Run(tc.name, func() {
 			err := types.ValidateRefundFeeBps(tc.input)
+			if tc.expectedErr == "" {
+				require.NoError(err)
+			} else {
+				require.Error(err)
+				require.Contains(err.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
+
+func (suite *ParamsTestSuite) TestValidateRefundPeriod() {
+	require := suite.Require()
+
+	tcs := []struct {
+		name        string
+		input       uint32
+		expectedErr string
+	}{
+		{
+			name:  "valid value",
+			input: 24,
+		},
+		{
+			name:        "invalid value",
+			input:       0,
+			expectedErr: "refund period must be at least 24 hours: 0",
+		},
+		{
+			name:        "invalid value",
+			input:       10,
+			expectedErr: "refund period must be at least 24 hours: 10",
+		},
+	}
+
+	for _, tc := range tcs {
+		suite.Run(tc.name, func() {
+			err := types.ValidateRefundPeriod(tc.input)
 			if tc.expectedErr == "" {
 				require.NoError(err)
 			} else {

@@ -78,6 +78,16 @@ func (s *TestSuite) TestRefundFeeBps() {
 	require.Equal(types.DefaultRefundFeeBps, params.RefundFeeBps)
 }
 
+func (s *TestSuite) TestRefundPeriod() {
+	require := s.Require()
+	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+
+	// params are set default during TestSuite.SetupTest
+	params, err := keeper.GetParams(ctx)
+	require.NoError(err)
+	require.Equal(types.DefaultRefundPeriod, params.RefundPeriod)
+}
+
 func (s *TestSuite) TestSetValidatorSweepIndex() {
 	require := s.Require()
 	ctx, keeper := s.Ctx, s.EVMStakingKeeper

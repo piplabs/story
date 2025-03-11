@@ -45,6 +45,15 @@ func (k Keeper) RefundFeeBps(ctx context.Context) (uint32, error) {
 	return params.RefundFeeBps, nil
 }
 
+func (k Keeper) RefundPeriod(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return params.RefundPeriod, nil
+}
+
 // This method performs no validation of the parameters.
 func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
 	store := k.storeService.OpenKVStore(ctx)

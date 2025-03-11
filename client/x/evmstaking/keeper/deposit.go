@@ -117,8 +117,12 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
 		refundAmount := amountCoin.Amount.Sub(refundFeeAmount)
 
-		// refund completion time is 1 day after the deposit
-		completionTime := sdkCtx.BlockTime().Add(time.Hour * 24)
+		refundPeriod, err := k.RefundPeriod(cachedCtx)
+		if err != nil {
+			return errors.Wrap(err, "get refund period")
+		}
+
+		completionTime := sdkCtx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
 
 		defer func() {
 			if r := recover(); r != nil {
