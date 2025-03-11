@@ -35,6 +35,7 @@ func TestNewGenesisState(t *testing.T) {
 				20,
 				30,
 				40,
+				50,
 			),
 			expectedGenesisState: &types.GenesisState{
 				Params: types.NewParams(
@@ -42,6 +43,7 @@ func TestNewGenesisState(t *testing.T) {
 					20,
 					30,
 					40,
+					50,
 				),
 				ValidatorSweepIndex: zeroVallidatorSweepIndex,
 			},

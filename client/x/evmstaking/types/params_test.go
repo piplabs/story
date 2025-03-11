@@ -161,12 +161,11 @@ func (suite *ParamsTestSuite) TestValidateRefundFeePercentage() {
 	}{
 		{
 			name:  "valid value",
-			input: 1,
+			input: 0,
 		},
 		{
-			name:        "invalid value",
-			input:       0,
-			expectedErr: "refund fee bps must be positive: 0",
+			name:  "valid value",
+			input: 1,
 		},
 		{
 			name:        "invalid value",

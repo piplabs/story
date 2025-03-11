@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"context"
 	"math/big"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
 
@@ -57,6 +58,9 @@ func (s *TestSuite) TestProcessDeposit() {
 	valPubKey := pubKeys[1]
 	valAddr := valAddrs[1]
 	s.createValidator(ctx, valPubKey, valAddr)
+	// non-existing validator
+	val2Pubkey := pubKeys[2]
+	val2Addr := valAddrs[2]
 
 	createDeposit := func(delPubKey, valPubKey []byte, amount *big.Int) *bindings.IPTokenStakingDeposit {
 		return &bindings.IPTokenStakingDeposit{
@@ -69,12 +73,23 @@ func (s *TestSuite) TestProcessDeposit() {
 		}
 	}
 
+	refundFeeBps, err := keeper.RefundFeeBps(ctx)
+	require.NoError(err)
+	refundPeriod, err := keeper.RefundPeriod(ctx)
+	require.NoError(err)
+
 	tcs := []struct {
 		name           string
 		settingMock    func()
 		deposit        *bindings.IPTokenStakingDeposit
 		expectedResult []expectedResultDeposit
-		expectedErr    string
+		expectedRefund struct {
+			DelegatorAddress sdk.AccAddress
+			ValidatorAddress sdk.ValAddress
+			RefundAmount     sdkmath.Int
+			// NOTE: CompletionTime is calculated during the test if RefundAmount is greater than 0
+		}
+		expectedErr string
 	}{
 		// TODO: corrupted delegator and validator pubkey
 		{
@@ -88,6 +103,24 @@ func (s *TestSuite) TestProcessDeposit() {
 				OperatorAddress:    cmpToEVM(delPubKey.Bytes()),
 			},
 			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
+		},
+		{
+			name: "pass: validator not found, refund deposit",
+			deposit: &bindings.IPTokenStakingDeposit{
+				Delegator:          common.Address(delAddr),
+				ValidatorCmpPubkey: val2Pubkey.Bytes(),
+				StakeAmount:        new(big.Int).SetUint64(1024),
+				StakingPeriod:      big.NewInt(0),
+			},
+			expectedRefund: struct {
+				DelegatorAddress sdk.AccAddress
+				ValidatorAddress sdk.ValAddress
+				RefundAmount     sdkmath.Int
+			}{
+				DelegatorAddress: delAddr,
+				ValidatorAddress: val2Addr,
+				RefundAmount:     sdkmath.NewInt(1024).Sub(sdkmath.NewInt(1024).Mul(sdkmath.NewInt(int64(refundFeeBps))).Quo(sdkmath.NewInt(10_000))),
+			},
 		},
 		{
 			name:    "pass: existing delegator",
@@ -135,10 +168,26 @@ func (s *TestSuite) TestProcessDeposit() {
 			} else {
 				require.NoError(err)
 				// check delegation
-				for _, tc := range tc.expectedResult {
-					delegation, err := stakingKeeper.GetDelegation(cachedCtx, tc.delegatorAddr, tc.validatorAddr)
+				if len(tc.expectedResult) > 0 {
+					for _, tc := range tc.expectedResult {
+						delegation, err := stakingKeeper.GetDelegation(cachedCtx, tc.delegatorAddr, tc.validatorAddr)
+						require.NoError(err)
+						require.Equal(tc.delegation, delegation)
+					}
+				}
+
+				// check refund in unbonding queue
+				if tc.expectedRefund.DelegatorAddress != nil {
+					ubd, err := stakingKeeper.GetUnbondingDelegation(cachedCtx, tc.expectedRefund.DelegatorAddress, tc.expectedRefund.ValidatorAddress)
 					require.NoError(err)
-					require.Equal(tc.delegation, delegation)
+					require.Equal(tc.expectedRefund.ValidatorAddress.String(), ubd.ValidatorAddress)
+					require.Equal(tc.expectedRefund.DelegatorAddress.String(), ubd.DelegatorAddress)
+
+					completionTime := ctx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
+					for _, entry := range ubd.Entries {
+						require.True(tc.expectedRefund.RefundAmount.Equal(sdkmath.NewIntFromBigInt(entry.Balance.BigInt())))
+						require.Equal(completionTime, entry.CompletionTime)
+					}
 				}
 			}
 		})
