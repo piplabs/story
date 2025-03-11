@@ -1,0 +1,133 @@
+name: Release, Upload & Trigger Downstream
+
+on:
+  push:
+    branches:
+      - release         # Trigger on pushes to the release branch
+    tags:
+      - 'v*'            # Trigger on tag pushes (e.g. v1.0.0-beta1)
+  workflow_dispatch:    # Allow manual triggering
+  # FOR TESTING
+  pull_request:
+    branches:
+      - release-main
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  actions: write
+
+env:
+  GS_BUCKET: story-and-geth-binaries
+  BIN_NAME: story
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  GCP_SERVICE_ACCOUNT_WORKLOAD_IDENTITY: ${{ secrets.GCP_SERVICE_ACCOUNT_WORKLOAD_IDENTITY }}
+
+jobs:
+  Timestamp:
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+
+  gcp_auth:
+    needs: Timestamp
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT_WORKLOAD_IDENTITY }}
+      - name: Deploy to GCP
+        run: |
+          gcloud projects list
+
+#   build_and_upload:
+#     needs: [Timestamp, gcp_auth]
+#     runs-on: ubuntu-latest
+#     outputs:
+#       VERSION: ${{ steps.extract_version.outputs.VERSION }}
+#       COMMIT_HASH: ${{ steps.extract_version.outputs.COMMIT_HASH }}
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Extract the version
+#         id: extract_version
+#         run: |
+#           PARAMS_FILE="./lib/buildinfo/buildinfo.go"
+#           VERSION_MAJOR=$(awk -F= '/VersionMajor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+#           VERSION_MINOR=$(awk -F= '/VersionMinor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+#           VERSION_PATCH=$(awk -F= '/VersionPatch/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+#           VERSION_META=$(awk -F\" '/VersionMeta/ {print $2; exit}' $PARAMS_FILE)
+#           VERSION="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+#           if [ "$VERSION_META" != "stable" ]; then
+#             VERSION+="-${VERSION_META}"
+#           fi
+#           echo "Version extracted: $VERSION"
+#           echo "::set-output name=VERSION::$VERSION"
+#           echo "VERSION=$VERSION" >> $GITHUB_ENV
+#           COMMIT_HASH=$(git rev-parse --short HEAD)
+#           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+#           echo "::set-output name=COMMIT_HASH::$COMMIT_HASH"
+
+#       - name: Build the story binary (linux-amd64)
+#         run: |
+#           GOOS=linux
+#           GOARCH=amd64
+#           echo "Building for $GOOS/$GOARCH..."
+#           cd client
+#           env GOOS=$GOOS GOARCH=$GOARCH go build -o $BIN_NAME -v || {
+#             echo "Build failed. Exiting..."
+#             exit 1
+#           }
+#           chmod +x $BIN_NAME
+
+#       - name: Archive and Upload the binary to GCP Storage
+#         run: |
+#           export TZ=America/Los_Angeles
+#           TIMESTAMP=$(date +%Y%m%d%H%M%S)
+#           COMMIT_HASH=$(git rev-parse --short HEAD)
+#           FOLDER_NAME="story-linux-amd64-${{ env.VERSION }}-${COMMIT_HASH}"
+#           ARCHIVE_NAME="${FOLDER_NAME}.tar.gz"
+#           PUBLIC_DOWNLOAD_URL="https://storage.googleapis.com/${GS_BUCKET}/${BIN_NAME}-public/${ARCHIVE_NAME}"
+
+#           mkdir $FOLDER_NAME
+#           mv client/$BIN_NAME $FOLDER_NAME/
+
+#           echo "Archiving the story binary..."
+#           tar -czvf $ARCHIVE_NAME $FOLDER_NAME
+
+#           echo "Uploading binary to GCP bucket ${GS_BUCKET}..."
+#           # Upload for public downloads
+#           gsutil cp $ARCHIVE_NAME gs://${GS_BUCKET}/${BIN_NAME}-public/$ARCHIVE_NAME
+
+#           # Upload for internal use
+#           gsutil cp $ARCHIVE_NAME gs://${GS_BUCKET}/${BIN_NAME}/${BIN_NAME}-$TIMESTAMP
+
+#           echo "PUBLIC_DOWNLOAD_URL=$PUBLIC_DOWNLOAD_URL" >> $GITHUB_ENV
+
+#       - name: Add binary version back to PR
+#         if: github.event_name == 'push'
+#         uses: mshick/add-pr-comment@v2
+#         with:
+#           message: |
+#             ### Binary uploaded successfully 🎉
+#             **Version:** ${{ env.VERSION }}-${{ env.COMMIT_HASH }}
+#             **Download:** [GCP Storage](${{ env.PUBLIC_DOWNLOAD_URL }})
+
+#   trigger_downstream:
+#     needs: build_and_upload
+#     runs-on: ubuntu-latest
+#     if: ${{ github.event_name != 'pull_request' }}  # Only trigger for non-PR events
+#     steps:
+#       - name: Trigger Internal-Devnet Workflow
+#         uses: peter-evans/repository-dispatch@v2
+#         with:
+#           token: ${{ secrets.PAT_INTERNAL_DEVNET }}  # PAT with access on internal-devnet repo
+#           repository: your-org/internal-devnet
+#           event-type: release-trigger
+#           client-payload: |
+#             {
+#               "binary_version": "${{ needs.build_and_upload.outputs.VERSION }}-${{ needs.build_and_upload.outputs.COMMIT_HASH }}",
+#               "repo": "story"
+#             }
