@@ -26,6 +26,10 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
+	var isRefund bool
+	var refundAmount math.Int
+	var completionTime time.Time
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
@@ -44,18 +48,27 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 			)
 		}
 
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
-				sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
-				sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
-				sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
-				sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
+		e = e.AppendAttributes(
+			sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
+			sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+			sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
+			sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
+			sdk.NewAttribute(types.AttributeKeyDelegateID, ev.DelegationId.String()),
+			sdk.NewAttribute(types.AttributeKeyPeriodType, strconv.FormatInt(ev.StakingPeriod.Int64(), 10)),
+			sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
+			sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+			sdk.NewAttribute(types.AttributeKeyIsRefund, strconv.FormatBool(isRefund)),
+		)
+
+		// if it's a refund, add refund attributes
+		if isRefund {
+			e = e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyRefundAmount, refundAmount.String()),
+				sdk.NewAttribute(types.AttributeKeyRefundCompletionTime, completionTime.String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{e})
 	}()
 
 	validatorPubkey, err := k1util.PubKeyBytesToCosmos(ev.ValidatorCmpPubkey)
@@ -102,6 +115,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	//nolint:nestif // nested ifs error handling
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
+		isRefund = true
 		log.Info(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
 			"val_addr", validatorAddr,
 			"val_evm_addr", valEvmAddr.String(),
@@ -115,46 +129,14 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 			return errors.Wrap(err, "get refund fee")
 		}
 		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
-		refundAmount := amountCoin.Amount.Sub(refundFeeAmount)
+		refundAmount = amountCoin.Amount.Sub(refundFeeAmount)
 
 		refundPeriod, err := k.RefundPeriod(cachedCtx)
 		if err != nil {
 			return errors.Wrap(err, "get refund period")
 		}
 
-		completionTime := sdkCtx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
-
-		defer func() {
-			if r := recover(); r != nil {
-				err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-			}
-
-			var e sdk.Event
-			if err == nil {
-				writeCache()
-				e = sdk.NewEvent(
-					types.EventTypeDelegationRefundSuccess,
-				)
-			} else {
-				e = sdk.NewEvent(
-					types.EventTypeDelegationRefundFailure,
-					sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-				)
-			}
-
-			sdkCtx.EventManager().EmitEvents(sdk.Events{
-				e.AppendAttributes(
-					sdk.NewAttribute(types.AttributeKeyAmount, ev.StakeAmount.String()),
-					sdk.NewAttribute(types.AttributeKeyRefundAmount, refundAmount.String()),
-					sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-					sdk.NewAttribute(types.AttributeKeyDelegatorAddress, ev.Delegator.String()),
-					sdk.NewAttribute(types.AttributeKeyValidatorCmpPubKey, hex.EncodeToString(ev.ValidatorCmpPubkey)),
-					sdk.NewAttribute(types.AttributeKeySenderAddress, ev.OperatorAddress.Hex()),
-					sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-					sdk.NewAttribute(types.AttributeKeyRefundCompletionTime, completionTime.String()),
-				),
-			})
-		}()
+		completionTime = sdkCtx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
 
 		// push the refund to the unbonding queue
 		ubd, err := k.stakingKeeper.SetUnbondingDelegationEntry(
