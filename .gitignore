@@ -30,4 +30,3 @@ go.work
 go.work.sum
 
 story
-!client/proto/story
