@@ -80,10 +80,6 @@ func ValidateMinPartialWithdrawalAmount(v uint64) error {
 }
 
 func ValidateRefundFeeBps(v uint32) error {
-	if v == 0 {
-		return fmt.Errorf("refund fee bps must be positive: %d", v)
-	}
-
 	if v > 10000 {
 		return fmt.Errorf("refund fee bps must be less than or equal to 10000bps (100%%): %d", v)
 	}
