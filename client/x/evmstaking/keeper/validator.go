@@ -171,7 +171,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 			stypes.FlexiblePeriodDelegationID, // use flexible period delegation id
 			int32(0),                          // use flexible staking period
 		); err != nil {
-			return errors.Wrap(err, "convert validator creation to delegation as fallback")
+			return errors.WrapErrWithCode(errors.FallbackValidatorCreationToDelegation, err)
 		}
 	} else if errors.Is(err, stypes.ErrCommissionLTMinRate) {
 		return errors.WrapErrWithCode(errors.InvalidCommissionRate, err)
