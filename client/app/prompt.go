@@ -64,8 +64,7 @@ func PasswordPrompt(promptText string, validateFunc func(string) error) (string,
 	return response, nil
 }
 
-// InputPassword with a custom validator along capabilities of confirming
-// the password and reading it from disk if a specified flag is set.
+// InputPassword with a custom validator along capabilities of confirming the password.
 func InputPassword(
 	promptText, confirmText string,
 	shouldConfirmPassword bool,

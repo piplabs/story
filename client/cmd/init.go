@@ -323,8 +323,18 @@ func SplitAndTrim(input string) []string {
 }
 
 func loadOrCreateEncryptedPrivKey(ctx context.Context, encPrivKeyFile, privValStateFile string) (pv *privval.FilePV, err error) {
-	if cmtos.FileExists(encPrivKeyFile) {
-		key, err := app.LoadEncryptedPrivKey(encPrivKeyFile)
+	if cmtos.FileExists(encPrivKeyFile) { //nolint:nestif // no issue
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while input password")
+		}
+
+		key, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -335,8 +345,18 @@ func loadOrCreateEncryptedPrivKey(ctx context.Context, encPrivKeyFile, privValSt
 			"state_file", privValStateFile,
 		)
 	} else {
+		password, err := app.InputPassword(
+			app.NewKeyPasswordPromptText,
+			app.ConfirmPasswordPromptText,
+			true, /* Should confirm password */
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while input password")
+		}
+
 		pv = privval.NewFilePV(k1.GenPrivKey(), "", privValStateFile)
-		if err := app.EncryptAndStoreKey(pv.Key, encPrivKeyFile); err != nil {
+		if err := app.EncryptAndStoreKey(pv.Key, password, encPrivKeyFile); err != nil {
 			return nil, err
 		}
 		pv.LastSignState.Save()

@@ -198,6 +198,16 @@ func genValidatorPrivKeyJSON(_ context.Context, cfg genPrivKeyJSONConfig) error 
 }
 
 func encryptPrivKey(cfg baseConfig) error {
+	password, err := app.InputPassword(
+		app.NewKeyPasswordPromptText,
+		app.ConfirmPasswordPromptText,
+		true, /* Should confirm password */
+		app.ValidatePasswordInput,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error occurred while input password")
+	}
+
 	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode private key")
@@ -210,7 +220,7 @@ func encryptPrivKey(cfg baseConfig) error {
 		Address: pk.PubKey().Address(),
 	}
 
-	if err := app.EncryptAndStoreKey(pv, cfg.EncPrivKeyFile()); err != nil {
+	if err := app.EncryptAndStoreKey(pv, password, cfg.EncPrivKeyFile()); err != nil {
 		return errors.Wrap(err, "failed to encrypt and store the key")
 	}
 
@@ -218,8 +228,18 @@ func encryptPrivKey(cfg baseConfig) error {
 }
 
 func showEncryptedKey(cfg showEncryptedConfig) error {
+	password, err := app.InputPassword(
+		app.PasswordPromptText,
+		"",
+		false,
+		app.ValidatePasswordInput,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error occurred while input password")
+	}
+
 	encPrivKeyFile := cfg.EncPrivKeyFile()
-	pv, err := app.LoadEncryptedPrivKey(encPrivKeyFile)
+	pv, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to load encrypted private key")
 	}

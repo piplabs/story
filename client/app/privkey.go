@@ -31,7 +31,17 @@ func loadPrivVal(cfg Config) (*privval.FilePV, error) {
 		err error
 	)
 	if encPrivExists {
-		pv, err := LoadEncryptedPrivKey(encPrivKeyFile)
+		password, err := InputPassword(
+			PasswordPromptText,
+			"",
+			false,
+			ValidatePasswordInput,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv, err := LoadEncryptedPrivKey(password, encPrivKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -122,17 +132,7 @@ type EncryptedKeyRepresentation struct {
 	Name    string                 `json:"name"`
 }
 
-func EncryptAndStoreKey(key privval.FilePVKey, filePath string) error {
-	password, err := InputPassword(
-		NewKeyPasswordPromptText,
-		ConfirmPasswordPromptText,
-		true, /* Should confirm password */
-		ValidatePasswordInput,
-	)
-	if err != nil {
-		return err
-	}
-
+func EncryptAndStoreKey(key privval.FilePVKey, password, filePath string) error {
 	encodedKey, err := cmtjson.MarshalIndent(key, "", "\t")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal key for encryption")
@@ -162,17 +162,7 @@ func EncryptAndStoreKey(key privval.FilePVKey, filePath string) error {
 	return nil
 }
 
-func LoadEncryptedPrivKey(encPrivKeyFile string) (privval.FilePVKey, error) {
-	password, err := InputPassword(
-		PasswordPromptText,
-		"",
-		false,
-		ValidatePasswordInput,
-	)
-	if err != nil {
-		return privval.FilePVKey{}, err
-	}
-
+func LoadEncryptedPrivKey(password, encPrivKeyFile string) (privval.FilePVKey, error) {
 	data, err := os.ReadFile(encPrivKeyFile)
 	if err != nil {
 		return privval.FilePVKey{}, errors.Wrap(err, "failed to read enc_priv_key.json file")

@@ -1090,7 +1090,17 @@ func initializeBaseConfig(cfg *baseConfig) error {
 func loadPrivKey(cfg *baseConfig) (string, error) {
 	encPrivKeyFile := cfg.EncPrivKeyFile()
 	if cmtos.FileExists(encPrivKeyFile) {
-		pv, err := app.LoadEncryptedPrivKey(encPrivKeyFile)
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return "", errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to load encrypted private key")
 		}
