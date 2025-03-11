@@ -153,8 +153,8 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		}()
 
 		// push the refund to the unbonding queue
-		_, err = k.stakingKeeper.SetUnbondingDelegationEntry(
-			ctx,
+		ubd, err := k.stakingKeeper.SetUnbondingDelegationEntry(
+			cachedCtx,
 			depositorAddr,
 			validatorAddr,
 			sdkCtx.BlockHeight(),
@@ -163,6 +163,11 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		)
 		if err != nil {
 			return errors.Wrap(err, "set unbonding delegation entry")
+		}
+
+		err = k.stakingKeeper.InsertUBDQueue(cachedCtx, ubd, completionTime)
+		if err != nil {
+			return errors.Wrap(err, "insert unbonding delegation queue")
 		}
 
 		log.Debug(cachedCtx, "Added refund to unbonding queue",
