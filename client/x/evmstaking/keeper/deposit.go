@@ -102,9 +102,11 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	//nolint:nestif // nested ifs error handling
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
-		log.Debug(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
-			"val_story", validatorAddr,
-			"val_pubkey", validatorPubkey.String(),
+		log.Info(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
+			"val_addr", validatorAddr,
+			"val_evm_addr", valEvmAddr.String(),
+			"del_addr", depositorAddr.String(),
+			"del_evm_addr", ev.Delegator.String(),
 		)
 
 		// the min refund fee amount will be `refundFeeBps * minDelegationAmount (1024) / 10_000bps`
