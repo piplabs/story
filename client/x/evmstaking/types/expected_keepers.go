@@ -54,6 +54,11 @@ type StakingKeeper interface {
 	GetAllValidators(ctx context.Context) (validators []stakingtypes.Validator, err error)
 	BondDenom(ctx context.Context) (string, error)
 
+	SetUnbondingDelegationEntry(
+		ctx context.Context, delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress,
+		creationHeight int64, minTime time.Time, balance math.Int,
+	) (stakingtypes.UnbondingDelegation, error)
+	InsertUBDQueue(ctx context.Context, ubd stakingtypes.UnbondingDelegation, completionTime time.Time) error
 	UBDQueueIterator(ctx context.Context, endTime time.Time) (corestore.Iterator, error)
 	// GetUnbondingDelegation returns a unbonding delegation.
 	GetUnbondingDelegation(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (ubd stakingtypes.UnbondingDelegation, err error)

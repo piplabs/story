@@ -39,11 +39,17 @@ func (s *TestSuite) createValidator(ctx context.Context, valPubKey crypto.PubKey
 	_ = skeeper.TestingUpdateValidator(stakingKeeper, sdkCtx, validator, true)
 }
 
+type expectedResultDeposit struct {
+	validatorAddr sdk.ValAddress
+	delegatorAddr sdk.AccAddress
+	delegation    stypes.Delegation
+}
+
 func (s *TestSuite) TestProcessDeposit() {
 	require := s.Require()
 	ctx, keeper, stakingKeeper := s.Ctx, s.EVMStakingKeeper, s.StakingKeeper
 
-	pubKeys, accAddrs, valAddrs := createAddresses(2)
+	pubKeys, accAddrs, valAddrs := createAddresses(3)
 	// delegator
 	delPubKey := pubKeys[0]
 	delAddr := accAddrs[0]
@@ -51,6 +57,9 @@ func (s *TestSuite) TestProcessDeposit() {
 	valPubKey := pubKeys[1]
 	valAddr := valAddrs[1]
 	s.createValidator(ctx, valPubKey, valAddr)
+	// non-existing validator
+	val2Pubkey := pubKeys[2]
+	val2Addr := valAddrs[2]
 
 	createDeposit := func(delPubKey, valPubKey []byte, amount *big.Int) *bindings.IPTokenStakingDeposit {
 		return &bindings.IPTokenStakingDeposit{
@@ -63,13 +72,25 @@ func (s *TestSuite) TestProcessDeposit() {
 		}
 	}
 
+	refundFeeBps, err := keeper.RefundFeeBps(ctx)
+	require.NoError(err)
+	refundPeriod, err := keeper.RefundPeriod(ctx)
+	require.NoError(err)
+
 	tcs := []struct {
 		name           string
 		settingMock    func()
 		deposit        *bindings.IPTokenStakingDeposit
-		expectedResult stypes.Delegation
-		expectedErr    string
+		expectedResult []expectedResultDeposit
+		expectedRefund struct {
+			DelegatorAddress sdk.AccAddress
+			ValidatorAddress sdk.ValAddress
+			RefundAmount     sdkmath.Int
+			// NOTE: CompletionTime is calculated during the test if RefundAmount is greater than 0
+		}
+		expectedErr string
 	}{
+		// TODO: corrupted delegator and validator pubkey
 		{
 			name: "fail: invalid validator pubkey",
 			deposit: &bindings.IPTokenStakingDeposit{
@@ -82,25 +103,54 @@ func (s *TestSuite) TestProcessDeposit() {
 			},
 			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
 		},
-		// TODO: corrupted delegator and validator pubkey
+		{
+			name: "pass: validator not found, refund deposit",
+			deposit: &bindings.IPTokenStakingDeposit{
+				Delegator:          common.Address(delAddr),
+				ValidatorCmpPubkey: val2Pubkey.Bytes(),
+				StakeAmount:        new(big.Int).SetUint64(1024),
+				StakingPeriod:      big.NewInt(0),
+			},
+			expectedRefund: struct {
+				DelegatorAddress sdk.AccAddress
+				ValidatorAddress sdk.ValAddress
+				RefundAmount     sdkmath.Int
+			}{
+				DelegatorAddress: delAddr,
+				ValidatorAddress: val2Addr,
+				RefundAmount:     sdkmath.NewInt(1024).Sub(sdkmath.NewInt(1024).Mul(sdkmath.NewInt(int64(refundFeeBps))).Quo(sdkmath.NewInt(10_000))),
+			},
+		},
 		{
 			name:    "pass: existing delegator",
 			deposit: createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
-			expectedResult: stypes.Delegation{
-				DelegatorAddress: delAddr.String(),
-				ValidatorAddress: valAddr.String(),
-				Shares:           sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)),
-				RewardsShares:    sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2))),
+			expectedResult: []expectedResultDeposit{
+				{
+					validatorAddr: valAddr,
+					delegatorAddr: delAddr,
+					delegation: stypes.Delegation{
+						DelegatorAddress: delAddr.String(),
+						ValidatorAddress: valAddr.String(),
+						Shares:           sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)),
+						RewardsShares:    sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2))),
+					},
+				},
 			},
 		},
 		{
 			name:    "pass: new delegator",
 			deposit: createDeposit(delPubKey.Bytes(), valPubKey.Bytes(), new(big.Int).SetUint64(1)),
-			expectedResult: stypes.Delegation{
-				DelegatorAddress: delAddr.String(),
-				ValidatorAddress: valAddr.String(),
-				Shares:           sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)),
-				RewardsShares:    sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2))),
+			expectedResult: []expectedResultDeposit{
+				{
+					validatorAddr: valAddr,
+					delegatorAddr: delAddr,
+					delegation: stypes.Delegation{
+						DelegatorAddress: delAddr.String(),
+						ValidatorAddress: valAddr.String(),
+						Shares:           sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)),
+						RewardsShares:    sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2))),
+					},
+				},
 			},
 		},
 	}
@@ -117,9 +167,27 @@ func (s *TestSuite) TestProcessDeposit() {
 			} else {
 				require.NoError(err)
 				// check delegation
-				delegation, err := stakingKeeper.GetDelegation(cachedCtx, delAddr, valAddr)
-				require.NoError(err)
-				require.Equal(tc.expectedResult, delegation)
+				if len(tc.expectedResult) > 0 {
+					for _, tc := range tc.expectedResult {
+						delegation, err := stakingKeeper.GetDelegation(cachedCtx, tc.delegatorAddr, tc.validatorAddr)
+						require.NoError(err)
+						require.Equal(tc.delegation, delegation)
+					}
+				}
+
+				// check refund in unbonding queue
+				if tc.expectedRefund.DelegatorAddress != nil {
+					ubd, err := stakingKeeper.GetUnbondingDelegation(cachedCtx, tc.expectedRefund.DelegatorAddress, tc.expectedRefund.ValidatorAddress)
+					require.NoError(err)
+					require.Equal(tc.expectedRefund.ValidatorAddress.String(), ubd.ValidatorAddress)
+					require.Equal(tc.expectedRefund.DelegatorAddress.String(), ubd.DelegatorAddress)
+
+					completionTime := ctx.BlockTime().Add(refundPeriod)
+					for _, entry := range ubd.Entries {
+						require.True(tc.expectedRefund.RefundAmount.Equal(sdkmath.NewIntFromBigInt(entry.Balance.BigInt())))
+						require.Equal(completionTime, entry.CompletionTime)
+					}
+				}
 			}
 		})
 	}
