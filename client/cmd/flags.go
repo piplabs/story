@@ -15,6 +15,7 @@ import (
 
 	"cosmossdk.io/math"
 
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -571,7 +572,7 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {
@@ -598,7 +599,7 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Command, cfg *updateCommissionConfig) error {
@@ -742,8 +743,10 @@ func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig,
 }
 
 type Validator struct {
-	OperatorAddress string            `json:"operator_address"`
-	Commission      stypes.Commission `json:"commission"`
+	OperatorAddress   string            `json:"operator_address"`
+	Commission        stypes.Commission `json:"commission"`
+	Tokens            string            `json:"tokens"`
+	MinSelfDelegation string            `json:"min_self_delegation"`
 }
 
 type ValidatorResponse struct {
@@ -806,4 +809,28 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) 
 	}
 
 	return response.Msg.Validator, nil
+}
+
+// validateMinSelfDelegation validates that the self-delegation is greater than the minimum required.
+func validateMinSelfDelegation(ctx context.Context, endpoint string, pubKey []byte) error {
+	validator, err := getValidatorByEVMAddr(ctx, endpoint, pubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to get validator by EVM address")
+	}
+
+	selfDelegation, ok := new(big.Int).SetString(validator.Tokens, 10)
+	if !ok {
+		return errors.New("invalid tokens amount", "amount", validator.Tokens)
+	}
+
+	minSelfDelegation, ok := new(big.Int).SetString(validator.MinSelfDelegation, 10)
+	if !ok {
+		return errors.New("invalid min self delegation", "min_self_delegation", validator.MinSelfDelegation)
+	}
+
+	if selfDelegation.Cmp(minSelfDelegation) < 0 {
+		return slashingtypes.ErrSelfDelegationTooLowToUnjail
+	}
+
+	return nil
 }
