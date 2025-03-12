@@ -136,7 +136,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 			return errors.Wrap(err, "get refund period")
 		}
 
-		completionTime = sdkCtx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
+		completionTime = sdkCtx.BlockTime().Add(refundPeriod)
 
 		// push the refund to the unbonding queue
 		ubd, err := k.stakingKeeper.SetUnbondingDelegationEntry(

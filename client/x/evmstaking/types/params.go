@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"time"
 )
 
 // Staking params default values.
@@ -14,13 +15,13 @@ const (
 
 	DefaultRefundFeeBps uint32 = 100 // 100bps, or 1% (= 10.24 IP min fee)
 
-	DefaultRefundPeriod uint32 = 24 // 24 hours
+	DefaultRefundPeriod time.Duration = 24 * time.Hour
 )
 
 // NewParams creates a new Params instance.
 func NewParams(
 	maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64,
-	refundFeeBps uint32, refundPeriod uint32,
+	refundFeeBps uint32, refundPeriod time.Duration,
 ) Params {
 	return Params{
 		MaxWithdrawalPerBlock:      maxWithdrawalPerBlock,
@@ -98,8 +99,8 @@ func ValidateRefundFeeBps(v uint32) error {
 	return nil
 }
 
-func ValidateRefundPeriod(v uint32) error {
-	if v < 24 {
+func ValidateRefundPeriod(v time.Duration) error {
+	if v < 24*time.Hour {
 		return fmt.Errorf("refund period must be at least 24 hours: %d", v)
 	}
 

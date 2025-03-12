@@ -1,7 +1,9 @@
 package types_test
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/stretchr/testify/suite"
@@ -20,7 +22,8 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee, refundPeriod := uint32(1), uint32(2), uint64(3), uint32(4), uint32(5)
+	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee, refundPeriod :=
+		uint32(1), uint32(2), uint64(3), uint32(4), time.Duration(5)
 	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount, refundFee, refundPeriod)
 	// check values are set correctly
 	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
@@ -192,12 +195,12 @@ func (suite *ParamsTestSuite) TestValidateRefundPeriod() {
 
 	tcs := []struct {
 		name        string
-		input       uint32
+		input       time.Duration
 		expectedErr string
 	}{
 		{
 			name:  "valid value",
-			input: 24,
+			input: 24 * time.Hour,
 		},
 		{
 			name:        "invalid value",
@@ -206,8 +209,8 @@ func (suite *ParamsTestSuite) TestValidateRefundPeriod() {
 		},
 		{
 			name:        "invalid value",
-			input:       10,
-			expectedErr: "refund period must be at least 24 hours: 10",
+			input:       10 * time.Second,
+			expectedErr: fmt.Sprintf("refund period must be at least 24 hours: %d", 10*time.Second),
 		},
 	}
 

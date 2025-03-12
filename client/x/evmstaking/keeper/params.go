@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -45,7 +46,7 @@ func (k Keeper) RefundFeeBps(ctx context.Context) (uint32, error) {
 	return params.RefundFeeBps, nil
 }
 
-func (k Keeper) RefundPeriod(ctx context.Context) (uint32, error) {
+func (k Keeper) RefundPeriod(ctx context.Context) (time.Duration, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return 0, err

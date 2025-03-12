@@ -3,7 +3,6 @@ package keeper_test
 import (
 	"context"
 	"math/big"
-	"time"
 
 	sdkmath "cosmossdk.io/math"
 
@@ -183,7 +182,7 @@ func (s *TestSuite) TestProcessDeposit() {
 					require.Equal(tc.expectedRefund.ValidatorAddress.String(), ubd.ValidatorAddress)
 					require.Equal(tc.expectedRefund.DelegatorAddress.String(), ubd.DelegatorAddress)
 
-					completionTime := ctx.BlockTime().Add(time.Duration(refundPeriod) * time.Hour)
+					completionTime := ctx.BlockTime().Add(refundPeriod)
 					for _, entry := range ubd.Entries {
 						require.True(tc.expectedRefund.RefundAmount.Equal(sdkmath.NewIntFromBigInt(entry.Balance.BigInt())))
 						require.Equal(completionTime, entry.CompletionTime)

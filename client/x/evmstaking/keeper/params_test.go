@@ -1,6 +1,10 @@
 package keeper_test
 
-import "github.com/piplabs/story/client/x/evmstaking/types"
+import (
+	"time"
+
+	"github.com/piplabs/story/client/x/evmstaking/types"
+)
 
 func (s *TestSuite) TestGetParams() {
 	require := s.Require()
@@ -16,6 +20,8 @@ func (s *TestSuite) TestSetParams() {
 	newMaxWithdrawalPerBlock := uint32(10)
 	newMaxSweepPerBlock := uint32(100)
 	newMinPartialWithdrawalAmount := uint64(100_000)
+	newRefundFeeBps := uint32(10)
+	newRefundPeriod := time.Duration(100)
 
 	params, err := keeper.GetParams(ctx)
 	require.NoError(err)
@@ -24,12 +30,16 @@ func (s *TestSuite) TestSetParams() {
 	require.NotEqual(newMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
 	require.NotEqual(newMaxSweepPerBlock, params.MaxSweepPerBlock)
 	require.NotEqual(newMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	require.NotEqual(newRefundFeeBps, params.RefundFeeBps)
+	require.NotEqual(newRefundPeriod, params.RefundPeriod)
 
 	newParams := params
 	// set new params
 	newParams.MaxWithdrawalPerBlock = newMaxWithdrawalPerBlock
 	newParams.MaxSweepPerBlock = newMaxSweepPerBlock
 	newParams.MinPartialWithdrawalAmount = newMinPartialWithdrawalAmount
+	newParams.RefundFeeBps = newRefundFeeBps
+	newParams.RefundPeriod = newRefundPeriod
 	require.NoError(keeper.SetParams(ctx, newParams))
 
 	// check new params are set correctly
