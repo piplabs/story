@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	storycfg "github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/lib/log"
 )
 
@@ -16,7 +17,8 @@ const homeFlag = "home"
 // This is generally only required for apps that require multiple config files or persist data to disk.
 // Using this flag will result in the viper config directory to be updated from default "." to "<home>/config".
 func BindHomeFlag(flags *pflag.FlagSet, homeDir *string) {
-	flags.StringVar(homeDir, homeFlag, *homeDir, "The application home directory containing config and data")
+	defaultHomeDir := storycfg.DefaultHomeDir()
+	flags.StringVar(homeDir, homeFlag, defaultHomeDir, "The application home directory containing config and data")
 }
 
 // LogFlags logs the configured flags kv pairs.

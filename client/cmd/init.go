@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/app"
 	storycfg "github.com/piplabs/story/client/config"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/errors"
@@ -40,6 +41,11 @@ type InitConfig struct {
 	SeedMode        bool
 	Moniker         string
 	PersistentPeers string
+	EncryptPrivKey  bool
+}
+
+func (cfg InitConfig) EncPrivKeyFile() string {
+	return filepath.Join(cfg.HomeDir, storycfg.DefaultEncPrivKeyPath)
 }
 
 // newInitCmd returns a new cobra command that initializes the files and folders required by story.
@@ -88,7 +94,7 @@ The home directory should only contain subdirectories, no files, use --force to 
 // InitFiles initializes the files and folders required by story.
 // It ensures a network and genesis file is generated/downloaded for the provided network.
 //
-//nolint:gocognit,nestif // This is just many sequential steps.
+//nolint:gocognit,nestif,gocyclo // This is just many sequential steps.
 func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	if initCfg.Network == "" {
 		return errors.New("required flag --network empty")
@@ -204,21 +210,21 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	}
 
 	// Setup comet private validator
-	var pv *privval.FilePV
-	privValKeyFile := comet.PrivValidatorKeyFile()
+	var (
+		pv  *privval.FilePV
+		err error
+	)
+
 	privValStateFile := comet.PrivValidatorStateFile()
-	if cmtos.FileExists(privValKeyFile) {
-		pv = privval.LoadFilePV(privValKeyFile, privValStateFile) // This hard exits on any error.
-		log.Info(ctx, "Found cometBFT private validator",
-			"key_file", privValKeyFile,
-			"state_file", privValStateFile,
-		)
+	if initCfg.EncryptPrivKey {
+		encPrivKeyFile := initCfg.EncPrivKeyFile()
+		pv, err = loadOrCreateEncryptedPrivKey(ctx, encPrivKeyFile, privValStateFile)
+		if err != nil {
+			return err
+		}
 	} else {
-		pv = privval.NewFilePV(k1.GenPrivKey(), privValKeyFile, privValStateFile)
-		pv.Save()
-		log.Info(ctx, "Generated private validator",
-			"key_file", privValKeyFile,
-			"state_file", privValStateFile)
+		privValKeyFile := comet.PrivValidatorKeyFile()
+		pv = loadOrCreatePrivKey(ctx, privValKeyFile, privValStateFile)
 	}
 
 	// Setup node key
@@ -314,4 +320,72 @@ func SplitAndTrim(input string) []string {
 	}
 
 	return ret
+}
+
+func loadOrCreateEncryptedPrivKey(ctx context.Context, encPrivKeyFile, privValStateFile string) (pv *privval.FilePV, err error) {
+	if cmtos.FileExists(encPrivKeyFile) { //nolint:nestif // no issue
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while input password")
+		}
+
+		key, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
+		if err != nil {
+			return nil, err
+		}
+
+		pv = privval.NewFilePV(key.PrivKey, "", privValStateFile)
+		log.Info(ctx, "Found encrypted validator private key",
+			"enc_key_file", encPrivKeyFile,
+			"state_file", privValStateFile,
+		)
+	} else {
+		password, err := app.InputPassword(
+			app.NewKeyPasswordPromptText,
+			app.ConfirmPasswordPromptText,
+			true, /* Should confirm password */
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv = privval.NewFilePV(k1.GenPrivKey(), "", privValStateFile)
+		if err := app.EncryptAndStoreKey(pv.Key, password, encPrivKeyFile); err != nil {
+			return nil, err
+		}
+		pv.LastSignState.Save()
+
+		log.Info(ctx, "Generated encrypted validator private key",
+			"enc_key_file", encPrivKeyFile,
+			"state_file", privValStateFile,
+		)
+	}
+
+	return pv, nil
+}
+
+func loadOrCreatePrivKey(ctx context.Context, privValKeyFile, privValStateFile string) (pv *privval.FilePV) {
+	if cmtos.FileExists(privValKeyFile) {
+		pv = privval.LoadFilePV(privValKeyFile, privValStateFile) // This hard exits on any error.
+
+		log.Info(ctx, "Found cometBFT private validator",
+			"key_file", privValKeyFile,
+			"state_file", privValStateFile,
+		)
+	} else {
+		pv = privval.NewFilePV(k1.GenPrivKey(), privValKeyFile, privValStateFile)
+		pv.Save()
+
+		log.Info(ctx, "Generated private validator",
+			"key_file", privValKeyFile,
+			"state_file", privValStateFile)
+	}
+
+	return pv
 }

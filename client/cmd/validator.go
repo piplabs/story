@@ -6,19 +6,20 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 
-	k1 "github.com/cometbft/cometbft/crypto/secp256k1"
-	cmtjson "github.com/cometbft/cometbft/libs/json"
-	"github.com/cometbft/cometbft/libs/tempfile"
-	"github.com/cometbft/cometbft/privval"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/app"
+	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
@@ -74,6 +75,7 @@ func (*StakingPeriod) Type() string {
 var ipTokenStakingABI []byte
 
 type baseConfig struct {
+	HomeDir      string
 	RPC          string
 	PrivateKey   string
 	Explorer     string
@@ -81,6 +83,10 @@ type baseConfig struct {
 	ABI          *abi.ABI
 	ContractAddr common.Address
 	StoryAPI     string
+}
+
+func (cfg baseConfig) EncPrivKeyFile() string {
+	return filepath.Join(cfg.HomeDir, config.DefaultEncPrivKeyPath)
 }
 
 type createValidatorConfig struct {
@@ -151,6 +157,11 @@ type genPrivKeyJSONConfig struct {
 	ValidatorKeyFile string
 }
 
+type showEncryptedConfig struct {
+	baseConfig
+	ShowPrivate bool
+}
+
 func loadEnv() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: No .env file found")
@@ -167,7 +178,6 @@ func newValidatorCmds() *cobra.Command {
 	cmd.AddCommand(
 		newValidatorCreateCmd(),
 		newValidatorKeyExportCmd(),
-		newValidatorGenPrivKeyJSONCmd(),
 		newValidatorStakeCmd(),
 		newValidatorStakeOnBehalfCmd(),
 		newValidatorUnstakeCmd(),
@@ -458,29 +468,6 @@ func newValidatorKeyExportCmd() *cobra.Command {
 	return cmd
 }
 
-func newValidatorGenPrivKeyJSONCmd() *cobra.Command {
-	var cfg genPrivKeyJSONConfig
-
-	cmd := &cobra.Command{
-		Use:   "gen-priv-key-json",
-		Short: "Generate a priv_validator_key.json file from EVM private key",
-		Args:  cobra.NoArgs,
-		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return initializeBaseConfig(&cfg.baseConfig)
-		},
-		RunE: runValidatorCommand(
-			func(_ *cobra.Command) error {
-				return validateGenPrivKeyJSONFlags(&cfg)
-			},
-			func(ctx context.Context) error { return genValidatorPrivKeyJSON(ctx, cfg) },
-		),
-	}
-
-	bindValidatorGenPrivKeyJSONFlags(cmd, &cfg)
-
-	return cmd
-}
-
 func newValidatorUnjailCmd() *cobra.Command {
 	var cfg unjailConfig
 
@@ -597,31 +584,6 @@ func exportKey(_ context.Context, cfg exportKeyConfig) error {
 
 		fmt.Printf("EVM Private Key saved to: %s\n", cfg.EvmKeyFile)
 		fmt.Println("WARNING: The EVM private key is highly sensitive. Store this file in a secure location.")
-	}
-
-	return nil
-}
-
-func genValidatorPrivKeyJSON(_ context.Context, cfg genPrivKeyJSONConfig) error {
-	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode private key")
-	}
-
-	privKey := k1.PrivKey(privKeyBytes)
-	newPV := &privval.FilePVKey{
-		Address: privKey.PubKey().Address(),
-		PubKey:  privKey.PubKey(),
-		PrivKey: privKey,
-	}
-
-	jsonBytes, err := cmtjson.MarshalIndent(newPV, "", "  ")
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal pv data")
-	}
-
-	if err := tempfile.WriteFileAtomic(cfg.ValidatorKeyFile, jsonBytes, 0600); err != nil {
-		return errors.Wrap(err, "failed to write file")
 	}
 
 	return nil
@@ -1101,14 +1063,16 @@ func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) 
 }
 
 func initializeBaseConfig(cfg *baseConfig) error {
-	loadEnv()
-	cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
+	var err error
+	cfg.PrivateKey, err = loadPrivKey(cfg)
+	if err != nil {
+		return errors.Wrap(err, "failed to load private key")
+	}
 	if cfg.PrivateKey == "" {
-		return errors.New("missing required flag", "private-key", "EVM private key")
+		return errors.New("missing required private key")
 	}
 
-	_, err := crypto.HexToECDSA(cfg.PrivateKey)
-	if err != nil {
+	if _, err = crypto.HexToECDSA(cfg.PrivateKey); err != nil {
 		return errors.Wrap(err, "invalid EVM private key")
 	}
 
@@ -1121,6 +1085,33 @@ func initializeBaseConfig(cfg *baseConfig) error {
 	cfg.ContractAddr = common.HexToAddress(predeploys.IPTokenStaking)
 
 	return nil
+}
+
+func loadPrivKey(cfg *baseConfig) (string, error) {
+	encPrivKeyFile := cfg.EncPrivKeyFile()
+	if cmtos.FileExists(encPrivKeyFile) {
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return "", errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to load encrypted private key")
+		}
+
+		return strings.TrimPrefix(hexutil.Encode(pv.PrivKey.Bytes()), "0x"), nil
+	}
+
+	// TODO(0xHansLee): get priv key from priv_validator_key.json
+	loadEnv()
+
+	return os.Getenv("PRIVATE_KEY"), nil
 }
 
 func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*big.Int, error) {
