@@ -15,8 +15,8 @@ import (
 
 	"cosmossdk.io/math"
 
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	cmtos "github.com/cometbft/cometbft/libs/os"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
