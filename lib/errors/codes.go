@@ -26,7 +26,8 @@ const (
 	MissingSelfDelegation                 ErrCode = 16
 	ValidatorNotJailed                    ErrCode = 17
 	ValidatorStillJailed                  ErrCode = 18
-	FallbackValidatorCreationToDelegation ErrCode = 19
+	FallbackValidatorCreationToRefund     ErrCode = 19
+	FallbackValidatorCreationToDelegation ErrCode = 20
 )
 
 var (
@@ -49,6 +50,7 @@ var (
 	ErrMissingSelfDelegation                 = stderrors.New("missing_self_delegation")
 	ErrValidatorNotJailed                    = stderrors.New("validator_not_jailed")
 	ErrValidatorStillJailed                  = stderrors.New("validator_still_jailed")
+	ErrFallbackValidatorCreationToRefund     = stderrors.New("fallback_validator_creation_to_refund")
 	ErrFallbackValidatorCreationToDelegation = stderrors.New("fallback_validator_creation_to_delegation")
 )
 
@@ -72,6 +74,7 @@ var codeToErr = map[ErrCode]error{
 	MissingSelfDelegation:                 ErrMissingSelfDelegation,
 	ValidatorNotJailed:                    ErrValidatorNotJailed,
 	ValidatorStillJailed:                  ErrValidatorStillJailed,
+	FallbackValidatorCreationToRefund:     ErrFallbackValidatorCreationToRefund,
 	FallbackValidatorCreationToDelegation: ErrFallbackValidatorCreationToDelegation,
 }
 
@@ -132,6 +135,8 @@ func UnwrapErrCode(err error) ErrCode {
 		return ValidatorNotJailed
 	case stderrors.Is(err, ErrValidatorStillJailed):
 		return ValidatorStillJailed
+	case stderrors.Is(err, ErrFallbackValidatorCreationToRefund):
+		return FallbackValidatorCreationToRefund
 	case stderrors.Is(err, ErrFallbackValidatorCreationToDelegation):
 		return FallbackValidatorCreationToDelegation
 	default:

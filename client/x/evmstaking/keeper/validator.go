@@ -21,7 +21,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-//nolint:contextcheck // already inherited new context
+//nolint:contextcheck,gocyclo,maintidx // already inherited new context, nested ifs error handling
 func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPTokenStakingCreateValidator) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
@@ -160,12 +160,40 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 
 	//nolint:nestif // nested ifs error handling
 	if _, err := skeeperMsgServer.CreateValidator(cachedCtx, msg); errors.Is(err, stypes.ErrValidatorOwnerExists) || errors.Is(err, stypes.ErrValidatorPubKeyExists) {
-		// if validator exists, convert the request to a delegation
+		// if validator exists, convert the request to a delegation (refund if mismatch in token type - locked/unlocked)
 		log.Debug(cachedCtx, "Validator already exists, converting stake from validator creation to delegation",
 			"val_story", validatorAddr,
 			"val_pubkey", validatorPubkey.String(),
 		)
 
+		val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
+		if err != nil {
+			return errors.Wrap(err, "get validator")
+		}
+
+		lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
+		if err != nil {
+			return errors.Wrap(err, "get locked token type")
+		}
+
+		// If given token is unlocked (1/true) but validator supports locked, or vice versa, convert to a refund.
+		if (ev.SupportsUnlocked == 1 && val.SupportTokenType == lockedTokenType) ||
+			(ev.SupportsUnlocked == 0 && val.SupportTokenType != lockedTokenType) {
+			log.Debug(cachedCtx, "Mismatch in stake token type while converting stake from validator creator to delegation, refunding deposit minus the refund fee",
+				"val_del_addr", validatorAddr,
+				"val_del_evm_addr", valEvmAddr.String(),
+				"amount before fee", amountCoin.String(),
+			)
+
+			_, _, err = k.RefundDelegation(cachedCtx, delegatorAddr, validatorAddr, amountCoin)
+			if err != nil {
+				return errors.WrapErrWithCode(errors.FallbackValidatorCreationToRefund, err)
+			}
+
+			return nil // skip logic of conversion to delegation since refund is initiated
+		}
+
+		// Otherwise, convert to a delegation.
 		if err = k.CreateDelegation(
 			cachedCtx, validatorAddr.String(), delegatorAddr.String(), amountCoin,
 			stypes.FlexiblePeriodDelegationID, // use flexible period delegation id

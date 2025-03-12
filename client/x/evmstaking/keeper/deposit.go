@@ -113,7 +113,6 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 
 	val, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
 
-	//nolint:nestif // nested ifs error handling
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
 		isRefund = true
 		log.Info(cachedCtx, "Validator not found, refunding deposit minus the refund fee",
@@ -123,47 +122,9 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 			"del_evm_addr", ev.Delegator.String(),
 		)
 
-		// the min refund fee amount will be `refundFeeBps * minDelegationAmount (1024) / 10_000bps`
-		refundFeeBps, err := k.RefundFeeBps(cachedCtx)
-		if err != nil {
-			return errors.Wrap(err, "get refund fee")
-		}
-		refundFeeAmount := amountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
-		refundAmount = amountCoin.Amount.Sub(refundFeeAmount)
+		refundAmount, completionTime, err = k.RefundDelegation(ctx, depositorAddr, validatorAddr, amountCoin)
 
-		refundPeriod, err := k.RefundPeriod(cachedCtx)
-		if err != nil {
-			return errors.Wrap(err, "get refund period")
-		}
-
-		completionTime = sdkCtx.BlockTime().Add(refundPeriod)
-
-		// push the refund to the unbonding queue
-		ubd, err := k.stakingKeeper.SetUnbondingDelegationEntry(
-			cachedCtx,
-			depositorAddr,
-			validatorAddr,
-			sdkCtx.BlockHeight(),
-			completionTime,
-			refundAmount,
-		)
-		if err != nil {
-			return errors.Wrap(err, "set unbonding delegation entry")
-		}
-
-		err = k.stakingKeeper.InsertUBDQueue(cachedCtx, ubd, completionTime)
-		if err != nil {
-			return errors.Wrap(err, "insert unbonding delegation queue")
-		}
-
-		log.Debug(cachedCtx, "Added refund to unbonding queue",
-			"del_addr", depositorAddr.String(),
-			"val_addr", validatorAddr.String(),
-			"amount", refundAmount.String(),
-			"completion_time", completionTime,
-		)
-
-		return nil // skip delegation logic
+		return err // skip delegation logic
 	} else if err != nil {
 		return errors.Wrap(err, "get validator failed")
 	}
@@ -238,4 +199,53 @@ func (k Keeper) CreateDelegation(
 
 func (k Keeper) ParseDepositLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingDeposit, error) {
 	return k.ipTokenStakingContract.ParseDeposit(ethlog)
+}
+
+func (k Keeper) RefundDelegation(
+	ctx context.Context, delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress, rawRefundAmountCoin sdk.Coin,
+) (refundAmount math.Int, completionTime time.Time, err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// the min refund fee amount will be `refundFeeBps * minDelegationAmount (1024) / 10_000bps`
+	refundFeeBps, err := k.RefundFeeBps(ctx)
+	if err != nil {
+		return math.Int{}, time.Time{}, errors.Wrap(err, "get refund fee")
+	}
+	refundFeeAmount := rawRefundAmountCoin.Amount.Mul(math.NewInt(int64(refundFeeBps))).Quo(math.NewInt(10_000))
+	refundAmount = rawRefundAmountCoin.Amount.Sub(refundFeeAmount)
+
+	refundPeriod, err := k.RefundPeriod(ctx)
+	if err != nil {
+		return math.Int{}, time.Time{}, errors.Wrap(err, "get refund period")
+	}
+
+	completionTime = sdkCtx.BlockTime().Add(refundPeriod)
+
+	// set ubd index in mapping (needed before inserting to ubd queue)
+	ubd, err := k.stakingKeeper.SetUnbondingDelegationEntry(
+		ctx,
+		delegatorAddr,
+		validatorAddr,
+		sdkCtx.BlockHeight(),
+		completionTime,
+		refundAmount,
+	)
+	if err != nil {
+		return math.Int{}, time.Time{}, errors.Wrap(err, "set unbonding delegation entry")
+	}
+
+	// push the refund to the unbonding queue
+	err = k.stakingKeeper.InsertUBDQueue(ctx, ubd, completionTime)
+	if err != nil {
+		return math.Int{}, time.Time{}, errors.Wrap(err, "insert unbonding delegation queue")
+	}
+
+	log.Debug(ctx, "Added refund to unbonding queue",
+		"del_addr", delegatorAddr.String(),
+		"val_addr", validatorAddr.String(),
+		"amount", refundAmount.String(),
+		"completion_time", completionTime,
+	)
+
+	return refundAmount, completionTime, nil
 }
