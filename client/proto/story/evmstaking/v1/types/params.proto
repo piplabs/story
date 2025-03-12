@@ -2,6 +2,7 @@ syntax = "proto3";
 package story.evmstaking.v1.types;
 
 import "gogoproto/gogo.proto";
+import "google/protobuf/duration.proto";
 
 option go_package = "github.com/piplabs/story/client/x/evmstaking/types";
 
@@ -18,5 +19,12 @@ message Params {
   ];
   string ubi_withdraw_address = 4 [
     (gogoproto.moretags) = "yaml:\"ubi_withdraw_address\""
+  ];
+  uint32 refund_fee_bps = 5 [
+    (gogoproto.moretags) = "yaml:\"refund_fee_bps\""
+  ];
+  google.protobuf.Duration refund_period = 6 [
+    (gogoproto.nullable) = false, (gogoproto.stdduration) = true,
+    (gogoproto.moretags) = "yaml:\"refund_period\""
   ];
 }

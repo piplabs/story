@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"time"
 )
 
 // Staking params default values.
@@ -11,14 +12,23 @@ const (
 	DefaultMaxSweepPerBlock uint32 = 128
 
 	DefaultMinPartialWithdrawalAmount uint64 = 8_000_000_000
+
+	DefaultRefundFeeBps uint32 = 100 // 100bps, or 1% (= 10.24 IP min fee)
+
+	DefaultRefundPeriod time.Duration = 24 * time.Hour
 )
 
 // NewParams creates a new Params instance.
-func NewParams(maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64) Params {
+func NewParams(
+	maxWithdrawalPerBlock uint32, maxSweepPerBlock uint32, minPartialWithdrawalAmount uint64,
+	refundFeeBps uint32, refundPeriod time.Duration,
+) Params {
 	return Params{
 		MaxWithdrawalPerBlock:      maxWithdrawalPerBlock,
 		MaxSweepPerBlock:           maxSweepPerBlock,
 		MinPartialWithdrawalAmount: minPartialWithdrawalAmount,
+		RefundFeeBps:               refundFeeBps,
+		RefundPeriod:               refundPeriod,
 	}
 }
 
@@ -28,6 +38,8 @@ func DefaultParams() Params {
 		DefaultMaxWithdrawalPerBlock,
 		DefaultMaxSweepPerBlock,
 		DefaultMinPartialWithdrawalAmount,
+		DefaultRefundFeeBps,
+		DefaultRefundPeriod,
 	)
 }
 
@@ -40,7 +52,15 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	return ValidateMinPartialWithdrawalAmount(p.MinPartialWithdrawalAmount)
+	if err := ValidateMinPartialWithdrawalAmount(p.MinPartialWithdrawalAmount); err != nil {
+		return err
+	}
+
+	if err := ValidateRefundFeeBps(p.RefundFeeBps); err != nil {
+		return err
+	}
+
+	return ValidateRefundPeriod(p.RefundPeriod)
 }
 
 func ValidateMaxWithdrawalPerBlock(v uint32) error {
@@ -66,6 +86,22 @@ func ValidateMaxSweepPerBlock(maxSweepPerBlock uint32, maxWithdrawalPerBlock uin
 func ValidateMinPartialWithdrawalAmount(v uint64) error {
 	if v == 0 {
 		return fmt.Errorf("min partial withdrawal amount must be positive: %d", v)
+	}
+
+	return nil
+}
+
+func ValidateRefundFeeBps(v uint32) error {
+	if v > 10000 {
+		return fmt.Errorf("refund fee bps must be less than or equal to 10000bps (100%%): %d", v)
+	}
+
+	return nil
+}
+
+func ValidateRefundPeriod(v time.Duration) error {
+	if v < 24*time.Hour {
+		return fmt.Errorf("refund period must be at least 24 hours: %d", v)
 	}
 
 	return nil
