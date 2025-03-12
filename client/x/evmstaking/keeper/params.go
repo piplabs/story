@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -34,6 +35,24 @@ func (k Keeper) MinPartialWithdrawalAmount(ctx context.Context) (uint64, error) 
 	}
 
 	return params.MinPartialWithdrawalAmount, nil
+}
+
+func (k Keeper) RefundFeeBps(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return params.RefundFeeBps, nil
+}
+
+func (k Keeper) RefundPeriod(ctx context.Context) (time.Duration, error) {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return params.RefundPeriod, nil
 }
 
 // This method performs no validation of the parameters.
