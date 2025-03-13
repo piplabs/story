@@ -1,5 +1,5 @@
 //nolint:revive,stylecheck // versioning
-package v_1_2
+package v_1_2_0
 
 import (
 	"time"
@@ -13,12 +13,7 @@ import (
 )
 
 const (
-	UpgradeName = "v1.2"
-
-	// AeneidUpgradeHeight defines the block height at which the upgrade is triggered on Aeneid.
-	AeneidUpgradeHeight = 10_000_000
-	// StoryUpgradeHeight defines the block height at which the upgrade is triggered on Story.
-	StoryUpgradeHeight = 10_000_000
+	UpgradeName = "v1.2.0"
 
 	// Initial parameters.
 	InitialRefundFeeBps = 100                // 1%
@@ -33,17 +28,6 @@ var Upgrade = upgrades.Upgrade{
 
 var Fork = upgrades.Fork{
 	UpgradeName:    UpgradeName,
-	UpgradeInfo:    "v1.2 upgrade",
+	UpgradeInfo:    "v1.2.0 upgrade",
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
-}
-
-func GetUpgradeHeight(chainID string) (int64, bool) {
-	switch chainID {
-	case upgrades.AeneidChainID:
-		return AeneidUpgradeHeight, true
-	case upgrades.StoryChainID:
-		return StoryUpgradeHeight, true
-	default:
-		return 0, false
-	}
 }

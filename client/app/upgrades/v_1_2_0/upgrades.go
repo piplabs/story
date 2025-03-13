@@ -1,12 +1,11 @@
 //nolint:revive,stylecheck // versioning
-package v_1_2
+package v_1_2_0
 
 import (
 	"context"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
 	"github.com/piplabs/story/client/app/keepers"
@@ -21,18 +20,7 @@ func CreateUpgradeHandler(
 	keepers *keepers.Keepers,
 ) upgradetypes.UpgradeHandler {
 	return func(ctx context.Context, _ upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-
-		blockHeight := sdkCtx.BlockHeight()
-		log.Info(ctx, "Current block height", "Height", blockHeight)
-
-		// Check if the upgrade is needed for current chain
-		chainID := sdkCtx.ChainID()
-		if _, ok := GetUpgradeHeight(chainID); !ok {
-			log.Info(ctx, "Upgrade v1.2 not needed for current chain, skip", "ChainID", chainID)
-			return vm, nil
-		}
-		log.Info(ctx, "Start upgrade v1.2", "ChainID", chainID)
+		log.Info(ctx, "Start upgrade v1.2.0")
 
 		oldParams, err := keepers.EvmStakingKeeper.GetParams(ctx)
 		if err != nil {
@@ -49,7 +37,7 @@ func CreateUpgradeHandler(
 			return vm, errors.Wrap(err, "failed to set evm staking params")
 		}
 
-		log.Info(ctx, "Upgrade v1.2 complete")
+		log.Info(ctx, "Upgrade v1.2.0 complete")
 
 		return vm, nil
 	}
