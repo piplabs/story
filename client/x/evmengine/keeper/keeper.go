@@ -28,6 +28,8 @@ import (
 	"github.com/piplabs/story/lib/k1util"
 )
 
+var ErrExecEngSyncing = errors.New("execution engine is syncing")
+
 type Keeper struct {
 	cdc             codec.BinaryCodec
 	storeService    store.KVStoreService
@@ -56,6 +58,8 @@ type Keeper struct {
 		Height    uint64
 		UpdatedAt time.Time
 	}
+
+	isExecEngSyncing bool
 }
 
 func NewKeeper(
@@ -126,6 +130,15 @@ func (k *Keeper) SetBuildOptimistic(b bool) {
 // SetValidatorAddress sets the validator address.
 func (k *Keeper) SetValidatorAddress(addr common.Address) {
 	k.validatorAddr = addr
+}
+
+// IsExecEngSyncing returns if execution engine is syncing or not.
+func (k *Keeper) IsExecEngSyncing() bool {
+	return k.isExecEngSyncing
+}
+
+func (k *Keeper) SetIsExecEngSyncing(isSyncing bool) {
+	k.isExecEngSyncing = isSyncing
 }
 
 // RegisterProposalService registers the proposal service on the provided router.

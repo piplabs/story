@@ -19,6 +19,11 @@ type proposalServer struct {
 
 // ExecutionPayload handles a new execution payload proposed in a block.
 func (s proposalServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecutionPayload) (*types.ExecutionPayloadResponse, error) {
+	if s.IsExecEngSyncing() {
+		log.Warn(ctx, "Skip ProcessProposal while execution engine is syncing", nil)
+		return nil, ErrExecEngSyncing
+	}
+
 	payload, err := s.parseAndVerifyProposedPayload(ctx, msg)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal payload")
@@ -41,8 +46,10 @@ func (s proposalServer) ExecutionPayload(ctx context.Context, msg *types.MsgExec
 			return false, errors.Wrap(err, "invalid payload, rejecting proposal") // Don't retry
 		} else if isSyncing(status) {
 			// If this is initial sync, we need to continue and set a target head to sync to, so don't retry.
-			log.Warn(ctx, "Can't properly verifying proposal: evm syncing", err,
+			log.Warn(ctx, "Can't properly verifying proposal: evm syncing", nil,
 				"payload_height", payload.Number)
+
+			return false, ErrExecEngSyncing
 		} /* else isValid(status) */
 
 		return true, nil // We are done, don't retry.
