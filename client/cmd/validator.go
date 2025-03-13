@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"strings"
 
 	cmtos "github.com/cometbft/cometbft/libs/os"
@@ -19,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/piplabs/story/client/app"
-	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
@@ -75,18 +73,15 @@ func (*StakingPeriod) Type() string {
 var ipTokenStakingABI []byte
 
 type baseConfig struct {
-	HomeDir      string
-	RPC          string
-	PrivateKey   string
-	Explorer     string
-	ChainID      int64
-	ABI          *abi.ABI
-	ContractAddr common.Address
-	StoryAPI     string
-}
-
-func (cfg baseConfig) EncPrivKeyFile() string {
-	return filepath.Join(cfg.HomeDir, config.DefaultEncPrivKeyPath)
+	HomeDir        string
+	RPC            string
+	PrivateKey     string
+	Explorer       string
+	ChainID        int64
+	ABI            *abi.ABI
+	ContractAddr   common.Address
+	StoryAPI       string
+	EncPrivKeyFile string
 }
 
 type createValidatorConfig struct {
@@ -590,9 +585,14 @@ func exportKey(_ context.Context, cfg exportKeyConfig) error {
 }
 
 func createValidator(ctx context.Context, cfg createValidatorConfig) error {
-	compressedPubKeyBytes, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
+	privateKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to extract compressed pub key")
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	compressedPubKeyBytes, err := privKeyToCmpPubKey(privateKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert private key to compressed public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -1088,8 +1088,7 @@ func initializeBaseConfig(cfg *baseConfig) error {
 }
 
 func loadPrivKey(cfg *baseConfig) (string, error) {
-	encPrivKeyFile := cfg.EncPrivKeyFile()
-	if cmtos.FileExists(encPrivKeyFile) {
+	if cmtos.FileExists(cfg.EncPrivKeyFile) {
 		password, err := app.InputPassword(
 			app.PasswordPromptText,
 			"",
@@ -1100,7 +1099,7 @@ func loadPrivKey(cfg *baseConfig) (string, error) {
 			return "", errors.Wrap(err, "error occurred while input password")
 		}
 
-		pv, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
+		pv, err := app.LoadEncryptedPrivKey(password, cfg.EncPrivKeyFile)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to load encrypted private key")
 		}
