@@ -43,18 +43,16 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 		for _, t := range l.Topics {
 			topics = append(topics, t.Bytes())
 		}
-		events = append(events, &types.EVMEvent{
+		event := &types.EVMEvent{
 			Address: l.Address.Bytes(),
 			Topics:  topics,
 			Data:    l.Data,
 			TxHash:  l.TxHash.Bytes(),
-		})
-	}
-
-	for _, event := range events {
+		}
 		if err := event.Verify(); err != nil {
 			return nil, errors.Wrap(err, "verify event")
 		}
+		events = append(events, event)
 	}
 
 	return events, nil

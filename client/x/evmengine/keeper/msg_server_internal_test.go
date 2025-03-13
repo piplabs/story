@@ -248,7 +248,6 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			var payloadData []byte
 			var payloadID engine.PayloadID
 			var block *etypes.Block
-			var events []*types.EVMEvent
 
 			cachedCtx, _ := ctx.CacheContext()
 			if tc.setup != nil {
@@ -257,14 +256,10 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			if tc.createPayload != nil {
 				block, payloadID, payloadData = tc.createPayload(cachedCtx)
 			}
-			if tc.createPrevPayloadEvents != nil {
-				events = tc.createPrevPayloadEvents(cachedCtx, block.Hash())
-			}
 
 			resp, err := msgSrv.ExecutionPayload(cachedCtx, &types.MsgExecutionPayload{
-				Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-				ExecutionPayload:  payloadData,
-				PrevPayloadEvents: events,
+				Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				ExecutionPayload: payloadData,
 			})
 			if tc.expectedError != "" {
 				require.ErrorContains(t, err, tc.expectedError)

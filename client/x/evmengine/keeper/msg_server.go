@@ -141,14 +141,20 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, err
 	}
 
-	// Deliver all the previous payload log events
-	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	// get events of the newly finalized block
+	events, err := s.evmEvents(ctx, payload.BlockHash)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch evm event logs")
+	}
+
+	// Deliver all the payload log events of the newly finalized block
+	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, events); err != nil {
 		return nil, errors.Wrap(err, "deliver staking-related event logs")
 	}
-	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, events); err != nil {
 		return nil, errors.Wrap(err, "deliver upgrade-related event logs")
 	}
-	if err := s.ProcessUbiEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessUbiEvents(ctx, payload.Number-1, events); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
 
