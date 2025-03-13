@@ -6,9 +6,6 @@ import (
 
 	storetypes "cosmossdk.io/store/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/app/upgrades"
 )
 
@@ -24,10 +21,4 @@ var Upgrade = upgrades.Upgrade{
 	UpgradeName:          UpgradeName,
 	CreateUpgradeHandler: CreateUpgradeHandler,
 	StoreUpgrades:        storetypes.StoreUpgrades{},
-}
-
-var Fork = upgrades.Fork{
-	UpgradeName:    UpgradeName,
-	UpgradeInfo:    "v1.2.0 upgrade",
-	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
 }
