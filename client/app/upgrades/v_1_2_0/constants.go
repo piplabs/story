@@ -16,8 +16,8 @@ const (
 	UpgradeName = "v1.2.0"
 
 	// Initial parameters.
-	InitialRefundFeeBps = 100                // 1%
-	InitialRefundPeriod = 1 * 24 * time.Hour // 1 days
+	InitialRefundFeeBps uint32        = 100                // 1%
+	InitialRefundPeriod time.Duration = 1 * 24 * time.Hour // 1 days
 )
 
 var Upgrade = upgrades.Upgrade{

@@ -24,7 +24,7 @@ func CreateUpgradeHandler(
 
 		oldParams, err := keepers.EvmStakingKeeper.GetParams(ctx)
 		if err != nil {
-			return vm, errors.Wrap(err, "failed to get evm staking params")
+			return vm, errors.Wrap(err, "get evm staking params")
 		}
 
 		if err = keepers.EvmStakingKeeper.SetParams(ctx, estypes.Params{
@@ -34,7 +34,22 @@ func CreateUpgradeHandler(
 			RefundFeeBps:               InitialRefundFeeBps,
 			RefundPeriod:               InitialRefundPeriod,
 		}); err != nil {
-			return vm, errors.Wrap(err, "failed to set evm staking params")
+			return vm, errors.Wrap(err, "set evm staking params")
+		}
+
+		newParams, err := keepers.EvmStakingKeeper.GetParams(ctx)
+		if err != nil {
+			return vm, errors.Wrap(err, "get evm staking params")
+		}
+
+		if newParams.RefundFeeBps != InitialRefundFeeBps || newParams.RefundPeriod != InitialRefundPeriod {
+			return vm, errors.Wrap(err, "set new evm staking params")
+		}
+
+		if newParams.MaxWithdrawalPerBlock != oldParams.MaxWithdrawalPerBlock ||
+			newParams.MaxSweepPerBlock != oldParams.MaxSweepPerBlock ||
+			newParams.MinPartialWithdrawalAmount != oldParams.MinPartialWithdrawalAmount {
+			return vm, errors.Wrap(err, "set existing evm staking params")
 		}
 
 		log.Info(ctx, "Upgrade v1.2.0 complete")
