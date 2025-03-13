@@ -17,7 +17,7 @@ const (
 
 	// Initial parameters.
 	InitialRefundFeeBps = 100                // 1%
-	InitialRefundPeriod = 7 * 24 * time.Hour // 7 days
+	InitialRefundPeriod = 1 * 24 * time.Hour // 1 days
 )
 
 var Upgrade = upgrades.Upgrade{
