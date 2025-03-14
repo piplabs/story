@@ -1,0 +1,172 @@
+name: Build and Upload story Binary
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  # TESTING ONLY
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  actions: write
+
+env:
+  NUM_INTERNAL_BINARIES_TO_KEEP: 50
+  NUM_PUBLIC_BINARIES_TO_KEEP: 400
+  S3_BUCKET: story-geth-binaries
+  BIN_NAME: story
+
+jobs:
+  Timestamp:
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+  
+  build_and_push:
+    needs: Timestamp
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux-amd64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_REPO_STORY }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_REPO_STORY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Extract the version
+        run: |
+          PARAMS_FILE="./lib/buildinfo/buildinfo.go"
+          VERSION_MAJOR=$(awk -F= '/VersionMajor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_MINOR=$(awk -F= '/VersionMinor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_PATCH=$(awk -F= '/VersionPatch/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_META=$(awk -F\" '/VersionMeta/ {print $2; exit}' $PARAMS_FILE)
+
+          VERSION="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+          if [ "$VERSION_META" != "stable" ]; then
+            VERSION+="-${VERSION_META}"
+          fi
+
+          echo "Version extracted: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_META=$VERSION_META" >> $GITHUB_ENV
+
+      - name: Build the story binary
+        run: |
+          IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
+
+          echo "Building for $GOOS/$GOARCH..."
+          cd client
+          env GOOS=$GOOS GOARCH=$GOARCH go build -o $BIN_NAME -v || {
+            echo "Build failed. Exiting..."
+            exit 1
+          }
+
+      - name: Upload the story binary to GCP Storage Bucket
+        run: |
+          export TZ=America/Los_Angeles
+          IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          HUMAN_READABLE_VERSION=$(date)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          FOLDER_NAME="story-${{ matrix.platform }}-${VERSION}-${COMMIT_HASH}"
+          echo "FOLDER_NAME=$FOLDER_NAME" >> $GITHUB_ENV
+          ARCHIVE_NAME="${FOLDER_NAME}.tar.gz"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          BIN_NAME_WITH_PATH=./client/$BIN_NAME
+
+          mkdir $FOLDER_NAME
+          mv $BIN_NAME_WITH_PATH $FOLDER_NAME/
+
+          echo "Archiving the story binary..."
+          tar -czvf $ARCHIVE_NAME $FOLDER_NAME
+
+          if [ $? -ne 0 ]; then
+            echo "Failed to create the archive: $ARCHIVE_NAME"
+            exit 1
+          fi
+
+          echo "Uploading the story binary to GCP Storage Bucket..."
+          gsutil -q cp $ARCHIVE_NAME gs://story-geth-binaries/$BIN_NAME/$ARCHIVE_NAME
+
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Add binary version back to PR
+        if: matrix.platform == 'linux-amd64'
+        env:
+          VERSION_INFO: ${{ env.VERSION }}-${{ env.COMMIT_HASH }}
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ### Binary uploaded successfully 🎉
+            📦 **Version Name:** ${{ env.VERSION_INFO }}
+
+      - name: Trigger workflow in internal-devnet repo
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: piplabs/internal-devnet
+          event-type: network-update
+          client-payload: |
+            {
+              "action": "reset",
+              "version": "${{ env.VERSION }}",
+              "version_meta": "${{ env.VERSION_META }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}"
+            }
+        
+      - name: Wait for internal-devnet network to be up and producing blocks
+        run: |
+          echo "Checking internal-devnet network at https://devnet.storyscan.xyz/api/v2/blocks?type=block ..."
+          retries=60
+          delay=20
+          for i in $(seq 1 $retries); do
+            block1=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+            sleep $delay
+            block2=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+            sleep $delay
+            block3=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+            
+            # Ensure all three block values are valid
+            if [ "$block1" != "null" ] && [ "$block2" != "null" ] && [ "$block3" != "null" ] && \
+               [ -n "$block1" ] && [ -n "$block2" ] && [ -n "$block3" ]; then
+               
+              # Compare block numbers to ensure they are increasing
+              if [ "$block1" -lt "$block2" ] && [ "$block2" -lt "$block3" ]; then
+                echo "Network is up and producing blocks: $block1 -> $block2 -> $block3"
+                exit 0
+              else
+                echo "Blocks are not increasing as expected: $block1 -> $block2 -> $block3. Retrying..."
+              fi
+            else
+              echo "Invalid block data received. Retrying..."
+            fi
+          done
+          echo "Network did not become available in time."
+          exit 1
+
+      - name: Trigger l1 tests workflow
+        if: ${{ success() }}
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: storyprotocol/l1-tests
+          event-type: run-tests
+          client-payload: |
+            {
+              "version": "${{ env.VERSION }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}"
+            }
