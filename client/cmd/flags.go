@@ -65,6 +65,7 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
 	libcmd.BindHomeFlag(cmd.Flags(), &cfg.HomeDir)
+	bindEncPrivKeyFileFlags(cmd, &cfg.EncPrivKeyFile)
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
@@ -170,6 +171,10 @@ func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
 }
 
+func bindEncPrivKeyFileFlags(cmd *cobra.Command, encKeyFilePath *string) {
+	cmd.Flags().StringVar(encKeyFilePath, "enc-key-file", "", "Path to the encrypted private key file")
+}
+
 func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 }
@@ -180,6 +185,7 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 	cmd.Flags().StringVar(&cfg.PubKeyHex, "pubkey-hex", "", "Public key in hex format")
 	cmd.Flags().StringVar(&cfg.PubKeyBase64, "pubkey-base64", "", "Public key in base64 format")
 	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
+	cmd.Flags().StringVar(&cfg.EncPrivKeyFile, "enc-key-file", "", "Path to the encrypted private key file")
 }
 
 func bindRollbackFlags(cmd *cobra.Command, cfg *config.RollbackConfig) {
@@ -233,9 +239,14 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return err
 	}
 
-	validatorPubKey, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
+	privateKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to extract compressed pub key")
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	validatorPubKey, err := privKeyToCmpPubKey(privateKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert private key to compressed public key")
 	}
 
 	if cfg.StoryAPI == "" {
@@ -498,8 +509,8 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	return nil
 }
 
-func validateEncryptFlags(cfg *baseConfig) error {
-	if cmtos.FileExists(cfg.EncPrivKeyFile()) {
+func validateEncryptFlags(cmd *cobra.Command, cfg *baseConfig) error {
+	if cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("already encrypted private key exists")
 	}
 
@@ -515,15 +526,15 @@ func validateEncryptFlags(cfg *baseConfig) error {
 
 	cfg.PrivateKey = pk
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
-func validateShowEncryptedFlags(cfg *showEncryptedConfig) error {
-	if !cmtos.FileExists(cfg.EncPrivKeyFile()) {
+func validateShowEncryptedFlags(cmd *cobra.Command, cfg *showEncryptedConfig) error {
+	if !cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("no encrypted private key file")
 	}
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
 func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {

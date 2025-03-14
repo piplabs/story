@@ -18,7 +18,7 @@ const (
 	minPasswordLength = 8
 
 	// NewKeyPasswordPromptText for key creation.
-	NewKeyPasswordPromptText = "New key password"
+	NewKeyPasswordPromptText = "New key password (at least 8 characters)"
 	// PasswordPromptText for wallet unlocking.
 	PasswordPromptText = "Key password"
 	// ConfirmPasswordPromptText for confirming a key password.
