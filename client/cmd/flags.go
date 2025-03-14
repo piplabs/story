@@ -514,7 +514,7 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	return nil
 }
 
-func validateEncryptFlags(cfg *baseConfig) error {
+func validateEncryptFlags(cmd *cobra.Command, cfg *baseConfig) error {
 	if cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("already encrypted private key exists")
 	}
@@ -531,15 +531,15 @@ func validateEncryptFlags(cfg *baseConfig) error {
 
 	cfg.PrivateKey = pk
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
-func validateShowEncryptedFlags(cfg *showEncryptedConfig) error {
+func validateShowEncryptedFlags(cmd *cobra.Command, cfg *showEncryptedConfig) error {
 	if !cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("no encrypted private key file")
 	}
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
 func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {

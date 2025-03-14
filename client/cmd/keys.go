@@ -95,8 +95,8 @@ func newKeyEncryptCmd() *cobra.Command {
 			return nil
 		},
 		RunE: runValidatorCommand(
-			func(_ *cobra.Command) error {
-				return validateEncryptFlags(&cfg)
+			func(cmd *cobra.Command) error {
+				return validateEncryptFlags(cmd, &cfg)
 			},
 			func(_ context.Context) error { return encryptPrivKey(cfg) },
 		),
@@ -118,8 +118,8 @@ func newKeyShowEncryptedCmd() *cobra.Command {
 			return nil
 		},
 		RunE: runValidatorCommand(
-			func(_ *cobra.Command) error {
-				return validateShowEncryptedFlags(&cfg)
+			func(cmd *cobra.Command) error {
+				return validateShowEncryptedFlags(cmd, &cfg)
 			},
 			func(_ context.Context) error { return showEncryptedKey(cfg) },
 		),
