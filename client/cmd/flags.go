@@ -177,8 +177,7 @@ func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 }
 
 func bindEncPrivKeyFileFlags(cmd *cobra.Command, encKeyFilePath *string) {
-	defaultEncPrivKeyPath := filepath.Join(config.DefaultHomeDir(), config.DefaultEncPrivKeyPath)
-	cmd.Flags().StringVar(encKeyFilePath, "enc-key-file", defaultEncPrivKeyPath, "Path to the encrypted private key file")
+	cmd.Flags().StringVar(encKeyFilePath, "enc-key-file", "", "Path to the encrypted private key file")
 }
 
 func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
