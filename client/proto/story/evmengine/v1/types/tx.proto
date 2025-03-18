@@ -19,6 +19,7 @@ message MsgExecutionPayload {
   option (cosmos.msg.v1.signer) = "authority";
   string            authority           = 1;
   bytes             execution_payload   = 2;
+  repeated EVMEvent prev_payload_events = 3 [deprecated = true];
 }
 
 message ExecutionPayloadResponse {}
