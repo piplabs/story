@@ -156,7 +156,7 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 	}
 
 	// Fetch the latest execution head from the local keeper DB.
-	head, err := k.getExecutionHead(ctx)
+	head, err := k.GetExecutionHead(ctx)
 	if err != nil {
 		return engine.ExecutableData{}, errors.Wrap(err, "latest execution block")
 	}

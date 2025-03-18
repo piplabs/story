@@ -284,7 +284,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 
 		// get the genesis block to build on top of
 		// Get the parent block we will build on top of
-		head, err := keeper.getExecutionHead(ctx)
+		head, err := keeper.GetExecutionHead(ctx)
 		require.NoError(t, err)
 
 		req := &abci.RequestPrepareProposal{
@@ -536,10 +536,6 @@ func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash comm
 	require.Equal(t, payload.FeeRecipient, validatorAddr)
 	require.Empty(t, payload.Withdrawals)
 	require.Equal(t, payload.Number, height)
-
-	// require.Len(t, executionPayload.PrevPayloadEvents, 1)
-	// evmLog := executionPayload.PrevPayloadEvents[0]
-	// require.Equal(t, evmLog.Address, zeroAddr.Bytes())
 }
 
 func ctxWithAppHash(t *testing.T, appHash common.Hash) (context.Context, *storetypes.KVStoreKey) {
@@ -599,6 +595,7 @@ type mockEngineAPI struct {
 	forkchoiceUpdatedV3Func func(context.Context, eengine.ForkchoiceStateV1, *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error)
 	getPayloadV3Func        func(context.Context, eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error)
 	newPayloadV3Func        func(context.Context, eengine.ExecutableData, []common.Hash, *common.Hash) (eengine.PayloadStatusV1, error)
+	filterLogsFunc          func(context.Context, ethereum.FilterQuery) ([]types.Log, error)
 	// forceInvalidNewPayloadV3 forces the NewPayloadV3 returns an invalid status.
 	forceInvalidNewPayloadV3 bool
 	// forceInvalidForkchoiceUpdatedV3 forces the ForkchoiceUpdatedV3 returns an invalid status.
@@ -683,7 +680,11 @@ func (m mockEngineAPI) maybeSync() (eengine.PayloadStatusV1, bool) {
 	}
 }
 
-func (mockEngineAPI) FilterLogs(context.Context, ethereum.FilterQuery) ([]types.Log, error) {
+func (m mockEngineAPI) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	if m.filterLogsFunc != nil {
+		return m.filterLogsFunc(ctx, q)
+	}
+
 	return nil, nil
 }
 

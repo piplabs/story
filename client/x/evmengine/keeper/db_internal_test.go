@@ -14,7 +14,7 @@ func TestKeeper_InsertGenesisHead(t *testing.T) {
 	ctx, keeper := createTestKeeper(t)
 
 	// make sure the execution head does not exist
-	_, err := keeper.getExecutionHead(ctx)
+	_, err := keeper.GetExecutionHead(ctx)
 	require.Error(t, err, "execution head should not exist")
 
 	// insert genesis head
@@ -23,7 +23,7 @@ func TestKeeper_InsertGenesisHead(t *testing.T) {
 	require.NoError(t, err)
 
 	// make sure the execution head is set correctly
-	head, err := keeper.getExecutionHead(ctx)
+	head, err := keeper.GetExecutionHead(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, head, "execution head should exist")
 	require.Equal(t, dummyBlockHash, head.GetBlockHash(), "block hash should match")
@@ -39,7 +39,7 @@ func TestKeeper_updateExecutionHead(t *testing.T) {
 	ctx, keeper := createTestKeeper(t)
 
 	// make sure the execution head does not exist
-	_, err := keeper.getExecutionHead(ctx)
+	_, err := keeper.GetExecutionHead(ctx)
 	require.Error(t, err, "execution head should not exist")
 
 	// insert genesis head
@@ -48,13 +48,13 @@ func TestKeeper_updateExecutionHead(t *testing.T) {
 	require.NoError(t, err)
 
 	// make sure the execution head is set correctly
-	head, err := keeper.getExecutionHead(ctx)
+	head, err := keeper.GetExecutionHead(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, head, "execution head should exist")
 
 	// update the execution head
 	newBlockHash := common.BytesToHash([]byte("new hash"))
-	err = keeper.updateExecutionHead(ctx, engine.ExecutableData{
+	err = keeper.UpdateExecutionHead(ctx, engine.ExecutableData{
 		Number:    100,
 		BlockHash: newBlockHash,
 		Timestamp: 0,
@@ -62,7 +62,7 @@ func TestKeeper_updateExecutionHead(t *testing.T) {
 	require.NoError(t, err)
 
 	// make sure the execution head is updated correctly
-	head, err = keeper.getExecutionHead(ctx)
+	head, err = keeper.GetExecutionHead(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, head, "execution head should exist")
 	require.Equal(t, newBlockHash.Bytes(), head.GetBlockHash(), "block hash should match")

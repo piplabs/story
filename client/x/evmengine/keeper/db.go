@@ -34,8 +34,8 @@ func (k *Keeper) InsertGenesisHead(ctx context.Context, executionBlockHash []byt
 	return nil
 }
 
-// getExecutionHead returns the current execution head.
-func (k *Keeper) getExecutionHead(ctx context.Context) (*ExecutionHead, error) {
+// GetExecutionHead returns the current execution head.
+func (k *Keeper) GetExecutionHead(ctx context.Context) (*ExecutionHead, error) {
 	head, err := k.headTable.Get(ctx, executionHeadID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get execution head")
@@ -44,14 +44,24 @@ func (k *Keeper) getExecutionHead(ctx context.Context) (*ExecutionHead, error) {
 	return head, nil
 }
 
-// updateExecutionHead updates the execution head with the given payload.
-func (k *Keeper) updateExecutionHead(ctx context.Context, payload engine.ExecutableData) error {
+// UpdateExecutionHead updates the execution head with the given payload.
+func (k *Keeper) UpdateExecutionHead(ctx context.Context, payload engine.ExecutableData) error {
+	return k.updateExecutionHead(ctx, payload.Number, payload.BlockHash, payload.Timestamp)
+}
+
+func (k *Keeper) UpdateExecutionHeadWithBlock(ctx context.Context, blockHeight uint64, blockHash common.Hash, blockTime uint64) error {
+	return k.updateExecutionHead(ctx, blockHeight, blockHash, blockTime)
+}
+
+func (k *Keeper) updateExecutionHead(
+	ctx context.Context, blockHeight uint64, blockHash common.Hash, blockTime uint64,
+) error {
 	head := &ExecutionHead{
 		Id:            executionHeadID,
 		CreatedHeight: uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-		BlockHeight:   payload.Number,
-		BlockHash:     payload.BlockHash.Bytes(),
-		BlockTime:     payload.Timestamp,
+		BlockHeight:   blockHeight,
+		BlockHash:     blockHash.Bytes(),
+		BlockTime:     blockTime,
 	}
 
 	err := k.headTable.Update(ctx, head)
