@@ -9,6 +9,7 @@ import (
 
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
+	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	// New upgrades should be added to this slice after they are implemented.
 	Upgrades = []upgrades.Upgrade{
 		virgil.Upgrade,
+		v_1_2_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
