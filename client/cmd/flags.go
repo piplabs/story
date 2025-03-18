@@ -39,13 +39,18 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	apisvr.BindFlags(flags, &cfg.API)
 	flags.StringVar(&cfg.EngineEndpoint, "engine-endpoint", cfg.EngineEndpoint, "An EVM execution client Engine API http endpoint")
 	flags.StringVar(&cfg.EngineJWTFile, "engine-jwt-file", cfg.EngineJWTFile, "The path to the Engine API JWT file")
-	flags.Uint64Var(&cfg.SnapshotInterval, "snapshot-interval", cfg.SnapshotInterval, "State sync snapshot interval")
-	flags.Uint64Var(&cfg.SnapshotKeepRecent, "snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
+	flags.Uint64Var(&cfg.SnapshotInterval, "state-sync.snapshot-interval", cfg.SnapshotInterval, "State sync snapshot interval")
+	flags.Uint64Var(&cfg.SnapshotKeepRecent, "state-sync.snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
 	flags.Uint64Var(&cfg.MinRetainBlocks, "min-retain-blocks", cfg.MinRetainBlocks, "Minimum block height offset during ABCI commit to prune CometBFT blocks")
 	flags.StringVar(&cfg.BackendType, "app-db-backend", cfg.BackendType, "The type of database for application and snapshots databases")
 	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything)")
+	flags.Uint64Var(&cfg.PruningKeepRecent, "pruning-keep-recent", 72000, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
+	flags.Uint64Var(&cfg.PruningInterval, "pruning-interval", 300, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), this is not used by this command but kept for compatibility with the complete pruning options")
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
 	flags.BoolVar(&cfg.EVMBuildOptimistic, "evm-build-optimistic", cfg.EVMBuildOptimistic, "Enables optimistic building of EVM payloads on previous block finalize")
+	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
+	flags.StringVar(&cfg.Address, "address", "tcp://127.0.0.1:26658", "Address of proxy app")
+	flags.StringVar(&cfg.Transport, "transport", "socket", "Specify abci transport (socket | grpc)")
 }
 
 func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
