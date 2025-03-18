@@ -284,7 +284,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 
 		// get the genesis block to build on top of
 		// Get the parent block we will build on top of
-		head, err := keeper.getExecutionHead(ctx)
+		head, err := keeper.GetExecutionHead(ctx)
 		require.NoError(t, err)
 
 		req := &abci.RequestPrepareProposal{

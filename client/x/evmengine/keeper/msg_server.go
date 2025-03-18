@@ -142,7 +142,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	}
 
 	// get events of the newly finalized block
-	events, err := s.evmEvents(ctx, payload.BlockHash)
+	events, err := s.EvmEvents(ctx, payload.BlockHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch evm event logs")
 	}
@@ -158,7 +158,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
 
-	if err := s.updateExecutionHead(ctx, payload); err != nil {
+	if err := s.UpdateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")
 	}
 

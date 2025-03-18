@@ -238,7 +238,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 // startBuild triggers the building of a new execution payload on top of the current execution head.
 // It returns the EngineAPI response which contains a status and payload ID.
 func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, withdrawals []*etypes.Withdrawal, appHash common.Hash, timestamp time.Time) (engine.ForkChoiceResponse, error) {
-	head, err := k.getExecutionHead(ctx)
+	head, err := k.GetExecutionHead(ctx)
 	if err != nil {
 		return engine.ForkChoiceResponse{}, errors.Wrap(err, "latest execution block")
 	}

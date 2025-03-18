@@ -13,8 +13,8 @@ import (
 	clog "github.com/piplabs/story/lib/log"
 )
 
-// evmEvents returns selected EVM log events from the provided block hash.
-func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types.EVMEvent, error) {
+// EvmEvents returns selected EVM log events from the provided block hash.
+func (k *Keeper) EvmEvents(ctx context.Context, blockHash common.Hash) ([]*types.EVMEvent, error) {
 	var logs []ethtypes.Log
 	err := retryForever(ctx, func(ctx context.Context) (fetched bool, err error) {
 		logs, err = k.engineCl.FilterLogs(ctx, ethereum.FilterQuery{
