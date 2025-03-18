@@ -211,7 +211,7 @@ func bindValidatorUpdateCommissionFlags(cmd *cobra.Command, cfg *updateCommissio
 	cmd.Flags().Uint32Var(&cfg.CommissionRate, "commission-rate", 0, "Commission rate to update (e.g. 1000 for 10%)")
 }
 
-var ErrValidatorNotFound = errors.New("the validator doesn't exist")
+var ErrValidatorNotFound = errors.New("validator not found")
 
 // Flag Validation
 
@@ -757,7 +757,9 @@ type ValidatorResponse struct {
 // isValidatorFound checks whether a validator with the given public key exists.
 func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool, error) {
 	validator, err := getValidatorByEVMAddr(ctx, endpoint, pubKey)
-	if err != nil {
+	if errors.Is(err, ErrValidatorNotFound) {
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
 
@@ -780,19 +782,27 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) 
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to get validator")
 	}
-	if resp.StatusCode != http.StatusOK {
-		return Validator{}, errors.New("failed to get validator")
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusInternalServerError {
+		return Validator{}, errors.New("failed to get validator", "http_code", resp.StatusCode)
 	}
-	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to read response body")
 	}
+	defer resp.Body.Close()
 
 	var response ValidatorResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return Validator{}, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	if resp.StatusCode == http.StatusInternalServerError {
+		if strings.Contains(response.Error, "NotFound") {
+			return Validator{}, ErrValidatorNotFound
+		}
+
+		return Validator{}, errors.New(response.Error)
 	}
 
 	return response.Msg.Validator, nil
