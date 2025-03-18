@@ -595,6 +595,7 @@ type mockEngineAPI struct {
 	forkchoiceUpdatedV3Func func(context.Context, eengine.ForkchoiceStateV1, *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error)
 	getPayloadV3Func        func(context.Context, eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error)
 	newPayloadV3Func        func(context.Context, eengine.ExecutableData, []common.Hash, *common.Hash) (eengine.PayloadStatusV1, error)
+	filterLogsFunc          func(context.Context, ethereum.FilterQuery) ([]types.Log, error)
 	// forceInvalidNewPayloadV3 forces the NewPayloadV3 returns an invalid status.
 	forceInvalidNewPayloadV3 bool
 	// forceInvalidForkchoiceUpdatedV3 forces the ForkchoiceUpdatedV3 returns an invalid status.
@@ -679,7 +680,11 @@ func (m mockEngineAPI) maybeSync() (eengine.PayloadStatusV1, bool) {
 	}
 }
 
-func (mockEngineAPI) FilterLogs(context.Context, ethereum.FilterQuery) ([]types.Log, error) {
+func (m mockEngineAPI) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	if m.filterLogsFunc != nil {
+		return m.filterLogsFunc(ctx, q)
+	}
+
 	return nil, nil
 }
 

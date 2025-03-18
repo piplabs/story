@@ -11,9 +11,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
+	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
@@ -51,7 +53,6 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 	ctx, storeKey, storeService := setupCtxStore(t, &header)
 	ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
-	evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
 	mockEngine, err := newMockEngineAPI(storeKey, 2)
 	require.NoError(t, err)
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
@@ -80,20 +81,32 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 		return block, payloadID, payloadData
 	}
-	createRandomEvents := func(c context.Context, blkHash common.Hash) []*types.EVMEvent {
-		events, err := evmLogProc.Prepare(c, blkHash)
-		require.NoError(t, err)
+	createRandomEvmEvents := func(c context.Context, blockHash common.Hash) func(ctx context.Context, q ethereum.FilterQuery) ([]etypes.Log, error) {
+		f := fuzz.NewWithSeed(int64(blockHash[0]))
 
-		return events
+		var topic common.Hash
+		f.Fuzz(&topic)
+
+		var txHash common.Hash
+		f.Fuzz(&txHash)
+
+		return func(ctx context.Context, q ethereum.FilterQuery) ([]etypes.Log, error) {
+			return []etypes.Log{{
+				Address: zeroAddr,
+				Topics:  []common.Hash{topic},
+				Data:    []byte("data"),
+				TxHash:  txHash,
+			}}, nil
+		}
 	}
 
 	tcs := []struct {
-		name                    string
-		setup                   func(c context.Context) sdk.Context
-		createPayload           func(c context.Context) (*etypes.Block, engine.PayloadID, []byte)
-		createPrevPayloadEvents func(c context.Context, blkHash common.Hash) []*types.EVMEvent
-		expectedError           string
-		postCheck               func(c context.Context, block *etypes.Block, payloadID engine.PayloadID)
+		name          string
+		setup         func(c context.Context) sdk.Context
+		createPayload func(c context.Context) (*etypes.Block, engine.PayloadID, []byte)
+		createEvmLogs func(ctx context.Context, blockHash common.Hash) func(ctx context.Context, q ethereum.FilterQuery) ([]etypes.Log, error)
+		expectedError string
+		postCheck     func(c context.Context, block *etypes.Block, payloadID engine.PayloadID)
 	}{
 		{
 			name: "pass: valid payload",
@@ -105,8 +118,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(c)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
+			createPayload: createValidPayload,
+			createEvmLogs: createRandomEvmEvents,
 			postCheck: func(c context.Context, block *etypes.Block, payloadID engine.PayloadID) {
 				gotPayload, err := mockEngine.GetPayloadV3(c, payloadID)
 				require.NoError(t, err)
@@ -156,8 +169,8 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return block, payloadID, payloadData
 			},
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "invalid proposed payload number",
+			createEvmLogs: createRandomEvmEvents,
+			expectedError: "invalid proposed payload number",
 		},
 		{
 			name: "fail: DequeueEligibleWithdrawals error",
@@ -180,9 +193,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "payload invalid",
+			createPayload: createValidPayload,
+			createEvmLogs: createRandomEvmEvents,
+			expectedError: "payload invalid",
 		},
 		{
 			name: "fail: ForkchoiceUpdatedV3 returns status invalid",
@@ -194,9 +207,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "payload invalid",
+			createPayload: createValidPayload,
+			createEvmLogs: createRandomEvmEvents,
+			expectedError: "payload invalid",
 		},
 		{
 			name: "fail: ProcessStakingEvents error",
@@ -208,36 +221,38 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
-			createPayload:           createValidPayload,
-			createPrevPayloadEvents: createRandomEvents,
-			expectedError:           "deliver staking-related event logs",
+			createPayload: createValidPayload,
+			createEvmLogs: createRandomEvmEvents,
+			expectedError: "deliver staking-related event logs",
 		},
 		{
-			name: "fail: ProcessUpgradeEvents error",
+			name: "fail: parsing event error",
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
-				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload: createValidPayload,
-			createPrevPayloadEvents: func(_ context.Context, _ common.Hash) []*types.EVMEvent {
+			createEvmLogs: func(ctx context.Context, blockHash common.Hash) func(ctx context.Context, q ethereum.FilterQuery) ([]etypes.Log, error) {
 				// crate invalid upgrade event to trigger ProcessUpgradeEvents failure
 				upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
 				require.NoError(t, err, "failed to load ABI")
 				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
 				require.NoError(t, err)
 
-				return []*types.EVMEvent{{
-					Address: nil, // nil address
-					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
-					Data:    data,
-					TxHash:  dummyHash.Bytes(),
-				}}
+				return func(ctx context.Context, q ethereum.FilterQuery) ([]etypes.Log, error) {
+					return []etypes.Log{{
+						Address: zeroAddr,
+						// use empty bytes (not any of the expected event IDs) to trigger error
+						Topics: []common.Hash{},
+						Data:   data,
+						TxHash: dummyHash,
+					}}, nil
+				}
 			},
-			expectedError: "deliver upgrade-related event logs",
+			expectedError: "fetch evm event logs: verify event: empty topics",
 		},
 	}
 
@@ -255,6 +270,9 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			}
 			if tc.createPayload != nil {
 				block, payloadID, payloadData = tc.createPayload(cachedCtx)
+			}
+			if tc.createEvmLogs != nil {
+				mockEngine.filterLogsFunc = tc.createEvmLogs(cachedCtx, block.Hash())
 			}
 
 			resp, err := msgSrv.ExecutionPayload(cachedCtx, &types.MsgExecutionPayload{
