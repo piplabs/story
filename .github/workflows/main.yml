@@ -1,0 +1,244 @@
+name: Build story binary, reset internal-devnet, run l1 tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  # # TESTING ONLY
+  # pull_request:
+  #   branches:
+  #     - main
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  actions: write
+
+env:
+  NUM_INTERNAL_BINARIES_TO_KEEP: 50
+  NUM_PUBLIC_BINARIES_TO_KEEP: 400
+  GCP_BUCKET: story-geth-binaries
+  BIN_NAME: story
+
+jobs:
+  Timestamp:
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+
+  build_and_push:
+    needs: Timestamp
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux-amd64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_REPO_STORY }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_REPO_STORY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Extract the version
+        run: |
+          PARAMS_FILE="./lib/buildinfo/buildinfo.go"
+          VERSION_MAJOR=$(awk -F= '/VersionMajor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_MINOR=$(awk -F= '/VersionMinor/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_PATCH=$(awk -F= '/VersionPatch/ {gsub(/[^0-9]/, "", $2); printf "%s", $2}' $PARAMS_FILE)
+          VERSION_META=$(awk -F\" '/VersionMeta/ {print $2; exit}' $PARAMS_FILE)
+
+          VERSION="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+          if [ "$VERSION_META" != "stable" ]; then
+            VERSION+="-${VERSION_META}"
+          fi
+
+          echo "Version extracted: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_META=$VERSION_META" >> $GITHUB_ENV
+
+      - name: Build the story binary
+        run: |
+          IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
+
+          echo "Building for $GOOS/$GOARCH..."
+          cd client
+          GOOS=$GOOS GOARCH=$GOARCH go build -o $BIN_NAME -v
+
+      - name: Archive the story binary
+        run: |
+          export TZ=America/Los_Angeles
+          IFS="-" read -r GOOS GOARCH <<< "${{ matrix.platform }}"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          HUMAN_READABLE_VERSION=$(date)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          FOLDER_NAME="story-${{ matrix.platform }}-${VERSION}-${COMMIT_HASH}"
+          echo "FOLDER_NAME=$FOLDER_NAME" >> $GITHUB_ENV
+          ARCHIVE_NAME="${FOLDER_NAME}.tar.gz"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          BIN_NAME_WITH_PATH=./client/$BIN_NAME
+
+          mkdir $FOLDER_NAME
+          mv $BIN_NAME_WITH_PATH $FOLDER_NAME/
+
+          echo "Archiving the story binary..."
+          tar -czvf $ARCHIVE_NAME $FOLDER_NAME
+
+          if [ $? -ne 0 ]; then
+            echo "Failed to create the archive: $ARCHIVE_NAME"
+            exit 1
+          fi
+
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Upload the story binary to GCP Storage Bucket
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: ${{ env.ARCHIVE_NAME }}
+          destination: ${{ env.GCP_BUCKET }}/${{ env.BIN_NAME }}
+
+      - name: Reset internal-devnet network
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: piplabs/internal-devnet
+          event-type: network-update
+          client-payload: |
+            {
+              "action": "reset",
+              "version": "${{ env.VERSION }}",
+              "version_meta": "${{ env.VERSION_META }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}"
+            }
+
+      - name: Verify the above workflow was completed successfully
+        id: verify-workflow
+        shell: bash
+        run: |
+          #!/bin/bash
+
+          # Set a manual delay to allow the workflow to be triggered
+          sleep 15
+
+          GITHUB_TOKEN="${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}"
+          OWNER="piplabs"
+          REPO="internal-devnet"
+          TRIGGER_EVENT="repository_dispatch"
+          MAX_RETRIES=60
+          SLEEP_INTERVAL=20
+
+          check_workflow_status() {
+            response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?event=${TRIGGER_EVENT}")
+
+            run=$(echo "$response" | jq '
+              .workflow_runs
+              | map(select(.status == "in_progress" or .status == "queued"))
+              | sort_by(.run_number)
+              | last
+            ')
+            echo "$run"
+          }
+
+          check_workflow_by_id() {
+            local id=$1
+            curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/actions/runs/$id" | \
+              jq '.'
+          }
+
+          echo "--------- print result check_workflow_status----------"
+          result=$(check_workflow_status)
+
+          # If no live run is found, the result will be an empty object "{}"
+          if [ "$(echo "$result" | jq -r 'if . == {} or . == null then "empty" else "found" end')" = "empty" ]; then
+            echo "No in-progress workflow found. Exiting."
+            exit 1
+          fi
+
+          run_status=$(echo "$result" | jq -r '.status')
+          run_conclusion=$(echo "$result" | jq -r '.conclusion')
+          echo "Current status: ${run_status}, conclusion: ${run_conclusion}"
+
+          run_id=$(echo "$result" | jq -r '.id')
+          echo "Found in_progress workflow with ID: $run_id"
+
+          attempt=1
+          while [ $attempt -le $MAX_RETRIES ]; do
+            result_by_id=$(check_workflow_by_id $run_id)
+            status_by_id=$(echo "$result_by_id" | jq -r '.status')
+            conclusion_by_id=$(echo "$result_by_id" | jq -r '.conclusion')
+            echo "Current status: ${status_by_id}, conclusion: ${conclusion_by_id}"
+
+            if [ "$status_by_id" == "completed" ]; then
+              echo "Workflow run completed with conclusion: ${conclusion_by_id}"
+              if [ "$conclusion_by_id" != "success" ]; then
+                echo "Workflow did not succeed. Exiting."
+                exit 1
+              fi
+              break
+            fi
+
+            echo "Workflow run is still in progress or not found. Waiting for ${SLEEP_INTERVAL} seconds..."
+            sleep $SLEEP_INTERVAL
+            attempt=$((attempt + 1))
+
+          done
+
+          if [ $attempt -gt $MAX_RETRIES ]; then
+            echo "Workflow run did not complete within the allotted time."
+            exit 1
+          fi
+
+          echo "Proceeding to the next step."
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Wait for internal-devnet network to be up and producing blocks
+        if: ${{ steps.verify-workflow.outputs.success == 'true' }}
+        run: |
+          echo "Checking internal-devnet network at https://devnet.storyscan.xyz/api/v2/blocks?type=block ..."
+          retries=60
+          delay=20
+          for i in $(seq 1 $retries); do
+            block1=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+            sleep $delay
+            block2=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+            sleep $delay
+            block3=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+
+            if [ "$block1" != "null" ] && [ "$block2" != "null" ] && [ "$block3" != "null" ] && \
+               [ -n "$block1" ] && [ -n "$block2" ] && [ -n "$block3" ]; then
+
+              # Compare block numbers to ensure they are increasing
+              if [ "$block1" -lt "$block2" ] && [ "$block2" -lt "$block3" ]; then
+                echo "Network is up and producing blocks: $block1 -> $block2 -> $block3"
+                exit 0
+              else
+                echo "Blocks are not increasing as expected: $block1 -> $block2 -> $block3. Retrying..."
+              fi
+            else
+              echo "Invalid block data received. Retrying..."
+            fi
+          done
+          echo "Network did not become available in time."
+          exit 1
+
+      - name: Trigger l1 regression tests
+        if: ${{ success() }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: storyprotocol/l1-tests
+          event-type: run-tests
+          client-payload: |
+            {
+              "version": "${{ env.VERSION }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}"
+            }
