@@ -571,7 +571,7 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {
@@ -598,7 +598,7 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Command, cfg *updateCommissionConfig) error {
@@ -714,7 +714,12 @@ func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) err
 }
 
 func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig, pubKey []byte) error {
-	validator, err := getValidatorByEVMAddr(ctx, cfg.StoryAPI, pubKey)
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, cfg.StoryAPI, valEVMAddr.String())
 	if err != nil {
 		return err
 	}
@@ -742,8 +747,9 @@ func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig,
 }
 
 type Validator struct {
-	OperatorAddress string            `json:"operator_address"`
-	Commission      stypes.Commission `json:"commission"`
+	OperatorAddress   string            `json:"operator_address"`
+	Commission        stypes.Commission `json:"commission"`
+	MinSelfDelegation string            `json:"min_self_delegation"`
 }
 
 type ValidatorResponse struct {
@@ -756,7 +762,12 @@ type ValidatorResponse struct {
 
 // isValidatorFound checks whether a validator with the given public key exists.
 func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool, error) {
-	validator, err := getValidatorByEVMAddr(ctx, endpoint, pubKey)
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, endpoint, valEVMAddr.String())
 	if errors.Is(err, ErrValidatorNotFound) {
 		return false, nil
 	} else if err != nil {
@@ -767,12 +778,7 @@ func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool
 }
 
 // getValidatorByEVMAddr gets a validator with the given public key.
-func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) (Validator, error) {
-	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
-	if err != nil {
-		return Validator{}, errors.Wrap(err, "failed to convert pub key to evm address")
-	}
-
+func getValidatorByEVMAddr(ctx context.Context, endpoint, valEVMAddr string) (Validator, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/staking/validators/%s", endpoint, valEVMAddr), nil)
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to create request for getting validator")
@@ -806,4 +812,78 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) 
 	}
 
 	return response.Msg.Validator, nil
+}
+
+type SelfDelegationResponse struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+	Msg   struct {
+		DelegationResponse struct {
+			Balance struct {
+				Amount string `json:"amount"`
+			} `json:"balance"`
+		} `json:"delegation_response"`
+	} `json:"msg"`
+}
+
+// validateMinSelfDelegation validates that the self-delegation is greater than the minimum required.
+func validateMinSelfDelegation(ctx context.Context, endpoint string, pubKey []byte) error {
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, endpoint, valEVMAddr.String())
+	if err != nil {
+		return errors.Wrap(err, "failed to get validator by EVM address")
+	}
+
+	minSelfDelegation, ok := new(big.Int).SetString(validator.MinSelfDelegation, 10)
+	if !ok {
+		return errors.New("invalid min self delegation", "min_self_delegation", validator.MinSelfDelegation)
+	}
+
+	selfDelegation, err := getSelfDelegation(ctx, endpoint, valEVMAddr.String())
+	if err != nil {
+		return errors.Wrap(err, "failed to get self delegation", "evm_address", valEVMAddr.String())
+	}
+
+	if selfDelegation.Cmp(minSelfDelegation) < 0 {
+		return errors.New("self-delegation is less than min self delegation", "self_delegation", selfDelegation.String(), "min_self_delegation", minSelfDelegation.String())
+	}
+
+	return nil
+}
+
+func getSelfDelegation(ctx context.Context, endpoint, valEVMAddr string) (*big.Int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/staking/validators/%s/delegations/%s", endpoint, valEVMAddr, valEVMAddr), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create request for getting validator")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get validator")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to get validator")
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response body")
+	}
+
+	var response SelfDelegationResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	selfDelegation, ok := new(big.Int).SetString(response.Msg.DelegationResponse.Balance.Amount, 10)
+	if !ok {
+		return nil, errors.New("invalid self delegation", "self_delegation", response.Msg.DelegationResponse.Balance.Amount)
+	}
+
+	return selfDelegation, nil
 }
