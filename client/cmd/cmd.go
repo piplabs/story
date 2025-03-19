@@ -34,8 +34,9 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 	logCfg := log.DefaultConfig()
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Runs the story consensus client",
+		Use:     name,
+		Aliases: []string{"start"},
+		Short:   "Runs the story consensus client",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx, err := log.Init(cmd.Context(), logCfg)
 			if err != nil {

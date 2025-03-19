@@ -39,13 +39,18 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	apisvr.BindFlags(flags, &cfg.API)
 	flags.StringVar(&cfg.EngineEndpoint, "engine-endpoint", cfg.EngineEndpoint, "An EVM execution client Engine API http endpoint")
 	flags.StringVar(&cfg.EngineJWTFile, "engine-jwt-file", cfg.EngineJWTFile, "The path to the Engine API JWT file")
-	flags.Uint64Var(&cfg.SnapshotInterval, "snapshot-interval", cfg.SnapshotInterval, "State sync snapshot interval")
-	flags.Uint64Var(&cfg.SnapshotKeepRecent, "snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
+	flags.Uint64Var(&cfg.SnapshotInterval, "state-sync.snapshot-interval", cfg.SnapshotInterval, "State sync snapshot interval")
+	flags.Uint64Var(&cfg.SnapshotKeepRecent, "state-sync.snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
 	flags.Uint64Var(&cfg.MinRetainBlocks, "min-retain-blocks", cfg.MinRetainBlocks, "Minimum block height offset during ABCI commit to prune CometBFT blocks")
 	flags.StringVar(&cfg.BackendType, "app-db-backend", cfg.BackendType, "The type of database for application and snapshots databases")
 	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything)")
+	flags.Uint64Var(&cfg.PruningKeepRecent, "pruning-keep-recent", 72000, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
+	flags.Uint64Var(&cfg.PruningInterval, "pruning-interval", 300, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), this is not used by this command but kept for compatibility with the complete pruning options")
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
 	flags.BoolVar(&cfg.EVMBuildOptimistic, "evm-build-optimistic", cfg.EVMBuildOptimistic, "Enables optimistic building of EVM payloads on previous block finalize")
+	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
+	flags.StringVar(&cfg.Address, "address", "tcp://127.0.0.1:26658", "Address of proxy app")
+	flags.StringVar(&cfg.Transport, "transport", "socket", "Specify abci transport (socket | grpc)")
 }
 
 func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
@@ -65,6 +70,7 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {
 	libcmd.BindHomeFlag(cmd.Flags(), &cfg.HomeDir)
+	bindEncPrivKeyFileFlags(cmd, &cfg.EncPrivKeyFile)
 	cmd.Flags().StringVar(&cfg.RPC, "rpc", "https://mainnet.storyrpc.io", "RPC URL to connect to the network")
 	cmd.Flags().StringVar(&cfg.Explorer, "explorer", "https://storyscan.xyz", "URL of the blockchain explorer")
 	cmd.Flags().Int64Var(&cfg.ChainID, "chain-id", 1514, "Chain ID to use for the transaction")
@@ -170,6 +176,10 @@ func bindValidatorKeyFlags(cmd *cobra.Command, keyFilePath *string) {
 	cmd.Flags().StringVar(keyFilePath, "keyfile", defaultKeyFilePath, "Path to the Tendermint key file")
 }
 
+func bindEncPrivKeyFileFlags(cmd *cobra.Command, encKeyFilePath *string) {
+	cmd.Flags().StringVar(encKeyFilePath, "enc-key-file", "", "Path to the encrypted private key file")
+}
+
 func bindStatusFlags(flags *pflag.FlagSet, cfg *StatusConfig) {
 	libcmd.BindHomeFlag(flags, &cfg.HomeDir)
 }
@@ -180,6 +190,7 @@ func bindKeyConvertFlags(cmd *cobra.Command, cfg *keyConfig) {
 	cmd.Flags().StringVar(&cfg.PubKeyHex, "pubkey-hex", "", "Public key in hex format")
 	cmd.Flags().StringVar(&cfg.PubKeyBase64, "pubkey-base64", "", "Public key in base64 format")
 	cmd.Flags().StringVar(&cfg.PubKeyHexUncompressed, "pubkey-hex-uncompressed", "", "Uncompressed public key in hex format")
+	cmd.Flags().StringVar(&cfg.EncPrivKeyFile, "enc-key-file", "", "Path to the encrypted private key file")
 }
 
 func bindRollbackFlags(cmd *cobra.Command, cfg *config.RollbackConfig) {
@@ -200,7 +211,7 @@ func bindValidatorUpdateCommissionFlags(cmd *cobra.Command, cfg *updateCommissio
 	cmd.Flags().Uint32Var(&cfg.CommissionRate, "commission-rate", 0, "Commission rate to update (e.g. 1000 for 10%)")
 }
 
-var ErrValidatorNotFound = errors.New("the validator doesn't exist")
+var ErrValidatorNotFound = errors.New("validator not found")
 
 // Flag Validation
 
@@ -233,9 +244,14 @@ func validateValidatorCreateFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return err
 	}
 
-	validatorPubKey, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
+	privateKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to extract compressed pub key")
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	validatorPubKey, err := privKeyToCmpPubKey(privateKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert private key to compressed public key")
 	}
 
 	if cfg.StoryAPI == "" {
@@ -498,8 +514,8 @@ func validateGenPrivKeyJSONFlags(cfg *genPrivKeyJSONConfig) error {
 	return nil
 }
 
-func validateEncryptFlags(cfg *baseConfig) error {
-	if cmtos.FileExists(cfg.EncPrivKeyFile()) {
+func validateEncryptFlags(cmd *cobra.Command, cfg *baseConfig) error {
+	if cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("already encrypted private key exists")
 	}
 
@@ -515,15 +531,15 @@ func validateEncryptFlags(cfg *baseConfig) error {
 
 	cfg.PrivateKey = pk
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
-func validateShowEncryptedFlags(cfg *showEncryptedConfig) error {
-	if !cmtos.FileExists(cfg.EncPrivKeyFile()) {
+func validateShowEncryptedFlags(cmd *cobra.Command, cfg *showEncryptedConfig) error {
+	if !cmtos.FileExists(cfg.EncPrivKeyFile) {
 		return errors.New("no encrypted private key file")
 	}
 
-	return nil
+	return validateFlags(cmd, []string{"enc-key-file"})
 }
 
 func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {
@@ -555,7 +571,7 @@ func validateValidatorUnjailFlags(ctx context.Context, cmd *cobra.Command, cfg *
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Command, cfg *unjailConfig) error {
@@ -582,7 +598,7 @@ func validateValidatorUnjailOnBehalfFlags(ctx context.Context, cmd *cobra.Comman
 		return ErrValidatorNotFound
 	}
 
-	return nil
+	return validateMinSelfDelegation(ctx, cfg.StoryAPI, validatorPubKey)
 }
 
 func validateUpdateValidatorCommissionFlags(ctx context.Context, cmd *cobra.Command, cfg *updateCommissionConfig) error {
@@ -698,7 +714,12 @@ func validateCommissionRate(ctx context.Context, cfg *createValidatorConfig) err
 }
 
 func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig, pubKey []byte) error {
-	validator, err := getValidatorByEVMAddr(ctx, cfg.StoryAPI, pubKey)
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, cfg.StoryAPI, valEVMAddr.String())
 	if err != nil {
 		return err
 	}
@@ -726,8 +747,9 @@ func validateNewCommissionRate(ctx context.Context, cfg *updateCommissionConfig,
 }
 
 type Validator struct {
-	OperatorAddress string            `json:"operator_address"`
-	Commission      stypes.Commission `json:"commission"`
+	OperatorAddress   string            `json:"operator_address"`
+	Commission        stypes.Commission `json:"commission"`
+	MinSelfDelegation string            `json:"min_self_delegation"`
 }
 
 type ValidatorResponse struct {
@@ -740,8 +762,15 @@ type ValidatorResponse struct {
 
 // isValidatorFound checks whether a validator with the given public key exists.
 func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool, error) {
-	validator, err := getValidatorByEVMAddr(ctx, endpoint, pubKey)
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
 	if err != nil {
+		return false, errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, endpoint, valEVMAddr.String())
+	if errors.Is(err, ErrValidatorNotFound) {
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
 
@@ -749,12 +778,7 @@ func isValidatorFound(ctx context.Context, endpoint string, pubKey []byte) (bool
 }
 
 // getValidatorByEVMAddr gets a validator with the given public key.
-func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) (Validator, error) {
-	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
-	if err != nil {
-		return Validator{}, errors.Wrap(err, "failed to convert pub key to evm address")
-	}
-
+func getValidatorByEVMAddr(ctx context.Context, endpoint, valEVMAddr string) (Validator, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/staking/validators/%s", endpoint, valEVMAddr), nil)
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to create request for getting validator")
@@ -764,20 +788,102 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint string, pubKey []byte) 
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to get validator")
 	}
-	if resp.StatusCode != http.StatusOK {
-		return Validator{}, errors.New("failed to get validator")
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusInternalServerError {
+		return Validator{}, errors.New("failed to get validator", "http_code", resp.StatusCode)
 	}
-	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to read response body")
 	}
+	defer resp.Body.Close()
 
 	var response ValidatorResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return Validator{}, errors.Wrap(err, "failed to unmarshal response")
 	}
 
+	if resp.StatusCode == http.StatusInternalServerError {
+		if strings.Contains(response.Error, "NotFound") {
+			return Validator{}, ErrValidatorNotFound
+		}
+
+		return Validator{}, errors.New(response.Error)
+	}
+
 	return response.Msg.Validator, nil
+}
+
+type SelfDelegationResponse struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+	Msg   struct {
+		DelegationResponse struct {
+			Balance struct {
+				Amount string `json:"amount"`
+			} `json:"balance"`
+		} `json:"delegation_response"`
+	} `json:"msg"`
+}
+
+// validateMinSelfDelegation validates that the self-delegation is greater than the minimum required.
+func validateMinSelfDelegation(ctx context.Context, endpoint string, pubKey []byte) error {
+	valEVMAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert pub key to evm address")
+	}
+
+	validator, err := getValidatorByEVMAddr(ctx, endpoint, valEVMAddr.String())
+	if err != nil {
+		return errors.Wrap(err, "failed to get validator by EVM address")
+	}
+
+	minSelfDelegation, ok := new(big.Int).SetString(validator.MinSelfDelegation, 10)
+	if !ok {
+		return errors.New("invalid min self delegation", "min_self_delegation", validator.MinSelfDelegation)
+	}
+
+	selfDelegation, err := getSelfDelegation(ctx, endpoint, valEVMAddr.String())
+	if err != nil {
+		return errors.Wrap(err, "failed to get self delegation", "evm_address", valEVMAddr.String())
+	}
+
+	if selfDelegation.Cmp(minSelfDelegation) < 0 {
+		return errors.New("self-delegation is less than min self delegation", "self_delegation", selfDelegation.String(), "min_self_delegation", minSelfDelegation.String())
+	}
+
+	return nil
+}
+
+func getSelfDelegation(ctx context.Context, endpoint, valEVMAddr string) (*big.Int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/staking/validators/%s/delegations/%s", endpoint, valEVMAddr, valEVMAddr), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create request for getting validator")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get validator")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to get validator")
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response body")
+	}
+
+	var response SelfDelegationResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	selfDelegation, ok := new(big.Int).SetString(response.Msg.DelegationResponse.Balance.Amount, 10)
+	if !ok {
+		return nil, errors.New("invalid self delegation", "self_delegation", response.Msg.DelegationResponse.Balance.Amount)
+	}
+
+	return selfDelegation, nil
 }

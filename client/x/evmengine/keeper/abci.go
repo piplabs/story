@@ -29,6 +29,11 @@ const prepareTimeout = time.Second * 10
 func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPrepareProposal) (
 	*abci.ResponsePrepareProposal, error,
 ) {
+	if k.IsExecEngSyncing() {
+		log.Warn(ctx, "Skip PrepareProposal while execution engine is syncing", nil)
+		return nil, ErrExecEngSyncing
+	}
+
 	// Only allow 10s to prepare a proposal. Propose empty block otherwise.
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), prepareTimeout)
 	defer timeoutCancel()
@@ -187,6 +192,11 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	if !k.buildOptimistic {
 		return nil // Not enabled.
+	}
+
+	if k.IsExecEngSyncing() {
+		log.Warn(ctx, "Skip PostFinalize while execution engine is syncing", nil)
+		return nil
 	}
 
 	// Extract context values
