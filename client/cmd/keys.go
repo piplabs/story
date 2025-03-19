@@ -23,6 +23,7 @@ type keyConfig struct {
 	PubKeyHex             string
 	PubKeyBase64          string
 	PubKeyHexUncompressed string
+	EncPrivKeyFile        string
 }
 
 func newKeyCmds() *cobra.Command {
@@ -94,8 +95,8 @@ func newKeyEncryptCmd() *cobra.Command {
 			return nil
 		},
 		RunE: runValidatorCommand(
-			func(_ *cobra.Command) error {
-				return validateEncryptFlags(&cfg)
+			func(cmd *cobra.Command) error {
+				return validateEncryptFlags(cmd, &cfg)
 			},
 			func(_ context.Context) error { return encryptPrivKey(cfg) },
 		),
@@ -117,8 +118,8 @@ func newKeyShowEncryptedCmd() *cobra.Command {
 			return nil
 		},
 		RunE: runValidatorCommand(
-			func(_ *cobra.Command) error {
-				return validateShowEncryptedFlags(&cfg)
+			func(cmd *cobra.Command) error {
+				return validateShowEncryptedFlags(cmd, &cfg)
 			},
 			func(_ context.Context) error { return showEncryptedKey(cfg) },
 		),
@@ -165,6 +166,22 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to convert uncompressed pub key")
 		}
+	case cfg.EncPrivKeyFile != "":
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv, err := app.LoadEncryptedPrivKey(password, cfg.EncPrivKeyFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to load encrypted private key")
+		}
+		compressedPubKeyBytes = pv.PubKey.Bytes()
 	default:
 		return errors.New("no valid key input provided")
 	}
@@ -220,7 +237,7 @@ func encryptPrivKey(cfg baseConfig) error {
 		Address: pk.PubKey().Address(),
 	}
 
-	if err := app.EncryptAndStoreKey(pv, password, cfg.EncPrivKeyFile()); err != nil {
+	if err := app.EncryptAndStoreKey(pv, password, cfg.EncPrivKeyFile); err != nil {
 		return errors.Wrap(err, "failed to encrypt and store the key")
 	}
 
@@ -238,8 +255,7 @@ func showEncryptedKey(cfg showEncryptedConfig) error {
 		return errors.Wrap(err, "error occurred while input password")
 	}
 
-	encPrivKeyFile := cfg.EncPrivKeyFile()
-	pv, err := app.LoadEncryptedPrivKey(password, encPrivKeyFile)
+	pv, err := app.LoadEncryptedPrivKey(password, cfg.EncPrivKeyFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to load encrypted private key")
 	}
