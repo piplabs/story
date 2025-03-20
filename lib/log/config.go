@@ -117,7 +117,7 @@ func (c Config) make() (*slog.Logger, error) {
 
 // BindFlags binds the standard flags to provide logging config at runtime.
 func BindFlags(flags *pflag.FlagSet, cfg *Config) {
-	flags.StringVar(&cfg.Level, "log-level", cfg.Level, "Log level; debug, info, warn, error")
-	flags.StringVar(&cfg.Color, "log-color", cfg.Color, "Log color (only applicable to console format); auto, force, disable")
-	flags.StringVar(&cfg.Format, "log-format", cfg.Format, "Log format; console, json")
+	flags.StringVar(&cfg.Level, "log_level", cfg.Level, "Log level; debug, info, warn, error")
+	flags.StringVar(&cfg.Color, "log_color", cfg.Color, "Log color (only applicable to console format); auto, force, disable")
+	flags.StringVar(&cfg.Format, "log_format", cfg.Format, "Log format; console, json")
 }
