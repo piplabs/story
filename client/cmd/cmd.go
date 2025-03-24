@@ -39,7 +39,7 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 		Use:     name,
 		Aliases: []string{"start"},
 		Short:   "Runs the story consensus client",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			return aliasWithComet(cmd)
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
