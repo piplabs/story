@@ -49,6 +49,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
 	flags.BoolVar(&cfg.EVMBuildOptimistic, "evm-build-optimistic", cfg.EVMBuildOptimistic, "Enables optimistic building of EVM payloads on previous block finalize")
 	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
+	flags.Bool("with-tendermint", true, "Alias for --with-comet")
 	flags.StringVar(&cfg.Address, "address", "tcp://127.0.0.1:26658", "Address of proxy app")
 	flags.StringVar(&cfg.Transport, "transport", "socket", "Specify abci transport (socket | grpc)")
 }
