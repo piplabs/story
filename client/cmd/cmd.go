@@ -70,10 +70,6 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 }
 
 func aliasWithComet(cmd *cobra.Command) error {
-	if cmd.Flags().Changed("with-comet") {
-		return nil
-	}
-
 	if cmd.Flags().Changed("with-tendermint") {
 		val, err := cmd.Flags().GetBool("with-tendermint")
 		if err != nil {
