@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -10,6 +11,7 @@ import (
 	storycfg "github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/lib/buildinfo"
 	libcmd "github.com/piplabs/story/lib/cmd"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
@@ -34,8 +36,12 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 	logCfg := log.DefaultConfig()
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Runs the story consensus client",
+		Use:     name,
+		Aliases: []string{"start"},
+		Short:   "Runs the story consensus client",
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			return aliasWithComet(cmd)
+		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx, err := log.Init(cmd.Context(), logCfg)
 			if err != nil {
@@ -61,4 +67,18 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 	log.BindFlags(cmd.Flags(), &logCfg)
 
 	return cmd
+}
+
+func aliasWithComet(cmd *cobra.Command) error {
+	if cmd.Flags().Changed("with-tendermint") {
+		val, err := cmd.Flags().GetBool("with-tendermint")
+		if err != nil {
+			return errors.Wrap(err, "failed to get bool value from with-tendermint flag")
+		}
+		if err := cmd.Flags().Set("with-comet", strconv.FormatBool(val)); err != nil {
+			return errors.Wrap(err, "failed to set value to with-comet flag for alias", "val", val)
+		}
+	}
+
+	return nil
 }
