@@ -31,7 +31,7 @@ const (
 	configDir             = "config"
 	snapshotDataDir       = "snapshots"
 	networkFile           = "network.json"
-	DefaultEncPrivKeyName = "enc_priv_key.json"
+	DefaultEncPrivKeyName = "priv_validator_key.enc"
 
 	DefaultEngineEndpoint     = "http://localhost:8551" // Default host endpoint for the Engine API
 	defaultSnapshotInterval   = 1000                    // Roughly once an hour (given 3s blocks)
