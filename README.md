@@ -1,4 +1,4 @@
-## Story Consesus Implementation!!!!
+## Story Consesus Implementation!!!!!
 
 Golang consensus layer implementation and staking contracts for the Story L1 blockchain.
 
