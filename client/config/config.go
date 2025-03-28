@@ -112,6 +112,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	StoryConfig = Config{
 		HomeDir:            DefaultHomeDir(),
@@ -133,6 +134,7 @@ var (
 		ExternalAddress:    "",
 		Seeds:              "",
 		SeedMode:           false,
+		WithComet:          true,
 	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
