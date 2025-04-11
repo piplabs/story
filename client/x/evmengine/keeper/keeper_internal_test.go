@@ -165,7 +165,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "fail: payload parent hash is not equal to head hash",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), common.Hash{}, common.Address{}, common.Hash{}, &common.Hash{})
@@ -184,7 +184,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "fail: invalid payload timestamp",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 				weekAgo := execHead.GetBlockTime() - 604800
 
@@ -204,7 +204,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "fail: invalid payload random",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, common.Hash{}, &common.Hash{})
@@ -223,7 +223,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "fail: invalid authority",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
@@ -242,7 +242,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "pass: valid payload",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
@@ -260,10 +260,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		{
 			name: "pass: valid payload when consensus block time is less than execution block time",
 			setup: func(c context.Context) sdk.Context {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 				// update execution head with current block time
-				err = keeper.updateExecutionHead(c, engine.ExecutableData{
+				err = keeper.UpdateExecutionHead(c, engine.ExecutableData{
 					Number:    execHead.GetBlockHeight(),
 					BlockHash: common.BytesToHash(execHead.GetBlockHash()),
 					Timestamp: uint64(now.Unix()),
@@ -277,7 +277,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				return sdkCtx
 			},
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
+				execHead, err := keeper.GetExecutionHead(c)
 				require.NoError(t, err)
 
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, execHead.GetBlockTime()+1, execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})

@@ -142,23 +142,10 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		return nil, errors.Wrap(err, "encode")
 	}
 
-	// First, collect all vote extension msgs from the vote provider.
-	// voteMsgs, err := k.voteProvider.PrepareVotes(ctx, req.LocalLastCommit)
-	// if err != nil {
-	//	return nil, errors.Wrap(err, "prepare votes")
-	//}
-
-	// Next, collect all prev payload evm event logs.
-	evmEvents, err := k.evmEvents(ctx, payloadResp.ExecutionPayload.ParentHash)
-	if err != nil {
-		return nil, errors.Wrap(err, "prepare evm event logs")
-	}
-
 	// Then construct the execution payload message.
 	payloadMsg := &types.MsgExecutionPayload{
-		Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-		ExecutionPayload:  payloadData,
-		PrevPayloadEvents: evmEvents,
+		Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+		ExecutionPayload: payloadData,
 	}
 
 	// Combine all the votes messages and the payload message into a single transaction.
@@ -176,8 +163,6 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	log.Info(ctx, "Proposing new block",
 		"height", req.Height,
 		log.Hex7("execution_block_hash", payloadResp.ExecutionPayload.BlockHash[:]),
-		// "vote_msgs", len(voteMsgs),
-		"evm_events", len(evmEvents),
 	)
 
 	return &abci.ResponsePrepareProposal{Txs: [][]byte{tx}}, nil
@@ -263,7 +248,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 // startBuild triggers the building of a new execution payload on top of the current execution head.
 // It returns the EngineAPI response which contains a status and payload ID.
 func (k *Keeper) startBuild(ctx context.Context, feeRecipient common.Address, withdrawals []*etypes.Withdrawal, appHash common.Hash, timestamp time.Time) (engine.ForkChoiceResponse, error) {
-	head, err := k.getExecutionHead(ctx)
+	head, err := k.GetExecutionHead(ctx)
 	if err != nil {
 		return engine.ForkChoiceResponse{}, errors.Wrap(err, "latest execution block")
 	}
