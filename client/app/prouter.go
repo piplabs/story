@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
@@ -120,6 +121,10 @@ func rejectProposal(ctx context.Context, err error) (*abci.ResponseProcessPropos
 	return &abci.ResponseProcessProposal{Status: abci.ResponseProcessProposal_REJECT}, nil
 }
 
+type protoTxProvider interface {
+	GetProtoTx() *txtypes.Tx
+}
+
 // validateTx checks whether the transaction contains any disallowed data.
 func validateTx(tx sdk.Tx) error {
 	standardTx, ok := tx.(signing.Tx)
@@ -127,11 +132,11 @@ func validateTx(tx sdk.Tx) error {
 		return errors.New("invalid standard tx message")
 	}
 
-	signatures, err := standardTx.GetSignaturesV2()
+	signaturesV2, err := standardTx.GetSignaturesV2()
 	if err != nil {
 		return errors.Wrap(err, "get signatures from tx")
 	}
-	if len(signatures) != 0 {
+	if len(signaturesV2) != 0 {
 		return errors.New("disallowed signatures in tx")
 	}
 
@@ -149,6 +154,21 @@ func validateTx(tx sdk.Tx) error {
 
 	if feeGranter := standardTx.FeeGranter(); feeGranter != nil {
 		return errors.New("disallowed fee granter in tx")
+	}
+
+	tipTx, ok := tx.(txtypes.TipTx)
+	if ok {
+		if tip := tipTx.GetTip(); tip != nil {
+			return errors.New("disallowed tip in tx")
+		}
+	}
+
+	protoTx, ok := tx.(protoTxProvider)
+	if ok {
+		signatures := protoTx.GetProtoTx().Signatures
+		if len(signatures) != 0 {
+			return errors.New("disallowed signatures in tx")
+		}
 	}
 
 	return nil
