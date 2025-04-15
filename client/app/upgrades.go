@@ -9,6 +9,7 @@ import (
 
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
+	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 )
 
 var (
@@ -16,10 +17,12 @@ var (
 	// New upgrades should be added to this slice after they are implemented.
 	Upgrades = []upgrades.Upgrade{
 		virgil.Upgrade,
+		v_1_2_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
 		virgil.Fork,
+		v_1_2_0.Fork,
 	}
 )
 
@@ -68,6 +71,14 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				continue
 			}
 			upgradeHeight = virgilUpgradeHeight
+		}
+
+		if fork.UpgradeName == v_1_2_0.UpgradeName {
+			v120UpgradeHeight, ok := v_1_2_0.GetUpgradeHeight(ctx.ChainID())
+			if !ok {
+				continue
+			}
+			upgradeHeight = v120UpgradeHeight
 		}
 
 		if currentBlockHeight == upgradeHeight {
