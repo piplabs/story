@@ -1,4 +1,4 @@
-name: Build story binary, reset internal-devnet, run l1 tests
+name: Build story binary, reset temp-devnet, run l1 tests
 
 on:
   workflow_dispatch:
@@ -104,11 +104,11 @@ jobs:
           path: ${{ env.ARCHIVE_NAME }}
           destination: ${{ env.GCP_BUCKET }}/${{ env.BIN_NAME }}
 
-      - name: Reset internal-devnet network
+      - name: Reset temp-devnet network
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
-          repository: piplabs/internal-devnet
+          repository: piplabs/temp-devnet
           event-type: network-update
           client-payload: |
             {
@@ -129,7 +129,7 @@ jobs:
 
           GITHUB_TOKEN="${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}"
           OWNER="piplabs"
-          REPO="internal-devnet"
+          REPO="temp-devnet"
           TRIGGER_EVENT="repository_dispatch"
           MAX_RETRIES=60
           SLEEP_INTERVAL=20
