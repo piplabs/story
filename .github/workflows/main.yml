@@ -115,8 +115,7 @@ jobs:
               "action": "reset",
               "version": "${{ env.VERSION }}",
               "version_meta": "${{ env.VERSION_META }}",
-              "commit_hash": "${{ env.COMMIT_HASH }}",
-              "branch": "update-for-temp-devnet"
+              "commit_hash": "${{ env.COMMIT_HASH }}"
             }
 
       - name: Verify the above workflow was completed successfully
