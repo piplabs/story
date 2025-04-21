@@ -200,45 +200,46 @@ jobs:
           echo "Proceeding to the next step."
           echo "success=true" >> $GITHUB_OUTPUT
 
-      # - name: Wait for internal-devnet network to be up and producing blocks
-      #   if: ${{ steps.verify-workflow.outputs.success == 'true' }}
-      #   run: |
-      #     echo "Checking internal-devnet network at https://devnet.storyscan.xyz/api/v2/blocks?type=block ..."
-      #     retries=60
-      #     delay=20
-      #     for i in $(seq 1 $retries); do
-      #       block1=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
-      #       sleep $delay
-      #       block2=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
-      #       sleep $delay
-      #       block3=$(curl -s -X GET "https://devnet.storyscan.xyz/api/v2/blocks?type=block" -H "accept: application/json" | jq '.items[0].height')
+      - name: Wait for temp-devnet network to be up and producing blocks and height is larger than 100
+        if: ${{ steps.verify-workflow.outputs.success == 'true' }}
+        run: |
+          echo "Checking temp-devnet network with rpc call eth_getBlockByNumber..."
+          retries=60
+          delay=20
+          for i in $(seq 1 $retries); do
+            block1=$(curl -s -X POST --header "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://35.211.189.137:8545 | jq -r ".result")
+            sleep $delay
+            block2=$(curl -s -X POST --header "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://35.211.189.137:8545 | jq -r ".result")
+            sleep $delay
+            block3=$(curl -s -X POST --header "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://35.211.189.137:8545 | jq -r ".result")
 
-      #       if [ "$block1" != "null" ] && [ "$block2" != "null" ] && [ "$block3" != "null" ] && \
-      #          [ -n "$block1" ] && [ -n "$block2" ] && [ -n "$block3" ]; then
+            if [ "$block1" != "null" ] && [ "$block2" != "null" ] && [ "$block3" != "null" ] && \
+               [ -n "$block1" ] && [ -n "$block2" ] && [ -n "$block3" ]; then
 
-      #         # Compare block numbers to ensure they are increasing
-      #         if [ "$block1" -lt "$block2" ] && [ "$block2" -lt "$block3" ]; then
-      #           echo "Network is up and producing blocks: $block1 -> $block2 -> $block3"
-      #           exit 0
-      #         else
-      #           echo "Blocks are not increasing as expected: $block1 -> $block2 -> $block3. Retrying..."
-      #         fi
-      #       else
-      #         echo "Invalid block data received. Retrying..."
-      #       fi
-      #     done
-      #     echo "Network did not become available in time."
-      #     exit 1
+              # Compare block numbers to ensure they are increasing
+              if [ "$block1" -gt 100 ] && [ "$block1" -lt "$block2" ] && [ "$block2" -lt "$block3" ]; then
+                echo "Network is up and producing blocks: $block1 -> $block2 -> $block3"
+                exit 0
+              else
+                echo "Blocks are not increasing as expected: $block1 -> $block2 -> $block3. Retrying..."
+              fi
+            else
+              echo "Invalid block data received. Retrying..."
+            fi
+          done
+          echo "Network did not become available in time."
+          exit 1
 
-      # - name: Trigger l1 regression tests
-      #   if: ${{ success() }}
-      #   uses: peter-evans/repository-dispatch@v3
-      #   with:
-      #     token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
-      #     repository: storyprotocol/l1-tests
-      #     event-type: run-tests
-      #     client-payload: |
-      #       {
-      #         "version": "${{ env.VERSION }}",
-      #         "commit_hash": "${{ env.COMMIT_HASH }}"
-      #       }
+      - name: Trigger l1 regression tests
+        if: ${{ success() }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: storyprotocol/l1-tests
+          event-type: run-tests
+          client-payload: |
+            {
+              "version": "${{ env.VERSION }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}",
+              "devnet_version": "temp-devnet"
+            }
