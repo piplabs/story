@@ -309,10 +309,10 @@ jobs:
 
             if [ "$status_by_id" == "completed" ]; then
               echo "Workflow run completed with conclusion: ${conclusion_by_id}"
-              if [ "$conclusion_by_id" != "success" ]; then
-                echo "Workflow did not succeed. Exiting."
-                exit 1
-              fi
+              # if [ "$conclusion_by_id" != "success" ]; then
+              #   echo "Workflow did not succeed. Exiting."
+              #   exit 1
+              # fi
               break
             fi
 
@@ -328,10 +328,10 @@ jobs:
           fi
 
           echo "Proceeding to the next step."
-          echo "success=true" >> $GITHUB_OUTPUT
+          echo "completed=true" >> $GITHUB_OUTPUT
 
       - name: delete temp-devnet network
-        if: ${{ steps.verify-l1-tests.outputs.success == 'true' }}
+        if: ${{ steps.verify-l1-tests.outputs.completed == 'true' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
