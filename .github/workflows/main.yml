@@ -113,6 +113,7 @@ jobs:
           client-payload: |
             {
               "action": "reset",
+              "environment": "temp-devnet",
               "version": "${{ env.VERSION }}",
               "version_meta": "${{ env.VERSION_META }}",
               "commit_hash": "${{ env.COMMIT_HASH }}"
