@@ -243,3 +243,99 @@ jobs:
               "commit_hash": "${{ env.COMMIT_HASH }}",
               "devnet_version": "temp-devnet"
             }
+
+      - name: Verify the above workflow was completed
+        id: verify-l1-tests
+        run: |
+          #!/bin/bash
+
+          # Set a manual delay to allow the workflow to be triggered
+          sleep 15
+
+          GITHUB_TOKEN="${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}"
+          OWNER="storyprotocol"
+          REPO="l1-tests"
+          TRIGGER_EVENT="repository_dispatch"
+          MAX_RETRIES=60
+          SLEEP_INTERVAL=60
+
+          check_workflow_status() {
+            response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?event=${TRIGGER_EVENT}")
+
+            run=$(echo "$response" | jq '
+              .workflow_runs
+              | map(select(.status == "in_progress" or .status == "queued"))
+              | sort_by(.run_number)
+              | last
+            ')
+            echo "$run"
+          }
+
+          check_workflow_by_id() {
+            local id=$1
+            curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/actions/runs/$id" | \
+              jq '.'
+          }
+
+          echo "--------- print result check_workflow_status----------"
+          result=$(check_workflow_status)
+
+          # If no live run is found, the result will be an empty object "{}"
+          if [ "$(echo "$result" | jq -r 'if . == {} or . == null then "empty" else "found" end')" = "empty" ]; then
+            echo "No in-progress workflow found. Exiting."
+            exit 1
+          fi
+
+          run_status=$(echo "$result" | jq -r '.status')
+          run_conclusion=$(echo "$result" | jq -r '.conclusion')
+          echo "Current status: ${run_status}, conclusion: ${run_conclusion}"
+
+          run_id=$(echo "$result" | jq -r '.id')
+          echo "Found in_progress workflow with ID: $run_id"
+
+          attempt=1
+          while [ $attempt -le $MAX_RETRIES ]; do
+            result_by_id=$(check_workflow_by_id $run_id)
+            status_by_id=$(echo "$result_by_id" | jq -r '.status')
+            conclusion_by_id=$(echo "$result_by_id" | jq -r '.conclusion')
+            echo "Current status: ${status_by_id}, conclusion: ${conclusion_by_id}"
+
+            if [ "$status_by_id" == "completed" ]; then
+              echo "Workflow run completed with conclusion: ${conclusion_by_id}"
+              if [ "$conclusion_by_id" != "success" ]; then
+                echo "Workflow did not succeed. Exiting."
+                exit 1
+              fi
+              break
+            fi
+
+            echo "Workflow run is still in progress or not found. Waiting for ${SLEEP_INTERVAL} seconds..."
+            sleep $SLEEP_INTERVAL
+            attempt=$((attempt + 1))
+
+          done
+
+          if [ $attempt -gt $MAX_RETRIES ]; then
+            echo "Workflow run did not complete within the allotted time."
+            exit 1
+          fi
+
+          echo "Proceeding to the next step."
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: delete temp-devnet network
+        if: ${{ steps.verify-l1-tests.outputs.success == 'true' }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
+          repository: piplabs/temp-devnet
+          event-type: network-update
+          client-payload: |
+            {
+              "action": "delete",
+              "version": "${{ env.VERSION }}",
+              "version_meta": "${{ env.VERSION_META }}",
+              "commit_hash": "${{ env.COMMIT_HASH }}"
+            }
