@@ -246,7 +246,7 @@ jobs:
             {
               "version": "${{ env.VERSION }}",
               "commit_hash": "${{ env.COMMIT_HASH }}",
-              "devnet_version": "internal-devnet"
+              "devnet_version": "temp-devnet"
             }
 
       - name: Verify the above workflow was completed
