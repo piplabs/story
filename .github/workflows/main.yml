@@ -116,7 +116,8 @@ jobs:
               "environment": "temp-devnet",
               "version": "${{ env.VERSION }}",
               "version_meta": "${{ env.VERSION_META }}",
-              "commit_hash": "${{ env.COMMIT_HASH }}"
+              "commit_hash": "${{ env.COMMIT_HASH }}",
+              "repo_type": "public"
             }
 
       - name: Verify the above workflow was completed successfully
@@ -336,7 +337,9 @@ jobs:
           client-payload: |
             {
               "action": "delete",
+              "environment": "temp-devnet",
               "version": "${{ env.VERSION }}",
               "version_meta": "${{ env.VERSION_META }}",
-              "commit_hash": "${{ env.COMMIT_HASH }}"
+              "commit_hash": "${{ env.COMMIT_HASH }}",
+              "repo_type": "public"
             }
