@@ -222,7 +222,7 @@ jobs:
               block1_dec=$((block1))
               block2_dec=$((block2))
               block3_dec=$((block3))
-              if [ "$block1_dec" -gt 100 ] && [ "$block1_dec" -lt "$block2_dec" ] && [ "$block2_dec" -lt "$block3_dec" ]; then
+              if [ "$block3_dec" -gt 100 ] && [ "$block1_dec" -lt "$block2_dec" ] && [ "$block2_dec" -lt "$block3_dec" ]; then
                 echo "Network is up and producing blocks: $block1_dec -> $block2_dec -> $block3_dec"
                 exit 0
               else
@@ -246,7 +246,7 @@ jobs:
             {
               "version": "${{ env.VERSION }}",
               "commit_hash": "${{ env.COMMIT_HASH }}",
-              "devnet_version": "temp-devnet"
+              "devnet_version": "internal-devnet"
             }
 
       - name: Verify the above workflow was completed
