@@ -309,7 +309,7 @@ jobs:
             echo "Current status: ${status_by_id}, conclusion: ${conclusion_by_id}"
 
             if [ "$status_by_id" == "completed" ] || [ "$status_by_id" == "cancelled" ]; then
-              echo "Workflow run $status_by_id with conclusion: ${conclusion_by_id}"
+              echo "Workflow run ${status_by_id} with conclusion: ${conclusion_by_id}"
               break
             fi
 
