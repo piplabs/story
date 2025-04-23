@@ -222,7 +222,7 @@ jobs:
               block1_dec=$((block1))
               block2_dec=$((block2))
               block3_dec=$((block3))
-              if [ "$block3_dec" -gt 100 ] && [ "$block1_dec" -lt "$block2_dec" ] && [ "$block2_dec" -lt "$block3_dec" ]; then
+              if [ "$block3_dec" -gt 200 ] && [ "$block1_dec" -lt "$block2_dec" ] && [ "$block2_dec" -lt "$block3_dec" ]; then
                 echo "Network is up and producing blocks: $block1_dec -> $block2_dec -> $block3_dec"
                 exit 0
               else
@@ -261,8 +261,9 @@ jobs:
           OWNER="storyprotocol"
           REPO="l1-tests"
           TRIGGER_EVENT="repository_dispatch"
-          MAX_RETRIES=60
-          SLEEP_INTERVAL=60
+          # 120 retries * 300 seconds = 36000 seconds = 10 hours
+          MAX_RETRIES=120
+          SLEEP_INTERVAL=300
 
           check_workflow_status() {
             response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -309,10 +310,6 @@ jobs:
 
             if [ "$status_by_id" == "completed" ]; then
               echo "Workflow run completed with conclusion: ${conclusion_by_id}"
-              # if [ "$conclusion_by_id" != "success" ]; then
-              #   echo "Workflow did not succeed. Exiting."
-              #   exit 1
-              # fi
               break
             fi
 
