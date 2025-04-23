@@ -328,7 +328,7 @@ jobs:
           echo "completed=true" >> $GITHUB_OUTPUT
 
       - name: delete temp-devnet network
-        if: ${{ steps.verify-l1-tests.outputs.completed == 'true' }}
+        if: always()
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
