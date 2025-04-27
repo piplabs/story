@@ -230,7 +230,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	maxWithdrawals, err := k.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; get max withdrawal", err, logAttr)
-		return errors.Wrap(err, "get max withdrawal per block")
+		return nil
 	}
 	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
@@ -241,7 +241,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; reward withdrawals peek", err, logAttr)
-		return errors.Wrap(err, "error on reward withdrawals dequeue")
+		return nil
 	}
 	withdrawals = append(withdrawals, rewardWithdrawals...)
 
