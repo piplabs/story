@@ -173,11 +173,16 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		return nil, errors.Wrap(err, "encode tx builder")
 	}
 
+	if int64(len(tx)) > req.MaxTxBytes {
+		return nil, errors.New("tx size exceeds the max bytes of tx")
+	}
+
 	log.Info(ctx, "Proposing new block",
 		"height", req.Height,
 		log.Hex7("execution_block_hash", payloadResp.ExecutionPayload.BlockHash[:]),
 		// "vote_msgs", len(voteMsgs),
 		"evm_events", len(evmEvents),
+		"tx_bytes", len(tx),
 	)
 
 	return &abci.ResponsePrepareProposal{Txs: [][]byte{tx}}, nil
