@@ -26,7 +26,7 @@ func (s proposalServer) ExecutionPayload(ctx context.Context, msg *types.MsgExec
 
 	payload, err := s.parseAndVerifyProposedPayload(ctx, msg)
 	if err != nil {
-		return nil, errors.Wrap(err, "unmarshal payload")
+		return nil, errors.Wrap(err, "parse and verify payload")
 	}
 
 	// Ensure that the withdrawals in the payload are from the front indices of the queue.
