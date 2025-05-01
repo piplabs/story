@@ -55,6 +55,39 @@ func TestNewGenesisState(t *testing.T) {
 	}
 }
 
+func TestNewValidatorSweepIndex(t *testing.T) {
+	t.Parallel()
+	tcs := []struct {
+		name               string
+		nextValIndex       uint64
+		nextValDelIndex    uint64
+		expectedSweepIndex types.ValidatorSweepIndex
+	}{
+		{
+			name:               "zero validator sweep index",
+			nextValIndex:       zeroVallidatorSweepIndex.NextValIndex,
+			nextValDelIndex:    zeroVallidatorSweepIndex.NextValDelIndex,
+			expectedSweepIndex: zeroVallidatorSweepIndex,
+		},
+		{
+			name:            "custom validator sweep index",
+			nextValIndex:    uint64(1),
+			nextValDelIndex: uint64(2),
+			expectedSweepIndex: types.ValidatorSweepIndex{
+				NextValIndex:    1,
+				NextValDelIndex: 2,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			got := types.NewValidatorSweepIndex(tc.nextValIndex, tc.nextValDelIndex)
+			require.Equal(t, tc.expectedSweepIndex, got)
+		})
+	}
+}
+
 func TestDefaultGenesisState(t *testing.T) {
 	t.Parallel()
 	expectedGenesisState := &types.GenesisState{
