@@ -4,9 +4,9 @@ pragma solidity 0.8.23;
 import { Script } from "forge-std/Script.sol";
 import { console2 } from "forge-std/console2.sol";
 
-import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
-import { Predeploys } from "../../src/libraries/Predeploys.sol";
-import { Create3 } from "../../src/deploy/Create3.sol";
+import { IPTokenStaking } from "src/protocol/IPTokenStaking.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Create3 } from "src/deploy/Create3.sol";
 
 /**
  * @title DeployNewIPTokenStakingImpl
