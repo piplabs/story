@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
+import { Script } from "forge-std/Script.sol";
+import { stdJson } from "forge-std/StdJson.sol";
+import { console2 } from "forge-std/console2.sol";
+
+import { StringUtil } from "./StringUtil.sol";
+
+/// @title TimelockJSONTxWriter
+/// @notice Writes the tx json files for the timelock operations
+contract TimelockJSONTxWriter is Script {
+    using StringUtil for uint256;
+    using stdJson for string;
+
+    enum TimelockOp {
+        SCHEDULE,
+        EXECUTE,
+        CANCEL
+    }
+
+    /// @notice A struct to store the transaction details
+    /// @param from The address of the sender
+    /// @param to The address of the contract to call
+    /// @param value The value to send with the call
+    /// @param data The encoded target method call
+    /// @param operation Needed for Safe. 0 is call, 1 is delegatecall
+    /// @param comment The comment for the transaction
+    struct Transaction {
+        address from;
+        address to;
+        uint256 value;
+        bytes data;
+        uint8 operation;
+        string comment;
+    }
+
+    /// @notice A mapping to store the transactions to batch for each timelock operation
+    mapping(TimelockOp => Transaction[]) public transactions;
+
+    /// @notice The chain id
+    string private chainId;
+
+    /// @notice The action name
+    string internal action;
+
+    constructor(string memory _action) {
+        action = _action;
+        chainId = (block.chainid).toString();
+    }
+
+    /// @notice Saves a transaction to the mapping
+    /// @param _timelockOp The timelock operation
+    /// @param _from The address of the sender
+    /// @param _to The address of the contract to call
+    /// @param _value The value to send with the call
+    /// @param _data The encoded target method call
+    /// @param _comment The comment for the transaction
+    function _saveTx(
+        TimelockOp _timelockOp,
+        address _from,
+        address _to,
+        uint256 _value,
+        bytes memory _data,
+        string memory _comment
+    ) internal {
+        transactions[_timelockOp].push(
+            Transaction({ from: _from, to: _to, value: _value, data: _data, operation: 0, comment: _comment })
+        );
+        console2.log("Added tx ", uint8(_timelockOp));
+        console2.log("To: ", _to);
+        console2.log("Value: ", _value);
+        console2.log("Data: ");
+        console2.logBytes(_data);
+        console2.log("Operation: 0");
+        console2.log("Comment: ", _comment);
+    }
+
+    /// @notice Writes all the tx json files for the timelock operations
+    function _writeFiles() internal {
+        Transaction[] memory _transactions = transactions[TimelockOp.SCHEDULE];
+        _writeTxArrayToJson(TimelockOp.SCHEDULE, _transactions);
+
+        _transactions = transactions[TimelockOp.EXECUTE];
+        _writeTxArrayToJson(TimelockOp.EXECUTE, _transactions);
+
+        _transactions = transactions[TimelockOp.CANCEL];
+        _writeTxArrayToJson(TimelockOp.CANCEL, _transactions);
+    }
+
+    /// @notice Writes a json files for the timelock operations
+    /// @param _timelockOp The timelock operation
+    /// @param txArray The transactions to write to the json file
+    function _writeTxArrayToJson(TimelockOp _timelockOp, Transaction[] memory txArray) internal {
+        string memory json = "[";
+        for (uint i = 0; i < txArray.length; i++) {
+            if (i > 0) {
+                json = string(abi.encodePacked(json, ","));
+            }
+            json = string(abi.encodePacked(json, "{"));
+            json = string(abi.encodePacked(json, '"from":"', vm.toString(txArray[i].from), '",'));
+            json = string(abi.encodePacked(json, '"to":"', vm.toString(txArray[i].to), '",'));
+            json = string(abi.encodePacked(json, '"value":', vm.toString(txArray[i].value), ","));
+            json = string(abi.encodePacked(json, '"data":"', vm.toString(txArray[i].data), '",'));
+            json = string(abi.encodePacked(json, '"operation":', vm.toString(txArray[i].operation), ","));
+            json = string(abi.encodePacked(json, '"comment":"', txArray[i].comment, '"'));
+            json = string(abi.encodePacked(json, "}"));
+        }
+        json = string(abi.encodePacked(json, "]"));
+
+        string memory filename = string(
+            abi.encodePacked(
+                "./script/admin-actions/output/",
+                chainId,
+                "/",
+                action,
+                "-",
+                _timelockOpToString(_timelockOp),
+                ".json"
+            )
+        );
+        vm.writeFile(filename, json);
+        console2.log("Wrote batch txs to ", filename);
+    }
+
+    /// @notice Converts the timelock operation to a string
+    /// @param _timelockOp The timelock operation
+    /// @return The string representation of the timelock operation
+    function _timelockOpToString(TimelockOp _timelockOp) internal pure returns (string memory) {
+        if (_timelockOp == TimelockOp.SCHEDULE) {
+            return "schedule";
+        } else if (_timelockOp == TimelockOp.EXECUTE) {
+            return "execute";
+        } else if (_timelockOp == TimelockOp.CANCEL) {
+            return "cancel";
+        }
+        return "";
+    }
+}
