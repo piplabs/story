@@ -1,107 +1,109 @@
 package keeper_test
 
-import "github.com/piplabs/story/client/x/evmstaking/types"
+import (
+	"testing"
 
-func (s *TestSuite) TestGetParams() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
-	require.Equal(types.DefaultParams(), params)
+	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/evmstaking/types"
+)
+
+func TestGetParams(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
+	params, err := esk.GetParams(ctx)
+	require.NoError(t, err)
+	require.Equal(t, types.DefaultParams(), params)
 }
 
-func (s *TestSuite) TestSetParams() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+func TestSetParams(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 	newMaxWithdrawalPerBlock := uint32(10)
 	newMaxSweepPerBlock := uint32(100)
 	newMinPartialWithdrawalAmount := uint64(100_000)
 
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
+	params, err := esk.GetParams(ctx)
+	require.NoError(t, err)
 
 	// check existing params are not equal to new params
-	require.NotEqual(newMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
-	require.NotEqual(newMaxSweepPerBlock, params.MaxSweepPerBlock)
-	require.NotEqual(newMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	require.NotEqual(t, newMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
+	require.NotEqual(t, newMaxSweepPerBlock, params.MaxSweepPerBlock)
+	require.NotEqual(t, newMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
 
 	newParams := params
 	// set new params
 	newParams.MaxWithdrawalPerBlock = newMaxWithdrawalPerBlock
 	newParams.MaxSweepPerBlock = newMaxSweepPerBlock
 	newParams.MinPartialWithdrawalAmount = newMinPartialWithdrawalAmount
-	require.NoError(keeper.SetParams(ctx, newParams))
+	require.NoError(t, esk.SetParams(ctx, newParams))
 
 	// check new params are set correctly
-	params, err = keeper.GetParams(ctx)
-	require.NoError(err)
-	require.Equal(newParams, params)
+	params, err = esk.GetParams(ctx)
+	require.NoError(t, err)
+	require.Equal(t, newParams, params)
 }
 
-func (s *TestSuite) TestMaxWithdrawalPerBlock() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+func TestMaxWithdrawalPerBlock(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
-	// params are set default during TestSuite.SetupTest
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
-	require.Equal(types.DefaultMaxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
+	// MaxWithdrawalPerBlock check
+	maxWithdrawalPerBlock, err := esk.MaxWithdrawalPerBlock(ctx)
+	require.NoError(t, err)
+	require.Equal(t, types.DefaultMaxWithdrawalPerBlock, maxWithdrawalPerBlock)
 }
 
-func (s *TestSuite) TestMaxSweepPerBlock() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+func TestMaxSweepPerBlock(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
-	// params are set default during TestSuite.SetupTest
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
-	require.Equal(types.DefaultMaxSweepPerBlock, params.MaxSweepPerBlock)
+	// MaxSweepPerBlock check
+	maxSweepPerBlock, err := esk.MaxSweepPerBlock(ctx)
+	require.NoError(t, err)
+	require.Equal(t, types.DefaultMaxSweepPerBlock, maxSweepPerBlock)
 }
 
-func (s *TestSuite) TestMinPartialWithdrawalAmount() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
+func TestMinPartialWithdrawalAmount(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
-	// params are set default during TestSuite.SetupTest
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
-	require.Equal(types.DefaultMinPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	// MinPartialWithdrawalAmount check
+	minPartialWithdrawalAmount, err := esk.MinPartialWithdrawalAmount(ctx)
+	require.NoError(t, err)
+	require.Equal(t, types.DefaultMinPartialWithdrawalAmount, minPartialWithdrawalAmount)
 }
 
-func (s *TestSuite) TestSetValidatorSweepIndex() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	existingSweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
-	require.NoError(err)
+func TestSetValidatorSweepIndex(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	existingSweepIndex, err := esk.GetValidatorSweepIndex(ctx)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), existingSweepIndex.NextValIndex)
+	require.Equal(t, uint64(0), existingSweepIndex.NextValDelIndex)
 
 	// set new sweep index
 	newNextValIndex := uint64(10)
 	newNextValDelIndex := uint64(100)
 	// make sure new value is different from existing value
-	require.NotEqual(existingSweepIndex.NextValIndex, newNextValIndex)
-	require.NotEqual(existingSweepIndex.NextValDelIndex, newNextValDelIndex)
-	require.NoError(keeper.SetValidatorSweepIndex(ctx, types.NewValidatorSweepIndex(newNextValIndex, newNextValDelIndex)))
+	require.NotEqual(t, existingSweepIndex.NextValIndex, newNextValIndex)
+	require.NotEqual(t, existingSweepIndex.NextValDelIndex, newNextValDelIndex)
+	require.NoError(t, esk.SetValidatorSweepIndex(ctx, types.NewValidatorSweepIndex(newNextValIndex, newNextValDelIndex)))
 
 	// check new sweep index is set correctly
-	sweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
-	require.NoError(err)
-	require.Equal(newNextValIndex, sweepIndex.NextValIndex)
-	require.Equal(newNextValDelIndex, sweepIndex.NextValDelIndex)
+	sweepIndex, err := esk.GetValidatorSweepIndex(ctx)
+	require.NoError(t, err)
+	require.Equal(t, newNextValIndex, sweepIndex.NextValIndex)
+	require.Equal(t, newNextValDelIndex, sweepIndex.NextValDelIndex)
 }
 
-func (s *TestSuite) TestGetValidatorSweepIndex() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	sweepIndex, err := keeper.GetValidatorSweepIndex(ctx)
-	require.NoError(err)
-	require.Equal(uint64(0), sweepIndex.NextValIndex)
-	require.Equal(uint64(0), sweepIndex.NextValDelIndex)
-}
+func TestGetOldValidatorSweepIndex(t *testing.T) {
+	//nolint:dogsled // This is common helper function
+	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
-func (s *TestSuite) TestGetOldValidatorSweepIndex() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-	nextValIndex, err := keeper.GetOldValidatorSweepIndex(ctx)
-	require.NoError(err)
-	require.Equal(uint64(0), nextValIndex)
+	nextValIndex, err := esk.GetOldValidatorSweepIndex(ctx)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), nextValIndex)
 }

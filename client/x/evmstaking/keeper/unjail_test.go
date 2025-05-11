@@ -1,88 +1,179 @@
 package keeper_test
 
 import (
-	"context"
+	"testing"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	slashtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
+	moduletestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+
+	"go.uber.org/mock/gomock"
 )
 
-func (s *TestSuite) TestProcessUnjail() {
-	require := s.Require()
-	ctx, _, eskeeper := s.Ctx, s.SlashingKeeper, s.EVMStakingKeeper
-	pubKeys, _, valAddrs := createAddresses(1)
+func TestProcessUnjail(t *testing.T) {
+	pubKeys, _, _ := createAddresses(1)
 
-	_ = valAddrs[0]
 	valPubKey := pubKeys[0]
 	evmAddr, err := keeper.CmpPubKeyToEVMAddress(valPubKey.Bytes())
-	require.NoError(err)
+	require.NoError(t, err)
+
+	invalidPubKey := append([]byte{0x04}, valPubKey.Bytes()[1:]...)
 
 	tcs := []struct {
 		name        string
-		setupMock   func(c context.Context)
+		setup       func(ctx sdk.Context, esk *keeper.Keeper)
+		setupMock   func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper)
 		unjailEv    *bindings.IPTokenStakingUnjail
 		expectedErr string
 	}{
-		/*
-			{
-				name: "pass: valid unjail event",
-				setupMock: func(c context.Context) {
-					slashingKeeper.EXPECT().Unjail(c, valAddr).Return(nil)
-				},
-				unjailEv: &bindings.IPTokenStakingUnjail{
-					ValidatorUncmpPubkey: valUncmpPubkey,
-					Unjailer:             evmAddr,
-				},
-			},
-		*/
 		{
-			name: "fail: invalid validator pubkey",
+			name: "fail: invalid validator pubkey - length",
 			unjailEv: &bindings.IPTokenStakingUnjail{
 				ValidatorCmpPubkey: valPubKey.Bytes()[10:],
 				Unjailer:           evmAddr,
 			},
 			expectedErr: "validator pubkey to cosmos: invalid pubkey length",
 		},
-		/*
-			{
-				name: "fail: validator not jailed",
-				setupMock: func(c context.Context) {
-					// MOCK Unjail to return error.
-					slashingKeeper.EXPECT().Unjail(c, valAddr).Return(slashingtypes.ErrValidatorNotJailed)
-				},
-				unjailEv: &bindings.IPTokenStakingUnjail{
-					ValidatorUncmpPubkey: valUncmpPubkey,
-					Unjailer:             evmAddr,
-				},
-				expectedErr: slashingtypes.ErrValidatorNotJailed.Error(),
+		{
+			name: "fail: invalid validator pubkey - prefix",
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: invalidPubKey,
+				Unjailer:           evmAddr,
 			},
-		*/
+			expectedErr: "validator pubkey to evm address",
+		},
+		{
+			name: "fail: different executor and operator not found",
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           common.MaxAddress,
+			},
+			expectedErr: "invalid unjailOnBehalf txn, no operator for delegator",
+		},
+		{
+			name: "fail: different executor and not allowed operator",
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+				require.NoError(t, esk.DelegatorOperatorAddress.Set(ctx, sdk.AccAddress(evmAddr.Bytes()).String(), evmAddr.String()))
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           common.MaxAddress,
+			},
+			expectedErr: "invalid unjailOnBehalf txn, not from operator",
+		},
+		{
+			name: "fail: unjail failure - validator not found",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(slashtypes.ErrNoValidatorForAddress)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+			expectedErr: slashtypes.ErrNoValidatorForAddress.Error(),
+		},
+		{
+			name: "fail: unjail failure - missing self delegation",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(slashtypes.ErrMissingSelfDelegation)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+			expectedErr: slashtypes.ErrMissingSelfDelegation.Error(),
+		},
+		{
+			name: "fail: unjail failure - validator not jailed",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(slashtypes.ErrValidatorNotJailed)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+			expectedErr: slashtypes.ErrValidatorNotJailed.Error(),
+		},
+		{
+			name: "fail: unjail failure - validator still jailed",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(slashtypes.ErrValidatorJailed)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+			expectedErr: slashtypes.ErrValidatorJailed.Error(),
+		},
+		{
+			name: "fail: unjail failure - unknown error",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(errors.New("unknown unjail error"))
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+			expectedErr: "unjail: unknown unjail error",
+		},
+		{
+			name: "pass: unjail validator from the same executor",
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(nil)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           evmAddr,
+			},
+		},
+		{
+			name: "pass: unjail validator from allowed operator",
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+				require.NoError(t, esk.DelegatorOperatorAddress.Set(ctx, sdk.AccAddress(evmAddr.Bytes()).String(), common.MaxAddress.String()))
+			},
+			setupMock: func(c sdk.Context, slk *moduletestutil.MockSlashingKeeper) {
+				slk.EXPECT().Unjail(gomock.Any(), gomock.Any()).Return(nil)
+			},
+			unjailEv: &bindings.IPTokenStakingUnjail{
+				ValidatorCmpPubkey: valPubKey.Bytes(),
+				Unjailer:           common.MaxAddress,
+			},
+		},
 	}
 
 	for _, tc := range tcs {
-		s.Run(tc.name, func() {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, _, _, _, _, slk, esk := createKeeperWithMockStaking(t)
+
 			cachedCtx, _ := ctx.CacheContext()
+
 			if tc.setupMock != nil {
-				tc.setupMock(cachedCtx)
+				tc.setupMock(cachedCtx, slk)
 			}
-			err := eskeeper.ProcessUnjail(cachedCtx, tc.unjailEv)
+
+			if tc.setup != nil {
+				tc.setup(cachedCtx, esk)
+			}
+
+			err := esk.ProcessUnjail(cachedCtx, tc.unjailEv)
 			if tc.expectedErr != "" {
-				require.ErrorContains(err, tc.expectedErr)
+				require.ErrorContains(t, err, tc.expectedErr)
 			} else {
-				require.NoError(err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
-func (s *TestSuite) TestParseUnjailLog() {
-	require := s.Require()
-	keeper := s.EVMStakingKeeper
-
+func TestParseUnjailLog(t *testing.T) {
 	tcs := []struct {
 		name      string
 		log       gethtypes.Log
@@ -105,12 +196,14 @@ func (s *TestSuite) TestParseUnjailLog() {
 	}
 
 	for _, tc := range tcs {
-		s.Run(tc.name, func() {
-			_, err := keeper.ParseUnjailLog(tc.log)
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
+			_, err := esk.ParseUnjailLog(tc.log)
 			if tc.expectErr {
-				require.Error(err, "should return error for %s", tc.name)
+				require.Error(t, err, "should return error for %s", tc.name)
 			} else {
-				require.NoError(err, "should not return error for %s", tc.name)
+				require.NoError(t, err, "should not return error for %s", tc.name)
 			}
 		})
 	}
