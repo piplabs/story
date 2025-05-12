@@ -2,6 +2,7 @@
 
 Golang consensus layer implementation and staking contracts for the Story L1 blockchain.
 
+[![codecov](https://codecov.io/gh/piplabs/story/branch/main/graph/badge.svg)](https://codecov.io/gh/piplabs/story)
 [![Website](https://img.shields.io/badge/Website-Story-brightgreen)](https://story.foundation)
 [![Twitter Follow](https://img.shields.io/twitter/follow/storyprotocol?style=social)](https://twitter.com/storyprotocol)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/storyprotocol)
