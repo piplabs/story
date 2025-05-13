@@ -37,7 +37,7 @@ func TestParams(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ctx, _, _, mk := createKeeper(t)
+		ctx, _, _, _, mk := createKeeper(t)
 
 		err := mk.SetParams(ctx, tc.newParams)
 		if tc.expectedErr != "" {

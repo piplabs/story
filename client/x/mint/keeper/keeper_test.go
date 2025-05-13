@@ -21,7 +21,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func createKeeper(t *testing.T) (sdk.Context, *minttestutil.MockBankKeeper, *minttestutil.MockStakingKeeper, *keeper.Keeper) {
+func createKeeper(t *testing.T) (sdk.Context, *minttestutil.MockAccountKeeper, *minttestutil.MockBankKeeper, *minttestutil.MockStakingKeeper, *keeper.Keeper) {
 	t.Helper()
 	encCfg := moduletestutil.MakeTestEncodingConfig(mintmodule.AppModuleBasic{})
 	key := storetypes.NewKVStoreKey(types.StoreKey)
@@ -48,7 +48,7 @@ func createKeeper(t *testing.T) (sdk.Context, *minttestutil.MockBankKeeper, *min
 	// set default params
 	require.NoError(t, mk.Params.Set(testCtx.Ctx, types.DefaultParams()))
 
-	return testCtx.Ctx, bankKeeper, stakingKeeper, &mk
+	return testCtx.Ctx, accountKeeper, bankKeeper, stakingKeeper, &mk
 }
 
 func TestNewMintKeeperPanic(t *testing.T) {
@@ -76,7 +76,7 @@ func TestNewMintKeeperPanic(t *testing.T) {
 }
 
 func TestAliasFunctions(t *testing.T) {
-	ctx, bk, sk, mk := createKeeper(t)
+	ctx, _, bk, sk, mk := createKeeper(t)
 
 	require.Equal(t, ctx.Logger().With("module", "x/"+types.ModuleName),
 		mk.Logger(ctx))
