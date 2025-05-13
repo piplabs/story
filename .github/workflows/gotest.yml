@@ -2,6 +2,9 @@ name: go tests
 # Run this separately from pre-commit for nice visual coverage.
 
 on:
+  push:
+    branches:
+      - main
   workflow_call:
     secrets:
       CODECOV_TOKEN:
