@@ -18,7 +18,7 @@ import (
 	clog "github.com/piplabs/story/lib/log"
 )
 
-func (k *Keeper) ProcessUbiEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {
+func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {
 	for _, evmLog := range logs {
 		if err := evmLog.Verify(); err != nil {
 			return errors.Wrap(err, "verify log [BUG]")

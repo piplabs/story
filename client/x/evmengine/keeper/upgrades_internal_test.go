@@ -5,6 +5,7 @@ import (
 
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -166,6 +167,25 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 				uk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			},
 		},
+		{
+			name: "pass: valid cancel upgrade event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := upgradeAbi.Events["CancelUpgrade"].Inputs.NonIndexed().Pack()
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics:  [][]byte{types.CancelUpgradeEvent.ID.Bytes()},
+						Data:    data,
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				uk.EXPECT().ClearUpgradePlan(gomock.Any()).Return(nil)
+			},
+		},
 		// Failed but pass cases: The following test cases simulate basic error scenarios.
 		// Since a mocked upgrade keeper is used, not all error cases can be tested here.
 		// Comprehensive error testing would require the real upgrade keeper, which is beyond the scope of this unit test.
@@ -219,10 +239,79 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "pass(failed but continue): invalid request for scheduling upgrade plan",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(1), "test-info")
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
+						Data:    data,
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				uk.EXPECT().ScheduleUpgrade(gomock.Any(), gomock.Any()).Return(sdkerrors.ErrInvalidRequest)
+			},
+		},
+		{
+			name: "pass(failed but continue): invalid cancel upgrade event - not an upgrade cancel event",
+			evmEvents: func() []*types.EVMEvent {
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics:  [][]byte{types.CancelUpgradeEvent.ID.Bytes(), dummyHash.Bytes()},
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+		},
+		{
+			name: "pass(failed but continue): invalid request for clear upgrade plan",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := upgradeAbi.Events["CancelUpgrade"].Inputs.NonIndexed().Pack()
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics:  [][]byte{types.CancelUpgradeEvent.ID.Bytes()},
+						Data:    data,
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				uk.EXPECT().ClearUpgradePlan(gomock.Any()).Return(sdkerrors.ErrInvalidRequest)
+			},
+		},
+		{
+			name: "pass(failed but continue): failed to clear upgrade plan",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := upgradeAbi.Events["CancelUpgrade"].Inputs.NonIndexed().Pack()
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics:  [][]byte{types.CancelUpgradeEvent.ID.Bytes()},
+						Data:    data,
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				uk.EXPECT().ClearUpgradePlan(gomock.Any()).Return(errors.New("failed to clear upgrade plan"))
+			},
+		},
 
 		// Fail case: When given EVMEvent is not valid
 		{
-			name: "fail: invalid EVMEvent",
+			name: "fail: invalid EVMEvent - invalid address",
 			evmEvents: func() []*types.EVMEvent {
 				return []*types.EVMEvent{
 					{
@@ -233,6 +322,18 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 				}
 			},
 			expectedErr: "invalid address length",
+		},
+		{
+			name: "fail: invalid EVMEvent - empty topics",
+			evmEvents: func() []*types.EVMEvent {
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						TxHash:  dummyHash.Bytes(),
+					},
+				}
+			},
+			expectedErr: "empty topics",
 		},
 	}
 
