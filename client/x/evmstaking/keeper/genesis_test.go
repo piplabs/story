@@ -1,17 +1,23 @@
 package keeper_test
 
-/*
 import (
-	"context"
+	"testing"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sttestutil "github.com/cosmos/cosmos-sdk/x/staking/testutil"
+	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
+	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
+
+	"go.uber.org/mock/gomock"
 )
 
-func (s *TestSuite) TestInitGenesis() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-
+func TestInitGenesis(t *testing.T) {
 	validMaxWithdrawalPerBlock := types.DefaultMaxWithdrawalPerBlock + 100
 	validMaxsweepPerBlock := types.DefaultMaxSweepPerBlock + 100
 	validMinPartialWithdrawalAmount := types.DefaultMinPartialWithdrawalAmount + 100
@@ -22,68 +28,77 @@ func (s *TestSuite) TestInitGenesis() {
 	}
 
 	// setup addresses and keys for testing
-	pubKeys, addrs, valAddrs := createAddresses(3)
-	delAddr := addrs[0]
-	delPubKey := pubKeys[0]
-	valAddr1 := valAddrs[1]
-	valAccAddr1 := addrs[1]
-	valPubKey1 := pubKeys[1]
-	valEvmAddr1, err := k1util.CosmosPubkeyToEVMAddress(valPubKey1.Bytes())
-	require.NoError(err)
-	valAddr2 := valAddrs[2]
-	valAccAddr2 := addrs[2]
-	valPubKey2 := pubKeys[2]
-	valEvmAddr2, err := k1util.CosmosPubkeyToEVMAddress(valPubKey2.Bytes())
-	require.NoError(err)
-	valTokens := s.StakingKeeper.TokensFromConsensusPower(ctx, 10)
+	pubKeys, _, valAddrs := createAddresses(1)
+	valAddr := valAddrs[0]
+	valPubKey := pubKeys[0]
+	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
+	require.NoError(t, err)
+	valEvmAddr1, err := k1util.CosmosPubkeyToEVMAddress(valPubKey.Bytes())
+	require.NoError(t, err)
 
 	tcs := []struct {
 		name           string
-		setup          func(c context.Context)
+		setupMock      func(c sdk.Context, sk *estestutil.MockStakingKeeper)
 		gs             func() *types.GenesisState
-		postStateCheck func(c context.Context)
+		postStateCheck func(c sdk.Context, esk *keeper.Keeper)
 		expectedError  string
 	}{
 		{
 			name: "pass: no validators",
+			setupMock: func(c sdk.Context, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return(nil, nil)
+			},
 			gs: func() *types.GenesisState {
 				return &types.GenesisState{
 					Params: validParams,
 				}
 			},
-			postStateCheck: func(c context.Context) {
-				params, err := keeper.GetParams(c)
-				require.NoError(err)
-				require.Equal(validParams, params)
+			postStateCheck: func(c sdk.Context, esk *keeper.Keeper) {
+				params, err := esk.GetParams(c)
+				require.NoError(t, err)
+				require.Equal(t, validParams, params)
 			},
 		},
 		{
 			name: "pass: with validators",
-			setup: func(c context.Context) {
-				s.setupValidatorAndDelegation(c, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
-				s.setupValidatorAndDelegation(c, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
+			setupMock: func(c sdk.Context, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetAllValidators(gomock.All()).Return([]stypes.Validator{
+					sttestutil.NewValidator(t, valAddr, valCosmosPubKey),
+				}, nil)
 			},
 			gs: func() *types.GenesisState {
 				return &types.GenesisState{
 					Params: validParams,
 				}
 			},
-			postStateCheck: func(c context.Context) {
-				params, err := keeper.GetParams(c)
-				require.NoError(err)
-				require.Equal(validParams, params)
+			postStateCheck: func(c sdk.Context, esk *keeper.Keeper) {
+				params, err := esk.GetParams(c)
+				require.NoError(t, err)
+				require.Equal(t, validParams, params)
 
-				// check delegator map
-				evmAddr1, err := keeper.DelegatorMap.Get(c, valAccAddr1.String())
-				require.NoError(err)
-				require.Equal(valEvmAddr1.String(), evmAddr1)
-				evmAddr2, err := keeper.DelegatorMap.Get(c, valAccAddr2.String())
-				require.NoError(err)
-				require.Equal(valEvmAddr2.String(), evmAddr2)
+				// check withdraw and reward map
+				evmAddrWithdraw, err := esk.DelegatorWithdrawAddress.Get(c, sdk.AccAddress(valEvmAddr1.Bytes()).String())
+				require.NoError(t, err)
+				require.Equal(t, valEvmAddr1.String(), evmAddrWithdraw)
+				evmAddrReward, err := esk.DelegatorRewardAddress.Get(c, sdk.AccAddress(valEvmAddr1.Bytes()).String())
+				require.NoError(t, err)
+				require.Equal(t, valEvmAddr1.String(), evmAddrReward)
 			},
 		},
 		{
 			name: "fail: invalid params",
+			setupMock: func(c sdk.Context, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return(nil, errors.New("failed to get all validators"))
+			},
+			gs: func() *types.GenesisState {
+				return &types.GenesisState{
+					Params: validParams,
+				}
+			},
+			expectedError: "failed to get all validators",
+		},
+		{
+			name: "fail: get all validators from staking keeper",
 			gs: func() *types.GenesisState {
 				invalidParams := validParams
 				// make params invalid
@@ -98,29 +113,30 @@ func (s *TestSuite) TestInitGenesis() {
 	}
 
 	for _, tc := range tcs {
-		s.Run(tc.name, func() {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, _, _, _, sk, _, esk := createKeeperWithMockStaking(t)
+
 			cachedCtx, _ := ctx.CacheContext()
-			if tc.setup != nil {
-				tc.setup(cachedCtx)
+
+			if tc.setupMock != nil {
+				tc.setupMock(ctx, sk)
 			}
-			err := keeper.InitGenesis(cachedCtx, tc.gs())
+
+			err := esk.InitGenesis(cachedCtx, tc.gs())
 			if tc.expectedError != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tc.expectedError)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedError)
 			} else {
-				require.NoError(err)
+				require.NoError(t, err)
 				if tc.postStateCheck != nil {
-					tc.postStateCheck(cachedCtx)
+					tc.postStateCheck(cachedCtx, esk)
 				}
 			}
 		})
 	}
 }
 
-func (s *TestSuite) TestExportGenesis() {
-	require := s.Require()
-	ctx, keeper := s.Ctx, s.EVMStakingKeeper
-
+func TestExportGenesis(t *testing.T) {
 	validMaxWithdrawalPerBlock := types.DefaultMaxWithdrawalPerBlock + 100
 	validMaxsweepPerBlock := types.DefaultMaxSweepPerBlock + 100
 	validMinPartialWithdrawalAmount := types.DefaultMinPartialWithdrawalAmount + 100
@@ -132,18 +148,18 @@ func (s *TestSuite) TestExportGenesis() {
 
 	tcs := []struct {
 		name            string
-		setup           func(c context.Context)
+		setup           func(c sdk.Context, esk *keeper.Keeper)
 		expectedGenesis *types.GenesisState
 	}{
 		{
 			name: "pass: case1",
-			setup: func(c context.Context) {
+			setup: func(c sdk.Context, esk *keeper.Keeper) {
 				cpy := validParams
 				// modify params to test
 				cpy.MaxWithdrawalPerBlock += 100
 				cpy.MaxSweepPerBlock += 100
 				cpy.MinPartialWithdrawalAmount += 100
-				require.NoError(keeper.SetParams(c, cpy))
+				require.NoError(t, esk.SetParams(c, cpy))
 			},
 			expectedGenesis: &types.GenesisState{
 				Params: types.Params{
@@ -155,13 +171,13 @@ func (s *TestSuite) TestExportGenesis() {
 		},
 		{
 			name: "pass: case2",
-			setup: func(c context.Context) {
+			setup: func(c sdk.Context, esk *keeper.Keeper) {
 				cpy := validParams
 				// modify params to test
 				cpy.MaxWithdrawalPerBlock += 2
 				cpy.MaxSweepPerBlock += 2
 				cpy.MinPartialWithdrawalAmount += 2
-				require.NoError(keeper.SetParams(c, cpy))
+				require.NoError(t, esk.SetParams(c, cpy))
 			},
 			expectedGenesis: &types.GenesisState{
 				Params: types.Params{
@@ -174,14 +190,15 @@ func (s *TestSuite) TestExportGenesis() {
 	}
 
 	for _, tc := range tcs {
-		s.Run(tc.name, func() {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 			cachedCtx, _ := ctx.CacheContext()
 			if tc.setup != nil {
-				tc.setup(cachedCtx)
+				tc.setup(cachedCtx, esk)
 			}
-			genesis := keeper.ExportGenesis(cachedCtx)
-			require.Equal(tc.expectedGenesis, genesis)
+			genesis := esk.ExportGenesis(cachedCtx)
+			require.Equal(t, tc.expectedGenesis, genesis)
 		})
 	}
 }
-*/

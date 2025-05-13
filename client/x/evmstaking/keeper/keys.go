@@ -40,7 +40,7 @@ func UncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 	return compressedPubKey, nil
 }
 
-func CmpPubKeyToUncmpPubkey(compressedPubKeyBytes []byte) ([]byte, error) {
+func CmpPubKeyToUncmpPubKey(compressedPubKeyBytes []byte) ([]byte, error) {
 	if len(compressedPubKeyBytes) != secp256k1.PubKeyBytesLenCompressed {
 		return nil, fmt.Errorf("invalid compressed public key length: %d", len(compressedPubKeyBytes))
 	}
