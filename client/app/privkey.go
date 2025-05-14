@@ -8,11 +8,9 @@ import (
 	"github.com/cometbft/cometbft/crypto"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/privval"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	keystorev4 "github.com/wealdtech/go-eth2-wallet-encryptor-keystorev4"
 
 	"github.com/piplabs/story/lib/errors"
-	"github.com/piplabs/story/lib/k1util"
 )
 
 // loadPrivVal returns a privval.FilePV by loading either a CometBFT priv validator key or an Ethereum keystore file.
@@ -69,23 +67,6 @@ func loadPrivVal(cfg Config) (*privval.FilePV, error) {
 	resp.LastSignState.SignBytes = state.SignBytes
 
 	return resp, nil
-}
-
-// loadEthKeystore loads an Ethereum keystore file and returns the private key.
-//
-//nolint:unused //Ignore unused function temporarily
-func loadEthKeystore(keystoreFile string, password string) (crypto.PrivKey, error) {
-	bz, err := os.ReadFile(keystoreFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "read keystore file", "path", keystoreFile)
-	}
-
-	key, err := keystore.DecryptKey(bz, password)
-	if err != nil {
-		return nil, errors.Wrap(err, "decrypt keystore file", "path", keystoreFile)
-	}
-
-	return k1util.StdPrivKeyToComet(key.PrivateKey)
 }
 
 // loadCometFilePV loads a CometBFT privval file and returns the private key.
