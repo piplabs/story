@@ -26,6 +26,7 @@ import (
 	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -147,6 +148,7 @@ func newApp(
 
 	app.setupUpgradeHandlers()
 	app.setupUpgradeStoreLoaders()
+	app.SetVersion(buildinfo.Version())
 
 	if err := app.Load(true); err != nil {
 		return nil, errors.Wrap(err, "load app")
