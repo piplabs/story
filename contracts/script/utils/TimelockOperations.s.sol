@@ -11,7 +11,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 // script
-import { TimelockJSONTxWriter } from "./TimelockJSONTxWriter.s.sol";
+import { JSONTxWriter } from "./JSONTxWriter.s.sol";
 import { StringUtil } from "./StringUtil.sol";
 
 /**
@@ -19,7 +19,7 @@ import { StringUtil } from "./StringUtil.sol";
  * @notice Script to generate tx json to schedule, execute, and cancel upgrades for the protocol through the TimelockController
  * via multisig.
  */
-abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
+abstract contract TimelockOperations is Script, JSONTxWriter {
 
     /// @notice timelock controller
     TimelockController public timelock;
@@ -32,7 +32,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
 
     /// @notice constructor
     /// @param _action the action name, will be used in the name of the tx json file
-    constructor(string memory _action) TimelockJSONTxWriter(_action) {
+    constructor(string memory _action) JSONTxWriter(_action) {
 
     }
 

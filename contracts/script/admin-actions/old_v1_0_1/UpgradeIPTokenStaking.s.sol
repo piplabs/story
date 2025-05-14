@@ -8,7 +8,6 @@ contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
     constructor()
         UpgradeTransparentProxy(
             "upgrade-staking-v1_0_1", // file name
-            address(0), // timelock address (current timelock)
             vm.envAddress("PROPOSER_ADDRESS"), // Schedule proposer address
             bytes32(0) // salt
         )

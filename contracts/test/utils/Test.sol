@@ -5,15 +5,15 @@ pragma solidity 0.8.23;
 
 import { Test as ForgeTest } from "forge-std/Test.sol";
 
-import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
-import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
-import { UBIPool } from "../../src/protocol/UBIPool.sol";
-import { Predeploys } from "../../src/libraries/Predeploys.sol";
-import { Create3 } from "../../src/deploy/Create3.sol";
-import { GenerateAlloc } from "../../script/GenerateAlloc.s.sol";
+import { IPTokenStaking } from "src/protocol/IPTokenStaking.sol";
+import { UpgradeEntrypoint } from "src/protocol/UpgradeEntrypoint.sol";
+import { UBIPool } from "src/protocol/UBIPool.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Create3 } from "src/deploy/Create3.sol";
+import { GenerateAlloc } from "script/GenerateAlloc.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { ERC6551Registry } from "erc6551/ERC6551Registry.sol";
-import { WIP } from "../../src/token/WIP.sol";
+import { WIP } from "src/token/WIP.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);

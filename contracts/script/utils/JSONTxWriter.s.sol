@@ -7,16 +7,17 @@ import { console2 } from "forge-std/console2.sol";
 
 import { StringUtil } from "./StringUtil.sol";
 
-/// @title TimelockJSONTxWriter
+/// @title JSONTxWriter
 /// @notice Writes the tx json files for the timelock operations
-contract TimelockJSONTxWriter is Script {
+contract JSONTxWriter is Script {
     using StringUtil for uint256;
     using stdJson for string;
 
     enum TimelockOp {
         SCHEDULE,
         EXECUTE,
-        CANCEL
+        CANCEL,
+        REGULAR_TX_NOT_TIMELOCKED
     }
 
     /// @notice A struct to store the transaction details
@@ -79,13 +80,24 @@ contract TimelockJSONTxWriter is Script {
     /// @notice Writes all the tx json files for the timelock operations
     function _writeFiles() internal {
         Transaction[] memory _transactions = transactions[TimelockOp.SCHEDULE];
-        _writeTxArrayToJson(TimelockOp.SCHEDULE, _transactions);
+        if (_transactions.length > 0) {
+            _writeTxArrayToJson(TimelockOp.SCHEDULE, _transactions);
+        }
 
         _transactions = transactions[TimelockOp.EXECUTE];
-        _writeTxArrayToJson(TimelockOp.EXECUTE, _transactions);
+        if (_transactions.length > 0) {
+            _writeTxArrayToJson(TimelockOp.EXECUTE, _transactions);
+        }
 
         _transactions = transactions[TimelockOp.CANCEL];
-        _writeTxArrayToJson(TimelockOp.CANCEL, _transactions);
+        if (_transactions.length > 0) {
+            _writeTxArrayToJson(TimelockOp.CANCEL, _transactions);
+        }
+
+        _transactions = transactions[TimelockOp.REGULAR_TX_NOT_TIMELOCKED];
+        if (_transactions.length > 0) {
+            _writeTxArrayToJson(TimelockOp.REGULAR_TX_NOT_TIMELOCKED, _transactions);
+        }
     }
 
     /// @notice Writes a json files for the timelock operations
@@ -134,6 +146,6 @@ contract TimelockJSONTxWriter is Script {
         } else if (_timelockOp == TimelockOp.CANCEL) {
             return "cancel";
         }
-        return "";
+        return "tx";
     }
 }
