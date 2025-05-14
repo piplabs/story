@@ -14,40 +14,43 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { Create3 } from "src/deploy/Create3.sol";
 
-/// @title ReceiveOwnerships
-/// @notice Generates json files with the timelocked operations to receive the ownership of the contracts from the old timelock
-contract ReceiveOwnerships is TimelockOperations {
+/// @title TransferOwnershipsRestPredeploys
+/// @notice Generates json files with the timelocked operations to transfer the ownership of the other half of the proxy admins to the new timelock
+/// This will transfer IPTokenStaking and UBIPool to the new timelock.
+/// This contract is Ownable2StepUpgradeable, so we need to accept ownership transfer from the new timelock in the next step.
+contract TransferOwnershipsRestPredeploys is TimelockOperations {
 
     TimelockController public newTimelock;
 
     address public from;
 
-    constructor() TimelockOperations("safe-migration-receive-ownerships") {
-        from = vm.envAddress("SAFE_ADMIN_ADDRESS");
-    }
-
-    /// @dev target timelock is the newer timelock
-    function _getTargetTimelock() internal virtual override returns (address) {
+    constructor() TimelockOperations("safe-migration-transfer-ownerships-rest-predeploys") {
+        from = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
         address newTimelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
         newTimelock = TimelockController(payable(newTimelockAddress));
-        require(address(newTimelock) != address(0), "Timelock not deployed");
-        require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
-        return address(newTimelock);
+    }
+
+    /// @dev the old timelock will execute the operations
+    function _getTargetTimelock() internal virtual override returns (address) {
+        return vm.envAddress("OLD_TIMELOCK_ADDRESS");
     }
 
     function _generate() internal virtual override {
-        bytes4 selector = Ownable2StepUpgradeable.transferOwnership.selector;
-        address[] memory targets = new address[](3);
+        require(address(newTimelock) != address(0), "Timelock not deployed");
+        require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
+        uint256 targetsLength = 2;
+
+        address[] memory targets = new address[](targetsLength);
         targets[0] = Predeploys.Staking;
         targets[1] = Predeploys.UBIPool;
-        targets[2] = Predeploys.Upgrades;
 
-        bytes[] memory data = new bytes[](3);
-        for (uint160 i = 0; i < 3; i++) {
+        bytes4 selector = Ownable2StepUpgradeable.transferOwnership.selector;
+        bytes[] memory data = new bytes[](targetsLength);
+        for (uint160 i = 0; i < targetsLength; i++) {
             data[i] = abi.encodeWithSelector(selector, address(newTimelock));
         }
-        uint256[] memory values = new uint256[](3);
+        uint256[] memory values = new uint256[](targetsLength);
 
         _generateBatchAction(from, targets, values, data, bytes32(0), bytes32(0), minDelay);
     }
