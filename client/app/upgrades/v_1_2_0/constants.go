@@ -19,7 +19,7 @@ const (
 	StoryUpgradeHeight = 4477880
 
 	// DevnetUpgradeHeight defines the block height at which virgil upgrade is triggered on Internal Devnet.
-	DevnetUpgradeHeight = 4477880
+	DevnetUpgradeHeight = 10
 
 	// new max bytes for consensus params.
 	newMaxBytes = 20971520 // 20MB
