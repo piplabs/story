@@ -22,7 +22,7 @@ contract ReceiveOwnershipRestPredeploys is TimelockOperations {
 
     address public from;
 
-    constructor() TimelockOperations("safe-migration-receive-ownerships-rest-predeploys") {
+    constructor() TimelockOperations("safe-migr-receive-ownerships-rest-predeploys") {
         from = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
     }
 

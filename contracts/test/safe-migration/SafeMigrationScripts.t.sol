@@ -15,14 +15,14 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Create3 } from "src/deploy/Create3.sol";
 import { JSONTxWriter } from "script/utils/JSONTxWriter.s.sol";
-
+import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 // Import migration scripts
 import { DeployNewTimelock } from "script/admin-actions/migrate-to-safe/1.DeployNewTimelock.s.sol";
 import { TransferOwnershipsProxyAdmin1 } from "script/admin-actions/migrate-to-safe/2.1.TransferOwnershipProxyAdmin1.s.sol";
 import { TransferOwnershipsProxyAdmin2 } from "script/admin-actions/migrate-to-safe/2.2.TransferOwnershipProxyAdmin2.s.sol";
 // import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.1.TransferOwnershipUpgradesEntrypoint.s.sol";
 // import { ReceiveOwnershipUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
-// import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
+// import { TransferOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
 // import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
 // import { RenounceOldMultisigRoles } from "script/admin-actions/migrate-to-safe/4.RenounceOwnershipOldMultisig.sol";
 
@@ -50,15 +50,17 @@ contract SafeMigrationScriptsTest is Test {
     address[] private proxyAdmins;
     // JSON directories
     string constant TIMELOCK_ROOT_DIR = "./broadcast/";
-    string constant OUTPUT_DIR = "./output/";
+    string constant OUTPUT_DIR = "./script/admin-actions/output/";
 
     // Role constants from TimelockController
     bytes32 private constant DEFAULT_ADMIN_ROLE = 0x00;
 
+    uint256 private constant MIN_DELAY = 300;
+
     function setUp() public override {
         super.setUp();
         OLD_TIMELOCK_PROPOSER = admin;
-        OLD_TIMELOCK_GUARDIAN = guardian;
+        OLD_TIMELOCK_GUARDIAN = admin;
         
         oldTimelock = timelock;
 
@@ -68,28 +70,28 @@ contract SafeMigrationScriptsTest is Test {
     
     function testMigrationScripts() public {
         // Step 1: Deploy new timelock
-        _runDeployNewTimelock();
-        /*
-        // Step 2.1: Transfer ownership of first half of proxy admins
-        _runTransferOwnershipProxyAdmin1();
+        _testDeployNewTimelock();
         
+        // Step 2.1: Transfer ownership of first half of proxy admins
+        _testTransferOwnershipProxyAdmin1();
+        /*
         // Step 2.2: Transfer ownership of second half of proxy admins
-        _runTransferOwnershipProxyAdmin2();
+        _testTransferOwnershipProxyAdmin2();
         
         // Step 3.1: Transfer ownership of UpgradesEntrypoint
-        _runTransferOwnershipUpgradesEntrypoint();
+        _testTransferOwnershipUpgradesEntrypoint();
         
         // Step 3.2: Accept ownership of UpgradesEntrypoint
-        _runAcceptOwnershipUpgradesEntrypoint();
+        _testAcceptOwnershipUpgradesEntrypoint();
         
         // Step 3.3: Transfer ownership of rest of predeploys
-        _runTransferOwnershipRestPredeploys();
+        _testTransferOwnershipRestPredeploys();
         
         // Step 3.4: Accept ownership of rest of predeploys
-        _runAcceptOwnershipRestPredeploys();
+        _testAcceptOwnershipRestPredeploys();
         
         // Step 4: Renounce ownership of old multisig
-        _runRenounceOwnershipOldMultisig();
+        _testRenounceOwnershipOldMultisig();
         
         // Final verification that all permissions are correctly set
         _verifyFinalState();
@@ -111,10 +113,10 @@ contract SafeMigrationScriptsTest is Test {
         vm.label(OLD_TIMELOCK_PROPOSER, "Old Timelock Proposer");
         vm.setEnv("OLD_TIMELOCK_GUARDIAN_ADDRESS", vm.toString(OLD_TIMELOCK_GUARDIAN));
         vm.label(OLD_TIMELOCK_GUARDIAN, "Old Timelock Guardian");
-        vm.setEnv("MIN_DELAY", "300"); // 5 minutes
+        vm.setEnv("MIN_DELAY", vm.toString(MIN_DELAY)); // 5 minutes
     }
     
-    function _runDeployNewTimelock() private {
+    function _testDeployNewTimelock() private {
         DeployNewTimelock deployScript = new DeployNewTimelock();
         deployScript.run();
         
@@ -134,399 +136,135 @@ contract SafeMigrationScriptsTest is Test {
         assertTrue(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, SAFE_TIMELOCK_PROPOSER), "New Safe admin is not admin");
         assertTrue(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "Old multisig admin is not admin");
         assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, deployer), "deployer is admin");
-        assertEq(newTimelock.getMinDelay(), 300, "Delay not set correctly");
+        assertEq(newTimelock.getMinDelay(), MIN_DELAY, "Delay not set correctly");
     }
     
-    /*
-    function _runTransferOwnershipProxyAdmin1() private {
+    
+    function _testTransferOwnershipProxyAdmin1() private {
         // Run the script to generate JSON
         TransferOwnershipsProxyAdmin1 script = new TransferOwnershipsProxyAdmin1();
-        script.generate(); // Generate operation JSON
+        script.run(); // Generate operation JSON
         
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-transfer-ownerships-proxy-admin-2", ".json");
-        string memory json = vm.readFile(jsonPath);
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-proxy-admin-1");
         
-        // Execute transactions for old timelock to transfer ownership
-        _executeOldTimelockBatchTransaction(json);
+        // Execute the full timelock flow with verification
+        _executeTimelockTransaction(scheduleTx);
         
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+        
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _executeTimelockTransaction(executeTx);
+
         // Verify that half of the ProxyAdmins have new ownership
         uint256 halfSize = Predeploys.NamespaceSize / 2;
         uint256 startIdx = halfSize; // Second half of proxies
         
         for (uint160 i = uint160(startIdx); i < Predeploys.NamespaceSize; i++) {
-            ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdmins[i]);
-            assertEq(proxyAdmin.owner(), newTimelockAddress, "ProxyAdmin ownership not transferred");
-        }
-    }
-    
-    function _runTransferOwnershipProxyAdmin2() private {
-        // Run the script to generate JSON
-        TransferOwnershipsProxyAdmin2 script = new TransferOwnershipsProxyAdmin2();
-        script.generate(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-transfer-ownerships-proxy-admin-1", ".json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Execute transactions for old timelock to transfer ownership
-        _executeOldTimelockBatchTransaction(json);
-        
-        // Verify that all ProxyAdmins have new ownership now
-        for (uint160 i = 0; i < Predeploys.NamespaceSize; i++) {
-            ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdmins[i]);
-            assertEq(proxyAdmin.owner(), newTimelockAddress, "ProxyAdmin ownership not transferred");
-        }
-    }
-    
-    function _runTransferOwnershipUpgradesEntrypoint() private {
-        // Run the script to generate JSON
-        TransferOwnershipsUpgradesEntrypoint script = new TransferOwnershipsUpgradesEntrypoint();
-        script.generate(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-transfer-ownerships-upgradeEntrypoint-entrypoint", ".json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Execute transactions for old timelock to transfer ownership
-        _executeOldTimelockTransaction(json);
-        
-        // Verify pending ownership
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Upgrades).pendingOwner(), newTimelockAddress, "Pending owner not set");
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Upgrades).owner(), oldTimelockAddress, "Owner should still be old timelock");
-    }
-    
-    function _runAcceptOwnershipUpgradesEntrypoint() private {
-        // Run the script to generate JSON
-        ReceiveOwnershipUpgradesEntrypoint script = new ReceiveOwnershipUpgradesEntrypoint();
-        script.generate(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-receive-ownerships-upgradeEntrypoint-entrypoint", ".json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Execute transactions for new timelock to accept ownership
-        _executeNewTimelockTransaction(json);
-        
-        // Verify ownership transfer
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Upgrades).owner(), newTimelockAddress, "Ownership not transferred to new timelock");
-        
-        // Verify old timelock can't call restricted functions
-        vm.startPrank(address(oldTimelock));
-        vm.expectRevert("Ownable: caller is not the owner");
-        MockOwnable2StepUpgradeable(Predeploys.Upgrades).restrictedFunction();
-        vm.stopPrank();
-        
-        // Verify new timelock can call restricted functions
-        vm.startPrank(address(newTimelock));
-        MockOwnable2StepUpgradeable(Predeploys.Upgrades).restrictedFunction();
-        vm.stopPrank();
-    }
-    
-    function _runTransferOwnershipRestPredeploys() private {
-        // Run the script to generate JSON
-        TransferOwnershipRestPredeploys script = new TransferOwnershipRestPredeploys();
-        script.generate(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-transfer-ownerships-rest-predeploys", ".json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Execute transactions for old timelock to transfer ownership
-        _executeOldTimelockBatchTransaction(json);
-        
-        // Verify pending ownership
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Staking).pendingOwner(), newTimelockAddress, "Pending owner not set for Staking");
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.UBIPool).pendingOwner(), newTimelockAddress, "Pending owner not set for UBIPool");
-    }
-    
-    function _runAcceptOwnershipRestPredeploys() private {
-        // Run the script to generate JSON
-        ReceiveOwnershipRestPredeploys script = new ReceiveOwnershipRestPredeploys();
-        script.generate(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory jsonPath = string.concat(OUTPUT_DIR, "safe-migration-receive-ownerships-rest-predeploys", ".json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Execute transactions for new timelock to accept ownership
-        _executeNewTimelockBatchTransaction(json);
-        
-        // Verify ownership transfer
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Staking).owner(), newTimelockAddress, "Ownership not transferred for Staking");
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.UBIPool).owner(), newTimelockAddress, "Ownership not transferred for UBIPool");
-    }
-    
-    function _runRenounceOwnershipOldMultisig() private {
-        // Run the script to generate JSON
-        RenounceOldMultisigRoles script = new RenounceOldMultisigRoles();
-        script.run(); // Generate operation JSON
-        
-        // Get the JSON output
-        string memory basePath = string.concat("./script/admin-actions/output/", vm.toString(block.chainid), "/");
-        string memory jsonPath = string.concat(basePath, "renounce-old-multisig-roles-execute.json");
-        string memory json = vm.readFile(jsonPath);
-        
-        // Parse the JSON array
-        uint256 txCount = stdJson.readUint(json, ".length");
-        console2.log("Found", txCount, "transactions in JSON");
-        
-        // Execute each transaction in the JSON
-        for (uint256 i = 0; i < txCount; i++) {
-            string memory txIndexPath = string.concat("[", vm.toString(i), "]");
-            address from = stdJson.readAddress(json, string.concat(txIndexPath, ".from"));
-            address to = stdJson.readAddress(json, string.concat(txIndexPath, ".to"));
-            bytes memory data = stdJson.readBytes(json, string.concat(txIndexPath, ".data"));
-            string memory comment = stdJson.readString(json, string.concat(txIndexPath, ".comment"));
+            // Calculate proxy address using namespace offset
+            address proxyAddress = address(uint160(uint160(Predeploys.Namespace) + i));
             
-            console2.log("Executing transaction:", comment);
-            console2.log("From:", from);
-            console2.log("To:", to);
+            // Get proxy admin address from proxy using EIP1967 storage slot
+            Ownable proxyAdmin = Ownable(EIP1967Helper.getAdmin(proxyAddress));
             
-            // Execute the transaction
-            vm.startPrank(from);
-            (bool success, ) = to.call(data);
-            require(success, "Transaction execution failed");
-            vm.stopPrank();
+            // Verify proxy admin is now the new timelock
+            assertEq(proxyAdmin.owner(), newTimelockAddress, "Proxy admin not transferred");
         }
-        
-        // Verify roles revoked
-        assertFalse(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig still has proposer role");
-        assertFalse(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig still has executor role");
-        assertFalse(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN), "Old security council still has canceller role");
-        assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "Old multisig still has admin role");
     }
     
-    function _verifyFinalState() private {
-        // Verify all ProxyAdmins are owned by new timelock
-        for (uint160 i = 0; i < proxyAdmins.length; i++) {
-            ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdmins[i]);
-            assertEq(proxyAdmin.owner(), newTimelockAddress, "ProxyAdmin not owned by new timelock");
-        }
+    
+    /**
+     * @notice Read transactions from schedule, cancel, and execute JSON files
+     * @param baseFilename The base filename without suffix (-schedule, -cancel, -execute)
+     * @return scheduleTx Transaction struct from schedule file
+     * @return executeTx Transaction struct from execute file
+     * @return cancelTx Transaction struct from cancel file
+     */
+    function _readAllTransactionFiles(string memory baseFilename) internal returns (
+        JSONTxWriter.Transaction memory scheduleTx,
+        JSONTxWriter.Transaction memory executeTx,
+        JSONTxWriter.Transaction memory cancelTx
+    ) {
+        // Create paths for all three file types
+        string memory basePath = string.concat(OUTPUT_DIR, vm.toString(block.chainid), "/");
+        string memory schedulePath = string.concat(basePath, baseFilename, "-schedule.json");
+        string memory cancelPath = string.concat(basePath, baseFilename, "-cancel.json");
+        string memory executePath = string.concat(basePath, baseFilename, "-execute.json");
         
-        // Verify all predeploys are owned by new timelock
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Upgrades).owner(), newTimelockAddress, "Upgrades not owned by new timelock");
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.Staking).owner(), newTimelockAddress, "Staking not owned by new timelock");
-        assertEq(MockOwnable2StepUpgradeable(Predeploys.UBIPool).owner(), newTimelockAddress, "UBIPool not owned by new timelock");
+        // Read schedule transaction
+        assertTrue(vm.exists(schedulePath), "Schedule JSON file not found");
+        string memory scheduleJson = vm.readFile(schedulePath);
+        JSONTxWriter.Transaction[] memory scheduleTxs = _parseTransactionsFromJson(scheduleJson);
+        assertEq(scheduleTxs.length, 1, "Schedule JSON must contain exactly one transaction");
+        scheduleTx = scheduleTxs[0];
         
-        // Verify all old owners can't call restricted functions
-        vm.startPrank(address(oldTimelock));
-        vm.expectRevert("Ownable: caller is not the owner");
-        MockOwnable2StepUpgradeable(Predeploys.Upgrades).restrictedFunction();
-        vm.expectRevert("Ownable: caller is not the owner");
-        MockOwnable2StepUpgradeable(Predeploys.Staking).restrictedFunction();
-        vm.expectRevert("Ownable: caller is not the owner");
-        MockOwnable2StepUpgradeable(Predeploys.UBIPool).restrictedFunction();
-        vm.stopPrank();
+        // Read cancel transaction
+        assertTrue(vm.exists(cancelPath), "Cancel JSON file not found");
+        string memory cancelJson = vm.readFile(cancelPath);
+        JSONTxWriter.Transaction[] memory cancelTxs = _parseTransactionsFromJson(cancelJson);
+        assertEq(cancelTxs.length, 1, "Cancel JSON must contain exactly one transaction");
+        cancelTx = cancelTxs[0];
         
-        // Verify new owner can call restricted functions
-        vm.startPrank(address(newTimelock));
-        MockOwnable2StepUpgradeable(Predeploys.Upgrades).restrictedFunction();
-        MockOwnable2StepUpgradeable(Predeploys.Staking).restrictedFunction();
-        MockOwnable2StepUpgradeable(Predeploys.UBIPool).restrictedFunction();
-        vm.stopPrank();
+        // Read execute transaction
+        assertTrue(vm.exists(executePath), "Execute JSON file not found");
+        string memory executeJson = vm.readFile(executePath);
+        JSONTxWriter.Transaction[] memory executeTxs = _parseTransactionsFromJson(executeJson);
+        assertEq(executeTxs.length, 1, "Execute JSON must contain exactly one transaction");
+        executeTx = executeTxs[0];
+        
+        return (scheduleTx, executeTx, cancelTx);
     }
     
-    // Helper functions to execute timelock operations
-    function _executeOldTimelockTransaction(string memory json) private {
-        // Parse the Transaction from JSON
-        address target = stdJson.readAddress(json, ".target");
-        uint256 value = stdJson.readUint(json, ".value");
-        bytes memory data = stdJson.readBytes(json, ".data");
-        bytes32 predecessor = stdJson.readBytes32(json, ".predecessor");
-        bytes32 salt = stdJson.readBytes32(json, ".salt");
-        uint256 delay = stdJson.readUint(json, ".delay");
+    /**
+     * @notice Parse a JSON string into an array of Transaction structs
+     * @param json The JSON string to parse
+     * @return An array of Transaction structs
+     */
+    function _parseTransactionsFromJson(string memory json) internal pure returns (JSONTxWriter.Transaction[] memory) {
+        // Get the number of transactions in the JSON array        
+        // Create an array to store the transactions
+        JSONTxWriter.Transaction[] memory transactions = new JSONTxWriter.Transaction[](1);
         
-        // Schedule the transaction in the old timelock
-        vm.startPrank(OLD_TIMELOCK_PROPOSER);
-        bytes32 operationId = oldTimelock.hashOperation(
-            target,
-            value,
-            data,
-            predecessor,
-            salt
-        );
+        // Parse each transaction in the array
+        string memory indexPath = string.concat("[0]");
         
-        oldTimelock.schedule(
-            target,
-            value,
-            data,
-            predecessor,
-            salt,
-            delay
-        );
+        // Parse the transaction fields
+        address from = stdJson.readAddress(json, string.concat(indexPath, ".from"));
+        address to = stdJson.readAddress(json, string.concat(indexPath, ".to"));
+        uint256 value = stdJson.readUint(json, string.concat(indexPath, ".value"));
+        bytes memory data = stdJson.readBytes(json, string.concat(indexPath, ".data"));
+        uint8 operation = uint8(stdJson.readUint(json, string.concat(indexPath, ".operation")));
+        string memory comment = stdJson.readString(json, string.concat(indexPath, ".comment"));
+            
+        // Create the transaction struct
+        transactions[0] = JSONTxWriter.Transaction({
+            from: from,
+            to: to,
+            value: value,
+            data: data,
+            operation: operation,
+            comment: comment
+        });
         
-        // Fast forward past the delay
-        vm.warp(block.timestamp + delay + 1);
-        
-        // Execute the transaction
-        oldTimelock.execute(
-            target,
-            value,
-            data,
-            predecessor,
-            salt
-        );
-        vm.stopPrank();
+        return transactions;
     }
     
-    function _executeOldTimelockBatchTransaction(string memory json) private {
-        // Parse the array of targets, values, and data
-        uint256 length = stdJson.readUint(json, ".targets.length");
-        address[] memory targets = new address[](length);
-        uint256[] memory values = new uint256[](length);
-        bytes[] memory datas = new bytes[](length);
-        
-        for (uint256 i = 0; i < length; i++) {
-            string memory indexStr = vm.toString(i);
-            targets[i] = stdJson.readAddress(json, string.concat(".targets[", indexStr, "]"));
-            values[i] = stdJson.readUint(json, string.concat(".values[", indexStr, "]"));
-            datas[i] = stdJson.readBytes(json, string.concat(".datas[", indexStr, "]"));
-        }
-        
-        bytes32 predecessor = stdJson.readBytes32(json, ".predecessor");
-        bytes32 salt = stdJson.readBytes32(json, ".salt");
-        uint256 delay = stdJson.readUint(json, ".delay");
-        
-        // Schedule the batch transaction in the old timelock
-        vm.startPrank(OLD_TIMELOCK_PROPOSER);
-        bytes32 operationId = oldTimelock.hashOperationBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt
-        );
-        
-        oldTimelock.scheduleBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt,
-            delay
-        );
-        
-        // Fast forward past the delay
-        vm.warp(block.timestamp + delay + 1);
-        
-        // Execute the transaction
-        oldTimelock.executeBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt
-        );
+    /**
+     * @notice Execute a single transaction from the old timelock
+     * @param transaction The transaction to execute
+     */
+    function _executeTimelockTransaction(JSONTxWriter.Transaction memory transaction) internal {
+        vm.startPrank(transaction.from);
+        (bool success, ) = transaction.to.call{ value: transaction.value }(transaction.data);
+        require(success, "Transaction execution failed");
         vm.stopPrank();
     }
-    
-    function _executeNewTimelockTransaction(string memory json) private {
-        // Parse the Transaction from JSON
-        address target = stdJson.readAddress(json, ".target");
-        uint256 value = stdJson.readUint(json, ".value");
-        bytes memory data = stdJson.readBytes(json, ".data");
-        bytes32 predecessor = stdJson.readBytes32(json, ".predecessor");
-        bytes32 salt = stdJson.readBytes32(json, ".salt");
-        uint256 delay = stdJson.readUint(json, ".delay");
-        
-        // Schedule the transaction in the new timelock
-        vm.startPrank(SAFE_TIMELOCK_PROPOSER);
-        bytes32 operationId = newTimelock.hashOperation(
-            target,
-            value,
-            data,
-            predecessor,
-            salt
-        );
-        
-        newTimelock.schedule(
-            target,
-            value,
-            data,
-            predecessor,
-            salt,
-            delay
-        );
-        
-        // Fast forward past the delay
-        vm.warp(block.timestamp + delay + 1);
-        
-        // Execute the transaction
-        vm.startPrank(SAFE_TIMELOCK_EXECUTOR_ADDRESS);
-        newTimelock.execute(
-            target,
-            value,
-            data,
-            predecessor,
-            salt
-        );
-        vm.stopPrank();
-    }
-    
-    function _executeNewTimelockBatchTransaction(string memory json) private {
-        // Parse the array of targets, values, and data
-        uint256 length = stdJson.readUint(json, ".targets.length");
-        address[] memory targets = new address[](length);
-        uint256[] memory values = new uint256[](length);
-        bytes[] memory datas = new bytes[](length);
-        
-        for (uint256 i = 0; i < length; i++) {
-            string memory indexStr = vm.toString(i);
-            targets[i] = stdJson.readAddress(json, string.concat(".targets[", indexStr, "]"));
-            values[i] = stdJson.readUint(json, string.concat(".values[", indexStr, "]"));
-            datas[i] = stdJson.readBytes(json, string.concat(".datas[", indexStr, "]"));
-        }
-        
-        bytes32 predecessor = stdJson.readBytes32(json, ".predecessor");
-        bytes32 salt = stdJson.readBytes32(json, ".salt");
-        uint256 delay = stdJson.readUint(json, ".delay");
-        
-        // Schedule the batch transaction in the new timelock
-        vm.startPrank(SAFE_TIMELOCK_PROPOSER);
-        bytes32 operationId = newTimelock.hashOperationBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt
-        );
-        
-        newTimelock.scheduleBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt,
-            delay
-        );
-        
-        // Fast forward past the delay
-        vm.warp(block.timestamp + delay + 1);
-        
-        // Execute the transaction
-        vm.startPrank(SAFE_TIMELOCK_EXECUTOR_ADDRESS);
-        newTimelock.executeBatch(
-            targets,
-            values,
-            datas,
-            predecessor,
-            salt
-        );
-        vm.stopPrank();
-    }
-    */
 }
 
-// Mock contract for testing
-contract MockOwnable2StepUpgradeable is Ownable2StepUpgradeable {
-    bool public restrictedFunctionCalled;
-    
-    function initialize(address initialOwner) public initializer {
-        __Ownable_init(initialOwner);
-    }
-    
-    function restrictedFunction() public onlyOwner {
-        restrictedFunctionCalled = true;
-    }
-}

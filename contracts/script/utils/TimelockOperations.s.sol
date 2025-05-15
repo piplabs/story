@@ -54,8 +54,10 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
         }
 
         minDelay = timelock.getMinDelay();
+        console2.log("Timelock deployed at", address(timelock));
+        console2.log("Generating actions...");
         _generate();
-        console2.log("Generating tx json...");
+        console2.log("Writing tx json...");
         _writeFiles();
     }
 

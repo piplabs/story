@@ -17,7 +17,7 @@ import { WIP } from "src/token/WIP.sol";
 
 contract Test is ForgeTest {
     address internal admin = address(0x123);
-    address internal executor = address(0x456);
+    address internal executor = admin;
     address internal guardian = address(0x789);
 
     address internal deployer = address(0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd);
