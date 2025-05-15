@@ -22,7 +22,7 @@ contract TransferOwnershipsProxyAdmin1 is TimelockOperations {
 
     address public from;
 
-    constructor() TimelockOperations("safe-migration-transfer-ownerships-proxy-admin-2") {
+    constructor() TimelockOperations("safe-migr-transfer-ownerships-proxy-admin-1") {
         from = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
         address newTimelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
@@ -38,11 +38,16 @@ contract TransferOwnershipsProxyAdmin1 is TimelockOperations {
         require(address(newTimelock) != address(0), "Timelock not deployed");
         require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
         uint256 targetsLength = Predeploys.NamespaceSize / 2;
+        console2.log("targetsLength", targetsLength);
 
         address[] memory targets = new address[](targetsLength);
-        for (uint160 i = uint160(targetsLength); i < Predeploys.NamespaceSize; i++) {
+        for (uint160 i = 0; i < targetsLength; i++) {
+            console2.log("i", i);
             // Get proxy admins for each predeploy with the EIP1967 helper
-            address proxyAdmin = EIP1967Helper.getAdmin(address(uint160(Predeploys.Namespace) + i));
+            address predeploy = address(uint160(Predeploys.Namespace) + i + uint160(targetsLength));
+            console2.log("predeploy", predeploy);
+            address proxyAdmin = EIP1967Helper.getAdmin(predeploy);
+            console2.log("proxyAdmin", proxyAdmin);
             targets[i] = proxyAdmin;
         }
 
