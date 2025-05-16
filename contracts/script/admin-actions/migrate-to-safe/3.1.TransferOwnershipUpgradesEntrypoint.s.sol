@@ -21,10 +21,13 @@ contract TransferOwnershipsUpgradesEntrypoint is TimelockOperations {
 
     TimelockController public newTimelock;
 
-    address public from;
+    address[] public from;
 
     constructor() TimelockOperations("safe-migr-transfer-ownerships-upgrades-entrypoint") {
-        from = vm.envAddress("OLD_TIMELOCK_PROPOSER");
+        from = new address[](3);
+        from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
+        from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");
+        from[2] = vm.envAddress("OLD_TIMELOCK_GUARDIAN");
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
         address newTimelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
         newTimelock = TimelockController(payable(newTimelockAddress));

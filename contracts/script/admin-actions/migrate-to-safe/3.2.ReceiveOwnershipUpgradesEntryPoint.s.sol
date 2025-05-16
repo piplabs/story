@@ -19,10 +19,15 @@ contract ReceiveOwnershipUpgradesEntryPoint is TimelockOperations {
 
     TimelockController public newTimelock;
 
-    address public from;
+    address[] public from;
 
     constructor() TimelockOperations("safe-migr-receive-ownerships-upgrades-entrypoint") {
-        from = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
+        from = new address[](3);
+        from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
+        from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
+        from[2] = vm.envAddress("SAFE_TIMELOCK_GUARDIAN");
+
+        console2.log("from---------->", from[0], from[1], from[2]);
     }
 
     /// @dev target timelock is the newer timelock

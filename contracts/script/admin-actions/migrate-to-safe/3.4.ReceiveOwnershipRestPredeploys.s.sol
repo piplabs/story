@@ -20,10 +20,13 @@ contract ReceiveOwnershipRestPredeploys is TimelockOperations {
 
     TimelockController public newTimelock;
 
-    address public from;
+    address[] public from;
 
     constructor() TimelockOperations("safe-migr-receive-ownerships-rest-predeploys") {
-        from = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
+        from = new address[](3);
+        from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
+        from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
+        from[2] = vm.envAddress("SAFE_TIMELOCK_GUARDIAN");
     }
 
     /// @dev target timelock is the newer timelock

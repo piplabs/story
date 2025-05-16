@@ -30,6 +30,14 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
     /// @notice constant to use the current timelock (owner of IPTokenStaking)
     address constant USE_CURRENT_TIMELOCK = 0x1111111111111111111111111111111111111111;
 
+    modifier verifyFrom(address[] memory from) {
+        require(from.length == 3, "TimelockOperations: from must be an array of 3 addresses");
+        require(from[0] != address(0), "TimelockOperations: scheduler must be a valid address");
+        require(from[1] != address(0), "TimelockOperations: executor must be a valid address");
+        require(from[2] != address(0), "TimelockOperations: canceler must be a valid address");
+        _;
+    }
+
     /// @notice constructor
     /// @param _action the action name, will be used in the name of the tx json file
     constructor(string memory _action) JSONTxWriter(_action) {
@@ -70,7 +78,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
     function _generate() internal virtual;
 
     /// @notice generate the 3 JSON (schedule, execute, cancel) for a single target
-    /// @param from The address of the sender
+    /// @param from The addresses of the sender for the schedule, execute, and cancel
     /// @param target The address of the contract to call
     /// @param value The value to send with the call
     /// @param data The encoded target method call
@@ -78,17 +86,17 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
     /// @param salt The salt for the timelock operation (optional, needed for calls with repeated `data`)
     /// @param delay The delay for the timelock operation. 0 is minimum delay
     function _generateAction(
-        address from,
+        address[] memory from,
         address target,
         uint256 value,
         bytes memory data,
         bytes32 predecessor,
         bytes32 salt,
         uint256 delay
-    ) internal {
-        _scheduleAction(from, target, value, data, predecessor, salt, delay);
-        _executeAction(from, target, value, data, predecessor, salt);
-        _cancelAction(from, target, value, data, predecessor, salt);
+    ) internal verifyFrom(from) {
+        _scheduleAction(from[0], target, value, data, predecessor, salt, delay);
+        _executeAction(from[1], target, value, data, predecessor, salt);
+        _cancelAction(from[2], target, value, data, predecessor, salt);
     }
 
     /// @notice Encodes the call to TimelockController.schedule
@@ -167,7 +175,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
     }
 
     /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch, and TimelockController.cancel
-    /// @param from The address of the sender
+    /// @param from The addresses of the sender for the schedule, execute, and cancel
     /// @param targets The addresses of the contracts to call
     /// @param values The values to send with the calls
     /// @param data The encoded target method calls
@@ -175,17 +183,17 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
     /// @param salt The salt for the timelock operation (optional, needed for calls with repeated `data`)
     /// @param delay The delay for the timelock operation. 0 is minimum delay
     function _generateBatchAction(
-        address from,
+        address[] memory from,
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory data,
         bytes32 predecessor,
         bytes32 salt,
         uint256 delay
-    ) internal {
-        _scheduleBatchAction(from, targets, values, data, predecessor, salt, delay);
-        _executeBatchAction(from, targets, values, data, predecessor, salt);
-        _cancelBatchAction(from, targets, values, data, predecessor, salt);
+    ) internal verifyFrom(from) {
+        _scheduleBatchAction(from[0], targets, values, data, predecessor, salt, delay);
+        _executeBatchAction(from[1], targets, values, data, predecessor, salt);
+        _cancelBatchAction(from[2], targets, values, data, predecessor, salt);
     }
 
     /// @notice Encodes the call to TimelockController.scheduleBatch
