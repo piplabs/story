@@ -5,10 +5,13 @@ import { UpgradeTransparentProxy } from "../../utils/UpgradeTransparentProxy.s.s
 
 /// @notice Script to upgrade the IPTokenStaking contract through a timelock
 contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
+
     constructor()
         UpgradeTransparentProxy(
             "upgrade-staking-v1_0_1", // file name
-            vm.envAddress("PROPOSER_ADDRESS"), // Schedule proposer address
+            vm.envAddress("OLD_TIMELOCK_PROPOSER"),
+            vm.envAddress("OLD_TIMELOCK_EXECUTOR"),
+            vm.envAddress("OLD_TIMELOCK_GUARDIAN"),
             bytes32(0) // salt
         )
     {}

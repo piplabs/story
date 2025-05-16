@@ -11,14 +11,17 @@ import { EIP1967Helper } from "../utils/EIP1967Helper.sol";
 /// @title UpgradeTransparentProxy
 /// @notice Helper script that generates a json file with the timelocked operations to upgrade a TransparentUpgradeableProxy
 abstract contract UpgradeTransparentProxy is TimelockOperations {
-    // The address of the sender
-    address public from;
+    // The addresses of the sender
+    address[] public from;
     // The operation salt for deterministic operation ID
     bytes32 public salt;
 
-    constructor(string memory message, address _from, bytes32 _salt) TimelockOperations(message) {
-        from = _from;
-        console2.log("From:", from);
+    constructor(string memory message, address scheduler, address executor, address canceler, bytes32 _salt) TimelockOperations(message) {
+        from = new address[](3);
+        from[0] = scheduler;
+        from[1] = executor;
+        from[2] = canceler;
+        console2.log("From:", from[0], from[1], from[2]);
         salt = _salt;
         console2.logBytes32(salt);
     }

@@ -64,16 +64,16 @@ contract DeployNewTimelock is Script {
 
 
         // Executor can be address(0), public execution
-        address timelockExecutor = vm.envAddress("SAFE_TIMELOCK_EXECUTOR_ADDRESS");
+        address timelockExecutor = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
         address[] memory timelockExecutors = new address[](2);
         timelockExecutors[0] = timelockExecutor;
         timelockExecutors[1] = oldTimelockProposer; // Old multisig during migration
         console2.log("timelockExecutor", timelockExecutor);
 
-        address timelockGuardian = vm.envAddress("SAFE_TIMELOCK_GUARDIAN_ADDRESS");
+        address timelockGuardian = vm.envAddress("SAFE_TIMELOCK_GUARDIAN");
         require(timelockGuardian != address(0), "Zero address as timelock guardian");
 
-        address oldTimelockGuardian = vm.envAddress("OLD_TIMELOCK_GUARDIAN_ADDRESS");
+        address oldTimelockGuardian = vm.envAddress("OLD_TIMELOCK_GUARDIAN");
         require(oldTimelockGuardian != address(0), "old timelock guardian address not set");
         console2.log("oldTimelockGuardian", oldTimelockGuardian);
 

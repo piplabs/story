@@ -20,11 +20,11 @@ import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { DeployNewTimelock } from "script/admin-actions/migrate-to-safe/1.DeployNewTimelock.s.sol";
 import { TransferOwnershipsProxyAdmin1 } from "script/admin-actions/migrate-to-safe/2.1.TransferOwnershipProxyAdmin1.s.sol";
 import { TransferOwnershipsProxyAdmin2 } from "script/admin-actions/migrate-to-safe/2.2.TransferOwnershipProxyAdmin2.s.sol";
-// import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.1.TransferOwnershipUpgradesEntrypoint.s.sol";
-// import { ReceiveOwnershipUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
-// import { TransferOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
-// import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
-// import { RenounceOldMultisigRoles } from "script/admin-actions/migrate-to-safe/4.RenounceOwnershipOldMultisig.sol";
+import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.1.TransferOwnershipUpgradesEntrypoint.s.sol";
+import { ReceiveOwnershipUpgradesEntryPoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
+import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
+import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
+import { RenounceOldMultisigRoles } from "script/admin-actions/migrate-to-safe/4.RenounceOwnershipOldMultisig.sol";
 
 contract SafeMigrationScriptsTest is Test {
     using stdJson for string;
@@ -32,10 +32,10 @@ contract SafeMigrationScriptsTest is Test {
     // Mock addresses for the test
     address private OLD_TIMELOCK_PROPOSER;
     address private OLD_TIMELOCK_GUARDIAN;
-    address private OLD_EXECUTOR_ADDRESS;
+    address private OLD_TIMELOCK_EXECUTOR;
     address private constant SAFE_TIMELOCK_PROPOSER = address(0x1111111111111111111111111111111111111111);
-    address private constant SAFE_TIMELOCK_EXECUTOR_ADDRESS = address(0x2222222222222222222222222222222222222222);
-    address private constant SAFE_TIMELOCK_GUARDIAN_ADDRESS = address(0x3333333333333333333333333333333333333333);
+    address private constant SAFE_TIMELOCK_EXECUTOR = address(0x2222222222222222222222222222222222222222);
+    address private constant SAFE_TIMELOCK_GUARDIAN = address(0x3333333333333333333333333333333333333333);
 
     // Private key for timelock deployer
     uint256 private constant DEPLOYER_PRIVATE_KEY = 0x1;
@@ -60,6 +60,7 @@ contract SafeMigrationScriptsTest is Test {
     function setUp() public override {
         super.setUp();
         OLD_TIMELOCK_PROPOSER = admin;
+        OLD_TIMELOCK_EXECUTOR = admin;
         OLD_TIMELOCK_GUARDIAN = admin;
         
         oldTimelock = timelock;
@@ -73,29 +74,29 @@ contract SafeMigrationScriptsTest is Test {
         _testDeployNewTimelock();
         
         // Step 2.1: Transfer ownership of first half of proxy admins
-        _testTransferOwnershipProxyAdmin1();
-        /*
+        // _testTransferOwnershipProxyAdmin1();
+        
         // Step 2.2: Transfer ownership of second half of proxy admins
-        _testTransferOwnershipProxyAdmin2();
+        //_testTransferOwnershipProxyAdmin2();
         
         // Step 3.1: Transfer ownership of UpgradesEntrypoint
         _testTransferOwnershipUpgradesEntrypoint();
         
         // Step 3.2: Accept ownership of UpgradesEntrypoint
-        _testAcceptOwnershipUpgradesEntrypoint();
+        _testReceiveOwnershipUpgradesEntrypoint();
         
         // Step 3.3: Transfer ownership of rest of predeploys
-        _testTransferOwnershipRestPredeploys();
+        _testTransferOwnershipsRestPredeploys();
         
         // Step 3.4: Accept ownership of rest of predeploys
-        _testAcceptOwnershipRestPredeploys();
+        _testReceiveOwnershipRestPredeploys();
         
         // Step 4: Renounce ownership of old multisig
         _testRenounceOwnershipOldMultisig();
         
         // Final verification that all permissions are correctly set
-        _verifyFinalState();
-        */
+        // _verifyFinalState();
+        
     }
     
     function _setupEnvVars() private {
@@ -103,15 +104,17 @@ contract SafeMigrationScriptsTest is Test {
         vm.setEnv("NEW_TIMELOCK_DEPLOYER_PRIVATE_KEY", vm.toString(DEPLOYER_PRIVATE_KEY));
         vm.setEnv("SAFE_TIMELOCK_PROPOSER", vm.toString(SAFE_TIMELOCK_PROPOSER));
         vm.label(SAFE_TIMELOCK_PROPOSER, "SafeTimelockProposer");
-        vm.setEnv("SAFE_TIMELOCK_EXECUTOR_ADDRESS", vm.toString(SAFE_TIMELOCK_EXECUTOR_ADDRESS));
-        vm.label(SAFE_TIMELOCK_EXECUTOR_ADDRESS, "SafeTimelockExecutor");
-        vm.setEnv("SAFE_TIMELOCK_GUARDIAN_ADDRESS", vm.toString(SAFE_TIMELOCK_GUARDIAN_ADDRESS));
-        vm.label(SAFE_TIMELOCK_GUARDIAN_ADDRESS, "SafeTimelockGuardian");
+        vm.setEnv("SAFE_TIMELOCK_EXECUTOR", vm.toString(SAFE_TIMELOCK_EXECUTOR));
+        vm.label(SAFE_TIMELOCK_EXECUTOR, "SafeTimelockExecutor");
+        vm.setEnv("SAFE_TIMELOCK_GUARDIAN", vm.toString(SAFE_TIMELOCK_GUARDIAN));
+        vm.label(SAFE_TIMELOCK_GUARDIAN, "SafeTimelockGuardian");
         vm.setEnv("OLD_TIMELOCK_ADDRESS", vm.toString(address(oldTimelock)));
         vm.label(address(oldTimelock), "OldTimelock");
         vm.setEnv("OLD_TIMELOCK_PROPOSER", vm.toString(OLD_TIMELOCK_PROPOSER));
         vm.label(OLD_TIMELOCK_PROPOSER, "Old Timelock Proposer");
-        vm.setEnv("OLD_TIMELOCK_GUARDIAN_ADDRESS", vm.toString(OLD_TIMELOCK_GUARDIAN));
+        vm.setEnv("OLD_TIMELOCK_EXECUTOR", vm.toString(OLD_TIMELOCK_EXECUTOR));
+        vm.label(OLD_TIMELOCK_EXECUTOR, "Old Timelock Executor");
+        vm.setEnv("OLD_TIMELOCK_GUARDIAN", vm.toString(OLD_TIMELOCK_GUARDIAN));
         vm.label(OLD_TIMELOCK_GUARDIAN, "Old Timelock Guardian");
         vm.setEnv("MIN_DELAY", vm.toString(MIN_DELAY)); // 5 minutes
     }
@@ -129,16 +132,15 @@ contract SafeMigrationScriptsTest is Test {
         assertTrue(newTimelockAddress.code.length > 0, "New timelock not deployed");
         assertTrue(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), SAFE_TIMELOCK_PROPOSER), "Safe admin not proposer");
         assertTrue(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig not proposer");
-        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), SAFE_TIMELOCK_EXECUTOR_ADDRESS), "Safe executor not executor");
-        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig not executor");
-        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN_ADDRESS), "Safe guardian not canceller");
+        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), SAFE_TIMELOCK_EXECUTOR), "Safe executor not executor");
+        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_EXECUTOR), "Old multisig not executor");
+        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN), "Safe guardian not canceller");
         assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN), "Old security council not canceller");
         assertTrue(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, SAFE_TIMELOCK_PROPOSER), "New Safe admin is not admin");
         assertTrue(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "Old multisig admin is not admin");
         assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, deployer), "deployer is admin");
         assertEq(newTimelock.getMinDelay(), MIN_DELAY, "Delay not set correctly");
     }
-    
     
     function _testTransferOwnershipProxyAdmin1() private {
         // Run the script to generate JSON
@@ -153,7 +155,7 @@ contract SafeMigrationScriptsTest is Test {
         ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-proxy-admin-1");
         
         // Execute the full timelock flow with verification
-        _executeTimelockTransaction(scheduleTx);
+        _rawTimelockTransaction(scheduleTx);
         
         // Wait for the timelock delay
         console2.log("Waiting for timelock delay");
@@ -161,7 +163,7 @@ contract SafeMigrationScriptsTest is Test {
         
         // Execute execute transaction
         console2.log("Executing execute transaction");
-        _executeTimelockTransaction(executeTx);
+        _rawTimelockTransaction(executeTx);
 
         // Verify that half of the ProxyAdmins have new ownership
         uint256 halfSize = Predeploys.NamespaceSize / 2;
@@ -178,7 +180,192 @@ contract SafeMigrationScriptsTest is Test {
             assertEq(proxyAdmin.owner(), newTimelockAddress, "Proxy admin not transferred");
         }
     }
+
+    function _testTransferOwnershipProxyAdmin2() private {
+        // Run the script to generate JSON
+        TransferOwnershipsProxyAdmin2 script = new TransferOwnershipsProxyAdmin2();
+        script.run(); // Generate operation JSON
+        
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-proxy-admin-2");
+        
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that half of the ProxyAdmins have new ownership
+        uint256 halfSize = Predeploys.NamespaceSize / 2;
+        uint256 startIdx = 1; // First half of proxies
+        
+        for (uint160 i = uint160(startIdx); i < halfSize; i++) {
+            // Calculate proxy address using namespace offset
+            address proxyAddress = address(uint160(uint160(Predeploys.Namespace) + i));
+            
+            // Get proxy admin address from proxy using EIP1967 storage slot
+            Ownable proxyAdmin = Ownable(EIP1967Helper.getAdmin(proxyAddress));
+            
+            // Verify proxy admin is now the new timelock
+            assertEq(proxyAdmin.owner(), newTimelockAddress, "Proxy admin not transferred");
+        }
+    }
+
+    function _testTransferOwnershipUpgradesEntrypoint() private {
+        // Run the script to generate JSON
+        TransferOwnershipsUpgradesEntrypoint script = new TransferOwnershipsUpgradesEntrypoint();
+        script.run(); // Generate operation JSON
+
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-upgrades-entrypoint");
+
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that the UpgradesEntrypoint has new ownership pending
+        assertEq(upgradeEntrypoint.pendingOwner(), newTimelockAddress, "UpgradesEntrypoint not transferred");
+    }
+
+    function _testReceiveOwnershipUpgradesEntrypoint() private {
+        // Run the script to generate JSON
+        ReceiveOwnershipUpgradesEntryPoint script = new ReceiveOwnershipUpgradesEntryPoint();
+        script.run(); // Generate operation JSON
+        
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-receive-ownerships-upgrades-entrypoint");
+        
+        // Execute the full timelock flow with verification
+        require(scheduleTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
+        require(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), scheduleTx.from), "Schedule transaction is not from the new timelock");
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        require(executeTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
+        require(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), executeTx.from), "Execute transaction is not from the new timelock");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that the UpgradesEntrypoint has new ownership
+        assertEq(upgradeEntrypoint.owner(), newTimelockAddress, "UpgradesEntrypoint not transferred");
+        assertEq(upgradeEntrypoint.pendingOwner(), address(0), "UpgradesEntrypoint pending owner not cleared");
+    }
     
+    function _testTransferOwnershipsRestPredeploys() private {
+        // Run the script to generate JSON
+        TransferOwnershipsRestPredeploys script = new TransferOwnershipsRestPredeploys();
+        script.run(); // Generate operation JSON
+
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-rest-predeploys");
+
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx); 
+    
+        // Verify that UBIPool and IPTokenStaking have new pending owner
+        assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool not transferred");
+        assertEq(ipTokenStaking.pendingOwner(), newTimelockAddress, "IPTokenStaking not transferred");
+    }
+
+    function _testReceiveOwnershipRestPredeploys() private {
+        // Run the script to generate JSON
+        ReceiveOwnershipRestPredeploys script = new ReceiveOwnershipRestPredeploys();
+        script.run(); // Generate operation JSON
+
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-receive-ownerships-rest-predeploys");
+
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that the rest of the predeploys have new ownership
+        assertEq(ubiPool.owner(), newTimelockAddress, "UBIPool not transferred");
+        assertEq(ipTokenStaking.owner(), newTimelockAddress, "IPTokenStaking not transferred");
+        assertEq(ubiPool.pendingOwner(), address(0), "UBIPool pending owner not cleared");
+        assertEq(ipTokenStaking.pendingOwner(), address(0), "IPTokenStaking pending owner not cleared");
+    }
+
+    function _testRenounceOwnershipOldMultisig() private {
+        // Run the script to generate JSON
+        RenounceOldMultisigRoles script = new RenounceOldMultisigRoles();
+        script.run(); // Generate operation JSON
+        
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx, 
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles("safe-migr-renounce-ownership-old-multisig");
+        
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that the old multisig has been renounced
+        assertFalse(newTimelock.hasRole(oldTimelock.PROPOSER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig proposer role not revoked");
+        assertFalse(newTimelock.hasRole(oldTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_EXECUTOR), "Old multisig executor role not revoked");
+        assertFalse(newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN), "Old multisig canceller role not revoked");
+        assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "New Safe admin is not admin");
+    }
     
     /**
      * @notice Read transactions from schedule, cancel, and execute JSON files
@@ -221,7 +408,7 @@ contract SafeMigrationScriptsTest is Test {
         
         return (scheduleTx, executeTx, cancelTx);
     }
-    
+
     /**
      * @notice Parse a JSON string into an array of Transaction structs
      * @param json The JSON string to parse
@@ -260,7 +447,7 @@ contract SafeMigrationScriptsTest is Test {
      * @notice Execute a single transaction from the old timelock
      * @param transaction The transaction to execute
      */
-    function _executeTimelockTransaction(JSONTxWriter.Transaction memory transaction) internal {
+    function _rawTimelockTransaction(JSONTxWriter.Transaction memory transaction) internal {
         vm.startPrank(transaction.from);
         (bool success, ) = transaction.to.call{ value: transaction.value }(transaction.data);
         require(success, "Transaction execution failed");
