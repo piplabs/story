@@ -13,11 +13,11 @@ contract JSONTxWriter is Script {
     using StringUtil for uint256;
     using stdJson for string;
 
-    enum TimelockOp {
+    enum Operation {
         SCHEDULE,
         EXECUTE,
         CANCEL,
-        REGULAR_TX_NOT_TIMELOCKED
+        REGULAR_TX // Usually calls directly to the timelock, like renounce roles
     }
 
     /// @notice A struct to store the transaction details
@@ -37,7 +37,7 @@ contract JSONTxWriter is Script {
     }
 
     /// @notice A mapping to store the transactions to batch for each timelock operation
-    mapping(TimelockOp => Transaction[]) public transactions;
+    mapping(Operation => Transaction[]) public transactions;
 
     /// @notice The chain id
     string private chainId;
@@ -58,7 +58,7 @@ contract JSONTxWriter is Script {
     /// @param _data The encoded target method call
     /// @param _comment The comment for the transaction
     function _saveTx(
-        TimelockOp _timelockOp,
+        Operation _timelockOp,
         address _from,
         address _to,
         uint256 _value,
@@ -79,31 +79,36 @@ contract JSONTxWriter is Script {
 
     /// @notice Writes all the tx json files for the timelock operations
     function _writeFiles() internal {
-        Transaction[] memory _transactions = transactions[TimelockOp.SCHEDULE];
+        console2.log("Writing txs to file");
+        Transaction[] memory _transactions = transactions[Operation.SCHEDULE];
+        console2.log("Schedule txs: ", _transactions.length);
         if (_transactions.length > 0) {
-            _writeTxArrayToJson(TimelockOp.SCHEDULE, _transactions);
+            _writeTxArrayToJson(Operation.SCHEDULE, _transactions);
         }
 
-        _transactions = transactions[TimelockOp.EXECUTE];
+        _transactions = transactions[Operation.EXECUTE];
+        console2.log("Execute txs: ", _transactions.length);
         if (_transactions.length > 0) {
-            _writeTxArrayToJson(TimelockOp.EXECUTE, _transactions);
+            _writeTxArrayToJson(Operation.EXECUTE, _transactions);
         }
 
-        _transactions = transactions[TimelockOp.CANCEL];
+        _transactions = transactions[Operation.CANCEL];
+        console2.log("Cancel txs: ", _transactions.length);
         if (_transactions.length > 0) {
-            _writeTxArrayToJson(TimelockOp.CANCEL, _transactions);
+            _writeTxArrayToJson(Operation.CANCEL, _transactions);
         }
 
-        _transactions = transactions[TimelockOp.REGULAR_TX_NOT_TIMELOCKED];
+        _transactions = transactions[Operation.REGULAR_TX];
+        console2.log("Regular txs: ", _transactions.length);
         if (_transactions.length > 0) {
-            _writeTxArrayToJson(TimelockOp.REGULAR_TX_NOT_TIMELOCKED, _transactions);
+            _writeTxArrayToJson(Operation.REGULAR_TX, _transactions);
         }
     }
 
     /// @notice Writes a json files for the timelock operations
     /// @param _timelockOp The timelock operation
     /// @param txArray The transactions to write to the json file
-    function _writeTxArrayToJson(TimelockOp _timelockOp, Transaction[] memory txArray) internal {
+    function _writeTxArrayToJson(Operation _timelockOp, Transaction[] memory txArray) internal {
         string memory json = "[";
         for (uint i = 0; i < txArray.length; i++) {
             if (i > 0) {
@@ -138,14 +143,16 @@ contract JSONTxWriter is Script {
     /// @notice Converts the timelock operation to a string
     /// @param _timelockOp The timelock operation
     /// @return The string representation of the timelock operation
-    function _timelockOpToString(TimelockOp _timelockOp) internal pure returns (string memory) {
-        if (_timelockOp == TimelockOp.SCHEDULE) {
+    function _timelockOpToString(Operation _timelockOp) internal pure returns (string memory) {
+        if (_timelockOp == Operation.SCHEDULE) {
             return "schedule";
-        } else if (_timelockOp == TimelockOp.EXECUTE) {
+        } else if (_timelockOp == Operation.EXECUTE) {
             return "execute";
-        } else if (_timelockOp == TimelockOp.CANCEL) {
+        } else if (_timelockOp == Operation.CANCEL) {
             return "cancel";
+        } else if (_timelockOp == Operation.REGULAR_TX) {
+            return "regular";
         }
-        return "tx";
+        revert("Invalid operation");
     }
 }

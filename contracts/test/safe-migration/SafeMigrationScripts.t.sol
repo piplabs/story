@@ -24,7 +24,7 @@ import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migra
 import { ReceiveOwnershipUpgradesEntryPoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
 import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
 import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
-import { RenounceOldMultisigRoles } from "script/admin-actions/migrate-to-safe/4.RenounceOwnershipOldMultisig.sol";
+import { RenounceGovernanceRoles } from "script/admin-actions/migrate-to-safe/4.1.RenounceGovernanceRoles.s.sol";
 
 contract SafeMigrationScriptsTest is Test {
     using stdJson for string;
@@ -39,6 +39,9 @@ contract SafeMigrationScriptsTest is Test {
 
     // Private key for timelock deployer
     uint256 private constant DEPLOYER_PRIVATE_KEY = 0x1;
+
+    // Maximum number of transactions in JSON files
+    uint256 private constant MAX_TXS_PER_JSON = 1000;
 
     // Timelock controller addresses
     address private oldTimelockAddress;
@@ -93,9 +96,6 @@ contract SafeMigrationScriptsTest is Test {
         
         // Step 4: Renounce ownership of old multisig
         _testRenounceOwnershipOldMultisig();
-        
-        // Final verification that all permissions are correctly set
-        // _verifyFinalState();
         
     }
     
@@ -339,32 +339,31 @@ contract SafeMigrationScriptsTest is Test {
 
     function _testRenounceOwnershipOldMultisig() private {
         // Run the script to generate JSON
-        RenounceOldMultisigRoles script = new RenounceOldMultisigRoles();
+        RenounceGovernanceRoles script = new RenounceGovernanceRoles();
         script.run(); // Generate operation JSON
         
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-renounce-ownership-old-multisig");
+        // Get regular transactions from JSON
+        JSONTxWriter.Transaction[] memory txs = _readRegularTransactionFiles("safe-migr-renounce-gov-roles");
         
         // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx);
+        for (uint256 i = 0; i < txs.length; i++) {
+            console2.log("Executing transaction", i);
+            _rawTimelockTransaction(txs[i]);
+        }
 
         // Verify that the old multisig has been renounced
         assertFalse(newTimelock.hasRole(oldTimelock.PROPOSER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig proposer role not revoked");
+        assertFalse(newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig canceller role not revoked");
+        assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "Old multisig admin is not admin");
         assertFalse(newTimelock.hasRole(oldTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_EXECUTOR), "Old multisig executor role not revoked");
         assertFalse(newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN), "Old multisig canceller role not revoked");
-        assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "New Safe admin is not admin");
+        
+        // Verify new multisig has roles
+        assertTrue(newTimelock.hasRole(newTimelock.DEFAULT_ADMIN_ROLE(), SAFE_TIMELOCK_PROPOSER), "New Safe admin is not admin");
+        assertTrue(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), SAFE_TIMELOCK_PROPOSER), "Old multisig proposer role not revoked");
+        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_PROPOSER), "Old multisig canceller role not revoked");
+        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), SAFE_TIMELOCK_EXECUTOR), "Old multisig executor role not revoked");
+        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN), "Old multisig canceller role not revoked");
     }
     
     /**
@@ -409,29 +408,54 @@ contract SafeMigrationScriptsTest is Test {
         return (scheduleTx, executeTx, cancelTx);
     }
 
+    function _readRegularTransactionFiles(string memory baseFilename) internal returns (JSONTxWriter.Transaction[] memory txs) {
+        string memory basePath = string.concat(OUTPUT_DIR, vm.toString(block.chainid), "/");
+        string memory path = string.concat(basePath, baseFilename, "-regular.json");
+        assertTrue(vm.exists(path), "Regular JSON file not found");
+        string memory json = vm.readFile(path);
+        txs = _parseTransactionsFromJson(json);
+    }
+
     /**
      * @notice Parse a JSON string into an array of Transaction structs
      * @param json The JSON string to parse
      * @return An array of Transaction structs
      */
-    function _parseTransactionsFromJson(string memory json) internal pure returns (JSONTxWriter.Transaction[] memory) {
+    function _parseTransactionsFromJson(string memory json) internal view returns (JSONTxWriter.Transaction[] memory) {
         // Get the number of transactions in the JSON array        
         // Create an array to store the transactions
-        JSONTxWriter.Transaction[] memory transactions = new JSONTxWriter.Transaction[](1);
-        
+        JSONTxWriter.Transaction[] memory readTxs = new JSONTxWriter.Transaction[](MAX_TXS_PER_JSON);
+        uint256 effectiveTxs = 0;
         // Parse each transaction in the array
-        string memory indexPath = string.concat("[0]");
-        
-        // Parse the transaction fields
+        for (uint256 i = 0; i < MAX_TXS_PER_JSON; i++) {
+            try this._parseTransaction(json, i) returns (JSONTxWriter.Transaction memory transaction) {
+                readTxs[i] = transaction;
+                effectiveTxs++;
+            } catch  {
+                console2.log("No more transactions in JSON");
+                break;
+            }
+        }
+
+        JSONTxWriter.Transaction[] memory transactions = new JSONTxWriter.Transaction[](effectiveTxs);
+        for (uint256 i = 0; i < effectiveTxs; i++) {
+            transactions[i] = readTxs[i];
+        }
+        return transactions;
+    }
+
+    function _parseTransaction(string memory json, uint256 index) external pure returns (JSONTxWriter.Transaction memory transaction) {
+        string memory indexPath = string.concat("[", vm.toString(index), "]");
+
         address from = stdJson.readAddress(json, string.concat(indexPath, ".from"));
         address to = stdJson.readAddress(json, string.concat(indexPath, ".to"));
         uint256 value = stdJson.readUint(json, string.concat(indexPath, ".value"));
         bytes memory data = stdJson.readBytes(json, string.concat(indexPath, ".data"));
         uint8 operation = uint8(stdJson.readUint(json, string.concat(indexPath, ".operation")));
         string memory comment = stdJson.readString(json, string.concat(indexPath, ".comment"));
-            
+        
         // Create the transaction struct
-        transactions[0] = JSONTxWriter.Transaction({
+        return JSONTxWriter.Transaction({
             from: from,
             to: to,
             value: value,
@@ -439,8 +463,6 @@ contract SafeMigrationScriptsTest is Test {
             operation: operation,
             comment: comment
         });
-        
-        return transactions;
     }
     
     /**
