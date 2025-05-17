@@ -115,7 +115,7 @@ contract DeployNewTimelock is Script {
             oldTimelockProposer
         );
         console2.log("Granted DEFAULT_ADMIN_ROLE to oldTimelockProposer", oldTimelockProposer);
-        // WARNING: Revoke this role after migration
+        // WARNING: Consider revoking this role after migration
         newTimelock.grantRole(
             newTimelock.DEFAULT_ADMIN_ROLE(),
             timelockProposer

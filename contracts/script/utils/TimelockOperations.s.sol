@@ -125,7 +125,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             salt,
             delay
         );
-        _saveTx(TimelockOp.SCHEDULE, from, address(timelock), value, _txData, string.concat(action, "-schedule"));
+        _saveTx(Operation.SCHEDULE, from, address(timelock), value, _txData, string.concat(action, "-schedule"));
     }
 
     /// @notice Encodes the call to TimelockController.execute
@@ -150,7 +150,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             predecessor,
             salt
         );
-        _saveTx(TimelockOp.EXECUTE, from, address(timelock), value, _txData, string.concat(action, "-execute"));
+        _saveTx(Operation.EXECUTE, from, address(timelock), value, _txData, string.concat(action, "-execute"));
     }
 
     /// @notice Encodes the call to TimelockController.cancel
@@ -171,7 +171,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             TimelockController.cancel.selector,
             timelock.hashOperation(target, value, data, predecessor, salt)
         );
-        _saveTx(TimelockOp.CANCEL, from, address(timelock), value, _txData, string.concat(action, "-cancel"));
+        _saveTx(Operation.CANCEL, from, address(timelock), value, _txData, string.concat(action, "-cancel"));
     }
 
     /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch, and TimelockController.cancel
@@ -223,7 +223,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             delay
         );
         _saveTx(
-            TimelockOp.SCHEDULE,
+            Operation.SCHEDULE,
             from,
             address(timelock),
             _sumValues(values),
@@ -256,7 +256,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             salt
         );
         _saveTx(
-            TimelockOp.EXECUTE,
+            Operation.EXECUTE,
             from,
             address(timelock),
             _sumValues(values),
@@ -285,7 +285,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
             timelock.hashOperationBatch(targets, values, data, predecessor, salt)
         );
         _saveTx(
-            TimelockOp.CANCEL,
+            Operation.CANCEL,
             from,
             address(timelock),
             _sumValues(values),
