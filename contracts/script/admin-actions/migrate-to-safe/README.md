@@ -17,15 +17,25 @@ Script: [1.DeployNewTimelock.s.sol](./1.DeployNewTimelock.s.sol)
 ## 2. Transfer ownership of ProxyAdmins (proxy upgradeability) from old to new TimelockController 
 This process is split into multiple steps to reduce risk:
 
-### 2.1 Transfer ownership of the first half of ProxyAdmins
-The old TimelockController transfers ownership of half of the predeploy ProxyAdmins to the new timelock.
+### 2.1 Transfer ownership of the first quarter of ProxyAdmins
+The old TimelockController transfers ownership of the first quarter of the predeploy ProxyAdmins to the new timelock.
 
 Script: [2.1.TransferOwnershipProxyAdmin1.s.sol](./2.1.TransferOwnershipProxyAdmin1.s.sol)
 
-### 2.2 Transfer ownership of the second half of ProxyAdmins
-The old TimelockController transfers ownership of the remaining predeploy ProxyAdmins to the new timelock.
+### 2.2 Transfer ownership of the second quarter of ProxyAdmins
+The old TimelockController transfers ownership of the second quarter of predeploy ProxyAdmins to the new timelock.
 
 Script: [2.2.TransferOwnershipProxyAdmin2.s.sol](./2.2.TransferOwnershipProxyAdmin2.s.sol)
+
+### 2.3 Transfer ownership of the third quarter of ProxyAdmins
+The old TimelockController transfers ownership of the third quarter of predeploy ProxyAdmins to the new timelock.
+
+Script: [2.3.TransferOwnershipProxyAdmin3.s.sol](./2.3.TransferOwnershipProxyAdmin3.s.sol)
+
+### 2.4 Transfer ownership of the fourth quarter of ProxyAdmins
+The old TimelockController transfers ownership of the final quarter of predeploy ProxyAdmins to the new timelock.
+
+Script: [2.4.TransferOwnershipProxyAdmin4.s.sol](./2.4.TransferOwnershipProxyAdmin4.s.sol)
 
 ## 3. Transfer ownership of Proxies in use from old to new TimelockController 
 
@@ -56,7 +66,7 @@ Script: [3.4.ReceiveOwnershipRestPredeploys.s.sol](./3.4.ReceiveOwnershipRestPre
 ## 4. Finalize the migration
 After checking that everything works correctly, old multisigs renounce roles to complete the transition.
 
-Script: [4.RenounceOwnershipOldMultisig.sol](./4.RenounceOwnershipOldMultisig.sol)
+Script: [4.RenounceGovernanceRoles.sol](./4.RenounceGovernanceRoles.sol)
 
 ![Migration diagram 3](./images/3.migration.png)
 

@@ -27,7 +27,6 @@ import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migra
 import { ReceiveOwnershipUpgradesEntryPoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
 import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
 import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
-import { RenounceGovernanceRoles } from "script/admin-actions/migrate-to-safe/4.1.RenounceGovernanceRoles.s.sol";
 
 contract SafeMigrationCancelScriptsTest is Test {
     using stdJson for string;
