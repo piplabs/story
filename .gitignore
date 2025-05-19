@@ -30,3 +30,6 @@ go.work
 go.work.sum
 
 story
+
+# Output files
+script/admin-actions/output/31337/*
