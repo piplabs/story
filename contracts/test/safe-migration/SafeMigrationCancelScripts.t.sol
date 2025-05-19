@@ -29,7 +29,7 @@ import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-t
 import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
 import { RenounceGovernanceRoles } from "script/admin-actions/migrate-to-safe/4.1.RenounceGovernanceRoles.s.sol";
 
-contract SafeMigrationScriptsTest is Test {
+contract SafeMigrationCancelScriptsTest is Test {
     using stdJson for string;
 
     // Mock addresses for the test
@@ -75,31 +75,27 @@ contract SafeMigrationScriptsTest is Test {
         _setupEnvVars();
     }
     
-    function testMigrationScripts() public {
+    function testCancelMigrationScripts() public {
         // Step 1: Deploy new timelock
         _testDeployNewTimelock();
         
         // Step 2: Transfer ownership of ProxyAdmins
-        _testTransferOwnershipProxyAdmins(1);
-        _testTransferOwnershipProxyAdmins(2);
-        _testTransferOwnershipProxyAdmins(3);
-        _testTransferOwnershipProxyAdmins(4);
+        _testCancelTransferOwnershipProxyAdmins(1);
+        _testCancelTransferOwnershipProxyAdmins(2);
+        _testCancelTransferOwnershipProxyAdmins(3);
+        _testCancelTransferOwnershipProxyAdmins(4);
         
         // Step 3.1: Transfer ownership of UpgradesEntrypoint
-        _testTransferOwnershipUpgradesEntrypoint();
+        _testCancelTransferOwnershipUpgradesEntrypoint();
         
         // Step 3.2: Accept ownership of UpgradesEntrypoint
-        _testReceiveOwnershipUpgradesEntrypoint();
+        _testCancelReceiveOwnershipUpgradesEntrypoint();
         
         // Step 3.3: Transfer ownership of rest of predeploys
-        _testTransferOwnershipsRestPredeploys();
+        _testCancelTransferOwnershipsRestPredeploys();
         
         // Step 3.4: Accept ownership of rest of predeploys
-        _testReceiveOwnershipRestPredeploys();
-        
-        // Step 4: Renounce ownership of old multisig
-        _testRenounceOwnershipOldMultisig();
-        
+        _testCancelReceiveOwnershipRestPredeploys();
     }
     
     function _setupEnvVars() private {
@@ -145,7 +141,49 @@ contract SafeMigrationScriptsTest is Test {
         assertEq(newTimelock.getMinDelay(), MIN_DELAY, "Delay not set correctly");
     }
     
-    function _testTransferOwnershipProxyAdmins(uint256 iteration) private {
+    /**
+     * @notice Common functionality to schedule and cancel a timelock operation
+     * @param timelockController The timelock controller to use (oldTimelock or newTimelock)
+     * @param jsonFilename The base filename to read transactions from
+     */
+    function _scheduleAndCancelOperation(TimelockController timelockController, string memory jsonFilename) private {
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx, 
+            JSONTxWriter.Transaction memory executeTx,
+            JSONTxWriter.Transaction memory cancelTx
+        ) = _readAllTransactionFiles(jsonFilename);
+        
+        // Execute the schedule transaction
+        console2.log("Scheduling transaction");
+        _rawTimelockTransaction(scheduleTx);
+        
+        // Extract operation ID directly from the cancel transaction data
+        bytes32 operationId = _getOperationIdFromCancelData(cancelTx.data);
+        
+        // Check that the operation is scheduled
+        assertTrue(timelockController.isOperationPending(operationId), "Operation not scheduled");
+        
+        // Execute the cancel transaction
+        console2.log("Canceling transaction");
+        _rawTimelockTransaction(cancelTx);
+        
+        // Verify that the operation is no longer pending after cancellation
+        assertFalse(timelockController.isOperationPending(operationId), "Operation still pending after cancel");
+
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+        
+        // Attempt to execute should fail
+        vm.startPrank(executeTx.from);
+        vm.expectRevert("TimelockController: operation is not ready");
+        (bool success, ) = executeTx.to.call{ value: executeTx.value }(executeTx.data);
+        assertFalse(success, "Execute transaction should fail");
+        vm.stopPrank();
+    }
+
+    function _testCancelTransferOwnershipProxyAdmins(uint256 iteration) private {
         BaseTransferOwnershipProxyAdmin script;
         if (iteration == 1) {
             script = BaseTransferOwnershipProxyAdmin(new TransferOwnershipsProxyAdmin1());
@@ -158,28 +196,14 @@ contract SafeMigrationScriptsTest is Test {
         } else {
             revert("invalid iteration");
         }
+        
         // Run the script to generate JSON
         script.run();
         
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles(script.message());
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(oldTimelock, script.message());
         
-        // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-        
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx);
-
-        
+        // Verify that ownership did not transfer
         for (uint160 i = uint160(script.fromIndex()); i <= script.toIndex(); i++) {
             // Calculate proxy address using namespace offset
             address proxyAddress = address(uint160(uint160(Predeploys.Namespace) + i));
@@ -187,194 +211,97 @@ contract SafeMigrationScriptsTest is Test {
             // Get proxy admin address from proxy using EIP1967 storage slot
             Ownable proxyAdmin = Ownable(EIP1967Helper.getAdmin(proxyAddress));
             
-            // Verify proxy admin is now the new timelock
-            assertEq(proxyAdmin.owner(), newTimelockAddress, "Proxy admin not transferred");
+            // Verify proxy admin is still owned by old timelock
+            assertEq(proxyAdmin.owner(), address(oldTimelock), "Proxy admin transferred despite cancellation");
         }
     }
 
-    function _testTransferOwnershipProxyAdmin2() private {
-        // Run the script to generate JSON
-        TransferOwnershipsProxyAdmin2 script = new TransferOwnershipsProxyAdmin2();
-        script.run(); // Generate operation JSON
-        
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-proxy-admin-2");
-        
-        // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx);
-
-        // Verify that half of the ProxyAdmins have new ownership
-        uint256 halfSize = Predeploys.NamespaceSize / 2;
-        uint256 startIdx = 1; // First half of proxies
-        
-        for (uint160 i = uint160(startIdx); i < halfSize; i++) {
-            // Calculate proxy address using namespace offset
-            address proxyAddress = address(uint160(uint160(Predeploys.Namespace) + i));
-            
-            // Get proxy admin address from proxy using EIP1967 storage slot
-            Ownable proxyAdmin = Ownable(EIP1967Helper.getAdmin(proxyAddress));
-            
-            // Verify proxy admin is now the new timelock
-            assertEq(proxyAdmin.owner(), newTimelockAddress, "Proxy admin not transferred");
-        }
-    }
-
-    function _testTransferOwnershipUpgradesEntrypoint() private {
+    function _testCancelTransferOwnershipUpgradesEntrypoint() private {
         // Run the script to generate JSON
         TransferOwnershipsUpgradesEntrypoint script = new TransferOwnershipsUpgradesEntrypoint();
-        script.run(); // Generate operation JSON
+        script.run();
 
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-upgrades-entrypoint");
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(oldTimelock, "safe-migr-transfer-ownerships-upgrades-entrypoint");
 
-        // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx);
-
-        // Verify that the UpgradesEntrypoint has new ownership pending
-        assertEq(upgradeEntrypoint.pendingOwner(), newTimelockAddress, "UpgradesEntrypoint not transferred");
+        // Verify that the UpgradesEntrypoint has not transferred ownership
+        assertEq(upgradeEntrypoint.pendingOwner(), address(0), "UpgradesEntrypoint ownership transferred despite cancellation");
     }
 
-    function _testReceiveOwnershipUpgradesEntrypoint() private {
+    function _testCancelReceiveOwnershipUpgradesEntrypoint() private {
+        // For this test, we need to simulate that ownership was first transferred 
+        // Set the pending owner of UpgradesEntrypoint to the new timelock
+        vm.startPrank(address(oldTimelock));
+        upgradeEntrypoint.transferOwnership(newTimelockAddress);
+        vm.stopPrank();
+        
         // Run the script to generate JSON
         ReceiveOwnershipUpgradesEntryPoint script = new ReceiveOwnershipUpgradesEntryPoint();
-        script.run(); // Generate operation JSON
+        script.run();
         
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-receive-ownerships-upgrades-entrypoint");
-        
-        // Execute the full timelock flow with verification
-        require(scheduleTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
-        require(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), scheduleTx.from), "Schedule transaction is not from the new timelock");
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(newTimelock, "safe-migr-receive-ownerships-upgrades-entrypoint");
 
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        require(executeTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
-        require(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), executeTx.from), "Execute transaction is not from the new timelock");
-        _rawTimelockTransaction(executeTx);
-
-        // Verify that the UpgradesEntrypoint has new ownership
-        assertEq(upgradeEntrypoint.owner(), newTimelockAddress, "UpgradesEntrypoint not transferred");
-        assertEq(upgradeEntrypoint.pendingOwner(), address(0), "UpgradesEntrypoint pending owner not cleared");
+        // Verify that the UpgradesEntrypoint has not claimed ownership
+        assertEq(upgradeEntrypoint.owner(), address(oldTimelock), "UpgradesEntrypoint ownership claimed despite cancellation");
+        assertEq(upgradeEntrypoint.pendingOwner(), newTimelockAddress, "UpgradesEntrypoint pending owner changed");
     }
     
-    function _testTransferOwnershipsRestPredeploys() private {
+    function _testCancelTransferOwnershipsRestPredeploys() private {
         // Run the script to generate JSON
         TransferOwnershipsRestPredeploys script = new TransferOwnershipsRestPredeploys();
-        script.run(); // Generate operation JSON
+        script.run();
 
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-rest-predeploys");
-
-        // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx); 
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(oldTimelock, "safe-migr-transfer-ownerships-rest-predeploys");
     
-        // Verify that UBIPool and IPTokenStaking have new pending owner
-        assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool not transferred");
-        assertEq(ipTokenStaking.pendingOwner(), newTimelockAddress, "IPTokenStaking not transferred");
+        // Verify that UBIPool and IPTokenStaking do not have new pending owner
+        assertEq(ubiPool.pendingOwner(), address(0), "UBIPool ownership transferred despite cancellation");
+        assertEq(ipTokenStaking.pendingOwner(), address(0), "IPTokenStaking ownership transferred despite cancellation");
     }
 
-    function _testReceiveOwnershipRestPredeploys() private {
+    function _testCancelReceiveOwnershipRestPredeploys() private {
+        // For this test, we need to simulate that ownership was first transferred
+        vm.startPrank(address(oldTimelock));
+        ubiPool.transferOwnership(newTimelockAddress);
+        ipTokenStaking.transferOwnership(newTimelockAddress);
+        vm.stopPrank();
+        
         // Run the script to generate JSON
         ReceiveOwnershipRestPredeploys script = new ReceiveOwnershipRestPredeploys();
-        script.run(); // Generate operation JSON
+        script.run();
 
-        // Get all transaction JSONs (schedule, cancel, execute)
-        (
-            JSONTxWriter.Transaction memory scheduleTx, 
-            JSONTxWriter.Transaction memory executeTx, 
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-receive-ownerships-rest-predeploys");
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(newTimelock, "safe-migr-receive-ownerships-rest-predeploys");
 
-        // Execute the full timelock flow with verification
-        _rawTimelockTransaction(scheduleTx);
-        
-        // Wait for the timelock delay
-        console2.log("Waiting for timelock delay");
-        vm.warp(block.timestamp + MIN_DELAY + 1);
-
-        // Execute execute transaction
-        console2.log("Executing execute transaction");
-        _rawTimelockTransaction(executeTx);
-
-        // Verify that the rest of the predeploys have new ownership
-        assertEq(ubiPool.owner(), newTimelockAddress, "UBIPool not transferred");
-        assertEq(ipTokenStaking.owner(), newTimelockAddress, "IPTokenStaking not transferred");
-        assertEq(ubiPool.pendingOwner(), address(0), "UBIPool pending owner not cleared");
-        assertEq(ipTokenStaking.pendingOwner(), address(0), "IPTokenStaking pending owner not cleared");
+        // Verify that the rest of the predeploys have not claimed new ownership
+        assertEq(ubiPool.owner(), address(oldTimelock), "UBIPool ownership changed despite cancellation");
+        assertEq(ipTokenStaking.owner(), address(oldTimelock), "IPTokenStaking ownership changed despite cancellation");
+        assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool pending owner changed");
+        assertEq(ipTokenStaking.pendingOwner(), newTimelockAddress, "IPTokenStaking pending owner changed");
     }
 
-    function _testRenounceOwnershipOldMultisig() private {
-        // Run the script to generate JSON
-        RenounceGovernanceRoles script = new RenounceGovernanceRoles();
-        script.run(); // Generate operation JSON
+    /**
+     * @notice Extract operation ID from timelock cancel function call data
+     * @param data The call data from a cancel transaction
+     * @return operationId The extracted operation ID
+     */
+    function _getOperationIdFromCancelData(bytes memory data) internal pure returns (bytes32 operationId) {
+        // The cancel function has the signature: cancel(bytes32)
+        // The first 4 bytes are the function selector, and the next 32 bytes are the operationId
+        require(bytes4(abi.encodePacked(data[0], data[1], data[2], data[3])) == 
+                bytes4(keccak256("cancel(bytes32)")), "Not a cancel function call");
         
-        // Get regular transactions from JSON
-        JSONTxWriter.Transaction[] memory txs = _readRegularTransactionFiles("safe-migr-renounce-gov-roles");
-        
-        // Execute the full timelock flow with verification
-        for (uint256 i = 0; i < txs.length; i++) {
-            console2.log("Executing transaction", i);
-            _rawTimelockTransaction(txs[i]);
+        bytes memory operationIdBytes = new bytes(32);
+        for (uint i = 0; i < 32; i++) {
+            operationIdBytes[i] = data[i + 4];
         }
-
-        // Verify that the old multisig has been renounced
-        assertFalse(newTimelock.hasRole(oldTimelock.PROPOSER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig proposer role not revoked");
-        assertFalse(newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_PROPOSER), "Old multisig canceller role not revoked");
-        assertFalse(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, OLD_TIMELOCK_PROPOSER), "Old multisig admin is not admin");
-        assertFalse(newTimelock.hasRole(oldTimelock.EXECUTOR_ROLE(), OLD_TIMELOCK_EXECUTOR), "Old multisig executor role not revoked");
-        assertFalse(newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN), "Old multisig canceller role not revoked");
         
-        // Verify new multisig has roles
-        assertTrue(newTimelock.hasRole(newTimelock.DEFAULT_ADMIN_ROLE(), SAFE_TIMELOCK_PROPOSER), "New Safe admin is not admin");
-        assertTrue(newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), SAFE_TIMELOCK_PROPOSER), "Old multisig proposer role not revoked");
-        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_PROPOSER), "Old multisig canceller role not revoked");
-        assertTrue(newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), SAFE_TIMELOCK_EXECUTOR), "Old multisig executor role not revoked");
-        assertTrue(newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN), "Old multisig canceller role not revoked");
+        assembly {
+            operationId := mload(add(operationIdBytes, 32))
+        }
+        
+        return operationId;
     }
     
     /**
@@ -485,29 +412,6 @@ contract SafeMigrationScriptsTest is Test {
         (bool success, ) = transaction.to.call{ value: transaction.value }(transaction.data);
         require(success, "Transaction execution failed");
         vm.stopPrank();
-    }
-
-    /**
-     * @notice Extract operation ID from timelock cancel function call data
-     * @param data The call data from a cancel transaction
-     * @return operationId The extracted operation ID
-     */
-    function _getOperationIdFromCancelData(bytes memory data) internal pure returns (bytes32 operationId) {
-        // The cancel function has the signature: cancel(bytes32)
-        // The first 4 bytes are the function selector, and the next 32 bytes are the operationId
-        require(bytes4(abi.encodePacked(data[0], data[1], data[2], data[3])) == 
-                bytes4(keccak256("cancel(bytes32)")), "Not a cancel function call");
-        
-        bytes memory operationIdBytes = new bytes(32);
-        for (uint i = 0; i < 32; i++) {
-            operationIdBytes[i] = data[i + 4];
-        }
-        
-        assembly {
-            operationId := mload(add(operationIdBytes, 32))
-        }
-        
-        return operationId;
     }
 }
 

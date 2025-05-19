@@ -7,13 +7,13 @@ import { console2 } from "forge-std/console2.sol";
 
 import { BaseTransferOwnershipProxyAdmin } from "script/admin-actions/migrate-to-safe/BaseTransferOwnershipProxyAdmin.s.sol";
 
-/// @title TransferOwnershipsProxyAdmin2
+/// @title TransferOwnershipsProxyAdmin3
 /// @notice Generates json files with the timelocked operations to transfer the ownership of proxy admins
-/// from index 512 to 768
-contract TransferOwnershipsProxyAdmin2 is BaseTransferOwnershipProxyAdmin {
+/// from index 256 to 512
+contract TransferOwnershipsProxyAdmin3 is BaseTransferOwnershipProxyAdmin {
     constructor() BaseTransferOwnershipProxyAdmin(
-        "safe-migr-transfer-ownerships-proxy-admin-2",
-        513, // fromIndex
-        768 // toIndex
+        "safe-migr-transfer-ownerships-proxy-admin-3",
+        257, // fromIndex
+        512 // toIndex
     ) {}
 }

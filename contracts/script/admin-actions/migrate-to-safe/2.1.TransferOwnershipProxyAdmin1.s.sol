@@ -5,63 +5,15 @@ pragma solidity 0.8.23;
 import { console2 } from "forge-std/console2.sol";
 /* solhint-disable max-line-length */
 
-import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
-import { Create3 } from "src/deploy/Create3.sol";
+import { BaseTransferOwnershipProxyAdmin } from "script/admin-actions/migrate-to-safe/BaseTransferOwnershipProxyAdmin.s.sol";
 
 /// @title TransferOwnershipsProxyAdmin1
-/// @notice Generates json files with the timelocked operations to transfer the ownership of half of the proxy admins to the new timelock.abi
-/// We start with the last half of the proxy admins and move backwards, to test the migration in case of failure.
-contract TransferOwnershipsProxyAdmin1 is TimelockOperations {
-
-    TimelockController public newTimelock;
-
-    address[] public from;
-
-    constructor() TimelockOperations("safe-migr-transfer-ownerships-proxy-admin-1") {
-        from = new address[](3);
-        from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
-        from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");
-        from[2] = vm.envAddress("OLD_TIMELOCK_GUARDIAN");
-        bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
-        address newTimelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
-        newTimelock = TimelockController(payable(newTimelockAddress));
-    }
-
-    /// @dev the old timelock will execute the operations
-    function _getTargetTimelock() internal virtual override returns (address) {
-        return vm.envAddress("OLD_TIMELOCK_ADDRESS");
-    }
-
-    function _generate() internal virtual override {
-        require(address(newTimelock) != address(0), "Timelock not deployed");
-        require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
-        uint256 targetsLength = Predeploys.NamespaceSize / 2;
-        console2.log("targetsLength", targetsLength);
-
-        address[] memory targets = new address[](targetsLength);
-        for (uint160 i = 0; i < targetsLength; i++) {
-            console2.log("i", i);
-            // Get proxy admins for each predeploy with the EIP1967 helper
-            address predeploy = address(uint160(Predeploys.Namespace) + i + uint160(targetsLength));
-            console2.log("predeploy", predeploy);
-            address proxyAdmin = EIP1967Helper.getAdmin(predeploy);
-            console2.log("proxyAdmin", proxyAdmin);
-            targets[i] = proxyAdmin;
-        }
-
-        bytes4 selector = Ownable.transferOwnership.selector;
-        bytes[] memory data = new bytes[](targetsLength);
-        for (uint160 i = 0; i < targetsLength; i++) {
-            data[i] = abi.encodeWithSelector(selector, address(newTimelock));
-        }
-        uint256[] memory values = new uint256[](targetsLength);
-
-        _generateBatchAction(from, targets, values, data, bytes32(0), bytes32(0), minDelay);
-    }
-
+/// @notice Generates json files with the timelocked operations to transfer the ownership of the
+/// last 256 proxy admins to the new timelock
+contract TransferOwnershipsProxyAdmin1 is BaseTransferOwnershipProxyAdmin {
+    constructor() BaseTransferOwnershipProxyAdmin(
+        "safe-migr-transfer-ownerships-proxy-admin-1",
+        769, // fromIndex
+        1024 // toIndex
+    ) {}
 }

@@ -62,7 +62,6 @@ contract DeployNewTimelock is Script {
         proposers[1] = oldTimelockProposer;
         console2.log("proposers", proposers[0], proposers[1]);
 
-
         // Executor can be address(0), public execution
         address timelockExecutor = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
         address[] memory timelockExecutors = new address[](2);
