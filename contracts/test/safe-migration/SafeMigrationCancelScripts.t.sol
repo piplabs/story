@@ -67,6 +67,10 @@ contract SafeMigrationCancelScriptsTest is Test {
         OLD_TIMELOCK_EXECUTOR = admin;
         OLD_TIMELOCK_GUARDIAN = admin;
 
+        // Create output directory if it doesn't exist
+        string memory outputDir = string.concat(OUTPUT_DIR, "31337/");
+        vm.createDir(outputDir, true);
+
         oldTimelock = timelock;
 
         // Setup environment variables

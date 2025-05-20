@@ -64,6 +64,10 @@ contract SafeMigrationScriptsTest is Test {
 
     function setUp() public override {
         super.setUp();
+        // Create output directory if it doesn't exist
+        string memory outputDir = string.concat(OUTPUT_DIR, "31337/");
+        vm.createDir(outputDir, true);
+
         OLD_TIMELOCK_PROPOSER = admin;
         OLD_TIMELOCK_EXECUTOR = admin;
         OLD_TIMELOCK_GUARDIAN = admin;
