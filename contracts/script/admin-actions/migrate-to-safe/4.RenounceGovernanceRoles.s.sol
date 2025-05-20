@@ -1,22 +1,17 @@
 /* solhint-disable no-console */
+/* solhint-disable max-line-length */
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-
-import { console2 } from "forge-std/console2.sol";
-/* solhint-disable max-line-length */
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
 import { Create3 } from "src/deploy/Create3.sol";
 
 /// @title RenounceGovernanceRoles
 /// @notice Generates json files with the timelocked operations to renounce roles from the old timelock
 contract RenounceGovernanceRoles is TimelockOperations {
-
     TimelockController public newTimelock;
 
     address[] public from;
@@ -70,7 +65,6 @@ contract RenounceGovernanceRoles is TimelockOperations {
             string.concat("Renounce default admin role old multisig")
         );
 
-
         // Renounce executor role
         _saveTx(
             Operation.REGULAR_TX,
@@ -90,5 +84,4 @@ contract RenounceGovernanceRoles is TimelockOperations {
             string.concat("Renounce canceller role old guardian multisig")
         );
     }
-
 }

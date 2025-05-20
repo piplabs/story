@@ -4,20 +4,16 @@ pragma solidity 0.8.23;
 
 import { console2 } from "forge-std/console2.sol";
 import { Script } from "forge-std/Script.sol";
-
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
-
 import { Create3 } from "src/deploy/Create3.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title DeployNewTimelock
 /// @notice Deploy a new TimelockController governed by the new multisigs
 contract DeployNewTimelock is Script {
-
     function run() public virtual {
         require(!isTimelockDeployed(), "TimelockController already deployed");
         deployTimelock();
-
     }
 
     /// @notice Check if the TimelockController is deployed
@@ -33,10 +29,10 @@ contract DeployNewTimelock is Script {
         TimelockController timelock = TimelockController(payable(timelockAddress));
 
         // Check if timelock has a minDelay and assigned proposer role as proof of deployment
-        if (timelock.getMinDelay() == 0 || !timelock.hasRole(
-            timelock.PROPOSER_ROLE(),
-            vm.envAddress("SAFE_TIMELOCK_PROPOSER")
-        )) {
+        if (
+            timelock.getMinDelay() == 0 ||
+            !timelock.hasRole(timelock.PROPOSER_ROLE(), vm.envAddress("SAFE_TIMELOCK_PROPOSER"))
+        ) {
             revert("wrong timelock controller deployment");
         }
         return true;
@@ -92,7 +88,7 @@ contract DeployNewTimelock is Script {
         );
 
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
-        
+
         address newTimelockAddress = Create3(Predeploys.Create3).deployDeterministic(creationCode, salt);
         console2.log("Deployed TimelockController at address:", newTimelockAddress);
         console2.log("Temporary root admin:", deployer);
@@ -101,24 +97,15 @@ contract DeployNewTimelock is Script {
         TimelockController newTimelock = TimelockController(payable(newTimelockAddress));
 
         for (uint256 i = 0; i < timelockCancellers.length; i++) {
-            newTimelock.grantRole(
-                newTimelock.CANCELLER_ROLE(),
-                timelockCancellers[i]
-            );
+            newTimelock.grantRole(newTimelock.CANCELLER_ROLE(), timelockCancellers[i]);
         }
         console2.log("timelockCancellers", timelockCancellers[0], timelockCancellers[1]);
 
         // WARNING: Revoke this role after migration
-        newTimelock.grantRole(
-            newTimelock.DEFAULT_ADMIN_ROLE(),
-            oldTimelockProposer
-        );
+        newTimelock.grantRole(newTimelock.DEFAULT_ADMIN_ROLE(), oldTimelockProposer);
         console2.log("Granted DEFAULT_ADMIN_ROLE to oldTimelockProposer", oldTimelockProposer);
         // WARNING: Consider revoking this role after migration
-        newTimelock.grantRole(
-            newTimelock.DEFAULT_ADMIN_ROLE(),
-            timelockProposer
-        );
+        newTimelock.grantRole(newTimelock.DEFAULT_ADMIN_ROLE(), timelockProposer);
         console2.log("Granted DEFAULT_ADMIN_ROLE to timelockProposer", timelockProposer);
 
         newTimelock.renounceRole(
@@ -129,5 +116,4 @@ contract DeployNewTimelock is Script {
 
         vm.stopBroadcast();
     }
-
 }

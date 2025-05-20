@@ -6,21 +6,19 @@ import { console2 } from "forge-std/console2.sol";
 import { Script } from "forge-std/Script.sol";
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 // script
 import { JSONTxWriter } from "./JSONTxWriter.s.sol";
-import { StringUtil } from "./StringUtil.sol";
 
 /**
  * @title TimelockOperations
- * @notice Script to generate tx json to schedule, execute, and cancel upgrades for the protocol through the TimelockController
+ * @notice Script to generate tx json to schedule, execute, and cancel upgrades for the protocol
+ * through the TimelockController
  * via multisig.
  */
 abstract contract TimelockOperations is Script, JSONTxWriter {
-
     /// @notice timelock controller
     TimelockController public timelock;
 
@@ -40,9 +38,7 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
 
     /// @notice constructor
     /// @param _action the action name, will be used in the name of the tx json file
-    constructor(string memory _action) JSONTxWriter(_action) {
-
-    }
+    constructor(string memory _action) JSONTxWriter(_action) {}
 
     /// @notice get the current timelock
     /// @return the address of the current timelock (owner of IPTokenStaking)
@@ -174,7 +170,8 @@ abstract contract TimelockOperations is Script, JSONTxWriter {
         _saveTx(Operation.CANCEL, from, address(timelock), value, _txData, string.concat(action, "-cancel"));
     }
 
-    /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch, and TimelockController.cancel
+    /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch,
+    /// and TimelockController.cancel
     /// @param from The addresses of the sender for the schedule, execute, and cancel
     /// @param targets The addresses of the contracts to call
     /// @param values The values to send with the calls

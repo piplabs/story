@@ -1,17 +1,13 @@
 /* solhint-disable no-console */
+/* solhint-disable max-line-length */
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-
-import { console2 } from "forge-std/console2.sol";
-/* solhint-disable max-line-length */
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { Create3 } from "src/deploy/Create3.sol";
 
 /// @title TransferOwnershipsRestPredeploys
@@ -19,7 +15,6 @@ import { Create3 } from "src/deploy/Create3.sol";
 /// This will transfer IPTokenStaking and UBIPool to the new timelock.
 /// This contract is Ownable2StepUpgradeable, so we need to accept ownership transfer from the new timelock in the next step.
 contract TransferOwnershipsRestPredeploys is TimelockOperations {
-
     TimelockController public newTimelock;
 
     address[] public from;
@@ -57,5 +52,4 @@ contract TransferOwnershipsRestPredeploys is TimelockOperations {
 
         _generateBatchAction(from, targets, values, data, bytes32(0), bytes32(0), minDelay);
     }
-
 }

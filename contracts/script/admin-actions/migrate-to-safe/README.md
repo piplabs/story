@@ -14,7 +14,7 @@ Script: [1.DeployNewTimelock.s.sol](./1.DeployNewTimelock.s.sol)
 
 ![Migration diagram 2](./images/2.migration.png)
 
-## 2. Transfer ownership of ProxyAdmins (proxy upgradeability) from old to new TimelockController 
+## 2. Transfer ownership of ProxyAdmins (proxy upgradeability) from old to new TimelockController
 This process is split into multiple steps to reduce risk:
 
 ### 2.1 Transfer ownership of the first quarter of ProxyAdmins
@@ -37,7 +37,7 @@ The old TimelockController transfers ownership of the final quarter of predeploy
 
 Script: [2.4.TransferOwnershipProxyAdmin4.s.sol](./2.4.TransferOwnershipProxyAdmin4.s.sol)
 
-## 3. Transfer ownership of Proxies in use from old to new TimelockController 
+## 3. Transfer ownership of Proxies in use from old to new TimelockController
 
 Transfering these needs 2 steps because they are `Owneable2Step` instead of `Owneable`. New owner must create a transaction calling `acceptOwnership()` to finish the process.
 
@@ -71,5 +71,3 @@ Script: [4.RenounceGovernanceRoles.sol](./4.RenounceGovernanceRoles.sol)
 ![Migration diagram 3](./images/3.migration.png)
 
 Each step corresponds to a specific script in this directory that generates the necessary transaction payloads for the timelock controllers.
-
-

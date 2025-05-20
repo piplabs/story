@@ -1,22 +1,28 @@
+/* solhint-disable no-console */
+
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.23;
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { console2 } from "forge-std/console2.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { EIP1967Helper } from "../utils/EIP1967Helper.sol";
 
 /// @title UpgradeTransparentProxy
-/// @notice Helper script that generates a json file with the timelocked operations to upgrade a TransparentUpgradeableProxy
+/// @notice Helper script that generates a json file with the timelocked operations
+///to upgrade a TransparentUpgradeableProxy
 abstract contract UpgradeTransparentProxy is TimelockOperations {
     // The addresses of the sender
     address[] public from;
     // The operation salt for deterministic operation ID
     bytes32 public salt;
 
-    constructor(string memory message, address scheduler, address executor, address canceler, bytes32 _salt) TimelockOperations(message) {
+    constructor(
+        string memory message,
+        address scheduler,
+        address executor,
+        address canceler,
+        bytes32 _salt
+    ) TimelockOperations(message) {
         from = new address[](3);
         from[0] = scheduler;
         from[1] = executor;
@@ -46,9 +52,15 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
             address[] memory newImplementationAddresses,
             address[] memory proxyAdminAddresses
         ) = _getAddresses();
-        require(proxyAddresses.length == newImplementationAddresses.length, "Proxy and new implementation addresses must be the same length");
+        require(
+            proxyAddresses.length == newImplementationAddresses.length,
+            "Proxy and new implementation addresses must be the same length"
+        );
         require(proxyAddresses.length > 0, "At least one proxy address must be provided");
-        require(proxyAddresses.length == newImplementationAddresses.length, "Proxy and new implementation addresses must be the same length");
+        require(
+            proxyAddresses.length == newImplementationAddresses.length,
+            "Proxy and new implementation addresses must be the same length"
+        );
 
         // Get the proxy admin address from the proxy
         proxyAdminAddresses = new address[](proxyAddresses.length);
@@ -57,7 +69,10 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
             console2.log("New implementation:", newImplementationAddresses[i]);
             proxyAdminAddresses[i] = EIP1967Helper.getAdmin(proxyAddresses[i]);
         }
-        require(proxyAddresses.length == proxyAdminAddresses.length, "Proxy and proxy admin addresses must be the same length");
+        require(
+            proxyAddresses.length == proxyAdminAddresses.length,
+            "Proxy and proxy admin addresses must be the same length"
+        );
 
         // If there is only one proxy, we use the method for single operation
         if (proxyAddresses.length == 1) {
@@ -87,15 +102,7 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
                     ""
                 );
             }
-            _generateBatchAction(
-                from,
-                proxyAdminAddresses,
-                values,
-                data,
-                bytes32(0),
-                salt,
-                minDelay
-            );
+            _generateBatchAction(from, proxyAdminAddresses, values, data, bytes32(0), salt, minDelay);
         }
     }
 }

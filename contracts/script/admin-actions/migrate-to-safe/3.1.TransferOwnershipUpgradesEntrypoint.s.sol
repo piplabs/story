@@ -2,15 +2,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
-import { console2 } from "forge-std/console2.sol";
 /* solhint-disable max-line-length */
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { Create3 } from "src/deploy/Create3.sol";
 
 /// @title TransferOwnershipsUpgradesEntrypoint
@@ -18,7 +15,6 @@ import { Create3 } from "src/deploy/Create3.sol";
 /// We start with UpgradesEntrypoint and move backwards, to test the migration in case of failure.
 /// This contract is Ownable2StepUpgradeable, so we need to accept ownership transfer from the new timelock in the next step.
 contract TransferOwnershipsUpgradesEntrypoint is TimelockOperations {
-
     TimelockController public newTimelock;
 
     address[] public from;
@@ -43,7 +39,14 @@ contract TransferOwnershipsUpgradesEntrypoint is TimelockOperations {
         require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
 
         bytes4 selector = Ownable2StepUpgradeable.transferOwnership.selector;
-        _generateAction(from, address(Predeploys.Upgrades), 0, abi.encodeWithSelector(selector, address(newTimelock)), bytes32(0), bytes32(0), minDelay);
+        _generateAction(
+            from,
+            address(Predeploys.Upgrades),
+            0,
+            abi.encodeWithSelector(selector, address(newTimelock)),
+            bytes32(0),
+            bytes32(0),
+            minDelay
+        );
     }
-
 }

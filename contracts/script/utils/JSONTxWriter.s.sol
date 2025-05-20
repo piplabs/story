@@ -1,5 +1,7 @@
+/* solhint-disable no-console */
+/* solhint-disable quotes */
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity 0.8.23;
 
 import { Script } from "forge-std/Script.sol";
 import { stdJson } from "forge-std/StdJson.sol";

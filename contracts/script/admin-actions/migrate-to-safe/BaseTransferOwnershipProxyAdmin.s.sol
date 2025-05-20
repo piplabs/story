@@ -1,14 +1,13 @@
 /* solhint-disable no-console */
+/* solhint-disable max-line-length */
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
 import { console2 } from "forge-std/console2.sol";
-/* solhint-disable max-line-length */
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { Create3 } from "src/deploy/Create3.sol";
@@ -17,7 +16,6 @@ import { Create3 } from "src/deploy/Create3.sol";
 /// @notice Base contract to generate json files with the timelocked operations to transfer the ownership of half of the proxy admins to the new timelock.abi
 /// We start with the last half of the proxy admins and move backwards, to test the migration in case of failure.
 abstract contract BaseTransferOwnershipProxyAdmin is TimelockOperations {
-
     TimelockController public newTimelock;
 
     address[] public from;
@@ -62,7 +60,7 @@ abstract contract BaseTransferOwnershipProxyAdmin is TimelockOperations {
             address proxyAdmin = EIP1967Helper.getAdmin(predeploy);
             console2.log("proxyAdmin", proxyAdmin);
             console2.log("fuck");
-            uint160 targetIndex = i-fromIndex;
+            uint160 targetIndex = i - fromIndex;
             console2.log(targetIndex);
             targets[targetIndex] = proxyAdmin;
         }
@@ -76,5 +74,4 @@ abstract contract BaseTransferOwnershipProxyAdmin is TimelockOperations {
 
         _generateBatchAction(from, targets, values, data, bytes32(0), bytes32(0), minDelay);
     }
-
 }

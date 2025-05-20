@@ -1,13 +1,11 @@
+/* solhint-disable no-console */
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
-import { ChainIds } from "script/utils/ChainIds.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IUBIPool } from "src/interfaces/IUBIPool.sol";
 import { console2 } from "forge-std/console2.sol";
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 /// @notice Helper script that generates a json file with the timelocked operation to set the UBI percentage
 /// @dev Set in the constructor Modes.SCHEDULE to run _scheduleActions, Modes.EXECUTE to run _executeActions

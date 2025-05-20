@@ -1,22 +1,18 @@
 /* solhint-disable no-console */
+/* solhint-disable max-line-length */
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
 import { console2 } from "forge-std/console2.sol";
-/* solhint-disable max-line-length */
-
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-import { EIP1967Helper } from "script/utils/EIP1967Helper.sol";
 import { Create3 } from "src/deploy/Create3.sol";
 
 /// @title ReceiveOwnershipUpgradesEntryPoint
 /// @notice Generates json files with the timelocked operations to receive the ownership of the contracts from the old timelock
 contract ReceiveOwnershipUpgradesEntryPoint is TimelockOperations {
-
     TimelockController public newTimelock;
 
     address[] public from;
@@ -42,7 +38,14 @@ contract ReceiveOwnershipUpgradesEntryPoint is TimelockOperations {
 
     function _generate() internal virtual override {
         bytes4 selector = Ownable2StepUpgradeable.acceptOwnership.selector;
-        _generateAction(from, address(Predeploys.Upgrades), 0, abi.encodeWithSelector(selector), bytes32(0), bytes32(0), minDelay);
+        _generateAction(
+            from,
+            address(Predeploys.Upgrades),
+            0,
+            abi.encodeWithSelector(selector),
+            bytes32(0),
+            bytes32(0),
+            minDelay
+        );
     }
-
 }
