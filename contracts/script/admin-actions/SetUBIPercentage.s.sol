@@ -1,24 +1,25 @@
+/* solhint-disable no-console */
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
 import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
-import { ChainIds } from "script/utils/ChainIds.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IUBIPool } from "src/interfaces/IUBIPool.sol";
 import { console2 } from "forge-std/console2.sol";
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 /// @notice Helper script that generates a json file with the timelocked operation to set the UBI percentage
 /// @dev Set in the constructor Modes.SCHEDULE to run _scheduleActions, Modes.EXECUTE to run _executeActions
 /// or Modes.CANCEL to run _cancelActions
 contract SetUBIPercentage is TimelockOperations {
-    address from;
+    address[] public from;
     uint32 public percentage = 500; // 5.00%
 
     constructor() TimelockOperations("set-ubi-percentage-5%") {
-        from = vm.envAddress("ADMIN_ADDRESS");
-        console2.log("from", from);
+        from = new address[](3);
+        from[0] = vm.envAddress("ADMIN_ADDRESS");
+        from[1] = vm.envAddress("ADMIN_ADDRESS");
+        from[2] = vm.envAddress("ADMIN_ADDRESS");
+        console2.log("from", from[0], from[1], from[2]);
     }
 
     function _getTargetTimelock() internal view virtual override returns (address) {

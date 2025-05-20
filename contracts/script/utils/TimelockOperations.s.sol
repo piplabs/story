@@ -6,21 +6,19 @@ import { console2 } from "forge-std/console2.sol";
 import { Script } from "forge-std/Script.sol";
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 // script
-import { TimelockJSONTxWriter } from "./TimelockJSONTxWriter.s.sol";
-import { StringUtil } from "./StringUtil.sol";
+import { JSONTxWriter } from "./JSONTxWriter.s.sol";
 
 /**
  * @title TimelockOperations
- * @notice Script to generate tx json to schedule, execute, and cancel upgrades for the protocol through the TimelockController
+ * @notice Script to generate tx json to schedule, execute, and cancel upgrades for the protocol
+ * through the TimelockController
  * via multisig.
  */
-abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
-
+abstract contract TimelockOperations is Script, JSONTxWriter {
     /// @notice timelock controller
     TimelockController public timelock;
 
@@ -30,11 +28,17 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
     /// @notice constant to use the current timelock (owner of IPTokenStaking)
     address constant USE_CURRENT_TIMELOCK = 0x1111111111111111111111111111111111111111;
 
+    modifier verifyFrom(address[] memory from) {
+        require(from.length == 3, "TimelockOperations: from must be an array of 3 addresses");
+        require(from[0] != address(0), "TimelockOperations: scheduler must be a valid address");
+        require(from[1] != address(0), "TimelockOperations: executor must be a valid address");
+        require(from[2] != address(0), "TimelockOperations: canceler must be a valid address");
+        _;
+    }
+
     /// @notice constructor
     /// @param _action the action name, will be used in the name of the tx json file
-    constructor(string memory _action) TimelockJSONTxWriter(_action) {
-
-    }
+    constructor(string memory _action) JSONTxWriter(_action) {}
 
     /// @notice get the current timelock
     /// @return the address of the current timelock (owner of IPTokenStaking)
@@ -54,8 +58,10 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
         }
 
         minDelay = timelock.getMinDelay();
+        console2.log("Timelock deployed at", address(timelock));
+        console2.log("Generating actions...");
         _generate();
-        console2.log("Generating tx json...");
+        console2.log("Writing tx json...");
         _writeFiles();
     }
 
@@ -68,7 +74,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
     function _generate() internal virtual;
 
     /// @notice generate the 3 JSON (schedule, execute, cancel) for a single target
-    /// @param from The address of the sender
+    /// @param from The addresses of the sender for the schedule, execute, and cancel
     /// @param target The address of the contract to call
     /// @param value The value to send with the call
     /// @param data The encoded target method call
@@ -76,17 +82,17 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
     /// @param salt The salt for the timelock operation (optional, needed for calls with repeated `data`)
     /// @param delay The delay for the timelock operation. 0 is minimum delay
     function _generateAction(
-        address from,
+        address[] memory from,
         address target,
         uint256 value,
         bytes memory data,
         bytes32 predecessor,
         bytes32 salt,
         uint256 delay
-    ) internal {
-        _scheduleAction(from, target, value, data, predecessor, salt, delay);
-        _executeAction(from, target, value, data, predecessor, salt);
-        _cancelAction(from, target, value, data, predecessor, salt);
+    ) internal verifyFrom(from) {
+        _scheduleAction(from[0], target, value, data, predecessor, salt, delay);
+        _executeAction(from[1], target, value, data, predecessor, salt);
+        _cancelAction(from[2], target, value, data, predecessor, salt);
     }
 
     /// @notice Encodes the call to TimelockController.schedule
@@ -115,7 +121,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             salt,
             delay
         );
-        _saveTx(TimelockOp.SCHEDULE, from, address(timelock), value, _txData, string.concat(action, "-schedule"));
+        _saveTx(Operation.SCHEDULE, from, address(timelock), value, _txData, string.concat(action, "-schedule"));
     }
 
     /// @notice Encodes the call to TimelockController.execute
@@ -140,7 +146,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             predecessor,
             salt
         );
-        _saveTx(TimelockOp.EXECUTE, from, address(timelock), value, _txData, string.concat(action, "-execute"));
+        _saveTx(Operation.EXECUTE, from, address(timelock), value, _txData, string.concat(action, "-execute"));
     }
 
     /// @notice Encodes the call to TimelockController.cancel
@@ -161,11 +167,12 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             TimelockController.cancel.selector,
             timelock.hashOperation(target, value, data, predecessor, salt)
         );
-        _saveTx(TimelockOp.CANCEL, from, address(timelock), value, _txData, string.concat(action, "-cancel"));
+        _saveTx(Operation.CANCEL, from, address(timelock), value, _txData, string.concat(action, "-cancel"));
     }
 
-    /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch, and TimelockController.cancel
-    /// @param from The address of the sender
+    /// @notice Encodes calls to TimelockController.scheduleBatch, TimelockController.executeBatch,
+    /// and TimelockController.cancel
+    /// @param from The addresses of the sender for the schedule, execute, and cancel
     /// @param targets The addresses of the contracts to call
     /// @param values The values to send with the calls
     /// @param data The encoded target method calls
@@ -173,17 +180,17 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
     /// @param salt The salt for the timelock operation (optional, needed for calls with repeated `data`)
     /// @param delay The delay for the timelock operation. 0 is minimum delay
     function _generateBatchAction(
-        address from,
+        address[] memory from,
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory data,
         bytes32 predecessor,
         bytes32 salt,
         uint256 delay
-    ) internal {
-        _scheduleBatchAction(from, targets, values, data, predecessor, salt, delay);
-        _executeBatchAction(from, targets, values, data, predecessor, salt);
-        _cancelBatchAction(from, targets, values, data, predecessor, salt);
+    ) internal verifyFrom(from) {
+        _scheduleBatchAction(from[0], targets, values, data, predecessor, salt, delay);
+        _executeBatchAction(from[1], targets, values, data, predecessor, salt);
+        _cancelBatchAction(from[2], targets, values, data, predecessor, salt);
     }
 
     /// @notice Encodes the call to TimelockController.scheduleBatch
@@ -213,7 +220,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             delay
         );
         _saveTx(
-            TimelockOp.SCHEDULE,
+            Operation.SCHEDULE,
             from,
             address(timelock),
             _sumValues(values),
@@ -246,7 +253,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             salt
         );
         _saveTx(
-            TimelockOp.EXECUTE,
+            Operation.EXECUTE,
             from,
             address(timelock),
             _sumValues(values),
@@ -275,7 +282,7 @@ abstract contract TimelockOperations is Script, TimelockJSONTxWriter {
             timelock.hashOperationBatch(targets, values, data, predecessor, salt)
         );
         _saveTx(
-            TimelockOp.CANCEL,
+            Operation.CANCEL,
             from,
             address(timelock),
             _sumValues(values),

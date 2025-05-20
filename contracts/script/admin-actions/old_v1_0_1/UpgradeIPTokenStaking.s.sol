@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.23;
 
 import { UpgradeTransparentProxy } from "../../utils/UpgradeTransparentProxy.s.sol";
 
@@ -8,8 +8,9 @@ contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
     constructor()
         UpgradeTransparentProxy(
             "upgrade-staking-v1_0_1", // file name
-            address(0), // timelock address (current timelock)
-            vm.envAddress("PROPOSER_ADDRESS"), // Schedule proposer address
+            vm.envAddress("OLD_TIMELOCK_PROPOSER"),
+            vm.envAddress("OLD_TIMELOCK_EXECUTOR"),
+            vm.envAddress("OLD_TIMELOCK_GUARDIAN"),
             bytes32(0) // salt
         )
     {}
