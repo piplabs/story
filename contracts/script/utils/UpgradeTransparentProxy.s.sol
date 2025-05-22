@@ -34,10 +34,9 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
 
     /// @notice Get the addresses of the proxy, new implementation, and proxy admin
     /// @dev Should be overridden by the child contract
-    /// @return proxyAddresses The addresses of the proxies
+    /// @return proxyAddresses The addresses of the proxies. Proxy admin addresses will be retrieved from the proxies
     /// @return newImplementationAddresses The addresses of the new implementations
-    /// @return proxyAdminAddresses The addresses of the proxy admins
-    function _getAddresses() internal view virtual returns (address[] memory, address[] memory, address[] memory);
+    function _getAddresses() internal view virtual returns (address[] memory, address[] memory);
 
     /// @notice Provide the target timelock to TimelockOperations
     /// @return currentTimelock
@@ -49,8 +48,7 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
     function _generate() internal virtual override {
         (
             address[] memory proxyAddresses,
-            address[] memory newImplementationAddresses,
-            address[] memory proxyAdminAddresses
+            address[] memory newImplementationAddresses
         ) = _getAddresses();
         require(
             proxyAddresses.length == newImplementationAddresses.length,
@@ -63,7 +61,7 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
         );
 
         // Get the proxy admin address from the proxy
-        proxyAdminAddresses = new address[](proxyAddresses.length);
+        address[] memory proxyAdminAddresses = new address[](proxyAddresses.length);
         for (uint256 i = 0; i < proxyAddresses.length; i++) {
             console2.log("Proxy address:", proxyAddresses[i]);
             console2.log("New implementation:", newImplementationAddresses[i]);

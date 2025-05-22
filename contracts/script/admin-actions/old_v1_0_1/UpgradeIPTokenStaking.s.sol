@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 import { UpgradeTransparentProxy } from "../../utils/UpgradeTransparentProxy.s.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @notice Script to upgrade the IPTokenStaking contract through a timelock
 contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
@@ -21,16 +22,13 @@ contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
         override
         returns (
             address[] memory proxyAddresses,
-            address[] memory newImplementationAddresses,
-            address[] memory proxyAdminAddresses
+            address[] memory newImplementationAddresses
         )
     {
         proxyAddresses = new address[](1);
-        proxyAddresses[0] = vm.envAddress("PROXY_ADDRESS");
+        proxyAddresses[0] = Predeploys.Staking;
         newImplementationAddresses = new address[](1);
         newImplementationAddresses[0] = vm.envAddress("NEW_IMPLEMENTATION_ADDRESS");
-        proxyAdminAddresses = new address[](1);
-        proxyAdminAddresses[0] = vm.envAddress("PROXY_ADMIN_ADDRESS");
-        return (proxyAddresses, newImplementationAddresses, proxyAdminAddresses);
+        return (proxyAddresses, newImplementationAddresses);
     }
 }
