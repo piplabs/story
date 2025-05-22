@@ -10,7 +10,7 @@ contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
             "upgrade-staking-v1_0_1", // file name
             vm.envAddress("OLD_TIMELOCK_PROPOSER"),
             vm.envAddress("OLD_TIMELOCK_EXECUTOR"),
-            vm.envAddress("OLD_TIMELOCK_GUARDIAN"),
+            vm.envAddress("OLD_TIMELOCK_CANCELLER"),
             bytes32(0) // salt
         )
     {}
