@@ -35,6 +35,12 @@ contract RenounceGovernanceRoles is TimelockOperations {
     function _generate() internal virtual override {
         require(address(newTimelock) != address(0), "Timelock not deployed");
         require(address(newTimelock) == address(currentTimelock()), "Renouncing before timelock migration");
+        // Just in case
+        for (uint256 i = 0; i < from.length; i++) {
+            require(from[i] != vm.envAddress("SAFE_TIMELOCK_PROPOSER"), "From address is Safe proposer");
+            require(from[i] != vm.envAddress("SAFE_TIMELOCK_EXECUTOR"), "From address is Safe executor");
+            require(from[i] != vm.envAddress("SAFE_TIMELOCK_GUARDIAN"), "From address is Safe guardian");
+        }
 
         bytes4 selector = AccessControl.renounceRole.selector;
 
