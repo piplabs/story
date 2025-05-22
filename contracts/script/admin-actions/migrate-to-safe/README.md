@@ -1,5 +1,6 @@
 # Migration of current multisig to a Safe
 
+Each step corresponds to a specific script in this directory that generates the necessary transaction payloads for the timelock controllers.
 
 Current Predeploys and their upgradeability are governed by a `TimelockController`, operated by 2 multisigs (Proposer + Security Council)
 
@@ -9,6 +10,8 @@ In order to change that multisig, we need to follow these steps:
 
 ## 1. Deploy a new TimelockController
 Deploy a new TimelockController governed by the new multisigs (still Proposer + Security Council multisigs, but different technology).
+In case the new multisig doesn't work for some reason, the Timelock starts with the old multisig also holding the correspondent roles.
+To prevent the need for this operation again, the new Timelock is going to have the proposers be also root admins (to grant roles), at least for some time.
 
 Script: [1.DeployNewTimelock.s.sol](./1.DeployNewTimelock.s.sol)
 
@@ -63,11 +66,16 @@ The new timelock accepts ownership of IPTokenStaking and UBIPool.
 
 Script: [3.4.ReceiveOwnershipRestPredeploys.s.sol](./3.4.ReceiveOwnershipRestPredeploys.s.sol)
 
-## 4. Finalize the migration
-After checking that everything works correctly, old multisigs renounce roles to complete the transition.
-
-Script: [4.RenounceGovernanceRoles.sol](./4.RenounceGovernanceRoles.sol)
+We are now here:
 
 ![Migration diagram 3](./images/3.migration.png)
 
-Each step corresponds to a specific script in this directory that generates the necessary transaction payloads for the timelock controllers.
+## 4. Finalize the migration
+After checking that everything works correctly, old multisigs renounce roles to complete the transition.
+
+![Migration diagram 4](./images/4.migration.png)
+
+Script: [4.RenounceGovernanceRoles.sol](./4.RenounceGovernanceRoles.sol)
+
+
+
