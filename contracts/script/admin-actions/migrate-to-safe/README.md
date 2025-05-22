@@ -76,6 +76,3 @@ After checking that everything works correctly, old multisigs renounce roles to 
 ![Migration diagram 4](./images/4.migration.png)
 
 Script: [4.RenounceGovernanceRoles.sol](./4.RenounceGovernanceRoles.sol)
-
-
-
