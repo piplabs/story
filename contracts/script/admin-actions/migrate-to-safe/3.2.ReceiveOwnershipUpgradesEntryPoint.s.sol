@@ -21,7 +21,7 @@ contract ReceiveOwnershipUpgradesEntryPoint is TimelockOperations {
         from = new address[](3);
         from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
-        from[2] = vm.envAddress("SAFE_TIMELOCK_GUARDIAN");
+        from[2] = vm.envAddress("SAFE_TIMELOCK_CANCELLER");
 
         console2.log("from---------->", from[0], from[1], from[2]);
     }
