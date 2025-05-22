@@ -20,7 +20,7 @@ contract RenounceGovernanceRoles is TimelockOperations {
         from = new address[](3);
         from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");
-        from[2] = vm.envAddress("OLD_TIMELOCK_GUARDIAN");
+        from[2] = vm.envAddress("OLD_TIMELOCK_CANCELLER");
     }
 
     /// @dev target timelock is the newer timelock
@@ -39,7 +39,7 @@ contract RenounceGovernanceRoles is TimelockOperations {
         for (uint256 i = 0; i < from.length; i++) {
             require(from[i] != vm.envAddress("SAFE_TIMELOCK_PROPOSER"), "From address is Safe proposer");
             require(from[i] != vm.envAddress("SAFE_TIMELOCK_EXECUTOR"), "From address is Safe executor");
-            require(from[i] != vm.envAddress("SAFE_TIMELOCK_GUARDIAN"), "From address is Safe guardian");
+            require(from[i] != vm.envAddress("SAFE_TIMELOCK_CANCELLER"), "From address is Safe guardian");
         }
 
         bytes4 selector = AccessControl.renounceRole.selector;

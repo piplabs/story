@@ -23,7 +23,7 @@ contract TransferOwnershipsRestPredeploys is TimelockOperations {
         from = new address[](3);
         from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");
-        from[2] = vm.envAddress("OLD_TIMELOCK_GUARDIAN");
+        from[2] = vm.envAddress("OLD_TIMELOCK_CANCELLER");
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
         address newTimelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
         newTimelock = TimelockController(payable(newTimelockAddress));

@@ -33,11 +33,11 @@ contract SafeMigrationScriptsTest is Test {
 
     // Mock addresses for the test
     address private OLD_TIMELOCK_PROPOSER;
-    address private OLD_TIMELOCK_GUARDIAN;
+    address private OLD_TIMELOCK_CANCELLER;
     address private OLD_TIMELOCK_EXECUTOR;
     address private constant SAFE_TIMELOCK_PROPOSER = address(0x1111111111111111111111111111111111111111);
     address private constant SAFE_TIMELOCK_EXECUTOR = address(0x2222222222222222222222222222222222222222);
-    address private constant SAFE_TIMELOCK_GUARDIAN = address(0x3333333333333333333333333333333333333333);
+    address private constant SAFE_TIMELOCK_CANCELLER = address(0x3333333333333333333333333333333333333333);
 
     // Private key for timelock deployer
     uint256 private constant DEPLOYER_PRIVATE_KEY = 0x1;
@@ -70,7 +70,7 @@ contract SafeMigrationScriptsTest is Test {
 
         OLD_TIMELOCK_PROPOSER = admin;
         OLD_TIMELOCK_EXECUTOR = admin;
-        OLD_TIMELOCK_GUARDIAN = admin;
+        OLD_TIMELOCK_CANCELLER = admin;
 
         oldTimelock = timelock;
 
@@ -111,16 +111,16 @@ contract SafeMigrationScriptsTest is Test {
         vm.label(SAFE_TIMELOCK_PROPOSER, "SafeTimelockProposer");
         vm.setEnv("SAFE_TIMELOCK_EXECUTOR", vm.toString(SAFE_TIMELOCK_EXECUTOR));
         vm.label(SAFE_TIMELOCK_EXECUTOR, "SafeTimelockExecutor");
-        vm.setEnv("SAFE_TIMELOCK_GUARDIAN", vm.toString(SAFE_TIMELOCK_GUARDIAN));
-        vm.label(SAFE_TIMELOCK_GUARDIAN, "SafeTimelockGuardian");
+        vm.setEnv("SAFE_TIMELOCK_CANCELLER", vm.toString(SAFE_TIMELOCK_CANCELLER));
+        vm.label(SAFE_TIMELOCK_CANCELLER, "SafeTimelockGuardian");
         vm.setEnv("OLD_TIMELOCK_ADDRESS", vm.toString(address(oldTimelock)));
         vm.label(address(oldTimelock), "OldTimelock");
         vm.setEnv("OLD_TIMELOCK_PROPOSER", vm.toString(OLD_TIMELOCK_PROPOSER));
         vm.label(OLD_TIMELOCK_PROPOSER, "Old Timelock Proposer");
         vm.setEnv("OLD_TIMELOCK_EXECUTOR", vm.toString(OLD_TIMELOCK_EXECUTOR));
         vm.label(OLD_TIMELOCK_EXECUTOR, "Old Timelock Executor");
-        vm.setEnv("OLD_TIMELOCK_GUARDIAN", vm.toString(OLD_TIMELOCK_GUARDIAN));
-        vm.label(OLD_TIMELOCK_GUARDIAN, "Old Timelock Guardian");
+        vm.setEnv("OLD_TIMELOCK_CANCELLER", vm.toString(OLD_TIMELOCK_CANCELLER));
+        vm.label(OLD_TIMELOCK_CANCELLER, "Old Timelock Guardian");
         vm.setEnv("MIN_DELAY", vm.toString(MIN_DELAY)); // 5 minutes
     }
 
@@ -149,11 +149,11 @@ contract SafeMigrationScriptsTest is Test {
             "Old multisig not executor"
         );
         assertTrue(
-            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN),
+            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_CANCELLER),
             "Safe guardian not canceller"
         );
         assertTrue(
-            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN),
+            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_CANCELLER),
             "Old security council not canceller"
         );
         assertTrue(newTimelock.hasRole(DEFAULT_ADMIN_ROLE, SAFE_TIMELOCK_PROPOSER), "New Safe admin is not admin");
@@ -399,7 +399,7 @@ contract SafeMigrationScriptsTest is Test {
             "Old multisig executor role not revoked"
         );
         assertFalse(
-            newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_GUARDIAN),
+            newTimelock.hasRole(oldTimelock.CANCELLER_ROLE(), OLD_TIMELOCK_CANCELLER),
             "Old multisig canceller role not revoked"
         );
 
@@ -421,7 +421,7 @@ contract SafeMigrationScriptsTest is Test {
             "Old multisig executor role not revoked"
         );
         assertTrue(
-            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_GUARDIAN),
+            newTimelock.hasRole(newTimelock.CANCELLER_ROLE(), SAFE_TIMELOCK_CANCELLER),
             "Old multisig canceller role not revoked"
         );
     }
