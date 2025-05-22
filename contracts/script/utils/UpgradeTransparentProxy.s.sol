@@ -46,10 +46,7 @@ abstract contract UpgradeTransparentProxy is TimelockOperations {
 
     /// @notice Generate the timelocked operations
     function _generate() internal virtual override {
-        (
-            address[] memory proxyAddresses,
-            address[] memory newImplementationAddresses
-        ) = _getAddresses();
+        (address[] memory proxyAddresses, address[] memory newImplementationAddresses) = _getAddresses();
         require(
             proxyAddresses.length == newImplementationAddresses.length,
             "Proxy and new implementation addresses must be the same length"

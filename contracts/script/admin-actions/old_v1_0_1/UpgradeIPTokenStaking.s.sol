@@ -20,10 +20,7 @@ contract UpgradeIpTokenStaking is UpgradeTransparentProxy {
         internal
         view
         override
-        returns (
-            address[] memory proxyAddresses,
-            address[] memory newImplementationAddresses
-        )
+        returns (address[] memory proxyAddresses, address[] memory newImplementationAddresses)
     {
         proxyAddresses = new address[](1);
         proxyAddresses[0] = Predeploys.Staking;
