@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -1072,9 +1073,18 @@ func initializeBaseConfig(cfg *baseConfig) error {
 		return errors.New("missing required private key")
 	}
 
-	if _, err = crypto.HexToECDSA(cfg.PrivateKey); err != nil {
+	evmPrivKey, err := crypto.HexToECDSA(cfg.PrivateKey)
+	if err != nil {
 		return errors.Wrap(err, "invalid EVM private key")
 	}
+
+	publicKey, ok := evmPrivKey.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("failed to assert type to *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKey)
+	fmt.Printf("Signing transaction with account address: %s\n", fromAddress)
 
 	contractABI, err := abi.JSON(strings.NewReader(string(ipTokenStakingABI)))
 	if err != nil {
