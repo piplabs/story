@@ -43,7 +43,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags.Uint64Var(&cfg.SnapshotKeepRecent, "state-sync.snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
 	flags.Uint64Var(&cfg.MinRetainBlocks, "min-retain-blocks", cfg.MinRetainBlocks, "Minimum block height offset during ABCI commit to prune CometBFT blocks")
 	flags.StringVar(&cfg.BackendType, "app-db-backend", cfg.BackendType, "The type of database for application and snapshots databases")
-	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything)")
+	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything|custom)")
 	flags.Uint64Var(&cfg.PruningKeepRecent, "pruning-keep-recent", 72000, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
 	flags.Uint64Var(&cfg.PruningInterval, "pruning-interval", 300, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), this is not used by this command but kept for compatibility with the complete pruning options")
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
