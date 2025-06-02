@@ -11,7 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/client/x/mint/keeper"
 	mintmodule "github.com/piplabs/story/client/x/mint/module"
@@ -21,35 +21,22 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-type IntegrationTestSuite struct {
-	suite.Suite
-
-	mintKeeper    keeper.Keeper
-	ctx           sdk.Context
-	stakingKeeper *minttestutil.MockStakingKeeper
-	bankKeeper    *minttestutil.MockBankKeeper
-}
-
-func TestKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(IntegrationTestSuite))
-}
-
-func (s *IntegrationTestSuite) SetupTest() {
+func createKeeper(t *testing.T) (sdk.Context, *minttestutil.MockAccountKeeper, *minttestutil.MockBankKeeper, *minttestutil.MockStakingKeeper, *keeper.Keeper) {
+	t.Helper()
 	encCfg := moduletestutil.MakeTestEncodingConfig(mintmodule.AppModuleBasic{})
 	key := storetypes.NewKVStoreKey(types.StoreKey)
 	storeService := runtime.NewKVStoreService(key)
-	testCtx := testutil.DefaultContextWithDB(s.T(), key, storetypes.NewTransientStoreKey("transient_test"))
-	s.ctx = testCtx.Ctx
 
-	// gomock initializations
-	ctrl := gomock.NewController(s.T())
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+
+	ctrl := gomock.NewController(t)
 	accountKeeper := minttestutil.NewMockAccountKeeper(ctrl)
 	bankKeeper := minttestutil.NewMockBankKeeper(ctrl)
 	stakingKeeper := minttestutil.NewMockStakingKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress(types.ModuleName).Return(sdk.AccAddress{})
 
-	s.mintKeeper = keeper.NewKeeper(
+	mk := keeper.NewKeeper(
 		encCfg.Codec,
 		storeService,
 		stakingKeeper,
@@ -57,35 +44,61 @@ func (s *IntegrationTestSuite) SetupTest() {
 		bankKeeper,
 		authtypes.FeeCollectorName,
 	)
-	s.stakingKeeper = stakingKeeper
-	s.bankKeeper = bankKeeper
 
-	s.Require().Equal(testCtx.Ctx.Logger().With("module", "x/"+types.ModuleName),
-		s.mintKeeper.Logger(testCtx.Ctx))
+	// set default params
+	require.NoError(t, mk.Params.Set(testCtx.Ctx, types.DefaultParams()))
 
-	err := s.mintKeeper.Params.Set(s.ctx, types.DefaultParams())
-	s.Require().NoError(err)
+	return testCtx.Ctx, accountKeeper, bankKeeper, stakingKeeper, &mk
 }
 
-func (s *IntegrationTestSuite) TestAliasFunctions() {
+func TestNewMintKeeperPanic(t *testing.T) {
+	encCfg := moduletestutil.MakeTestEncodingConfig(mintmodule.AppModuleBasic{})
+	key := storetypes.NewKVStoreKey(types.StoreKey)
+	storeService := runtime.NewKVStoreService(key)
+
+	ctrl := gomock.NewController(t)
+	accountKeeper := minttestutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := minttestutil.NewMockBankKeeper(ctrl)
+	stakingKeeper := minttestutil.NewMockStakingKeeper(ctrl)
+
+	accountKeeper.EXPECT().GetModuleAddress(types.ModuleName).Return(nil)
+
+	require.PanicsWithValue(t, "the x/mint module account has not been set", func() {
+		_ = keeper.NewKeeper(
+			encCfg.Codec,
+			storeService,
+			stakingKeeper,
+			accountKeeper,
+			bankKeeper,
+			authtypes.FeeCollectorName,
+		)
+	})
+}
+
+func TestAliasFunctions(t *testing.T) {
+	ctx, _, bk, sk, mk := createKeeper(t)
+
+	require.Equal(t, ctx.Logger().With("module", "x/"+types.ModuleName),
+		mk.Logger(ctx))
+
 	stakingTokenSupply := math.NewIntFromUint64(100000000000)
-	s.stakingKeeper.EXPECT().StakingTokenSupply(s.ctx).Return(stakingTokenSupply, nil)
-	tokenSupply, err := s.mintKeeper.StakingTokenSupply(s.ctx)
-	s.Require().NoError(err)
-	s.Require().Equal(tokenSupply, stakingTokenSupply)
+	sk.EXPECT().StakingTokenSupply(ctx).Return(stakingTokenSupply, nil)
+	tokenSupply, err := mk.StakingTokenSupply(ctx)
+	require.NoError(t, err)
+	require.Equal(t, tokenSupply, stakingTokenSupply)
 
 	bondedRatio := math.LegacyNewDecWithPrec(15, 2)
-	s.stakingKeeper.EXPECT().BondedRatio(s.ctx).Return(bondedRatio, nil)
-	ratio, err := s.mintKeeper.BondedRatio(s.ctx)
-	s.Require().NoError(err)
-	s.Require().Equal(ratio, bondedRatio)
+	sk.EXPECT().BondedRatio(ctx).Return(bondedRatio, nil)
+	ratio, err := mk.BondedRatio(ctx)
+	require.NoError(t, err)
+	require.Equal(t, ratio, bondedRatio)
 
 	coins := sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(1000000)))
-	s.bankKeeper.EXPECT().MintCoins(s.ctx, types.ModuleName, coins).Return(nil)
-	s.Require().NoError(s.mintKeeper.MintCoins(s.ctx, sdk.NewCoins()))
-	s.Require().NoError(s.mintKeeper.MintCoins(s.ctx, coins))
+	bk.EXPECT().MintCoins(ctx, types.ModuleName, coins).Return(nil)
+	require.NoError(t, mk.MintCoins(ctx, sdk.NewCoins()))
+	require.NoError(t, mk.MintCoins(ctx, coins))
 
 	fees := sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(1000)))
-	s.bankKeeper.EXPECT().SendCoinsFromModuleToModule(s.ctx, types.ModuleName, authtypes.FeeCollectorName, fees).Return(nil)
-	s.Require().NoError(s.mintKeeper.AddCollectedFees(s.ctx, fees))
+	bk.EXPECT().SendCoinsFromModuleToModule(ctx, types.ModuleName, authtypes.FeeCollectorName, fees).Return(nil)
+	require.NoError(t, mk.AddCollectedFees(ctx, fees))
 }
