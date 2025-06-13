@@ -42,10 +42,55 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		if err != nil {
 			return errors.Wrap(err, "delegator address from bech32")
 		}
+
+		valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(entry.ValidatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "convert validator bech32 address to evm address")
+		}
+
+		// This should not produce error, as all delegations are done via the evmstaking module via EL.
+		// However, we should gracefully handle in case Get fails.
+		withdrawEVMAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "map delegator pubkey to evm address")
+		}
+
+		_, entryCoins := IPTokenToBondCoin(big.NewInt(0).SetUint64(entry.Amount.Uint64()))
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, entryCoins); err != nil {
+			return errors.Wrap(err, "send coins from account to module for unbonding entry coins")
+		}
+		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, entryCoins); err != nil {
+			return errors.Wrap(err, "burn coins of unbonding entry coins")
+		}
+
+		// push the undelegation to the withdrawal queue
+		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
+			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()), // Safe to cast to uint64,block height is positive
+			withdrawEVMAddr,
+			entry.Amount.Uint64(),
+			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
+			valEVMAddr,
+		)); err != nil {
+			return errors.Wrap(err, "add unstake withdrawal to queue")
+		}
+	}
+
+	for _, entry := range unbondedEntries {
+		// Check if the delegation is total unstaked
+		delegatorAddr, err := sdk.AccAddressFromBech32(entry.DelegatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "delegator address from bech32")
+		}
 		validatorAddr, err := sdk.ValAddressFromBech32(entry.ValidatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "validator address from bech32")
 		}
+
+		valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(entry.ValidatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "convert validator bech32 address to evm address")
+		}
+
 		var totallyUnstaked bool
 		if _, err := k.stakingKeeper.GetDelegation(ctx, delegatorAddr, validatorAddr); err == nil {
 			totallyUnstaked = false
@@ -68,50 +113,18 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		// Burn tokens from the delegator
-		coinAmount := entry.Amount.Uint64()
-		if totallyUnstaked {
-			accountBalance := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount.Uint64()
-			if accountBalance > coinAmount {
-				coinAmount = accountBalance
-			}
-		}
-		_, coins := IPTokenToBondCoin(big.NewInt(int64(coinAmount)))
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins); err != nil {
-			return errors.Wrap(err, "send coins from account to module")
-		}
-		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
-			return errors.Wrap(err, "burn coins")
-		}
-
-		// This should not produce error, as all delegations are done via the evmstaking module via EL.
-		// However, we should gracefully handle in case Get fails.
-		delEVMAddr, err := k.DelegatorWithdrawAddress.Get(ctx, entry.DelegatorAddress)
-		if err != nil {
-			return errors.Wrap(err, "map delegator pubkey to evm address")
-		}
-
-		valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(entry.ValidatorAddress)
-		if err != nil {
-			return errors.Wrap(err, "convert validator bech32 address to evm address")
-		}
-
-		// push the undelegation to the withdrawal queue
-		if err := k.AddWithdrawalToQueue(ctx, types.NewWithdrawal(
-			uint64(sdk.UnwrapSDKContext(ctx).BlockHeight()),
-			delEVMAddr,
-			entry.Amount.Uint64(),
-			types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
-			valEVMAddr,
-		)); err != nil {
-			return errors.Wrap(err, "add unstake withdrawal to queue")
-		}
-
-		if coinAmount <= entry.Amount.Uint64() {
-			// No residue rewards, skip
+		residueAmount := k.bankKeeper.SpendableCoin(ctx, delegatorAddr, sdk.DefaultBondDenom).Amount.Uint64()
+		if residueAmount == 0 {
+			log.Debug(ctx, "No residue reward claimed", "delegator_addr", delegatorAddr.String())
 			continue
 		}
-
-		residueAmount := coinAmount - entry.Amount.Uint64()
+		_, coins := IPTokenToBondCoin(big.NewInt(0).SetUint64(residueAmount))
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins); err != nil {
+			return errors.Wrap(err, "send coins from account to module for residue reward")
+		}
+		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
+			return errors.Wrap(err, "burn coins of residue reward")
+		}
 
 		log.Debug(ctx, "Residue rewards of mature unbonding delegation",
 			"delegator", entry.DelegatorAddress,

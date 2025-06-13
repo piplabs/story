@@ -106,6 +106,7 @@ func TestEndBlock(t *testing.T) {
 				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, nil)
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(0)))
 				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(0), nil)
 			},
 			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
