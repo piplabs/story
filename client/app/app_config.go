@@ -43,7 +43,7 @@ const (
 	Bech32HRP = "story"
 
 	defaultPruningKeep     = 72_000 // Keep 1 day's of application state by default (given period of 1.2s).
-	defaultPruningInterval = 300    // Prune every 5 minutes or so.
+	defaultPruningInterval = 10     // Prune every 5 minutes or so.
 )
 
 // init initializes the Cosmos SDK configuration.

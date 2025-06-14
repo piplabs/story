@@ -45,7 +45,7 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	flags.StringVar(&cfg.BackendType, "app-db-backend", cfg.BackendType, "The type of database for application and snapshots databases")
 	flags.StringVar(&cfg.PruningOption, "pruning", cfg.PruningOption, "Pruning strategy (default|nothing|everything|custom)")
 	flags.Uint64Var(&cfg.PruningKeepRecent, "pruning-keep-recent", 72000, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
-	flags.Uint64Var(&cfg.PruningInterval, "pruning-interval", 300, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), this is not used by this command but kept for compatibility with the complete pruning options")
+	flags.Uint64Var(&cfg.PruningInterval, "pruning-interval", 10, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), this is not used by this command but kept for compatibility with the complete pruning options")
 	flags.DurationVar(&cfg.EVMBuildDelay, "evm-build-delay", cfg.EVMBuildDelay, "Minimum delay between triggering and fetching a EVM payload build")
 	flags.BoolVar(&cfg.EVMBuildOptimistic, "evm-build-optimistic", cfg.EVMBuildOptimistic, "Enables optimistic building of EVM payloads on previous block finalize")
 	flags.BoolVar(&cfg.WithComet, "with-comet", true, "Run abci app embedded in-process with CometBFT")
