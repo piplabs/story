@@ -10,6 +10,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
+	"github.com/piplabs/story/client/app/upgrades/v_1_3_0"
 )
 
 var (
@@ -18,11 +19,13 @@ var (
 	Upgrades = []upgrades.Upgrade{
 		virgil.Upgrade,
 		v_1_2_0.Upgrade,
+		v_1_3_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
 		virgil.Fork,
 		v_1_2_0.Fork,
+		v_1_3_0.Fork,
 	}
 )
 
@@ -79,6 +82,14 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				continue
 			}
 			upgradeHeight = v120UpgradeHeight
+		}
+
+		if fork.UpgradeName == v_1_3_0.UpgradeName {
+			v130UpgradeHeight, ok := v_1_3_0.GetUpgradeHeight(ctx.ChainID())
+			if !ok {
+				continue
+			}
+			upgradeHeight = v130UpgradeHeight
 		}
 
 		if currentBlockHeight == upgradeHeight {
