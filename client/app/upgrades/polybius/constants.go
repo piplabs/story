@@ -16,7 +16,7 @@ const (
 	AeneidUpgradeHeight = 6008000
 
 	// DevnetUpgradeHeight defines the block height at which v1.3.0 upgrade is triggered on Internal Devnet.
-	DevnetUpgradeHeight = 5200
+	DevnetUpgradeHeight = 7000
 
 	NewMaxValidators = 80
 )
