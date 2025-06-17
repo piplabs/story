@@ -8,6 +8,7 @@ import (
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/app/upgrades"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 const (
@@ -41,9 +42,9 @@ type RewardsMultipliers struct {
 
 func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
-	case upgrades.AeneidChainID:
+	case netconf.AeneidChainID:
 		return AeneidUpgradeHeight, true
-	case upgrades.StoryChainID:
+	case netconf.StoryChainID:
 		return StoryUpgradeHeight, true
 	default:
 		return 0, false
@@ -58,7 +59,7 @@ var DefaultRewardsMultiplier = RewardsMultipliers{
 
 func GetRewardsMultipliers(chainID string) RewardsMultipliers {
 	switch chainID {
-	case upgrades.StoryChainID:
+	case netconf.StoryChainID:
 		return RewardsMultipliers{
 			Short:  math.LegacyNewDecWithPrec(11, 1), // 1.1
 			Medium: math.LegacyNewDecWithPrec(15, 1), // 1.5
