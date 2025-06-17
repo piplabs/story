@@ -15,6 +15,9 @@ const (
 	// AeneidUpgradeHeight defines the block height at which v1.3.0 upgrade is triggered on Aeneid.
 	AeneidUpgradeHeight = 6008000
 
+	// DevnetUpgradeHeight defines the block height at which v1.3.0 upgrade is triggered on Internal Devnet.
+	DevnetUpgradeHeight = 5200
+
 	NewMaxValidators = 80
 )
 
@@ -35,6 +38,8 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
 	case upgrades.AeneidChainID:
 		return AeneidUpgradeHeight, true
+	case upgrades.DevnetChainID:
+		return DevnetUpgradeHeight, true
 	default:
 		return 0, false
 	}
