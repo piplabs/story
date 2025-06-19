@@ -26,6 +26,7 @@ const (
 	MissingSelfDelegation    ErrCode = 16
 	ValidatorNotJailed       ErrCode = 17
 	ValidatorStillJailed     ErrCode = 18
+	PendingUpgradeExists     ErrCode = 19
 )
 
 var (
@@ -48,6 +49,7 @@ var (
 	ErrMissingSelfDelegation    = stderrors.New("missing_self_delegation")
 	ErrValidatorNotJailed       = stderrors.New("validator_not_jailed")
 	ErrValidatorStillJailed     = stderrors.New("validator_still_jailed")
+	ErrPendingUpgradeExists     = stderrors.New("pending_upgrade_exists")
 )
 
 var codeToErr = map[ErrCode]error{
@@ -70,6 +72,7 @@ var codeToErr = map[ErrCode]error{
 	MissingSelfDelegation:    ErrMissingSelfDelegation,
 	ValidatorNotJailed:       ErrValidatorNotJailed,
 	ValidatorStillJailed:     ErrValidatorStillJailed,
+	PendingUpgradeExists:     ErrPendingUpgradeExists,
 }
 
 func (c ErrCode) String() string {
@@ -129,6 +132,8 @@ func UnwrapErrCode(err error) ErrCode {
 		return ValidatorNotJailed
 	case stderrors.Is(err, ErrValidatorStillJailed):
 		return ValidatorStillJailed
+	case stderrors.Is(err, ErrPendingUpgradeExists):
+		return PendingUpgradeExists
 	default:
 		return Unspecified
 	}

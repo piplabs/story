@@ -16,4 +16,7 @@ const (
 // KVStore key prefixes.
 var (
 	ParamsKey = collections.NewPrefix(0)
+
+	// PendingUpgradeKey is the key used to persist an upgrade if one is pending.
+	PendingUpgradeKey = collections.NewPrefix(1)
 )

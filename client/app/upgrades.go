@@ -3,14 +3,19 @@ package app
 import (
 	"fmt"
 
+	storetypes "cosmossdk.io/store/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/polybius"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
+	"github.com/piplabs/story/client/app/upgrades/v140"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 var (
@@ -20,14 +25,18 @@ var (
 		virgil.Upgrade,
 		v_1_2_0.Upgrade,
 		polybius.Upgrade,
+		v140.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
 		virgil.Fork,
 		v_1_2_0.Fork,
 		polybius.Fork,
+		v140.Fork,
 	}
 )
+
+type StoreUpgradesMap map[int64]storetypes.StoreUpgrades
 
 func (a *App) setupUpgradeHandlers() {
 	for _, upgrade := range Upgrades {
@@ -40,19 +49,37 @@ func (a *App) setupUpgradeHandlers() {
 
 // setUpgradeStoreLoaders sets custom store loaders to customize the rootMultiStore initialization for software upgrades.
 func (a *App) setupUpgradeStoreLoaders() {
-	upgradeInfo, err := a.Keepers.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	upgradeHistory, err := netconf.GetUpgradeHistory(a.ChainID())
 	if err != nil {
-		panic(fmt.Sprintf("failed to read upgrade info from disk %s", err))
+		panic(errors.Wrap(err, "failed to get upgrade history"))
 	}
 
-	if a.Keepers.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
-		return
-	}
-
-	for _, upgrade := range Upgrades {
-		if upgradeInfo.Name == upgrade.UpgradeName {
-			a.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &upgrade.StoreUpgrades))
+	storeUpgradesMap := make(StoreUpgradesMap)
+	for name, height := range upgradeHistory {
+		if a.Keepers.UpgradeKeeper.IsSkipHeight(height) {
+			return
 		}
+
+		for _, upgrade := range Upgrades {
+			if name == upgrade.UpgradeName {
+				storeUpgradesMap[height] = upgrade.StoreUpgrades
+			}
+		}
+	}
+
+	a.SetStoreLoader(UpgradeStoreLoader(storeUpgradesMap))
+}
+
+// UpgradeStoreLoader returns store loader including all upgrades.
+func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
+	return func(ms storetypes.CommitMultiStore) error {
+		if storeUpgrades, ok := storeUpgradesMap[ms.LastCommitID().Version+1]; ok {
+			if len(storeUpgrades.Renamed) > 0 || len(storeUpgrades.Deleted) > 0 || len(storeUpgrades.Added) > 0 {
+				return ms.LoadLatestVersionAndUpgrade(&storeUpgrades)
+			}
+		}
+
+		return baseapp.DefaultStoreLoader(ms)
 	}
 }
 

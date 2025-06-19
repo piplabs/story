@@ -7,6 +7,7 @@ import (
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/app/upgrades"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 const (
@@ -33,7 +34,7 @@ var Fork = upgrades.Fork{
 
 func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
-	case upgrades.AeneidChainID:
+	case netconf.AeneidChainID:
 		return AeneidUpgradeHeight, true
 	default:
 		return 0, false

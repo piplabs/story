@@ -30,6 +30,7 @@ type EvmStakingKeeper interface {
 type UpgradeKeeper interface {
 	ClearUpgradePlan(ctx context.Context) error
 	ScheduleUpgrade(ctx context.Context, plan upgradetypes.Plan) error
+	DumpUpgradeInfoToDisk(height int64, p upgradetypes.Plan) error
 }
 
 type DistrKeeper interface {
