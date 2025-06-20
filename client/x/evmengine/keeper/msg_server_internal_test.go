@@ -23,6 +23,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
@@ -309,6 +310,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			var events []*types.EVMEvent
 
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}
