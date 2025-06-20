@@ -18,6 +18,7 @@ import (
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // prepareTimeout is the maximum time to prepare a proposal.
@@ -137,9 +138,26 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	}
 
 	// Create execution payload message
-	payloadData, err := json.Marshal(payloadResp.ExecutionPayload)
+	var (
+		payloadData  []byte
+		payloadProto *types.ExecutionPayloadDeneb
+	)
+
+	isV140, err := netconf.IsV140(ctx.ChainID(), ctx.BlockHeight())
 	if err != nil {
-		return nil, errors.Wrap(err, "encode")
+		return nil, errors.Wrap(err, "failed to check if the v1.4.0 upgrade is activated or not", "chain_id", ctx.ChainID(), "block_number", ctx.BlockHeight())
+	}
+
+	if isV140 {
+		payloadProto, err = types.PayloadToProto(payloadResp.ExecutionPayload)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to convert execution payload to proto message")
+		}
+	} else {
+		payloadData, err = json.Marshal(payloadResp.ExecutionPayload)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to json marshal execution payload")
+		}
 	}
 
 	// First, collect all vote extension msgs from the vote provider.
@@ -156,9 +174,10 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	// Then construct the execution payload message.
 	payloadMsg := &types.MsgExecutionPayload{
-		Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-		ExecutionPayload:  payloadData,
-		PrevPayloadEvents: evmEvents,
+		Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+		ExecutionPayload:      payloadData,
+		PrevPayloadEvents:     evmEvents,
+		ExecutionPayloadDeneb: payloadProto,
 	}
 
 	// Combine all the votes messages and the payload message into a single transaction.

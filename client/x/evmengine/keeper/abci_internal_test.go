@@ -45,6 +45,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
@@ -68,6 +69,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 			mockClient         mock.MockClient
 			req                *abci.RequestPrepareProposal
 			wantErr            bool
+			setup              func(ctx sdk.Context) sdk.Context
 			setupMocks         func(esk *moduletestutil.MockEvmStakingKeeper)
 			isExecEngSyncing   bool
 			unsetExecutionHead bool
@@ -114,6 +116,60 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 					},
 				},
 				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,        // Set to nil to simulate no transactions
+					Height:     2,          // Set height to 1 for this test case
+					Time:       time.Now(), // Set time to current time or mock a time
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: false,
+			},
+			{
+				name: "pass: success of prepare proposal after v1.4.0",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						bgu := uint64(0)
+						ebg := uint64(0)
+
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{
+								ParentHash:    common.MaxHash,
+								BlockHash:     common.MaxHash,
+								BaseFeePerGas: new(big.Int).SetUint64(1),
+								BlobGasUsed:   &bgu,
+								ExcessBlobGas: &ebg,
+							},
+						}, nil
+					},
+					filterLogsFunc: func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
+						return []types.Log{{
+							Address: zeroAddr,
+							Topics:  []common.Hash{common.MaxHash},
+						}}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setup: func(ctx sdk.Context) sdk.Context {
+					ctx = ctx.WithBlockHeight(51)
+
+					return ctx
+				},
 				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -411,6 +467,45 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
+				name: "fail: unknown chain ID for v1.4.0 upgrade",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{},
+						}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setup: func(ctx sdk.Context) sdk.Context {
+					ctx = ctx.WithChainID("unknown-chain-id")
+
+					return ctx
+				},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
 				name: "fail: filterLogs rpc err",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
@@ -567,6 +662,10 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 				uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 				dk := moduletestutil.NewMockDistrKeeper(ctrl)
+
+				if tt.setup != nil {
+					ctx = tt.setup(ctx)
+				}
 
 				if tt.setupMocks != nil {
 					tt.setupMocks(esk)
@@ -976,7 +1075,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 	}
 	ctx := testCtx.Ctx.WithBlockHeader(*header)
 	defaultConsensusParams := genutil.DefaultConsensusParams()
-	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto())
+	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto()).WithChainID(netconf.TestChainID)
 
 	return ctx, key, storeService
 }
