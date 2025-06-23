@@ -12,6 +12,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/promutil"
 )
 
 type msgServer struct {
@@ -156,6 +157,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")
 	}
+
+	// set metric
+	promutil.EVMEngineExecutionPayloadMsgSize.Set(float64(msg.Size()))
 
 	return &types.ExecutionPayloadResponse{}, nil
 }
