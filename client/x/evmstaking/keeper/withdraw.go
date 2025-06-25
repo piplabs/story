@@ -24,6 +24,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries []stypes.UnbondedEntry) error {
@@ -98,6 +99,16 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 			totallyUnstaked = true
 		} else {
 			return errors.Wrap(err, "get delegation")
+		}
+
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		isV121, err := netconf.IsV121(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+		if err != nil {
+			return errors.Wrap(err, "failed to check if v1.2.1 is applied or not", "chain_id", sdkCtx.ChainID(), "block_height", sdkCtx.BlockHeight())
+		}
+
+		if !totallyUnstaked && !isV121 {
+			continue
 		}
 
 		// Withdraw commission if validator is totally self-unstaked
