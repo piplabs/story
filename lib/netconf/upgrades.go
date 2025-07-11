@@ -22,7 +22,7 @@ type UpgradeMap map[string]int64
 // UpgradeHistories are the map of histories for each network.
 var UpgradeHistories = map[string]UpgradeMap{
 	TestChainID: {
-		V121: 0,
+		V121: 200,
 	},
 	LocalChainID: {
 		V121: 0,
