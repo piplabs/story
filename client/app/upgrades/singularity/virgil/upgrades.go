@@ -51,8 +51,8 @@ func CreateUpgradeHandler(
 			if stakingParams.Periods[i].PeriodType == 1 {
 				oldShortPeriodDuration = stakingParams.Periods[i].Duration
 				log.Info(ctx, "Existing short period duration", "Time", oldShortPeriodDuration.String())
-				log.Info(ctx, "Change short period duration to 90 days (7776000 seconds)")
-				stakingParams.Periods[i].Duration = NewShortPeriodDuration
+				log.Info(ctx, "SKIP: Change short period duration to 90 days (7776000 seconds)")
+				// stakingParams.Periods[i].Duration = NewShortPeriodDuration
 				log.Info(ctx, "Change short period rewards multiplier", "new_multiplier", newRewardsMultiplier.Short.String())
 				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Short
 			} else if stakingParams.Periods[i].PeriodType == 2 {
