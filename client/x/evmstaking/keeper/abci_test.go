@@ -64,7 +64,7 @@ func TestEndBlock(t *testing.T) {
 		{
 			name: "pass(skip): skip EndBlock within the singularity",
 			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
-				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(10), nil)
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(50), nil)
 			},
 		},
 		{
@@ -242,6 +242,7 @@ func TestEndBlock(t *testing.T) {
 			}
 
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithBlockHeight(20)
 
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx, esk)
