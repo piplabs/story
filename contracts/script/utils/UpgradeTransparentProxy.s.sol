@@ -1,0 +1,103 @@
+/* solhint-disable no-console */
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.23;
+
+import { TimelockOperations } from "script/utils/TimelockOperations.s.sol";
+import { console2 } from "forge-std/console2.sol";
+import { EIP1967Helper } from "../utils/EIP1967Helper.sol";
+
+/// @title UpgradeTransparentProxy
+/// @notice Helper script that generates a json file with the timelocked operations
+///to upgrade a TransparentUpgradeableProxy
+abstract contract UpgradeTransparentProxy is TimelockOperations {
+    // The addresses of the sender
+    address[] public from;
+    // The operation salt for deterministic operation ID
+    bytes32 public salt;
+
+    constructor(
+        string memory message,
+        address scheduler,
+        address executor,
+        address canceler,
+        bytes32 _salt
+    ) TimelockOperations(message) {
+        from = new address[](3);
+        from[0] = scheduler;
+        from[1] = executor;
+        from[2] = canceler;
+        console2.log("From:", from[0], from[1], from[2]);
+        salt = _salt;
+        console2.logBytes32(salt);
+    }
+
+    /// @notice Get the addresses of the proxy, new implementation, and proxy admin
+    /// @dev Should be overridden by the child contract
+    /// @return proxyAddresses The addresses of the proxies. Proxy admin addresses will be retrieved from the proxies
+    /// @return newImplementationAddresses The addresses of the new implementations
+    function _getAddresses() internal view virtual returns (address[] memory, address[] memory);
+
+    /// @notice Provide the target timelock to TimelockOperations
+    /// @return currentTimelock
+    function _getTargetTimelock() internal view virtual override returns (address) {
+        return USE_CURRENT_TIMELOCK;
+    }
+
+    /// @notice Generate the timelocked operations
+    function _generate() internal virtual override {
+        (address[] memory proxyAddresses, address[] memory newImplementationAddresses) = _getAddresses();
+        require(
+            proxyAddresses.length == newImplementationAddresses.length,
+            "Proxy and new implementation addresses must be the same length"
+        );
+        require(proxyAddresses.length > 0, "At least one proxy address must be provided");
+        require(
+            proxyAddresses.length == newImplementationAddresses.length,
+            "Proxy and new implementation addresses must be the same length"
+        );
+
+        // Get the proxy admin address from the proxy
+        address[] memory proxyAdminAddresses = new address[](proxyAddresses.length);
+        for (uint256 i = 0; i < proxyAddresses.length; i++) {
+            console2.log("Proxy address:", proxyAddresses[i]);
+            console2.log("New implementation:", newImplementationAddresses[i]);
+            proxyAdminAddresses[i] = EIP1967Helper.getAdmin(proxyAddresses[i]);
+        }
+        require(
+            proxyAddresses.length == proxyAdminAddresses.length,
+            "Proxy and proxy admin addresses must be the same length"
+        );
+
+        // If there is only one proxy, we use the method for single operation
+        if (proxyAddresses.length == 1) {
+            _generateAction(
+                from,
+                proxyAdminAddresses[0],
+                uint256(0),
+                abi.encodeWithSignature(
+                    "upgradeAndCall(address,address,bytes)",
+                    proxyAddresses[0],
+                    newImplementationAddresses[0],
+                    ""
+                ),
+                bytes32(0),
+                salt,
+                minDelay
+            );
+        } else {
+            // If there is more than one proxy, we use the method for batch operation
+            uint256[] memory values = new uint256[](proxyAddresses.length);
+            bytes[] memory data = new bytes[](proxyAddresses.length);
+            for (uint256 i = 0; i < proxyAddresses.length; i++) {
+                data[i] = abi.encodeWithSignature(
+                    "upgradeAndCall(address,address,bytes)",
+                    proxyAddresses[i],
+                    newImplementationAddresses[i],
+                    ""
+                );
+            }
+            _generateBatchAction(from, proxyAdminAddresses, values, data, bytes32(0), salt, minDelay);
+        }
+    }
+}

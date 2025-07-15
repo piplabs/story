@@ -35,6 +35,10 @@ library Predeploys {
     /// @dev Common address for the ERC6551Registry across all chains defined by ERC-6551
     address internal constant ERC6551Registry = 0x000000006551c19487814612e58FE06813775758;
 
+    /// @notice Multicall3 address
+    /// @dev this is not a predeploy, but it's the common address for Multicall3 across all chains
+    address internal constant Multicall3 = 0xcA11bde05977b3631167028862bE2a173976CA11;
+
     /// @notice Return true if `addr` is proxied
     function proxied(address addr) internal pure returns (bool) {
         return addr > Namespace && addr <= address(uint160(Namespace) + uint160(NamespaceSize));
