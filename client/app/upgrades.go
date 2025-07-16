@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/upgrades"
+	"github.com/piplabs/story/client/app/upgrades/polybius"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 )
@@ -18,11 +19,13 @@ var (
 	Upgrades = []upgrades.Upgrade{
 		virgil.Upgrade,
 		v_1_2_0.Upgrade,
+		polybius.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
 		virgil.Fork,
 		v_1_2_0.Fork,
+		polybius.Fork,
 	}
 )
 
@@ -79,6 +82,14 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				continue
 			}
 			upgradeHeight = v120UpgradeHeight
+		}
+
+		if fork.UpgradeName == polybius.UpgradeName {
+			polybiusUpgradeHeight, ok := polybius.GetUpgradeHeight(ctx.ChainID())
+			if !ok {
+				continue
+			}
+			upgradeHeight = polybiusUpgradeHeight
 		}
 
 		if currentBlockHeight == upgradeHeight {

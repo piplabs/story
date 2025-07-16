@@ -42,6 +42,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 
 	"go.uber.org/mock/gomock"
 )
@@ -1201,7 +1202,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 	if header == nil {
 		header = &cmtproto.Header{Time: cmttime.Now()}
 	}
-	ctx := testCtx.Ctx.WithBlockHeader(*header)
+	ctx := testCtx.Ctx.WithBlockHeader(*header).WithChainID(netconf.TestChainID)
 	defaultConsensusParams := genutil.DefaultConsensusParams()
 	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto())
 

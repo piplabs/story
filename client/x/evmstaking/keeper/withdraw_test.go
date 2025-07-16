@@ -73,7 +73,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 	tcs := []struct {
 		name           string
 		setupMocks     func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper)
-		setup          func(ctx sdk.Context, esk *keeper.Keeper)
+		setup          func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context
 		unbondEntries  []stypes.UnbondedEntry
 		expectedErr    string
 		expectedResult func(ctx sdk.Context) expectedResult
@@ -107,8 +107,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -120,6 +122,29 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			expectedErr: "get delegation: failed to get delegation",
 		},
 		{
+			name: "fail: check if v1.2.1 is activated or not",
+			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
+				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil)
+				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			},
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
+				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				ctx = ctx.WithChainID("unknown-chain-id")
+
+				return ctx
+			},
+			unbondEntries: []stypes.UnbondedEntry{
+				{
+					DelegatorAddress: delAccAddr.String(),
+					ValidatorAddress: sdk.ValAddress(delAccAddr.Bytes()).String(),
+					Amount:           entryAmount,
+				},
+			},
+			expectedErr: "failed to check if v1.2.1 is applied or not",
+		},
+		{
 			name: "fail: unstake from validator and totally unstaked, but failed to withdraw validator commission",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, stypes.ErrNoDelegation)
@@ -127,8 +152,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				dk.EXPECT().WithdrawValidatorCommission(gomock.Any(), gomock.Any()).Return(sdk.Coins{}, errors.New("failed to withdraw validator commission"))
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -144,8 +171,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), sdk.NewCoins(entryCoin)).Return(errors.New("failed to send coins from account to module"))
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -165,8 +194,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(residueCoin)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -183,8 +214,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed to burn coins"))
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -204,8 +237,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), sdk.NewCoins(residueCoin)).Return(errors.New("failed to burn coins"))
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(residueCoin)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -235,8 +270,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(residueCoin)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -255,8 +292,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(0)))
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -288,8 +327,10 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(true), valEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -313,16 +354,52 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			},
 		},
 		{
-			name: "process withdrawal from totally unstaked delegator with residue reward",
+			name: "pass: skip processing residual reward before v1.2.1",
+			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
+				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil)
+				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			},
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
+				ctx = ctx.WithBlockHeight(1)
+				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
+			},
+			unbondEntries: []stypes.UnbondedEntry{
+				{
+					DelegatorAddress: getDelegatorAddr(false),
+					ValidatorAddress: valValAddr.String(),
+					Amount:           entryAmount,
+				},
+			},
+			expectedResult: func(ctx sdk.Context) expectedResult {
+				return expectedResult{
+					withdrawals: []types.Withdrawal{
+						{
+							CreationHeight:   uint64(ctx.BlockHeight()),
+							ExecutionAddress: delEVMAddr.String(),
+							Amount:           entryAmount.Uint64(),
+							WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
+							ValidatorAddress: strings.ToLower(valEVMAddr.String()),
+						},
+					},
+				}
+			},
+		},
+		{
+			name: "pass: process withdrawal from totally unstaked delegator with residue reward",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, stypes.ErrNoDelegation)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(residueCoin)
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
 				require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -355,7 +432,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			},
 		},
 		{
-			name: "process multiple withdrawals - different delegators unstake from different validators, with a claimed reward for one of them",
+			name: "pass: process multiple withdrawals - different delegators unstake from different validators, with a claimed reward for one of them",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				callCount := 0
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
@@ -370,10 +447,12 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, del2AccAddr.String(), del2EVMAddr.String()))
 				require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -418,16 +497,18 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			},
 		},
 		{
-			name: "process multiple withdrawals - different delegators unstake from the same validator",
+			name: "pass: process multiple withdrawals - different delegators unstake from the same validator",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(0))).Times(2) // no residue reward
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, del2AccAddr.String(), del2EVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -463,17 +544,19 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			},
 		},
 		{
-			name: "process multiple withdrawals - a single delegator unstakes from multiple validators, without a claimed reward",
+			name: "pass: process multiple withdrawals - a single delegator unstakes from multiple validators, without a claimed reward",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(0))).Times(2)
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, del2AccAddr.String(), del2EVMAddr.String()))
 				require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -509,7 +592,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			},
 		},
 		{
-			name: "process multiple withdrawals - a single delegator unstakes from multiple validators, with a claimed reward",
+			name: "pass: process multiple withdrawals - a single delegator unstakes from multiple validators, with a claimed reward",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				callCount := 0
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
@@ -524,10 +607,12 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 			},
-			setup: func(ctx sdk.Context, esk *keeper.Keeper) {
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
 				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, del2AccAddr.String(), del2EVMAddr.String()))
 				require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, getDelegatorAddr(false), delEVMAddr.String()))
+
+				return ctx
 			},
 			unbondEntries: []stypes.UnbondedEntry{
 				{
@@ -578,13 +663,14 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			ctx, _, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithBlockHeight(20) // activate v1.2.1 by default in test
 
 			if tc.setupMocks != nil {
 				tc.setupMocks(bk, dk, sk)
 			}
 
 			if tc.setup != nil {
-				tc.setup(cachedCtx, esk)
+				cachedCtx = tc.setup(cachedCtx, esk)
 			}
 
 			// initialize reward withdrawal queue
