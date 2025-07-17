@@ -185,6 +185,21 @@ URL: [GET] /staking/historical_info/{height}
 |--------|---------|---------|----------|
 | height | integer | 1       | ✔        |
 
+## GetTotalDelegatorsCount
+
+URL: [GET] /staking/total_delegators_count
+
+### Response Example
+```json
+{
+    "code": 200,
+    "msg": {
+        "total": "100"
+    },
+    "error": ""
+}
+```
+
 ## GetValidators
 
 URL: [GET] /staking/validators
@@ -437,6 +452,26 @@ URL: [GET] /staking/validators/{validator_addr}/delegations/{delegator_addr}
     }
   },
   "error": ""
+}
+```
+
+## GetValidatorTotalDelegationsCount
+
+URL: [GET] /staking/validators/{validator_addr}/total_delegations_count
+
+### Path Params
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| validator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+### Response Example
+```json
+{
+    "code": 200,
+    "msg": {
+        "total": "11"
+    },
+    "error": ""
 }
 ```
 
