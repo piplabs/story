@@ -725,6 +725,26 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 }
 ```
 
+## GetDelegatorTotalRewardsToken
+
+URL: [GET] /staking/delegators/{delegator_addr}/total_rewards_token
+
+### Path Params
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+### Response Example
+```json
+{
+    "code": 200,
+    "msg": {
+        "rewards_token": "373566680396694.500000000000000000"
+    },
+    "error": ""
+}
+```
+
 ## GetDelegatorDelegations
 
 URL: [GET] /staking/delegations/{delegator_addr}
