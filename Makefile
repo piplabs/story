@@ -10,7 +10,7 @@ build: mod ## Build the story client.
 	@mkdir -p build/
 	@go build -o build/story ./client
 
-.PHONY: mod 
+.PHONY: mod
 mod: ## Update all go.mod files.
 	@go mod tidy
 
