@@ -1,5 +1,11 @@
 package server
 
+import (
+	"cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/types/query"
+)
+
 type pagination struct {
 	Key        string `mapstructure:"key"`
 	Offset     uint64 `mapstructure:"offset"`
@@ -71,4 +77,26 @@ type getPeriodDelegationsRequest struct {
 
 type getModuleVersionsRequest struct {
 	ModuleName string `mapstructure:"module_name"`
+}
+
+type getRewardsTokenByDelegatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
+type QueryTotalDelegationsCountResponse struct {
+	Total int `json:"total"`
+}
+
+type DelegationRewardsToken struct {
+	ValidatorOperatorAddress string         `json:"validator_operator_address"`
+	RewardsToken             math.LegacyDec `json:"rewards_token"`
+}
+
+type QueryRewardsTokenByDelegatorAddressResponse struct {
+	DelegationRewardsToken []DelegationRewardsToken `json:"delegation_rewards_token"`
+	Pagination             *query.PageResponse      `json:"pagination"`
+}
+
+type QueryTotalRewardsTokenByDelegatorAddressResponse struct {
+	RewardsToken math.LegacyDec `json:"rewards_token"`
 }
