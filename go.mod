@@ -1,6 +1,6 @@
 module github.com/piplabs/story
 
-go 1.22.11
+go 1.23
 
 require (
 	cosmossdk.io/api v0.7.5
@@ -39,7 +39,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.27.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.27.0
-	go.uber.org/mock v0.5.0
+	go.uber.org/mock v0.5.2
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/tools v0.29.0
 	google.golang.org/grpc v1.70.0
