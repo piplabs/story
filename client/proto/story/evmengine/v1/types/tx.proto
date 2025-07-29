@@ -1,6 +1,7 @@
 syntax = "proto3";
 package story.evmengine.v1.types;
 
+import "gogoproto/gogo.proto";
 import "cosmos/msg/v1/msg.proto";
 
 option go_package = "github.com/piplabs/story/client/x/evmengine/types";
@@ -20,6 +21,7 @@ message MsgExecutionPayload {
   string            authority           = 1;
   bytes             execution_payload   = 2;
   repeated EVMEvent prev_payload_events = 3;
+  ExecutionPayloadDeneb execution_payload_deneb = 4;
 }
 
 message ExecutionPayloadResponse {}
@@ -31,4 +33,41 @@ message EVMEvent {
   repeated bytes topics  = 2; // List of topics provided by the contract (N * 32 bytes).
   bytes          data    = 3; // Data supplied by the contract, usually ABI-encoded.
   bytes          tx_hash = 4; // Hash of the transaction (32 bytes).
+}
+
+// ExecutionPayloadDeneb represents the EVM execution payload.
+// Copied from https://github.com/prysmaticlabs/prysm/blob/develop/proto/engine/v1/execution_engine.proto.
+message ExecutionPayloadDeneb {
+  bytes parent_hash           = 1 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Hash"];
+  bytes fee_recipient         = 2 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Address"];
+  bytes state_root            = 3 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Hash"];
+  bytes receipts_root         = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Hash"];
+  bytes logs_bloom            = 5;
+  bytes prev_randao           = 6 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Hash"];
+  uint64 block_number         = 7;
+  uint64 gas_limit            = 8;
+  uint64 gas_used             = 9;
+  uint64 timestamp            = 10;
+  bytes extra_data            = 11;
+  bytes base_fee_per_gas      = 12;
+  bytes block_hash            = 13 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Hash"];
+  repeated bytes transactions = 14;
+  repeated WithdrawalEVM withdrawals = 15 [(gogoproto.nullable) = false];
+  uint64 blob_gas_used        = 16;
+  uint64 excess_blob_gas      = 17;
+}
+
+// The withdrawal receipt with the withdraw type, recipient address and amount withdrawn.
+message WithdrawalEVM {
+  // Withdrawal index for accounting purposes
+  uint64 index = 1;
+
+  // Validator index is used for withdrawal type
+  uint64 validator_index = 2;
+
+  // The execution address receiving the funds
+  bytes address = 3 [(gogoproto.nullable) = false, (gogoproto.customtype) = "Address"];
+
+  // The withdrawn amount in Gwei
+  uint64 amount = 4;
 }
