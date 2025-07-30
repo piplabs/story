@@ -43,6 +43,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Virgil: 809988,
 		Ovid:   4477880,
 		V121:   5084300,
+		V140:   100000000,
 	},
 }
 
