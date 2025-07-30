@@ -725,6 +725,55 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 }
 ```
 
+## GetDelegatorRewardsToken
+
+URL: [GET] /staking/delegators/{delegator_addr}/rewards_token
+
+### Path Params
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+### Query Params
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | array   | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
+
+### Response Example
+```json
+{
+    "code": 200,
+    "msg": {
+        "delegation_rewards_token": [
+            {
+                "validator_operator_address": "0xc5c0beeac8b37ed52f6a675ee2154d926a88e3ec",
+                "rewards_token": "58709824999896.500000000000000000"
+            },
+            {
+                "validator_operator_address": "0xcd29b70ff04c0aa386f7b3453df0e5ed3d4f67bb",
+                "rewards_token": "136740151396798.000000000000000000"
+            },
+            {
+                "validator_operator_address": "0xcd5faabca5bea3c5fc5e2371c7b397604720c2c2",
+                "rewards_token": "58708000000000.000000000000000000"
+            },
+            {
+                "validator_operator_address": "0xdb8e606ad7c02f37e43d10a10126791dc94b0434",
+                "rewards_token": "119408704000000.000000000000000000"
+            }
+        ],
+        "pagination": {
+            "total": "4"
+        }
+    },
+    "error": ""
+}
+```
+
 ## GetDelegatorTotalRewardsToken
 
 URL: [GET] /staking/delegators/{delegator_addr}/total_rewards_token
