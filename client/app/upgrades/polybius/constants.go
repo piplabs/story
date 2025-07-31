@@ -12,8 +12,11 @@ import (
 const (
 	UpgradeName = "polybius"
 
-	// AeneidUpgradeHeight defines the block height at which v1.3.0 upgrade is triggered on Aeneid.
+	// AeneidUpgradeHeight defines the block height at which Polybius upgrade is triggered on Aeneid.
 	AeneidUpgradeHeight = 6008000
+
+	// StoryUpgradeHeight defines the block height at which Polybius upgrade is triggered on Story mainnet.
+	StoryUpgradeHeight = 8270000
 
 	NewMaxValidators = 80
 )
@@ -35,6 +38,8 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 	switch chainID {
 	case upgrades.AeneidChainID:
 		return AeneidUpgradeHeight, true
+	case upgrades.StoryChainID:
+		return StoryUpgradeHeight, true
 	default:
 		return 0, false
 	}
