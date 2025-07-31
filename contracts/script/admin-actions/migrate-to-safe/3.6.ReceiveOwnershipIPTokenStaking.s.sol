@@ -16,11 +16,15 @@ contract ReceiveOwnershipIPTokenStaking is TimelockOperations {
 
     address[] public from;
 
+    /// @dev not using Predeploys.Staking directly to help with `aeneid-test` scripts
+    address public ipTokenStakingProxy;
+
     constructor() TimelockOperations("safe-migr-receive-ownership-iptoken-staking") {
         from = new address[](3);
         from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");
         from[2] = vm.envAddress("SAFE_TIMELOCK_CANCELLER");
+        ipTokenStakingProxy = Predeploys.Staking;
     }
 
     /// @dev target timelock is the newer timelock
@@ -38,7 +42,7 @@ contract ReceiveOwnershipIPTokenStaking is TimelockOperations {
         require(address(newTimelock) != address(currentTimelock()), "Timelock already set");
 
         address[] memory targets = new address[](1);
-        targets[0] = Predeploys.Staking;
+        targets[0] = ipTokenStakingProxy;
 
         bytes4 selector = Ownable2StepUpgradeable.acceptOwnership.selector;
         bytes[] memory data = new bytes[](1);

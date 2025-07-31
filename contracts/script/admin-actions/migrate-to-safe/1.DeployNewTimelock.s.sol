@@ -13,16 +13,17 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 contract DeployNewTimelock is Script {
     string public UNHASHED_SALT = "STORY_TIMELOCK_CONTROLLER_SAFE";
     address public newTimelockAddress;
+    address public deployer;
 
     function run() public virtual {
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        deployer = vm.addr(deployerPrivateKey);        
+        vm.startBroadcast(deployerPrivateKey);
         require(!isTimelockDeployed(), "TimelockController already deployed");
         deployTimelock();
+        vm.stopBroadcast();
     }
 
-    function run(string memory _salt) public {
-        UNHASHED_SALT = _salt;
-        run();
-    }
 
     /// @notice Check if the TimelockController is deployed
     /// @return True if the TimelockController is deployed, false otherwise
@@ -48,10 +49,6 @@ contract DeployNewTimelock is Script {
 
     /// @notice Deploy a new TimelockController deterministically
     function deployTimelock() internal {
-        uint256 deployerPrivateKey = vm.envUint("NEW_TIMELOCK_DEPLOYER_PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
-        vm.startBroadcast(deployerPrivateKey);
-
         address timelockProposer = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
         require(timelockProposer != address(0), "safe admin address not set");
         console2.log("timelockProposer", timelockProposer);
@@ -95,7 +92,7 @@ contract DeployNewTimelock is Script {
             )
         );
 
-        bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
+        bytes32 salt = keccak256(bytes(UNHASHED_SALT));
 
         newTimelockAddress = Create3(Predeploys.Create3).deployDeterministic(creationCode, salt);
         console2.log("Deployed TimelockController at address:", newTimelockAddress);
@@ -105,6 +102,11 @@ contract DeployNewTimelock is Script {
         TimelockController newTimelock = TimelockController(payable(newTimelockAddress));
 
         for (uint256 i = 0; i < timelockCancellers.length; i++) {
+            console2.log("msg.sender", msg.sender);
+            console2.log("has root admin", newTimelock.hasRole(newTimelock.DEFAULT_ADMIN_ROLE(), msg.sender));
+            console2.log("canceller roleAdmin");
+            console2.logBytes32(newTimelock.getRoleAdmin(newTimelock.CANCELLER_ROLE()));
+            console2.log("msg.sender", msg.sender);
             newTimelock.grantRole(newTimelock.CANCELLER_ROLE(), timelockCancellers[i]);
         }
         console2.log("timelockCancellers", timelockCancellers[0], timelockCancellers[1]);
@@ -121,7 +123,6 @@ contract DeployNewTimelock is Script {
             deployer
         );
         console2.log("Renounced DEFAULT_ADMIN_ROLE from deployer", deployer);
-        vm.stopBroadcast();
     }
 
     function estimateTimelockAddress(string memory _unhashedSalt) public view returns (address) {
