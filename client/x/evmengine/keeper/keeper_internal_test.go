@@ -25,6 +25,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 
 	"go.uber.org/mock/gomock"
 )
@@ -169,6 +170,72 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				}
 			},
 			expectedErr: "invalid authority",
+		},
+		{
+			name: "fail: check upgrade activation",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithChainID("unknown-chain-id")
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "failed to check if the v1.4.0 upgrade is activated or not",
+		},
+		{
+			name: "fail: v1.4.0 is activated but ExecutionPayload of msg is not nil",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(51)
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayload:      []byte("execution_payload"),
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "legacy json payload not allowed",
+		},
+		{
+			name: "fail: invalid proto marshaled payload",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(51)
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "unmarshal proto payload",
+		},
+		{
+			name: "fail: v1.4.0 is not activated and ExecutionPayloadDeneb of msg is not nil",
+			msg: func(_ context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					ExecutionPayload:      []byte("execution_payload"),
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "proto payload not allowed",
 		},
 		{
 			name: "fail: unmarshal payload because of invalid execution payload",
@@ -414,6 +481,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		//nolint:tparallel // cannot run parallel because of data race on execution head table
 		t.Run(tc.name, func(t *testing.T) {
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
 			if !tc.unsetExecHead {
 				populateGenesisHead(cachedCtx, t, keeper)
 			}

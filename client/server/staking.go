@@ -38,6 +38,7 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/rewards_token", utils.AutoWrap(s.aminoCodec, s.GetRewardsTokenByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/total_rewards_token", utils.SimpleWrap(s.aminoCodec, s.GetTotalRewardsTokenByDelegatorAddress))
 }
 
@@ -215,10 +216,6 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 	}
 
 	return queryResp, nil
-}
-
-type QueryTotalDelegationsCountResponse struct {
-	Total int `json:"total"`
 }
 
 func (s *Server) GetValidatorTotalDelegationsCount(r *http.Request) (resp any, err error) {
@@ -628,8 +625,59 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 	return queryResp, nil
 }
 
-type QueryTotalRewardsTokenByDelegatorAddressResponse struct {
-	RewardsToken math.LegacyDec `json:"rewards_token"`
+func (s *Server) GetRewardsTokenByDelegatorAddress(req *getRewardsTokenByDelegatorAddressRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorDelegations(queryContext, &stakingtypes.QueryDelegatorDelegationsRequest{
+		DelegatorAddr: bech32AccAddress.String(),
+		Pagination: &query.PageRequest{
+			Key:        []byte(req.Pagination.Key),
+			Offset:     req.Pagination.Offset,
+			Limit:      req.Pagination.Limit,
+			CountTotal: req.Pagination.CountTotal,
+			Reverse:    req.Pagination.Reverse,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var delRewardsToken []DelegationRewardsToken
+	for _, delResp := range queryResp.DelegationResponses {
+		valAddr, err := sdk.ValAddressFromBech32(delResp.Delegation.ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		val, err := keeper.NewQuerier(s.store.GetStakingKeeper()).GetValidator(queryContext, valAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(val.OperatorAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardsToken := val.RewardsTokensFromRewardsShares(delResp.Delegation.RewardsShares)
+		delRewardsToken = append(delRewardsToken, DelegationRewardsToken{
+			ValidatorOperatorAddress: evmOperatorAddress,
+			RewardsToken:             rewardsToken,
+		})
+	}
+
+	return QueryRewardsTokenByDelegatorAddressResponse{
+		DelegationRewardsToken: delRewardsToken,
+		Pagination:             queryResp.Pagination,
+	}, nil
 }
 
 func (s *Server) GetTotalRewardsTokenByDelegatorAddress(r *http.Request) (resp any, err error) {
