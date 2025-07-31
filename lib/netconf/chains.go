@@ -12,4 +12,7 @@ const (
 
 	// TestChainID is the chain ID that is used for test code.
 	TestChainID = "test-1"
+
+	// DevnetChainID is the chain ID of Internal Devnet network.
+	DevnetChainID = "internal-devnet-1"
 )
