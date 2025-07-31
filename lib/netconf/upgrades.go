@@ -24,7 +24,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 	DevnetChainID: {
 		Virgil:   50,
 		Ovid:     100,
-		V121:     20000,
+		V121:     150,
 		Polybius: 23000,
 	},
 	TestChainID: {
