@@ -24,8 +24,10 @@ import { TransferOwnershipsProxyAdmin3 } from "script/admin-actions/migrate-to-s
 import { TransferOwnershipsProxyAdmin4 } from "script/admin-actions/migrate-to-safe/2.4.TransferOwnershipProxyAdmin4.s.sol";
 import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.1.TransferOwnershipUpgradesEntrypoint.s.sol";
 import { ReceiveOwnershipUpgradesEntryPoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
-import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
-import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
+import { TransferOwnershipUBIPool } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipUBIPool.s.sol";
+import { ReceiveOwnershipUBIPool } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipUBIPool.s.sol";
+import { TransferOwnershipIPTokenStaking } from "script/admin-actions/migrate-to-safe/3.5.TransferOwnershipIPTokenStaking.s.sol";
+import { ReceiveOwnershipIPTokenStaking } from "script/admin-actions/migrate-to-safe/3.6.ReceiveOwnershipIPTokenStaking.s.sol";
 
 contract SafeMigrationCancelScriptsTest is Test {
     using stdJson for string;
@@ -93,11 +95,17 @@ contract SafeMigrationCancelScriptsTest is Test {
         // Step 3.2: Accept ownership of UpgradesEntrypoint
         _testCancelReceiveOwnershipUpgradesEntrypoint();
 
-        // Step 3.3: Transfer ownership of rest of predeploys
-        _testCancelTransferOwnershipsRestPredeploys();
+        // Step 3.3: Transfer ownership of UBIPool
+        _testCancelTransferOwnershipUBIPool();
 
-        // Step 3.4: Accept ownership of rest of predeploys
-        _testCancelReceiveOwnershipRestPredeploys();
+        // Step 3.4: Accept ownership of UBIPool
+        _testCancelReceiveOwnershipUBIPool();
+
+        // Step 3.5: Transfer ownership of IPTokenStaking
+        _testCancelTransferOwnershipIPTokenStaking();
+
+        // Step 3.6: Accept ownership of IPTokenStaking
+        _testCancelReceiveOwnershipIPTokenStaking();
     }
 
     function _setupEnvVars() private {
@@ -272,41 +280,63 @@ contract SafeMigrationCancelScriptsTest is Test {
         assertEq(upgradeEntrypoint.pendingOwner(), newTimelockAddress, "UpgradesEntrypoint pending owner changed");
     }
 
-    function _testCancelTransferOwnershipsRestPredeploys() private {
+    function _testCancelTransferOwnershipUBIPool() private {
         // Run the script to generate JSON
-        TransferOwnershipsRestPredeploys script = new TransferOwnershipsRestPredeploys();
+        TransferOwnershipUBIPool script = new TransferOwnershipUBIPool();
         script.run();
 
         // Schedule and cancel the operation
-        _scheduleAndCancelOperation(oldTimelock, "safe-migr-transfer-ownerships-rest-predeploys");
+        _scheduleAndCancelOperation(oldTimelock, "safe-migr-transfer-ownership-ubi-pool");
 
-        // Verify that UBIPool and IPTokenStaking do not have new pending owner
+        // Verify that UBIPool does not have new pending owner
         assertEq(ubiPool.pendingOwner(), address(0), "UBIPool ownership transferred despite cancellation");
-        assertEq(
-            ipTokenStaking.pendingOwner(),
-            address(0),
-            "IPTokenStaking ownership transferred despite cancellation"
-        );
     }
 
-    function _testCancelReceiveOwnershipRestPredeploys() private {
+    function _testCancelTransferOwnershipIPTokenStaking() private {
+        // Run the script to generate JSON
+        TransferOwnershipIPTokenStaking script = new TransferOwnershipIPTokenStaking();
+        script.run();
+
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(oldTimelock, "safe-migr-transfer-ownership-iptoken-staking");
+
+        // Verify that IPTokenStaking does not have new pending owner
+        assertEq(ipTokenStaking.pendingOwner(), address(0), "IPTokenStaking ownership transferred despite cancellation");
+    }
+
+    function _testCancelReceiveOwnershipUBIPool() private {
         // For this test, we need to simulate that ownership was first transferred
         vm.startPrank(address(oldTimelock));
         ubiPool.transferOwnership(newTimelockAddress);
+        vm.stopPrank();
+
+        // Run the script to generate JSON
+        ReceiveOwnershipUBIPool script = new ReceiveOwnershipUBIPool();
+        script.run();
+
+        // Schedule and cancel the operation
+        _scheduleAndCancelOperation(newTimelock, "safe-migr-receive-ownership-ubi-pool");
+
+        // Verify that UBIPool has not claimed new ownership
+        assertEq(ubiPool.owner(), address(oldTimelock), "UBIPool ownership changed despite cancellation");
+        assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool pending owner changed");
+    }
+
+    function _testCancelReceiveOwnershipIPTokenStaking() private {
+        // For this test, we need to simulate that ownership was first transferred
+        vm.startPrank(address(oldTimelock));
         ipTokenStaking.transferOwnership(newTimelockAddress);
         vm.stopPrank();
 
         // Run the script to generate JSON
-        ReceiveOwnershipRestPredeploys script = new ReceiveOwnershipRestPredeploys();
+        ReceiveOwnershipIPTokenStaking script = new ReceiveOwnershipIPTokenStaking();
         script.run();
 
         // Schedule and cancel the operation
-        _scheduleAndCancelOperation(newTimelock, "safe-migr-receive-ownerships-rest-predeploys");
+        _scheduleAndCancelOperation(newTimelock, "safe-migr-receive-ownership-iptoken-staking");
 
-        // Verify that the rest of the predeploys have not claimed new ownership
-        assertEq(ubiPool.owner(), address(oldTimelock), "UBIPool ownership changed despite cancellation");
+        // Verify that IPTokenStaking has not claimed new ownership
         assertEq(ipTokenStaking.owner(), address(oldTimelock), "IPTokenStaking ownership changed despite cancellation");
-        assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool pending owner changed");
         assertEq(ipTokenStaking.pendingOwner(), newTimelockAddress, "IPTokenStaking pending owner changed");
     }
 
