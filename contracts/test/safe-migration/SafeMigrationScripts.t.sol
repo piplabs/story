@@ -24,8 +24,10 @@ import { TransferOwnershipsProxyAdmin3 } from "script/admin-actions/migrate-to-s
 import { TransferOwnershipsProxyAdmin4 } from "script/admin-actions/migrate-to-safe/2.4.TransferOwnershipProxyAdmin4.s.sol";
 import { TransferOwnershipsUpgradesEntrypoint } from "script/admin-actions/migrate-to-safe/3.1.TransferOwnershipUpgradesEntrypoint.s.sol";
 import { ReceiveOwnershipUpgradesEntryPoint } from "script/admin-actions/migrate-to-safe/3.2.ReceiveOwnershipUpgradesEntryPoint.s.sol";
-import { TransferOwnershipsRestPredeploys } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipRestPredeploys.s.sol";
-import { ReceiveOwnershipRestPredeploys } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipRestPredeploys.s.sol";
+import { TransferOwnershipUBIPool } from "script/admin-actions/migrate-to-safe/3.3.TransferOwnershipUBIPool.s.sol";
+import { ReceiveOwnershipUBIPool } from "script/admin-actions/migrate-to-safe/3.4.ReceiveOwnershipUBIPool.s.sol";
+import { TransferOwnershipIPTokenStaking } from "script/admin-actions/migrate-to-safe/3.5.TransferOwnershipIPTokenStaking.s.sol";
+import { ReceiveOwnershipIPTokenStaking } from "script/admin-actions/migrate-to-safe/3.6.ReceiveOwnershipIPTokenStaking.s.sol";
 import { RenounceGovernanceRoles } from "script/admin-actions/migrate-to-safe/4.RenounceGovernanceRoles.s.sol";
 
 contract SafeMigrationScriptsTest is Test {
@@ -94,11 +96,17 @@ contract SafeMigrationScriptsTest is Test {
         // Step 3.2: Accept ownership of UpgradesEntrypoint
         _testReceiveOwnershipUpgradesEntrypoint();
 
-        // Step 3.3: Transfer ownership of rest of predeploys
-        _testTransferOwnershipsRestPredeploys();
+        // Step 3.3: Transfer ownership of UBIPool
+        _testTransferOwnershipUBIPool();
 
-        // Step 3.4: Accept ownership of rest of predeploys
-        _testReceiveOwnershipRestPredeploys();
+        // Step 3.4: Accept ownership of UBIPool
+        _testReceiveOwnershipUBIPool();
+
+        // Step 3.5: Transfer ownership of IPTokenStaking
+        _testTransferOwnershipIPTokenStaking();
+
+        // Step 3.6: Accept ownership of IPTokenStaking
+        _testReceiveOwnershipIPTokenStaking();
 
         // Step 4: Renounce ownership of old multisig
         _testRenounceOwnershipOldMultisig();
@@ -182,7 +190,7 @@ contract SafeMigrationScriptsTest is Test {
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
+            
         ) = _readAllTransactionFiles(script.message());
 
         // Execute the full timelock flow with verification
@@ -217,7 +225,7 @@ contract SafeMigrationScriptsTest is Test {
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
+            
         ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-proxy-admin-2");
 
         // Execute the full timelock flow with verification
@@ -256,7 +264,7 @@ contract SafeMigrationScriptsTest is Test {
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
+            
         ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-upgrades-entrypoint");
 
         // Execute the full timelock flow with verification
@@ -283,7 +291,7 @@ contract SafeMigrationScriptsTest is Test {
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
+            
         ) = _readAllTransactionFiles("safe-migr-receive-ownerships-upgrades-entrypoint");
 
         // Execute the full timelock flow with verification
@@ -312,17 +320,17 @@ contract SafeMigrationScriptsTest is Test {
         assertEq(upgradeEntrypoint.pendingOwner(), address(0), "UpgradesEntrypoint pending owner not cleared");
     }
 
-    function _testTransferOwnershipsRestPredeploys() private {
+    function _testTransferOwnershipUBIPool() private {
         // Run the script to generate JSON
-        TransferOwnershipsRestPredeploys script = new TransferOwnershipsRestPredeploys();
+        TransferOwnershipUBIPool script = new TransferOwnershipUBIPool();
         script.run(); // Generate operation JSON
 
         // Get all transaction JSONs (schedule, cancel, execute)
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-transfer-ownerships-rest-predeploys");
+            
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownership-ubi-pool");
 
         // Execute the full timelock flow with verification
         _rawTimelockTransaction(scheduleTx);
@@ -335,24 +343,55 @@ contract SafeMigrationScriptsTest is Test {
         console2.log("Executing execute transaction");
         _rawTimelockTransaction(executeTx);
 
-        // Verify that UBIPool and IPTokenStaking have new pending owner
+        // Verify that UBIPool has new pending owner
         assertEq(ubiPool.pendingOwner(), newTimelockAddress, "UBIPool not transferred");
+    }
+
+    function _testTransferOwnershipIPTokenStaking() private {
+        // Run the script to generate JSON
+        TransferOwnershipIPTokenStaking script = new TransferOwnershipIPTokenStaking();
+        script.run(); // Generate operation JSON
+
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx,
+            JSONTxWriter.Transaction memory executeTx,
+            
+        ) = _readAllTransactionFiles("safe-migr-transfer-ownership-iptoken-staking");
+
+        // Execute the full timelock flow with verification
+        _rawTimelockTransaction(scheduleTx);
+
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that IPTokenStaking has new pending owner
         assertEq(ipTokenStaking.pendingOwner(), newTimelockAddress, "IPTokenStaking not transferred");
     }
 
-    function _testReceiveOwnershipRestPredeploys() private {
+    function _testReceiveOwnershipUBIPool() private {
         // Run the script to generate JSON
-        ReceiveOwnershipRestPredeploys script = new ReceiveOwnershipRestPredeploys();
+        ReceiveOwnershipUBIPool script = new ReceiveOwnershipUBIPool();
         script.run(); // Generate operation JSON
 
         // Get all transaction JSONs (schedule, cancel, execute)
         (
             JSONTxWriter.Transaction memory scheduleTx,
             JSONTxWriter.Transaction memory executeTx,
-            JSONTxWriter.Transaction memory cancelTx
-        ) = _readAllTransactionFiles("safe-migr-receive-ownerships-rest-predeploys");
+            
+        ) = _readAllTransactionFiles("safe-migr-receive-ownership-ubi-pool");
 
         // Execute the full timelock flow with verification
+        require(scheduleTx.to == newTimelockAddress, "Schedule transaction is not to the new timelock");
+        require(
+            newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), scheduleTx.from),
+            "Schedule transaction is not from the new timelock"
+        );
         _rawTimelockTransaction(scheduleTx);
 
         // Wait for the timelock delay
@@ -361,12 +400,53 @@ contract SafeMigrationScriptsTest is Test {
 
         // Execute execute transaction
         console2.log("Executing execute transaction");
+        require(executeTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
+        require(
+            newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), executeTx.from),
+            "Execute transaction is not from the new timelock"
+        );
         _rawTimelockTransaction(executeTx);
 
-        // Verify that the rest of the predeploys have new ownership
+        // Verify that UBIPool has new ownership
         assertEq(ubiPool.owner(), newTimelockAddress, "UBIPool not transferred");
-        assertEq(ipTokenStaking.owner(), newTimelockAddress, "IPTokenStaking not transferred");
         assertEq(ubiPool.pendingOwner(), address(0), "UBIPool pending owner not cleared");
+    }
+
+    function _testReceiveOwnershipIPTokenStaking() private {
+        // Run the script to generate JSON
+        ReceiveOwnershipIPTokenStaking script = new ReceiveOwnershipIPTokenStaking();
+        script.run(); // Generate operation JSON
+
+        // Get all transaction JSONs (schedule, cancel, execute)
+        (
+            JSONTxWriter.Transaction memory scheduleTx,
+            JSONTxWriter.Transaction memory executeTx,
+            
+        ) = _readAllTransactionFiles("safe-migr-receive-ownership-iptoken-staking");
+
+        // Execute the full timelock flow with verification
+        require(scheduleTx.to == newTimelockAddress, "Schedule transaction is not to the new timelock");
+        require(
+            newTimelock.hasRole(newTimelock.PROPOSER_ROLE(), scheduleTx.from),
+            "Schedule transaction is not from the new timelock"
+        );
+        _rawTimelockTransaction(scheduleTx);
+
+        // Wait for the timelock delay
+        console2.log("Waiting for timelock delay");
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+
+        // Execute execute transaction
+        console2.log("Executing execute transaction");
+        require(executeTx.to == newTimelockAddress, "Execute transaction is not to the new timelock");
+        require(
+            newTimelock.hasRole(newTimelock.EXECUTOR_ROLE(), executeTx.from),
+            "Execute transaction is not from the new timelock"
+        );
+        _rawTimelockTransaction(executeTx);
+
+        // Verify that IPTokenStaking has new ownership
+        assertEq(ipTokenStaking.owner(), newTimelockAddress, "IPTokenStaking not transferred");
         assertEq(ipTokenStaking.pendingOwner(), address(0), "IPTokenStaking pending owner not cleared");
     }
 

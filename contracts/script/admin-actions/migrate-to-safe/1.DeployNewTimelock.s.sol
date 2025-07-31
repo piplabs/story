@@ -11,15 +11,23 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 /// @title DeployNewTimelock
 /// @notice Deploy a new TimelockController governed by the new multisigs
 contract DeployNewTimelock is Script {
+    string public UNHASHED_SALT = "STORY_TIMELOCK_CONTROLLER_SAFE";
+    address public newTimelockAddress;
+
     function run() public virtual {
         require(!isTimelockDeployed(), "TimelockController already deployed");
         deployTimelock();
     }
 
+    function run(string memory _salt) public {
+        UNHASHED_SALT = _salt;
+        run();
+    }
+
     /// @notice Check if the TimelockController is deployed
     /// @return True if the TimelockController is deployed, false otherwise
     function isTimelockDeployed() internal view returns (bool) {
-        bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
+        bytes32 salt = keccak256(bytes(UNHASHED_SALT));
         address timelockAddress = Create3(Predeploys.Create3).predictDeterministicAddress(salt);
 
         if (timelockAddress.code.length == 0) {
@@ -89,7 +97,7 @@ contract DeployNewTimelock is Script {
 
         bytes32 salt = keccak256("STORY_TIMELOCK_CONTROLLER_SAFE");
 
-        address newTimelockAddress = Create3(Predeploys.Create3).deployDeterministic(creationCode, salt);
+        newTimelockAddress = Create3(Predeploys.Create3).deployDeterministic(creationCode, salt);
         console2.log("Deployed TimelockController at address:", newTimelockAddress);
         console2.log("Temporary root admin:", deployer);
         console2.log("Proposers", proposers[0], proposers[1]);
@@ -113,7 +121,11 @@ contract DeployNewTimelock is Script {
             deployer
         );
         console2.log("Renounced DEFAULT_ADMIN_ROLE from deployer", deployer);
-
         vm.stopBroadcast();
+    }
+
+    function estimateTimelockAddress(string memory _unhashedSalt) public view returns (address) {
+        bytes32 salt = keccak256(bytes(_unhashedSalt));
+        return Create3(Predeploys.Create3).predictDeterministicAddress(salt);
     }
 }
