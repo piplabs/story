@@ -18,6 +18,9 @@ const (
 	AeneidUpgradeHeight = 345158
 	// StoryUpgradeHeight defines the block height at which virgil upgrade is triggered on Story.
 	StoryUpgradeHeight = 809988
+
+	// DevnetUpgradeHeight defines the block height at which virgil upgrade is triggered on internal-devnet.
+	DevnetUpgradeHeight = 50
 )
 
 var Upgrade = upgrades.Upgrade{
@@ -45,6 +48,8 @@ func GetUpgradeHeight(chainID string) (int64, bool) {
 		return AeneidUpgradeHeight, true
 	case upgrades.StoryChainID:
 		return StoryUpgradeHeight, true
+	case upgrades.DevnetChainID:
+		return DevnetUpgradeHeight, true
 	default:
 		return 0, false
 	}
