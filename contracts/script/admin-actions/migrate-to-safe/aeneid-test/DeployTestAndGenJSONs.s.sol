@@ -105,7 +105,8 @@ contract DeployTestAndGenJSONs is Script {
         console2.log("loaded create3");
 
         // Deploy proxy for IPTokenStaking using Create3
-        bytes32 saltProxy = keccak256(abi.encodePacked(bytes("PredeployProxy"), uint256(0)));
+        bytes32 saltProxy = keccak256("TestPredeployProxy");
+        
         address impl = deployed.ipTokenStakingImpl;
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
             owner: sourceTimelockController,
@@ -115,7 +116,12 @@ contract DeployTestAndGenJSONs is Script {
             fee: 1 ether
         });
         bytes memory data = abi.encodeWithSelector(IPTokenStaking.initialize.selector, args);
-        address proxy = create3.deployDeterministic(
+
+        // Estimate address of proxy first
+        address proxy = create3.predictDeterministicAddress(saltProxy);
+        console2.log("estimated proxy address", proxy);
+
+        proxy = create3.deployDeterministic(
             abi.encodePacked(
                 type(TransparentUpgradeableProxy).creationCode,
                 abi.encode(impl, address(sourceTimelockController), data)
