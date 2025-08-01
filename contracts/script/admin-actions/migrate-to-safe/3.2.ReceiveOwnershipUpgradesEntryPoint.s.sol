@@ -17,7 +17,7 @@ contract ReceiveOwnershipUpgradesEntryPoint is TimelockOperations {
 
     address[] public from;
 
-    constructor() TimelockOperations("safe-migr-receive-ownerships-upgrades-entrypoint") {
+    constructor() TimelockOperations("3.2-safe-migr-receive-ownerships-upgrades-entrypoint") {
         from = new address[](3);
         from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");

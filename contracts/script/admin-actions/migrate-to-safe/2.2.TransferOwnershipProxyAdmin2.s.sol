@@ -12,7 +12,7 @@ import { BaseTransferOwnershipProxyAdmin } from "script/admin-actions/migrate-to
 contract TransferOwnershipsProxyAdmin2 is BaseTransferOwnershipProxyAdmin {
     constructor()
         BaseTransferOwnershipProxyAdmin(
-            "safe-migr-transfer-ownerships-proxy-admin-2",
+            "2.2-safe-migr-transfer-ownerships-proxy-admin-2",
             513, // fromIndex
             768 // toIndex
         )

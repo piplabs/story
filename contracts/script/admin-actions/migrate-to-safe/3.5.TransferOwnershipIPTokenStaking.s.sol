@@ -19,7 +19,7 @@ contract TransferOwnershipIPTokenStaking is TimelockOperations {
     address public ipTokenStakingProxy;
     address[] public from;
 
-    constructor() TimelockOperations("safe-migr-transfer-ownership-iptoken-staking") {
+    constructor() TimelockOperations("3.5-safe-migr-transfer-ownership-iptoken-staking") {
         from = new address[](3);
         from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");

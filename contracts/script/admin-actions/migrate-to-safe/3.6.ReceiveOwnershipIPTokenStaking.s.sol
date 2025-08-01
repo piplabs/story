@@ -19,7 +19,7 @@ contract ReceiveOwnershipIPTokenStaking is TimelockOperations {
     /// @dev not using Predeploys.Staking directly to help with `aeneid-test` scripts
     address public ipTokenStakingProxy;
 
-    constructor() TimelockOperations("safe-migr-receive-ownership-iptoken-staking") {
+    constructor() TimelockOperations("3.6-safe-migr-receive-ownership-iptoken-staking") {
         from = new address[](3);
         from[0] = vm.envAddress("SAFE_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("SAFE_TIMELOCK_EXECUTOR");

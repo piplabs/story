@@ -16,7 +16,7 @@ contract RenounceGovernanceRoles is TimelockOperations {
 
     address[] public from;
 
-    constructor() TimelockOperations("safe-migr-renounce-gov-roles") {
+    constructor() TimelockOperations("4-safe-migr-renounce-gov-roles") {
         from = new address[](3);
         from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");

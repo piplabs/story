@@ -18,7 +18,7 @@ contract TransferOwnershipUBIPool is TimelockOperations {
 
     address[] public from;
 
-    constructor() TimelockOperations("safe-migr-transfer-ownership-ubi-pool") {
+    constructor() TimelockOperations("3.3-safe-migr-transfer-ownership-ubi-pool") {
         from = new address[](3);
         from[0] = vm.envAddress("OLD_TIMELOCK_PROPOSER");
         from[1] = vm.envAddress("OLD_TIMELOCK_EXECUTOR");
