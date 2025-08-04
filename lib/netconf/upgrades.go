@@ -25,7 +25,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Virgil:   50,
 		Ovid:     100,
 		V121:     150,
-		Polybius: 5000,
+		Polybius: 200,
 	},
 	TestChainID: {
 		V121: 10,
