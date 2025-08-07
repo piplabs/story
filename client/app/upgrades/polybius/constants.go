@@ -19,7 +19,7 @@ const (
 	StoryUpgradeHeight = 8270000
 
 	// DevnetUpgradeHeight defines the block height at which Polybius upgrade is triggered on internal-devnet.
-	DevnetUpgradeHeight = 4300
+	DevnetUpgradeHeight = 20500
 
 	NewMaxValidators = 80
 )
