@@ -70,6 +70,8 @@ func AutoWrap[T any](codec *codec.LegacyAmino, api AutoSimpleInterfaceWrapFunc[T
 		}
 
 		if r.ContentLength > 0 {
+			const maxBodySize = 10 << 20 // 10 MiB
+			r.Body = http.MaxBytesReader(nil, r.Body, maxBodySize)
 			err = json.NewDecoder(r.Body).Decode(val)
 			if err != nil {
 				return nil, NewHTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("decode `%s` body err: %v", typ.String(), err))
