@@ -4,7 +4,7 @@
 # This script runs all migration scripts in the correct sequence
 # Usage: ./run-migration.sh <RPC_URL> [--broadcast]
 
-set -e  # Exit on any error
+# set -e  # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'
