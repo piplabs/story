@@ -57,7 +57,7 @@ func (a *App) setupUpgradeStoreLoaders() {
 	storeUpgradesMap := make(StoreUpgradesMap)
 	for name, height := range upgradeHistory {
 		if a.Keepers.UpgradeKeeper.IsSkipHeight(height) {
-			return
+			continue
 		}
 
 		for _, upgrade := range Upgrades {
