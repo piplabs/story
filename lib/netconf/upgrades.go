@@ -40,10 +40,11 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V140:     100000000,
 	},
 	StoryChainID: {
-		Virgil: 809988,
-		Ovid:   4477880,
-		V121:   5084300,
-		V140:   100000000,
+		Virgil:   809988,
+		Ovid:     4477880,
+		V121:     5084300,
+		Polybius: 8270000,
+		V140:     100000000,
 	},
 }
 
