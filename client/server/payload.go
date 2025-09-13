@@ -79,12 +79,30 @@ type getModuleVersionsRequest struct {
 	ModuleName string `mapstructure:"module_name"`
 }
 
+type getStakedTokenByDelegatorAddressRequest struct {
+	Pagination pagination `mapstructure:"pagination"`
+}
+
 type getRewardsTokenByDelegatorAddressRequest struct {
 	Pagination pagination `mapstructure:"pagination"`
 }
 
 type QueryTotalDelegationsCountResponse struct {
 	Total int `json:"total"`
+}
+
+type DelegationStakedToken struct {
+	ValidatorOperatorAddress string         `json:"validator_operator_address"`
+	StakedToken              math.LegacyDec `json:"staked_token"`
+}
+
+type QueryStakedTokenByDelegatorAddressResponse struct {
+	DelegationStakedToken []DelegationStakedToken `json:"delegation_staked_token"`
+	Pagination            *query.PageResponse     `json:"pagination"`
+}
+
+type QueryTotalStakedTokenByDelegatorAddressResponse struct {
+	StakedToken math.LegacyDec `json:"staked_token"`
 }
 
 type DelegationRewardsToken struct {

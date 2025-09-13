@@ -725,6 +725,63 @@ URL: [GET] /staking/delegators/{delegator_addr}/validators/{validator_addr}
 }
 ```
 
+## GetDelegatorStakedToken
+
+URL: [GET] /staking/delegators/{delegator_addr}/staked_token
+
+### Path Params
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+### Query Params
+| Name                   | Type    | Example                                    | Required |
+|------------------------|---------|--------------------------------------------|----------|
+| pagination.key         | string  | FPoybu9dO+FCSV562u9keKVgUwur               |          |
+| pagination.offset      | string  | 0                                          |          |
+| pagination.limit       | array   | 10                                         |          |
+| pagination.count_total | boolean | true                                       |          |
+| pagination.reverse     | boolean | true                                       |          |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "delegation_staked_token": [
+      {
+        "validator_operator_address": "0x88355450c9003d1d43773bd72b837e818693a781",
+        "staked_token": "2048000000000.000000000000000000"
+      }
+    ],
+    "pagination": {
+      "total": "1"
+    }
+  },
+  "error": ""
+}
+```
+
+## GetDelegatorTotalStakedToken
+
+URL: [GET] /staking/delegators/{delegator_addr}/total_staked_token
+
+### Path Params
+| Name           | Type   | Example                                      | Required |
+|----------------|--------|----------------------------------------------|----------|
+| delegator_addr | string | 0x00a842dbd3d11176b4868dd753a552b8919d5a63   | ✔        |
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "staked_token": "2048000000000.000000000000000000"
+  },
+  "error": ""
+}
+```
+
 ## GetDelegatorRewardsToken
 
 URL: [GET] /staking/delegators/{delegator_addr}/rewards_token
