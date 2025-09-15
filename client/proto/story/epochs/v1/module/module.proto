@@ -1,0 +1,16 @@
+syntax = "proto3";
+package story.epochs.v1.module;
+
+import "cosmos/app/v1alpha1/module.proto";
+
+option go_package = "github.com/piplabs/story/client/x/epochs/module";
+
+// Module is the config object of the epochs module.
+message Module {
+  option (cosmos.app.v1alpha1.module) = {
+    go_import: "github.com/piplabs/story/client/x/epochs"
+  };
+
+	// authority defines the custom module authority. If not set, defaults to the governance module.
+  string authority = 1;
+}
