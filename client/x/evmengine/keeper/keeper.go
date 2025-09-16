@@ -26,7 +26,10 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 )
+
+var ErrExecEngSyncing = errors.New("execution engine is syncing")
 
 type Keeper struct {
 	cdc             codec.BinaryCodec
@@ -56,6 +59,8 @@ type Keeper struct {
 		Height    uint64
 		UpdatedAt time.Time
 	}
+
+	isExecEngSyncing bool
 }
 
 func NewKeeper(
@@ -128,6 +133,15 @@ func (k *Keeper) SetValidatorAddress(addr common.Address) {
 	k.validatorAddr = addr
 }
 
+// IsExecEngSyncing returns if execution engine is syncing or not.
+func (k *Keeper) IsExecEngSyncing() bool {
+	return k.isExecEngSyncing
+}
+
+func (k *Keeper) SetIsExecEngSyncing(isSyncing bool) {
+	k.isExecEngSyncing = isSyncing
+}
+
 // RegisterProposalService registers the proposal service on the provided router.
 // This implements abci.ProcessProposal verification of new proposals.
 func (k *Keeper) RegisterProposalService(server grpc1.Server) {
@@ -144,15 +158,38 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 		return engine.ExecutableData{}, errors.New("invalid authority")
 	}
 
-	// validate execution payload
-	if err := types.ValidateExecPayload(msg); err != nil {
-		return engine.ExecutableData{}, errors.Wrap(err, "validate execution payload")
+	// Parse the payload.
+	var (
+		payload engine.ExecutableData
+		err     error
+	)
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	isV140, err := netconf.IsV140(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	if err != nil {
+		return engine.ExecutableData{}, errors.Wrap(err, "failed to check if the v1.4.0 upgrade is activated or not")
 	}
 
-	// Parse the payload.
-	var payload engine.ExecutableData
-	if err := json.Unmarshal(msg.ExecutionPayload, &payload); err != nil {
-		return engine.ExecutableData{}, errors.Wrap(err, "unmarshal payload")
+	//nolint:nestif // required to handle multiple conditional branches depending on v1.4.0 upgrade activation
+	if isV140 {
+		if msg.ExecutionPayload != nil {
+			return engine.ExecutableData{}, errors.New("legacy json payload not allowed")
+		}
+		payload, err = types.PayloadFromProto(msg.ExecutionPayloadDeneb)
+		if err != nil {
+			return engine.ExecutableData{}, errors.Wrap(err, "unmarshal proto payload")
+		}
+	} else {
+		if msg.ExecutionPayloadDeneb != nil {
+			return engine.ExecutableData{}, errors.New("proto payload not allowed")
+		}
+		// validate execution payload
+		if err := types.ValidateExecPayload(msg); err != nil {
+			return engine.ExecutableData{}, errors.Wrap(err, "validate execution payload")
+		}
+		if err := json.Unmarshal(msg.ExecutionPayload, &payload); err != nil {
+			return engine.ExecutableData{}, errors.Wrap(err, "unmarshal payload")
+		}
 	}
 
 	// Fetch the latest execution head from the local keeper DB.
@@ -191,6 +228,11 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 			"withdrawals", payload.Withdrawals,
 			"blob_gas_used", payload.BlobGasUsed,
 			"excess_blob_gas", payload.ExcessBlobGas)
+	}
+
+	// Ensure no witness
+	if payload.ExecutionWitness != nil {
+		return engine.ExecutableData{}, errors.New("witness not allowed in payload")
 	}
 
 	return payload, nil

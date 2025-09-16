@@ -2,7 +2,13 @@ name: go tests
 # Run this separately from pre-commit for nice visual coverage.
 
 on:
+  push:
+    branches:
+      - main
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 jobs:
   unit_tests:
@@ -13,12 +19,14 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.10'
-      - name: Configure Git
-        run: |
-          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
-          go env -w GOPRIVATE="github.com/piplabs/*"
-          go clean -modcache
-          go mod tidy
-      # TODO: add coverage
-      - run: go test -timeout=5m -race -tags=verify_logs ./...
+          go-version: '1.22.11'
+      - run: go test -coverprofile=coverage.txt -timeout=5m -race -tags=verify_logs ./...
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.txt
+          flags: unittests
+          name: go-tests
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

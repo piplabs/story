@@ -26,6 +26,7 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -63,6 +64,7 @@ func (mr *MockAccountKeeperMockRecorder) GetModuleAddress(moduleName any) *gomoc
 type MockEvmStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockEvmStakingKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockEvmStakingKeeperMockRecorder is the mock recorder for MockEvmStakingKeeper.
@@ -205,6 +207,7 @@ func (mr *MockEvmStakingKeeperMockRecorder) ProcessStakingEvents(ctx, height, lo
 type MockUpgradeKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockUpgradeKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockUpgradeKeeperMockRecorder is the mock recorder for MockUpgradeKeeper.
@@ -238,6 +241,20 @@ func (mr *MockUpgradeKeeperMockRecorder) ClearUpgradePlan(ctx any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearUpgradePlan", reflect.TypeOf((*MockUpgradeKeeper)(nil).ClearUpgradePlan), ctx)
 }
 
+// DumpUpgradeInfoToDisk mocks base method.
+func (m *MockUpgradeKeeper) DumpUpgradeInfoToDisk(height int64, p types.Plan) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DumpUpgradeInfoToDisk", height, p)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DumpUpgradeInfoToDisk indicates an expected call of DumpUpgradeInfoToDisk.
+func (mr *MockUpgradeKeeperMockRecorder) DumpUpgradeInfoToDisk(height, p any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DumpUpgradeInfoToDisk", reflect.TypeOf((*MockUpgradeKeeper)(nil).DumpUpgradeInfoToDisk), height, p)
+}
+
 // ScheduleUpgrade mocks base method.
 func (m *MockUpgradeKeeper) ScheduleUpgrade(ctx context.Context, plan types.Plan) error {
 	m.ctrl.T.Helper()
@@ -256,6 +273,7 @@ func (mr *MockUpgradeKeeperMockRecorder) ScheduleUpgrade(ctx, plan any) *gomock.
 type MockDistrKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockDistrKeeperMockRecorder
+	isgomock struct{}
 }
 
 // MockDistrKeeperMockRecorder is the mock recorder for MockDistrKeeper.

@@ -36,8 +36,8 @@ const (
 	// Odyssey is the official Story Protocol public testnet.
 	Odyssey ID = "odyssey"
 
-	// Homer is the official Story Protocol devnet.
-	Homer ID = "homer"
+	// Aeneid is the official Story Protocol testnet.
+	Aeneid ID = "aeneid"
 
 	// Story is the official Story Protocol mainnet.
 	Story ID = "story"
@@ -49,7 +49,7 @@ const (
 var supported = map[ID]bool{
 	Iliad:   true,
 	Odyssey: true,
-	Homer:   true,
+	Aeneid:  true,
 	Local:   true,
 	Story:   true,
 }

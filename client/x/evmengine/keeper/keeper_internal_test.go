@@ -14,6 +14,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
+	etypes "github.com/ethereum/go-ethereum/core/types"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 
 	"go.uber.org/mock/gomock"
 )
@@ -33,6 +35,7 @@ type args struct {
 	validatorsFunc func(context.Context, int64) (*cmttypes.ValidatorSet, error)
 	isNextProposer bool
 	header         func(height int64) cmtproto.Header
+	unsetCmtAPI    bool
 }
 
 func createTestKeeper(t *testing.T) (context.Context, *Keeper) {
@@ -92,9 +95,11 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 	require.NoError(t, err)
 	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
 	require.NoError(t, err)
-	keeper.SetCometAPI(cmtAPI)
+
+	if !args.unsetCmtAPI {
+		keeper.SetCometAPI(cmtAPI)
+	}
 	keeper.SetValidatorAddress(nxtAddr)
-	populateGenesisHead(ctx, t, keeper)
 
 	return ctx, cmtAPI, keeper
 }
@@ -119,6 +124,16 @@ func TestKeeper_SetBuildOptimistic(t *testing.T) {
 	require.True(t, keeper.buildOptimistic)
 }
 
+func TestKeeper_SetIsExecEngSyncing(t *testing.T) {
+	t.Parallel()
+	keeper := new(Keeper)
+	// check existing value
+	require.False(t, keeper.IsExecEngSyncing())
+	// set new value
+	keeper.SetIsExecEngSyncing(true)
+	require.True(t, keeper.IsExecEngSyncing())
+}
+
 func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 	t.Parallel()
 	now := time.Now()
@@ -131,11 +146,97 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 	})
 
 	tcs := []struct {
-		name        string
-		setup       func(context.Context) sdk.Context
-		msg         func(context.Context) *types.MsgExecutionPayload
-		expectedErr string
+		name          string
+		setup         func(context.Context) sdk.Context
+		msg           func(context.Context) *types.MsgExecutionPayload
+		expectedErr   string
+		unsetExecHead bool
 	}{
+		{
+			name: "fail: invalid authority",
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        "story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
+				}
+			},
+			expectedErr: "invalid authority",
+		},
+		{
+			name: "fail: check upgrade activation",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithChainID("unknown-chain-id")
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "failed to check if the v1.4.0 upgrade is activated or not",
+		},
+		{
+			name: "fail: v1.4.0 is activated but ExecutionPayload of msg is not nil",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(51)
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayload:      []byte("execution_payload"),
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "legacy json payload not allowed",
+		},
+		{
+			name: "fail: invalid proto marshaled payload",
+			setup: func(ctx context.Context) sdk.Context {
+				sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(51)
+
+				return sdkCtx
+			},
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "unmarshal proto payload",
+		},
+		{
+			name: "fail: v1.4.0 is not activated and ExecutionPayloadDeneb of msg is not nil",
+			msg: func(_ context.Context) *types.MsgExecutionPayload {
+				return &types.MsgExecutionPayload{
+					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},
+					ExecutionPayload:      []byte("execution_payload"),
+					Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "proto payload not allowed",
+		},
 		{
 			name: "fail: unmarshal payload because of invalid execution payload",
 			msg: func(_ context.Context) *types.MsgExecutionPayload {
@@ -144,7 +245,26 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
 				}
 			},
-			expectedErr: "unmarshal payload",
+			expectedErr: "validate execution payload",
+		},
+		{
+			name: "fail: disallowed field in execution payload",
+			msg: func(_ context.Context) *types.MsgExecutionPayload {
+				invalidPayload := struct {
+					Disallowed []byte `json:"disallowed"`
+				}{
+					Disallowed: []byte("disallowed"),
+				}
+
+				marshaled, err := json.Marshal(invalidPayload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "validate execution payload",
 		},
 		{
 			name: "fail: payload number is not equal to head block height + 1",
@@ -163,12 +283,9 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 			expectedErr: "invalid proposed payload number",
 		},
 		{
-			name: "fail: payload parent hash is not equal to head hash",
+			name: "fail: no execution head",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
-				execHead, err := keeper.getExecutionHead(c)
-				require.NoError(t, err)
-
-				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), common.Hash{}, common.Address{}, common.Hash{}, &common.Hash{})
+				payload, err := ethclient.MakePayload(fuzzer, 1, uint64(now.Unix()), common.Hash{}, common.Address{}, common.Hash{}, &common.Hash{})
 				require.NoError(t, err)
 
 				marshaled, err := json.Marshal(payload)
@@ -179,7 +296,8 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
 				}
 			},
-			expectedErr: "invalid proposed payload parent hash",
+			expectedErr:   "latest execution block",
+			unsetExecHead: true,
 		},
 		{
 			name: "fail: invalid payload timestamp",
@@ -221,7 +339,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 			expectedErr: "invalid payload random",
 		},
 		{
-			name: "fail: invalid authority",
+			name: "fail: nil Withdrawals in payload",
 			msg: func(c context.Context) *types.MsgExecutionPayload {
 				execHead, err := keeper.getExecutionHead(c)
 				require.NoError(t, err)
@@ -229,15 +347,80 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
 				require.NoError(t, err)
 
+				payload.Withdrawals = nil
+
 				marshaled, err := json.Marshal(payload)
 				require.NoError(t, err)
 
 				return &types.MsgExecutionPayload{
 					ExecutionPayload: marshaled,
-					Authority:        "story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
 				}
 			},
-			expectedErr: "invalid authority",
+			expectedErr: "the followings must not be nil",
+		},
+		{
+			name: "fail: nil BlobGasUsed in payload",
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				payload.BlobGasUsed = nil
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "the followings must not be nil",
+		},
+		{
+			name: "fail: nil ExcessBlobGas in payload",
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				payload.ExcessBlobGas = nil
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "the followings must not be nil",
+		},
+		{
+			name: "fail: non-nil ExecutionWitness in payload",
+			msg: func(c context.Context) *types.MsgExecutionPayload {
+				execHead, err := keeper.getExecutionHead(c)
+				require.NoError(t, err)
+
+				payload, err := ethclient.MakePayload(fuzzer, execHead.GetBlockHeight()+1, uint64(now.Unix()), execHead.Hash(), common.Address{}, execHead.Hash(), &common.Hash{})
+				require.NoError(t, err)
+
+				payload.ExecutionWitness = &etypes.ExecutionWitness{}
+
+				marshaled, err := json.Marshal(payload)
+				require.NoError(t, err)
+
+				return &types.MsgExecutionPayload{
+					ExecutionPayload: marshaled,
+					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
+				}
+			},
+			expectedErr: "witness not allowed in payload",
 		},
 		{
 			name: "pass: valid payload",
@@ -298,6 +481,11 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		//nolint:tparallel // cannot run parallel because of data race on execution head table
 		t.Run(tc.name, func(t *testing.T) {
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
+			if !tc.unsetExecHead {
+				populateGenesisHead(cachedCtx, t, keeper)
+			}
+
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}
@@ -326,8 +514,11 @@ func TestKeeper_setOptimisticPayload(t *testing.T) {
 
 	// set new values
 	keeper.setOptimisticPayload(engine.PayloadID{1}, 1)
-	require.Equal(t, uint64(1), keeper.mutablePayload.Height)
-	require.Equal(t, engine.PayloadID{1}, keeper.mutablePayload.ID)
+
+	// get optimistic payload
+	payloadID, payloadHeight, _ := keeper.getOptimisticPayload()
+	require.Equal(t, uint64(1), payloadHeight)
+	require.Equal(t, engine.PayloadID{1}, payloadID)
 }
 
 func TestKeeper_isNextProposer(t *testing.T) {
@@ -339,6 +530,19 @@ func TestKeeper_isNextProposer(t *testing.T) {
 		want    bool
 		wantErr bool
 	}{
+		{
+			name: "nil cmtAPI for keeper",
+			args: args{
+				height:         height,
+				isNextProposer: false,
+				header: func(height int64) cmtproto.Header {
+					return cmtproto.Header{Height: height}
+				},
+				unsetCmtAPI: true,
+			},
+			want:    false,
+			wantErr: false,
+		},
 		{
 			name: "not proposer",
 			args: args{
@@ -393,7 +597,9 @@ func TestKeeper_isNextProposer(t *testing.T) {
 				t.Errorf("isNextProposer() got = %v, want %v", got, tt.want)
 			}
 			// make sure that height passed into Validators is correct
-			require.Equal(t, tt.args.height, cmtAPI.height)
+			if !tt.args.unsetCmtAPI {
+				require.Equal(t, tt.args.height, cmtAPI.height)
+			}
 		})
 	}
 }

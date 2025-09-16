@@ -20,12 +20,64 @@ func (suite *ParamsTestSuite) SetupTest() {
 
 func (suite *ParamsTestSuite) TestNewParams() {
 	require := suite.Require()
-	maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount := uint32(1), uint32(2), uint64(3)
-	params := types.NewParams(maxWithdrawalPerBlock, maxSweepPerBlock, minPartialWithdrawalAmount)
-	// check values are set correctly
-	require.Equal(maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
-	require.Equal(maxSweepPerBlock, params.MaxSweepPerBlock)
-	require.Equal(minPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+	tcs := []struct {
+		name                       string
+		maxWithdrawalPerBlock      uint32
+		maxSweepPerBlock           uint32
+		minPartialWithdrawalAmount uint64
+		expectedError              string
+	}{
+		{
+			name:                       "pass: valid params",
+			maxWithdrawalPerBlock:      uint32(1),
+			maxSweepPerBlock:           uint32(2),
+			minPartialWithdrawalAmount: uint64(3),
+		},
+		{
+			name:                       "fail: invalid maxWithdrawalPerBlock",
+			maxWithdrawalPerBlock:      uint32(0),
+			maxSweepPerBlock:           uint32(2),
+			minPartialWithdrawalAmount: uint64(3),
+			expectedError:              "max withdrawal per block must be positive: 0",
+		},
+		{
+			name:                       "fail: invalid maxSweepPerBlock - 0 of maxSweepPerBlock",
+			maxWithdrawalPerBlock:      uint32(1),
+			maxSweepPerBlock:           uint32(0),
+			minPartialWithdrawalAmount: uint64(3),
+			expectedError:              "max sweep per block must be positive: 0",
+		},
+		{
+			name:                       "fail: invalid maxSweepPerBlock - smaller maxSweepPerBlock than maxWithdrawalPerBlock",
+			maxWithdrawalPerBlock:      uint32(2),
+			maxSweepPerBlock:           uint32(1),
+			minPartialWithdrawalAmount: uint64(3),
+			expectedError:              "max sweep per block must be greater than or equal to max withdrawal per block: 1 < 2",
+		},
+		{
+			name:                       "fail: invalid minPartialWithdrawalAmount",
+			maxWithdrawalPerBlock:      uint32(1),
+			maxSweepPerBlock:           uint32(2),
+			minPartialWithdrawalAmount: uint64(0),
+			expectedError:              "min partial withdrawal amount must be positive: 0",
+		},
+	}
+
+	for _, tc := range tcs {
+		suite.Run(tc.name, func() {
+			params := types.NewParams(tc.maxWithdrawalPerBlock, tc.maxSweepPerBlock, tc.minPartialWithdrawalAmount)
+
+			err := params.Validate()
+			if tc.expectedError == "" {
+				require.NoError(err)
+				require.Equal(tc.maxWithdrawalPerBlock, params.MaxWithdrawalPerBlock)
+				require.Equal(tc.maxSweepPerBlock, params.MaxSweepPerBlock)
+				require.Equal(tc.minPartialWithdrawalAmount, params.MinPartialWithdrawalAmount)
+			} else {
+				require.ErrorContains(err, tc.expectedError, "unexpected error from params validation")
+			}
+		})
+	}
 }
 
 func (suite *ParamsTestSuite) TestDefaultParams() {

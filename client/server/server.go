@@ -26,12 +26,14 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
+	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
 )
 
 type Store interface {
 	CreateQueryContext(height int64, prove bool) (sdk.Context, error)
+	GetEVMEngineKeeper() *evmenginekeeper.Keeper
 	GetEvmStakingKeeper() *evmstakingkeeper.Keeper
 	GetStakingKeeper() *stakingkeeper.Keeper
 	GetSlashingKeeper() slashingkeeper.Keeper
@@ -120,6 +122,7 @@ func (s *Server) registerHandle() {
 	s.initBankRoute()
 	s.initDistributionRoute()
 	s.initEvmStakingRoute()
+	s.initEVMEngineRoute()
 	s.initSlashingRoute()
 	s.initStakingRoute()
 	s.initUpgradeRoute()

@@ -23,6 +23,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
@@ -160,6 +161,15 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			expectedError:           "invalid proposed payload number",
 		},
 		{
+			name: "fail: MaxWithdrawalPerBlock error",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), errors.New("failed to get max withdrawal per block"))
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			expectedError: "error getting max withdrawal per block",
+		},
+		{
 			name: "fail: DequeueEligibleWithdrawals error",
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
@@ -169,6 +179,55 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			},
 			createPayload: createValidPayload,
 			expectedError: "error on withdrawals dequeue",
+		},
+		{
+			name: "fail: dequeued withdrawals are greater than withdrawals in payload",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(etypes.Withdrawals{
+					&etypes.Withdrawal{
+						Index:     uint64(0),
+						Validator: uint64(0),
+						Address:   common.MaxAddress,
+						Amount:    uint64(0),
+					},
+				}, nil)
+
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			expectedError: "dequeued withdrawals 1 should not greater than proposed withdrawals 0",
+		},
+		{
+			name: "fail: DequeueEligibleRewardWithdrawals error",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, errors.New("failed to dequeue"))
+
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			expectedError: "error on reward withdrawals dequeue",
+		},
+		{
+			name: "fail: dequeued total withdrawals are greater than total withdrawals in payload",
+			setup: func(ctx context.Context) sdk.Context {
+				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
+				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(etypes.Withdrawals{
+					&etypes.Withdrawal{
+						Index:     uint64(0),
+						Validator: uint64(0),
+						Address:   common.MaxAddress,
+						Amount:    uint64(0),
+					},
+				}, nil)
+
+				return sdk.UnwrapSDKContext(ctx)
+			},
+			createPayload: createValidPayload,
+			expectedError: "dequeued total withdrawals 1 should equal to proposed withdrawals 0",
 		},
 		{
 			name: "fail: NewPayloadV3 returns status invalid",
@@ -213,7 +272,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			expectedError:           "deliver staking-related event logs",
 		},
 		{
-			name: "fail: ProcessUpgradeEvents error",
+			name: "fail: invalid event log error",
 			setup: func(ctx context.Context) sdk.Context {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
@@ -237,7 +296,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 					TxHash:  dummyHash.Bytes(),
 				}}
 			},
-			expectedError: "deliver upgrade-related event logs",
+			expectedError: "verify log [BUG]",
 		},
 	}
 
@@ -251,6 +310,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			var events []*types.EVMEvent
 
 			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}

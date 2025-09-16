@@ -113,10 +113,22 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) error {
 			return
 		}
 
+		var flagName string // Support 1 tier of TOML groups using first term before "-".
+
+		// if it is log class state sync flag, handle it differently
+		// related issue: https://github.com/piplabs/story/issues/487
+		if strings.HasPrefix(f.Name, "log_") {
+			flagName = strings.Replace(f.Name, "_", ".", 1)
+		} else if strings.HasPrefix(f.Name, "state-sync.") {
+			flagName = strings.TrimPrefix(f.Name, "state-sync.")
+		} else {
+			flagName = strings.Replace(f.Name, "-", ".", 1)
+		}
+
 		// Define all the viper flag names to check
 		viperNames := []string{
 			f.Name,
-			strings.Replace(f.Name, "-", ".", 1), // Support 1 tier of TOML groups using first term before "-".
+			flagName,
 		}
 
 		for _, name := range viperNames {

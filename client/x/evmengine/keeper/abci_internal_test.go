@@ -45,6 +45,7 @@ import (
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
 	"github.com/piplabs/story/lib/k1util"
+	"github.com/piplabs/story/lib/netconf"
 	"github.com/piplabs/story/lib/tutil"
 
 	"go.uber.org/mock/gomock"
@@ -63,15 +64,18 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 	t.Run("TestRunErrScenarios", func(t *testing.T) {
 		// t.Parallel() // disable parallel testing for now
 		tests := []struct {
-			name       string
-			mockEngine mockEngineAPI
-			mockClient mock.MockClient
-			req        *abci.RequestPrepareProposal
-			wantErr    bool
-			setupMocks func(esk *moduletestutil.MockEvmStakingKeeper)
+			name               string
+			mockEngine         mockEngineAPI
+			mockClient         mock.MockClient
+			req                *abci.RequestPrepareProposal
+			wantErr            bool
+			setup              func(ctx sdk.Context) sdk.Context
+			setupMocks         func(esk *moduletestutil.MockEvmStakingKeeper)
+			isExecEngSyncing   bool
+			unsetExecutionHead bool
 		}{
 			{
-				name:       "pass: no transactions",
+				name:       "pass: no transactions (height = 1)",
 				mockEngine: mockEngineAPI{},
 				mockClient: mock.MockClient{},
 				req: &abci.RequestPrepareProposal{
@@ -81,6 +85,116 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
 				},
 				wantErr: false,
+			},
+			{
+				name: "pass: success of prepare proposal after genesis (height > 1)",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{
+								ParentHash: common.MaxHash,
+								BlockHash:  common.MaxHash,
+							},
+						}, nil
+					},
+					filterLogsFunc: func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
+						return []types.Log{{
+							Address: zeroAddr,
+							Topics:  []common.Hash{common.MaxHash},
+						}}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,        // Set to nil to simulate no transactions
+					Height:     2,          // Set height to 1 for this test case
+					Time:       time.Now(), // Set time to current time or mock a time
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: false,
+			},
+			{
+				name: "pass: success of prepare proposal after v1.4.0",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						bgu := uint64(0)
+						ebg := uint64(0)
+
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{
+								ParentHash:    common.MaxHash,
+								BlockHash:     common.MaxHash,
+								BaseFeePerGas: new(big.Int).SetUint64(1),
+								BlobGasUsed:   &bgu,
+								ExcessBlobGas: &ebg,
+							},
+						}, nil
+					},
+					filterLogsFunc: func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
+						return []types.Log{{
+							Address: zeroAddr,
+							Topics:  []common.Hash{common.MaxHash},
+						}}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setup: func(ctx sdk.Context) sdk.Context {
+					ctx = ctx.WithBlockHeight(51)
+
+					return ctx
+				},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,        // Set to nil to simulate no transactions
+					Height:     2,          // Set height to 1 for this test case
+					Time:       time.Now(), // Set time to current time or mock a time
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: false,
+			},
+			{
+				name:       "fail: execution engine syncing",
+				mockEngine: mockEngineAPI{},
+				mockClient: mock.MockClient{},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr:          true,
+				isExecEngSyncing: true,
 			},
 			{
 				name:       "fail: max bytes is less than 9/10 of max block size",
@@ -96,6 +210,21 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				req: &abci.RequestPrepareProposal{
 					Txs:        [][]byte{[]byte("tx1")}, // simulate transactions
 					Height:     1,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name:       "fail: max withdrawal per block",
+				mockEngine: mockEngineAPI{},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), errors.New("failed to get max withdrawal per block"))
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
 					Time:       time.Now(),
 					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
 				},
@@ -118,7 +247,63 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name: "fail: forkchoiceUpdateV3 not valid",
+				name:       "fail: peek eligible reward withdrawals",
+				mockEngine: mockEngineAPI{},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peak eligible reward withdrawals"))
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name:       "fail: get execution head",
+				mockEngine: mockEngineAPI{},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr:            true,
+				unsetExecutionHead: true,
+			},
+			{
+				name: "fail: forkChoiceUpdatedV3 rpc err",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, v1 eengine.ForkchoiceStateV1, attributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{}, errors.New("failed in forkChoiceUpdatedV3 call")
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name: "fail: forkChoiceUpdatedV3 not valid",
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
@@ -154,6 +339,70 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				},
 			},
 			{
+				name: "fail: EL is syncing",
+				mockEngine: mockEngineAPI{
+					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
+						fuzzer := ethclient.NewFuzzer(0)
+						var header *types.Header
+						fuzzer.Fuzz(&header)
+
+						return header, nil
+					},
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.SYNCING,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: nil,
+						}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+			},
+			{
+				name: "fail: missing payload ID",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, v1 eengine.ForkchoiceStateV1, attributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: nil,
+						}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
 				name: "fail: unknown payload",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
@@ -184,6 +433,189 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
 					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 				},
+			},
+			{
+				name: "fail: getPayloadV3 rpc err",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{}, errors.New("unknown rpc error")
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name: "fail: unknown chain ID for v1.4.0 upgrade",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{},
+						}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setup: func(ctx sdk.Context) sdk.Context {
+					ctx = ctx.WithChainID("unknown-chain-id")
+
+					return ctx
+				},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name: "fail: filterLogs rpc err",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{},
+						}, nil
+					},
+					filterLogsFunc: func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
+						return nil, errors.New("filterLogs rpc error")
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name: "fail: invalid event",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{},
+						}, nil
+					},
+					filterLogsFunc: func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error) {
+						return []types.Log{{
+							Address: zeroAddr,
+						}}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
+			},
+			{
+				name: "fail: large txs that exceed req.MaxTxBytes",
+				mockEngine: mockEngineAPI{
+					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+						return eengine.ForkChoiceResponse{
+							PayloadStatus: eengine.PayloadStatusV1{
+								Status:          eengine.VALID,
+								LatestValidHash: nil,
+								ValidationError: nil,
+							},
+							PayloadID: &eengine.PayloadID{0x1},
+						}, nil
+					},
+					getPayloadV3Func: func(ctx context.Context, id eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error) {
+						return &eengine.ExecutionPayloadEnvelope{
+							ExecutionPayload: &eengine.ExecutableData{
+								Transactions: [][]byte{make([]byte, cmttypes.MaxBlockSizeBytes+1)},
+							},
+						}, nil
+					},
+				},
+				mockClient: mock.MockClient{},
+				setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+					esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+					esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+					esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+				},
+				req: &abci.RequestPrepareProposal{
+					Txs:        nil,
+					Height:     2,
+					Time:       time.Now(),
+					MaxTxBytes: cmttypes.MaxBlockSizeBytes,
+				},
+				wantErr: true,
 			},
 			{
 				name: "fail: optimistic payload exists but unknown payload is returned by EL",
@@ -231,6 +663,10 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 				dk := moduletestutil.NewMockDistrKeeper(ctrl)
 
+				if tt.setup != nil {
+					ctx = tt.setup(ctx)
+				}
+
 				if tt.setupMocks != nil {
 					tt.setupMocks(esk)
 				}
@@ -242,9 +678,12 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk)
 				require.NoError(t, err)
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
-				populateGenesisHead(ctx, t, k)
+				if !tt.unsetExecutionHead {
+					populateGenesisHead(ctx, t, k)
+				}
 				// Set an optimistic payload
 				k.setOptimisticPayload(eengine.PayloadID{}, optimisticPayloadHeight)
+				k.SetIsExecEngSyncing(tt.isExecEngSyncing)
 
 				_, err = k.PrepareProposal(withRandomErrs(t, ctx), tt.req)
 				if (err != nil) != tt.wantErr {
@@ -332,17 +771,17 @@ func TestKeeper_PostFinalize(t *testing.T) {
 		name             string
 		mockEngine       mockEngineAPI
 		mockClient       mock.MockClient
-		wantErr          bool
 		enableOptimistic bool
 		isNextProposer   bool
 		setupMocks       func(esk *moduletestutil.MockEvmStakingKeeper)
 		postStateCheck   func(k *Keeper)
+		isExecEngSyncing bool
+		cmtAPIValFunc    func(context.Context, int64) (*cmttypes.ValidatorSet, error)
 	}{
 		{
 			name:             "pass: nothing happens when enableOptimistic is false",
 			mockEngine:       mockEngineAPI{},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
 			enableOptimistic: false,
 			isNextProposer:   false,
 			postStateCheck:   payloadFailedToSet,
@@ -351,21 +790,81 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			name:             "pass: node is not next proposer",
 			mockEngine:       mockEngineAPI{},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
 			enableOptimistic: true,
 			isNextProposer:   false,
 			postStateCheck:   payloadFailedToSet,
 		},
 		{
+			name:             "fail: evm engine syncing",
+			mockEngine:       mockEngineAPI{},
+			mockClient:       mock.MockClient{},
+			enableOptimistic: true,
+			isNextProposer:   false,
+			postStateCheck:   payloadFailedToSet,
+			isExecEngSyncing: true,
+		},
+		{
+			name:             "fail: comet API validators",
+			mockEngine:       mockEngineAPI{},
+			mockClient:       mock.MockClient{},
+			enableOptimistic: true,
+			isNextProposer:   false,
+			postStateCheck:   payloadFailedToSet,
+			cmtAPIValFunc: func(ctx context.Context, i int64) (*cmttypes.ValidatorSet, error) {
+				return nil, errors.New("failed to get validators")
+			},
+		},
+		{
+			name:             "fail: max withdrawal per block",
+			mockEngine:       mockEngineAPI{},
+			mockClient:       mock.MockClient{},
+			enableOptimistic: true,
+			isNextProposer:   true,
+			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), errors.New("failed to get max withdrawal per block"))
+			},
+			postStateCheck: payloadFailedToSet,
+		},
+		{
 			name:             "fail: peek eligible withdrawals",
 			mockEngine:       mockEngineAPI{},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
 			enableOptimistic: true,
 			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
 				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible withdrawals"))
+			},
+			postStateCheck: payloadFailedToSet,
+		},
+		{
+			name:             "fail: peek eligible reward withdrawals",
+			mockEngine:       mockEngineAPI{},
+			mockClient:       mock.MockClient{},
+			enableOptimistic: true,
+			isNextProposer:   true,
+			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to peek eligible reward withdrawals"))
+			},
+			postStateCheck: payloadFailedToSet,
+		},
+		{
+			name: "fail: forkChoiceUpdatedV3 rpc err",
+			mockEngine: mockEngineAPI{
+				forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+					payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+					return eengine.ForkChoiceResponse{}, errors.New("failed to forkChoiceUpdatedV3")
+				},
+			},
+			mockClient:       mock.MockClient{},
+			enableOptimistic: true,
+			isNextProposer:   true,
+			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
 			},
 			postStateCheck: payloadFailedToSet,
 		},
@@ -385,7 +884,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 				},
 			},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
 			enableOptimistic: true,
 			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
@@ -411,7 +909,30 @@ func TestKeeper_PostFinalize(t *testing.T) {
 				},
 			},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
+			enableOptimistic: true,
+			isNextProposer:   true,
+			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
+				esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
+				esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil)
+				esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), uint32(0)).Return(nil, nil)
+			},
+			postStateCheck: payloadFailedToSet,
+		},
+		{
+			name: "fail: missing payload ID",
+			mockEngine: mockEngineAPI{
+				forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
+					payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
+					return eengine.ForkChoiceResponse{
+						PayloadStatus: eengine.PayloadStatusV1{
+							Status:          eengine.VALID,
+							LatestValidHash: nil,
+							ValidationError: nil,
+						},
+					}, nil
+				},
+			},
+			mockClient:       mock.MockClient{},
 			enableOptimistic: true,
 			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
@@ -437,7 +958,6 @@ func TestKeeper_PostFinalize(t *testing.T) {
 				},
 			},
 			mockClient:       mock.MockClient{},
-			wantErr:          false,
 			enableOptimistic: true,
 			isNextProposer:   true,
 			setupMocks: func(esk *moduletestutil.MockEvmStakingKeeper) {
@@ -466,8 +986,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			}
 
 			var err error
-
-			cmtAPI := newMockCometAPI(t, nil)
+			cmtAPI := newMockCometAPI(t, tt.cmtAPIValFunc)
 
 			// set the header and proposer so we have the correct next proposer
 			header := cmtproto.Header{Height: 1, AppHash: tutil.RandomHash().Bytes()}
@@ -492,12 +1011,9 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			k.SetValidatorAddress(nxtAddr)
 			populateGenesisHead(ctx, t, k)
 			k.buildOptimistic = tt.enableOptimistic
+			k.SetIsExecEngSyncing(tt.isExecEngSyncing)
 
-			err = k.PostFinalize(ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("PostFinalize() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			require.NoError(t, k.PostFinalize(ctx))
 			if tt.postStateCheck != nil {
 				tt.postStateCheck(k)
 			}
@@ -559,7 +1075,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 	}
 	ctx := testCtx.Ctx.WithBlockHeader(*header)
 	defaultConsensusParams := genutil.DefaultConsensusParams()
-	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto())
+	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto()).WithChainID(netconf.TestChainID)
 
 	return ctx, key, storeService
 }
@@ -599,6 +1115,7 @@ type mockEngineAPI struct {
 	forkchoiceUpdatedV3Func func(context.Context, eengine.ForkchoiceStateV1, *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error)
 	getPayloadV3Func        func(context.Context, eengine.PayloadID) (*eengine.ExecutionPayloadEnvelope, error)
 	newPayloadV3Func        func(context.Context, eengine.ExecutableData, []common.Hash, *common.Hash) (eengine.PayloadStatusV1, error)
+	filterLogsFunc          func(ctx context.Context, query ethereum.FilterQuery) ([]types.Log, error)
 	// forceInvalidNewPayloadV3 forces the NewPayloadV3 returns an invalid status.
 	forceInvalidNewPayloadV3 bool
 	// forceInvalidForkchoiceUpdatedV3 forces the ForkchoiceUpdatedV3 returns an invalid status.
@@ -683,7 +1200,11 @@ func (m mockEngineAPI) maybeSync() (eengine.PayloadStatusV1, bool) {
 	}
 }
 
-func (mockEngineAPI) FilterLogs(context.Context, ethereum.FilterQuery) ([]types.Log, error) {
+func (m *mockEngineAPI) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	if m.filterLogsFunc != nil {
+		return m.filterLogsFunc(ctx, q)
+	}
+
 	return nil, nil
 }
 
@@ -772,11 +1293,11 @@ func (m *mockEngineAPI) nextBlock(
 	block := types.NewBlock(&header, &types.Body{Withdrawals: make([]*types.Withdrawal, 0)}, nil, trie.NewStackTrie(nil))
 
 	// Convert block to payload
-	env := eengine.BlockToExecutableData(block, big.NewInt(0), nil)
+	env := eengine.BlockToExecutableData(block, big.NewInt(0), nil, nil)
 	payload := *env.ExecutionPayload
 
 	// Ensure the block is valid
-	_, err := eengine.ExecutableDataToBlock(payload, nil, beaconRoot)
+	_, err := eengine.ExecutableDataToBlock(payload, nil, beaconRoot, nil)
 	require.NoError(t, err)
 
 	return block, payload

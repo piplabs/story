@@ -3,7 +3,9 @@ package keeper
 import (
 	"context"
 	"errors"
+	"strconv"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -39,6 +41,19 @@ func (k Keeper) DequeueEligibleRewardWithdrawals(ctx context.Context, maxDequeue
 
 			return nil, err
 		}
+
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeWithdraw,
+				sdk.NewAttribute(types.AttributeKeyWithdrawalCreationHeight, strconv.FormatUint(withdrawal.CreationHeight, 10)),
+				sdk.NewAttribute(types.AttributeKeyAmount, strconv.FormatUint(withdrawal.Amount, 10)),
+				sdk.NewAttribute(types.AttributeKeyWithdrawalExecAddress, withdrawal.ExecutionAddress),
+				sdk.NewAttribute(types.AttributeKeyWithdrawalType, strconv.FormatUint(uint64(withdrawal.WithdrawalType), 10)),
+				sdk.NewAttribute(types.AttributeKeyWithdrawalValidatorAddress, withdrawal.ValidatorAddress),
+			),
+		)
+
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
 			Index: front + uint64(i), // increment front by i to get the correct index in the loop
 			// used to distinguish different types of withdrawals as EL does not use the value

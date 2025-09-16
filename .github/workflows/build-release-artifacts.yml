@@ -1,14 +1,10 @@
-name: Build Release Binaries
+name: Build and Release Binaries
 
 on:
   workflow_dispatch:
   release:
     types:
       - created
-      - edited
-  # pull_request:
-  #   branches:
-  #     - main
 
 permissions:
   id-token: write

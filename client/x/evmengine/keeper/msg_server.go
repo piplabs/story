@@ -12,6 +12,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/promutil"
 )
 
 type msgServer struct {
@@ -100,8 +101,11 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 			return false, err // Don't retry, error out.
 		} else if isSyncing(status) {
-			log.Warn(ctx, "Processing finalized payload; evm syncing", nil)
-		} /* else isValid(status) */
+			s.SetIsExecEngSyncing(true)
+			log.Warn(ctx, "Push finalized payload while evm syncing", nil)
+		} else if s.IsExecEngSyncing() {
+			s.SetIsExecEngSyncing(false)
+		}
 
 		return true, nil // We are done, don't retry
 	})
@@ -124,9 +128,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 
 			return false, nil // Retry
 		} else if isSyncing(fcr.PayloadStatus) {
-			log.Warn(ctx, "Processing finalized payload halted while evm syncing (will retry)", nil, "payload_height", payload.Number)
-
-			return false, nil // Retry
+			log.Warn(ctx, "Processing finalized payload while evm syncing", nil, "payload_height", payload.Number)
 		} else if invalid, err := isInvalid(fcr.PayloadStatus); invalid {
 			// This should never happen. This node will stall now.
 			log.Error(ctx, "Processing finalized payload failed; forkchoice update invalid [BUG]", err,
@@ -148,13 +150,16 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver upgrade-related event logs")
 	}
-	if err := s.ProcessUbiEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessUBIEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
 
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")
 	}
+
+	// set metric
+	promutil.EVMEngineExecutionPayloadMsgSize.Set(float64(msg.Size()))
 
 	return &types.ExecutionPayloadResponse{}, nil
 }

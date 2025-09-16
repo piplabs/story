@@ -18,6 +18,7 @@ import (
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // prepareTimeout is the maximum time to prepare a proposal.
@@ -29,6 +30,11 @@ const prepareTimeout = time.Second * 10
 func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPrepareProposal) (
 	*abci.ResponsePrepareProposal, error,
 ) {
+	if k.IsExecEngSyncing() {
+		log.Warn(ctx, "Skip PrepareProposal while execution engine is syncing", nil)
+		return nil, ErrExecEngSyncing
+	}
+
 	// Only allow 10s to prepare a proposal. Propose empty block otherwise.
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), prepareTimeout)
 	defer timeoutCancel()
@@ -132,9 +138,26 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	}
 
 	// Create execution payload message
-	payloadData, err := json.Marshal(payloadResp.ExecutionPayload)
+	var (
+		payloadData  []byte
+		payloadProto *types.ExecutionPayloadDeneb
+	)
+
+	isV140, err := netconf.IsV140(ctx.ChainID(), ctx.BlockHeight())
 	if err != nil {
-		return nil, errors.Wrap(err, "encode")
+		return nil, errors.Wrap(err, "failed to check if the v1.4.0 upgrade is activated or not", "chain_id", ctx.ChainID(), "block_number", ctx.BlockHeight())
+	}
+
+	if isV140 {
+		payloadProto, err = types.PayloadToProto(payloadResp.ExecutionPayload)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to convert execution payload to proto message")
+		}
+	} else {
+		payloadData, err = json.Marshal(payloadResp.ExecutionPayload)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to json marshal execution payload")
+		}
 	}
 
 	// First, collect all vote extension msgs from the vote provider.
@@ -151,9 +174,10 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	// Then construct the execution payload message.
 	payloadMsg := &types.MsgExecutionPayload{
-		Authority:         authtypes.NewModuleAddress(types.ModuleName).String(),
-		ExecutionPayload:  payloadData,
-		PrevPayloadEvents: evmEvents,
+		Authority:             authtypes.NewModuleAddress(types.ModuleName).String(),
+		ExecutionPayload:      payloadData,
+		PrevPayloadEvents:     evmEvents,
+		ExecutionPayloadDeneb: payloadProto,
 	}
 
 	// Combine all the votes messages and the payload message into a single transaction.
@@ -168,11 +192,16 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		return nil, errors.Wrap(err, "encode tx builder")
 	}
 
+	if int64(len(tx)) > req.MaxTxBytes {
+		return nil, errors.New("tx size exceeds the max bytes of tx")
+	}
+
 	log.Info(ctx, "Proposing new block",
 		"height", req.Height,
 		log.Hex7("execution_block_hash", payloadResp.ExecutionPayload.BlockHash[:]),
 		// "vote_msgs", len(voteMsgs),
 		"evm_events", len(evmEvents),
+		"tx_bytes", len(tx),
 	)
 
 	return &abci.ResponsePrepareProposal{Txs: [][]byte{tx}}, nil
@@ -187,6 +216,11 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	if !k.buildOptimistic {
 		return nil // Not enabled.
+	}
+
+	if k.IsExecEngSyncing() {
+		log.Warn(ctx, "Skip PostFinalize while execution engine is syncing", nil)
+		return nil
 	}
 
 	// Extract context values
@@ -215,7 +249,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	maxWithdrawals, err := k.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; get max withdrawal", err, logAttr)
-		return errors.Wrap(err, "get max withdrawal per block")
+		return nil
 	}
 	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
@@ -226,7 +260,7 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; reward withdrawals peek", err, logAttr)
-		return errors.Wrap(err, "error on reward withdrawals dequeue")
+		return nil
 	}
 	withdrawals = append(withdrawals, rewardWithdrawals...)
 

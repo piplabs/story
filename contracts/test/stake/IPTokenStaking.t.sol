@@ -7,7 +7,6 @@ pragma solidity 0.8.23;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { console2 } from "forge-std/console2.sol";
 
 import { IPTokenStaking, IIPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { Test } from "../utils/Test.sol";
@@ -375,11 +374,21 @@ contract IPTokenStakingTest is Test {
         ipTokenStaking.unstake{ value: feeAmount - 1 }(validatorCmpPubkey, delegationId + 2, stakeAmount, "");
         vm.stopPrank();
 
-        // Revert if amount is not rounded to STAKE_ROUNDING
-        uint256 unroundedAmount = ipTokenStaking.minUnstakeAmount() + ipTokenStaking.STAKE_ROUNDING() + 1;
+        // Round down to STAKE_ROUNDING if amount is not divisible by STAKE_ROUNDING
+        uint256 unroundedAmount = ipTokenStaking.minUnstakeAmount() + ipTokenStaking.STAKE_ROUNDING() + 1 wei;
+        uint256 expectedUnstakeAmount = unroundedAmount - 1 wei;
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
-        vm.expectRevert("IPTokenStaking: Amount must be rounded to STAKE_ROUNDING");
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, expectedUnstakeAmount, delegationId, delegatorAddr, "");
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount, "");
+
+        unroundedAmount = 1024000000000999999999 wei;
+        expectedUnstakeAmount = 1024 ether;
+        vm.deal(delegatorAddr, feeAmount);
+        vm.prank(delegatorAddr);
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, expectedUnstakeAmount, delegationId, delegatorAddr, "");
         ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount, "");
 
         // Revert if validatorCmpPubkey is invalid
@@ -405,12 +414,7 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Data length over max");
-        ipTokenStaking.unstake{ value: feeAmount }(
-            validatorCmpPubkey,
-            delegationId,
-            stakeAmount,
-            dataOverMaxLen
-        );
+        ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, stakeAmount, dataOverMaxLen);
 
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Data length over max");

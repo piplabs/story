@@ -23,8 +23,10 @@ import (
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
+	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
+	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 
@@ -146,6 +148,7 @@ func newApp(
 
 	app.setupUpgradeHandlers()
 	app.setupUpgradeStoreLoaders()
+	app.SetVersion(buildinfo.Version())
 
 	if err := app.Load(true); err != nil {
 		return nil, errors.Wrap(err, "load app")
@@ -158,6 +161,19 @@ func newApp(
 func (a *App) PreBlocker(ctx sdk.Context, _ *abci.RequestFinalizeBlock) (*sdk.ResponsePreBlock, error) {
 	// All forks should be executed at their planned upgrade heights before any modules.
 	a.scheduleForkUpgrade(ctx)
+
+	shouldUpgrade, plan := a.Keepers.EVMEngKeeper.ShouldUpgrade(ctx)
+	if shouldUpgrade {
+		a.BaseApp.Logger().Info("upgrading app", "upgrade_name", plan.Name, "upgrade_height", plan.Height)
+
+		if err := a.Keepers.UpgradeKeeper.ScheduleUpgrade(ctx, plan); err != nil {
+			return nil, errors.Wrap(err, "failed to schedule upgrade")
+		}
+
+		if err := a.Keepers.EVMEngKeeper.ResetPendingUpgrade(ctx); err != nil {
+			return nil, errors.Wrap(err, "failed to reset pending upgrade")
+		}
+	}
 
 	res, err := a.ModuleManager.PreBlock(ctx)
 	if err != nil {
@@ -182,6 +198,10 @@ func (App) SimulationManager() *module.SimulationManager {
 // SetCometAPI sets the comet API client.
 func (a App) SetCometAPI(api comet.API) {
 	a.Keepers.EVMEngKeeper.SetCometAPI(api)
+}
+
+func (a App) GetEVMEngineKeeper() *evmenginekeeper.Keeper {
+	return a.Keepers.EVMEngKeeper
 }
 
 func (a App) GetEvmStakingKeeper() *evmstakingkeeper.Keeper {

@@ -1,366 +1,284 @@
 package keeper_test
 
-/*
-func (s *TestSuite) TestEndBlock() {
-	require := s.Require()
-	ctx, keeper, bankKeeper, stakingKeeper, distrKeeper := s.Ctx, s.EVMStakingKeeper, s.BankKeeper, s.StakingKeeper, s.DistrKeeper
+import (
+	"strings"
+	"testing"
 
-	// create addresses
-	pubKeys, accAddrs, valAddrs := createAddresses(3)
-	delAddr := accAddrs[0]
+	"cosmossdk.io/math"
+
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cosmos/cosmos-sdk/codec/address"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/evmstaking/keeper"
+	estestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
+	"github.com/piplabs/story/client/x/evmstaking/types"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/k1util"
+
+	"go.uber.org/mock/gomock"
+)
+
+func TestEndBlock(t *testing.T) {
+	pubKeys, _, valAddrs := createAddresses(3)
+
+	// delegator
 	delPubKey := pubKeys[0]
-	delEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(delPubKey.Bytes())
-	require.NoError(err)
-	// setup two validators and delegations
-	valPubKey1 := pubKeys[1]
-	valAddr1 := valAddrs[1]
-	valPubKey2 := pubKeys[2]
-	valAddr2 := valAddrs[2]
-	valCosmosPubKey1, err := k1util.PBPubKeyFromBytes(valPubKey1.Bytes())
-	require.NoError(err)
-	valCosmosPubKey2, err := k1util.PBPubKeyFromBytes(valPubKey2.Bytes())
-	require.NoError(err)
-	const valCnt = 2
-	valTokens := stakingKeeper.TokensFromConsensusPower(ctx, 10)
-	s.setupValidatorAndDelegation(ctx, valPubKey1, delPubKey, valAddr1, delAddr, valTokens)
-	s.setupValidatorAndDelegation(ctx, valPubKey2, delPubKey, valAddr2, delAddr, valTokens)
+	// delAccAddr := accAddrs[0]
+	delEVMAddr, err := keeper.CmpPubKeyToEVMAddress(delPubKey.Bytes())
+	require.NoError(t, err)
+	delAccAddrFromEVM := sdk.AccAddress(delEVMAddr.Bytes())
 
-	// set evmstaking module's params
-	minPartialAmt := int64(100)
-	params, err := keeper.GetParams(ctx)
-	require.NoError(err)
-	params.MinPartialWithdrawalAmount = uint64(minPartialAmt)
-	params.MaxSweepPerBlock = 100
-	require.NoError(keeper.SetParams(ctx, params))
+	// validator
+	valPubKey := pubKeys[1]
+	valValAddr := valAddrs[1]
+	valCosmosPubKey, err := k1util.PubKeyToCosmos(valPubKey)
+	require.NoError(t, err)
+	valEVMAddr, err := keeper.CmpPubKeyToEVMAddress(valPubKey.Bytes())
+	require.NoError(t, err)
+	// invalidPubKey := append([]byte{0x04}, valPubKey.Bytes()[1:]...)
 
-	// set staking module's params
-	ubdTime := time.Duration(3600) * time.Second
-	stakingParams, err := stakingKeeper.GetParams(ctx)
-	require.NoError(err)
-	stakingParams.UnbondingTime = ubdTime
-	require.NoError(err)
-	require.NoError(stakingKeeper.SetParams(ctx, stakingParams))
-
-	mockEnqueueEligiblePartialWithdrawal := func(delAddr sdk.AccAddress, valAddr sdk.ValAddress, rewardAmt int64) {
-		rewardsCoins := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, rewardAmt))
-		distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), delAddr, valAddr).Return(rewardsCoins, nil)
-		bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, rewardsCoins).Return(nil)
-		bankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, rewardsCoins).Return(nil)
-	}
-
-	mockExpectPartialWithdrawals := func(c context.Context, valAddr sdk.ValAddress, exists bool) *types.Withdrawal {
-		val, err := stakingKeeper.Validator(c, valAddr)
-		require.NoError(err)
-		dels, err := stakingKeeper.GetValidatorDelegations(c, valAddr)
-		require.NoError(err)
-		distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), valAddr).Return(dtypes.ValidatorAccumulatedCommission{}, nil)
-		distrKeeper.EXPECT().IncrementValidatorPeriod(gomock.Any(), val).Return(uint64(0), nil)
-		rewardAmt := int64(0)
-		if exists {
-			// set reward amount to bigger than minPartialAmt, so that it can be partially withdrawn
-			rewardAmt = minPartialAmt + 100
-		}
-		rewards := sdk.NewDecCoinsFromCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, rewardAmt))
-		distrKeeper.EXPECT().CalculateDelegationRewards(gomock.Any(), val, dels[0], gomock.Any()).Return(rewards, nil)
-
-		if exists {
-			w := types.NewWithdrawal(0, delAddr.String(), valAddr.String(), delEvmAddr.String(), uint64(rewardAmt))
-			mockEnqueueEligiblePartialWithdrawal(delAddr, valAddr, rewardAmt)
-
-			return &w
-		}
-
-		return nil
-	}
-
-	postStateCheck := func(t *testing.T, c context.Context, expectedWithdrawals []types.Withdrawal) {
-		t.Helper()
-		withdrawals, err := keeper.GetWithdrawals(c, 100)
-		require.NoError(err)
-
-		isEqualWithdrawals(t, expectedWithdrawals, withdrawals)
+	type expectedResult struct {
+		withdrawals       []types.Withdrawal
+		rewardWithdrawals []types.Withdrawal
 	}
 
 	tcs := []struct {
 		name           string
-		setup          func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate)
-		postStateCheck func(t *testing.T, c context.Context, expectedWithdrawals []types.Withdrawal)
-		expectedError  string
+		setupMocks     func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper)
+		setup          func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context
+		ubdEntries     []stypes.UnbondedEntry
+		expectedErr    string
+		expectedResult func(ctx sdk.Context) expectedResult
 	}{
-
 		{
-			name: "pass: no mature unbonded delegations & eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				w1 := mockExpectPartialWithdrawals(c, valAddr1, true)
-				w2 := mockExpectPartialWithdrawals(c, valAddr2, true)
-
-				return []types.Withdrawal{*w1, *w2}, nil
+			name: "fail: get singularity height from staking keeper",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), errors.New("failed to get singularity height"))
 			},
-			postStateCheck: postStateCheck,
+			expectedErr: "failed to get singularity height",
 		},
 		{
-			name: "pass: no mature unbonded delegations & no eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				mockExpectPartialWithdrawals(c, valAddr1, false)
-				mockExpectPartialWithdrawals(c, valAddr2, false)
-
-				return nil, nil
+			name: "pass(skip): skip EndBlock within the singularity",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(50), nil)
 			},
-			postStateCheck: postStateCheck,
 		},
 		{
-			name: "pass: mature unbonded delegations & no eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "15", ubdTime)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr2, "15", ubdTime)
-
-				mockExpectPartialWithdrawals(c, valAddr1, false)
-				mockExpectPartialWithdrawals(c, valAddr2, false)
-
-				return []types.Withdrawal{
-						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 15),
-						types.NewWithdrawal(0, delAddr.String(), valAddr2.String(), delEvmAddr.String(), 15),
-					}, []abcitypes.ValidatorUpdate{
-						{
-							PubKey: valCosmosPubKey1,
-							Power:  9,
-						},
-						{
-							PubKey: valCosmosPubKey2,
-							Power:  9,
-						},
-					}
+			name: "fail: error from EndBlockerWithUnbondedeEntries from staking keeper",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, errors.New("failed end blocker"))
 			},
-			postStateCheck: postStateCheck,
+			expectedErr: "process staking EndBlocker",
 		},
 		{
-			name: "pass: mature unbonded delegations & eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "10", ubdTime)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr2, "10", ubdTime)
-
-				w1 := mockExpectPartialWithdrawals(c, valAddr1, true)
-				w2 := mockExpectPartialWithdrawals(c, valAddr2, true)
-
-				return []types.Withdrawal{
-						// withdrawals from unbonding delegations
-						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 10),
-						types.NewWithdrawal(0, delAddr.String(), valAddr2.String(), delEvmAddr.String(), 10),
-						// partial withdrawals
-						*w1,
-						*w2,
-					}, []abcitypes.ValidatorUpdate{
-						{
-							PubKey: valCosmosPubKey1,
-							Power:  9,
-						},
-						{
-							PubKey: valCosmosPubKey2,
-							Power:  9,
-						},
-					}
-			},
-			postStateCheck: postStateCheck,
-		},
-		{
-			name: "pass: mature + not matured unbonded delegations & no eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "10", ubdTime)
-				s.setupUnbonding(c, delAddr, valAddr2, "10")
-
-				mockExpectPartialWithdrawals(c, valAddr1, false)
-				mockExpectPartialWithdrawals(c, valAddr2, false)
-
-				return []types.Withdrawal{
-						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 10),
-					}, []abcitypes.ValidatorUpdate{
-						{
-							PubKey: valCosmosPubKey1,
-							Power:  9,
-						},
-						{
-							PubKey: valCosmosPubKey2,
-							Power:  9,
-						},
-					}
-			},
-			postStateCheck: postStateCheck,
-		},
-		{
-			name: "pass: mature + not matured unbonded delegations & eligible partial withdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				s.setupMatureUnbondingDelegation(sdkCtx, delAddr, valAddr1, "10", ubdTime)
-				s.setupUnbonding(c, delAddr, valAddr2, "10")
-
-				w1 := mockExpectPartialWithdrawals(c, valAddr1, true)
-				w2 := mockExpectPartialWithdrawals(c, valAddr2, true)
-
-				return []types.Withdrawal{
-						// withdrawals from unbonding delegations
-						types.NewWithdrawal(0, delAddr.String(), valAddr1.String(), delEvmAddr.String(), 10),
-						// partial withdrawals
-						*w1,
-						*w2,
-					}, []abcitypes.ValidatorUpdate{
-						{
-							PubKey: valCosmosPubKey1,
-							Power:  9,
-						},
-						{
-							PubKey: valCosmosPubKey2,
-							Power:  9,
-						},
-					}
-			},
-			postStateCheck: postStateCheck,
-		},
-		{
-			name: "fail: send coins from account to module during processing unbonded entry",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				pastHeader := sdkCtx.BlockHeader()
-				pastHeader.Time = pastHeader.Time.Add(-ubdTime).Add(-time.Minute)
-				s.setupUnbonding(sdkCtx.WithBlockHeader(pastHeader), delAddr, valAddr1, "10")
-
-				// Mock staking.EndBlocker
-				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
-				// Mock evmstaking.EndBlocker
-				s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10)))
-				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(errors.New("failed to send coins to module"))
-
-				return nil, []abcitypes.ValidatorUpdate{
+			name: "fail: process unstake withdrawals",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				invalidUBD := []stypes.UnbondedEntry{
 					{
-						PubKey: valCosmosPubKey1,
-						Power:  9,
+						DelegatorAddress: strings.Replace(delAccAddrFromEVM.String(), "story", "cosmos", 1),
+						ValidatorAddress: valValAddr.String(),
+						Amount:           math.NewInt(10),
 					},
+				}
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, invalidUBD, nil)
+			},
+			expectedErr: "process unstake withdrawals",
+		},
+		{
+			name: "pass: process unstake withdrawals",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				ubd := []stypes.UnbondedEntry{
 					{
-						PubKey: valCosmosPubKey2,
-						Power:  9,
+						DelegatorAddress: delAccAddrFromEVM.String(),
+						ValidatorAddress: valValAddr.String(),
+						Amount:           math.NewInt(10),
+					},
+				}
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, ubd, nil)
+				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil)
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, nil)
+				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(0)))
+				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(0), nil)
+			},
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
+				require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, delAccAddrFromEVM.String(), delEVMAddr.String()))
+
+				return ctx
+			},
+			expectedResult: func(ctx sdk.Context) expectedResult {
+				return expectedResult{
+					withdrawals: []types.Withdrawal{
+						{
+							CreationHeight:   uint64(ctx.BlockHeight()),
+							ExecutionAddress: delEVMAddr.String(),
+							Amount:           10,
+							WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE,
+							ValidatorAddress: strings.ToLower(valEVMAddr.String()),
+						},
 					},
 				}
 			},
-			expectedError: "failed to send coins to module",
 		},
 		{
-			name: "fail: burn coins during processing unbonded entry",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				sdkCtx := sdk.UnwrapSDKContext(c)
-				pastHeader := sdkCtx.BlockHeader()
-				pastHeader.Time = pastHeader.Time.Add(-ubdTime).Add(-time.Minute)
-				s.setupUnbonding(sdkCtx.WithBlockHeader(pastHeader), delAddr, valAddr1, "10")
+			name: "fail: process reward withdrawals",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, nil)
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, errors.New("failed to get all validators"))
+			},
+			expectedErr: "process reward withdrawals",
+		},
+		{
+			name: "pass: process reward withdrawals",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				validator, err := stypes.NewValidator(valValAddr.String(), valCosmosPubKey, stypes.Description{Moniker: "test"}, 0)
+				require.NoError(t, err)
+				delegation := stypes.NewDelegation(delAccAddrFromEVM.String(), valValAddr.String(), math.LegacyNewDec(10), math.LegacyNewDec(10).Quo(math.LegacyNewDec(2)))
 
-				// Mock staking.EndBlocker
-				s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
-				// Mock evmstaking.EndBlocker
-				s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10)))
-				s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(nil)
-				s.BankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(errors.New("failed to burn coins"))
+				delegationRewardDec := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, math.LegacyNewDec(10)))
+				delegationRewardCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(10))}
 
-				return nil, []abcitypes.ValidatorUpdate{
-					{
-						PubKey: valCosmosPubKey1,
-						Power:  9,
-					},
-					{
-						PubKey: valCosmosPubKey2,
-						Power:  9,
+				sk.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("storyvaloper")).AnyTimes()
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, nil)
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{validator}, nil)
+				sk.EXPECT().GetValidatorDelegations(gomock.Any(), gomock.Any()).Return([]stypes.Delegation{delegation}, nil)
+				dk.EXPECT().IncrementValidatorPeriod(gomock.Any(), gomock.Any()).Return(uint64(0), nil)
+				dk.EXPECT().CalculateDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(delegationRewardDec, nil)
+				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(0), nil)
+				dk.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(delegationRewardCoins, nil)
+				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.Coin{Amount: math.NewInt(0)})
+				bk.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			},
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
+				newParams := types.Params{
+					MaxWithdrawalPerBlock:      2,
+					MaxSweepPerBlock:           4,
+					MinPartialWithdrawalAmount: 2,
+				}
+				require.NoError(t, esk.SetParams(ctx, newParams))
+
+				require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, delAccAddrFromEVM.String(), delEVMAddr.String()))
+
+				return ctx
+			},
+			expectedResult: func(ctx sdk.Context) expectedResult {
+				return expectedResult{
+					rewardWithdrawals: []types.Withdrawal{
+						{
+							CreationHeight:   uint64(ctx.BlockHeight()),
+							ExecutionAddress: delEVMAddr.String(),
+							Amount:           10,
+							WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_REWARD,
+							ValidatorAddress: strings.ToLower(valEVMAddr.String()),
+						},
 					},
 				}
 			},
-			expectedError: "failed to burn coins",
 		},
 		{
-			name: "fail: error while processing ExpectedPartialWithdrawals",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				// Mock failed ExpectedPartialWithdrawals
-				distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), gomock.Any()).Return(dtypes.ValidatorAccumulatedCommission{}, errors.New("failed to get validator accumulated commission"))
-
-				return nil, nil
+			name: "fail: process UBI withdrawal",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, nil)
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, nil)
+				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(0), errors.New("failed to get UBI balance by denom"))
 			},
-			expectedError: "failed to get validator accumulated commission",
+			expectedErr: "process ubi withdrawal",
 		},
 		{
-			name: "fail: error while processing EnqueueEligiblePartialWithdrawal",
-			setup: func(c context.Context) ([]types.Withdrawal, []abcitypes.ValidatorUpdate) {
-				rewards := sdk.NewDecCoinsFromCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, minPartialAmt+100))
-				// Mock successful ExpectedPartialWithdrawals
-				distrKeeper.EXPECT().GetValidatorAccumulatedCommission(gomock.Any(), gomock.Any()).Return(dtypes.ValidatorAccumulatedCommission{}, nil).Times(valCnt)
-				distrKeeper.EXPECT().IncrementValidatorPeriod(gomock.Any(), gomock.Any()).Return(uint64(0), nil).Times(valCnt)
-				distrKeeper.EXPECT().CalculateDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(rewards, nil).Times(valCnt)
-
-				// Mock failed EnqueueEligiblePartialWithdrawal
-				distrKeeper.EXPECT().WithdrawDelegationRewards(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to withdraw delegation rewards"))
-
-				return nil, nil
+			name: "pass: process UBI withdrawal",
+			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
+				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, nil)
+				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, nil)
+				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(10), nil)
+				dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(0)}, nil)
+				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-			expectedError: "failed to withdraw delegation rewards",
+			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
+				newParams := types.Params{
+					MaxWithdrawalPerBlock:      2,
+					MaxSweepPerBlock:           4,
+					MinPartialWithdrawalAmount: 2,
+					UbiWithdrawAddress:         common.MaxAddress.String(),
+				}
+				require.NoError(t, esk.SetParams(ctx, newParams))
+
+				return ctx
+			},
+			expectedResult: func(ctx sdk.Context) expectedResult {
+				return expectedResult{
+					withdrawals: []types.Withdrawal{
+						{
+							CreationHeight:   uint64(ctx.BlockHeight()),
+							ExecutionAddress: common.MaxAddress.String(),
+							Amount:           10,
+							WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UBI,
+							ValidatorAddress: "",
+						},
+					},
+				}
+			},
 		},
 	}
 
 	for _, tc := range tcs {
-		s.Run(tc.name, func() {
-			var expectedWithdrawals []types.Withdrawal
-			var expectedValUpdates []abcitypes.ValidatorUpdate
-			cachedCtx, _ := ctx.CacheContext()
-			if tc.setup != nil {
-				expectedWithdrawals, expectedValUpdates = tc.setup(cachedCtx)
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, ak, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
+
+			if tc.setupMocks != nil {
+				tc.setupMocks(ak, bk, dk, sk)
 			}
-			valUpdates, err := keeper.EndBlock(cachedCtx)
-			if tc.expectedError != "" {
-				require.ErrorContains(err, tc.expectedError)
+
+			cachedCtx, _ := ctx.CacheContext()
+			cachedCtx = cachedCtx.WithBlockHeight(20)
+
+			if tc.setup != nil {
+				cachedCtx = tc.setup(cachedCtx, esk)
+			}
+
+			_, err := esk.EndBlock(cachedCtx)
+			//nolint:nestif // nested check
+			if tc.expectedErr != "" {
+				require.ErrorContains(t, err, tc.expectedErr)
 			} else {
-				require.NoError(err)
-				if tc.postStateCheck != nil {
-					tc.postStateCheck(s.T(), cachedCtx, expectedWithdrawals)
+				require.NoError(t, err)
+
+				if tc.expectedResult != nil {
+					expected := tc.expectedResult(cachedCtx)
+
+					ws, err := esk.GetAllWithdrawals(cachedCtx)
+					require.NoError(t, err)
+
+					rws, err := esk.GetAllRewardWithdrawals(cachedCtx)
+					require.NoError(t, err)
+
+					if len(expected.withdrawals) > 0 {
+						require.Equal(t, len(expected.withdrawals), len(ws))
+						for i, w := range ws {
+							require.Equal(t, expected.withdrawals[i], w)
+						}
+					}
+
+					if len(expected.rewardWithdrawals) > 0 {
+						require.Equal(t, len(expected.rewardWithdrawals), len(rws))
+						for i, rw := range rws {
+							require.Equal(t, expected.rewardWithdrawals[i], rw)
+						}
+					}
 				}
-				if expectedValUpdates != nil {
-					compareValUpdates(s.T(), expectedValUpdates, valUpdates)
-				}
+			}
 		})
 	}
-
-// compareValUpdates compares two slices of ValidatorUpdates, ignoring the order.
-func compareValUpdates(t *testing.T, expected, actual abcitypes.ValidatorUpdates) {
-	t.Helper()
-	require.Equal(t, len(expected), len(actual), "the length of expected and actual slices should be equal")
-
-	// Convert both slices to maps for unordered comparison
-	expectedMap := make(map[string]abcitypes.ValidatorUpdate)
-	actualMap := make(map[string]abcitypes.ValidatorUpdate)
-
-	// Fill the maps using PubKey as the unique key
-	for _, exp := range expected {
-		expectedMap[exp.PubKey.String()] = exp
-	}
-
-	for _, act := range actual {
-		actualMap[act.PubKey.String()] = act
-	}
-
-	// Compare the maps
-	require.Equal(t, expectedMap, actualMap, "the content of expected and actual slices should match regardless of order")
 }
-
-// setupMaturedUnbonding creates matured unbondings for testing.
-func (s *TestSuite) setupMatureUnbondingDelegation(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt string, duration time.Duration) {
-	require := s.Require()
-	pastHeader := ctx.BlockHeader()
-	pastHeader.Time = pastHeader.Time.Add(-duration).Add(-time.Minute)
-	pastCtx := ctx.WithBlockHeader(pastHeader)
-
-	s.setupUnbonding(pastCtx, delAddr, valAddr, amt)
-
-	// Mock staking.EndBlocker
-	s.BankKeeper.EXPECT().UndelegateCoinsFromModuleToAccount(gomock.Any(), stypes.NotBondedPoolName, delAddr, gomock.Any()).Return(nil)
-	// Mock evmstaking.EndBlocker
-	amtInt, ok := sdkmath.NewIntFromString(amt)
-	require.True(ok)
-	s.BankKeeper.EXPECT().SpendableCoin(gomock.Any(), delAddr, sdk.DefaultBondDenom).Return(sdk.NewCoin(sdk.DefaultBondDenom, amtInt))
-	s.BankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), delAddr, types.ModuleName, gomock.Any()).Return(nil)
-	s.BankKeeper.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
-}
-*/

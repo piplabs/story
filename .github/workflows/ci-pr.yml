@@ -15,9 +15,9 @@ jobs:
     uses: ./.github/workflows/pre-commit.yml
   go-tests:
     uses: ./.github/workflows/gotest.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   go-lint:
     uses: ./.github/workflows/golangci-lint.yml
-    secrets: inherit
   sol-tests:
     uses: ./.github/workflows/ci-foundry.yml

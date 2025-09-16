@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/lib/errors"
 )
@@ -15,23 +16,24 @@ import (
 // However, since engine.ExecutableData implements the MarshalJSON and UnmarshalJSON methods,
 // json.Decode.DisallowUnknownFields() cannot be used (see encoding/json/decode.go#L479).
 type ExecutableData struct {
-	ParentHash    *common.Hash    `json:"parentHash"`
-	FeeRecipient  *common.Address `json:"feeRecipient"`
-	StateRoot     *common.Hash    `json:"stateRoot"`
-	ReceiptsRoot  *common.Hash    `json:"receiptsRoot"`
-	LogsBloom     *hexutil.Bytes  `json:"logsBloom"`
-	Random        *common.Hash    `json:"prevRandao"`
-	Number        *hexutil.Uint64 `json:"blockNumber"`
-	GasLimit      *hexutil.Uint64 `json:"gasLimit"`
-	GasUsed       *hexutil.Uint64 `json:"gasUsed"`
-	Timestamp     *hexutil.Uint64 `json:"timestamp"`
-	ExtraData     *hexutil.Bytes  `json:"extraData"`
-	BaseFeePerGas *hexutil.Big    `json:"baseFeePerGas"`
-	BlockHash     *common.Hash    `json:"blockHash"`
-	Transactions  []hexutil.Bytes `json:"transactions"`
-	Withdrawals   []*Withdrawal   `json:"withdrawals"`
-	BlobGasUsed   *hexutil.Uint64 `json:"blobGasUsed"`
-	ExcessBlobGas *hexutil.Uint64 `json:"excessBlobGas"`
+	ParentHash       *common.Hash            `json:"parentHash"`
+	FeeRecipient     *common.Address         `json:"feeRecipient"`
+	StateRoot        *common.Hash            `json:"stateRoot"`
+	ReceiptsRoot     *common.Hash            `json:"receiptsRoot"`
+	LogsBloom        *hexutil.Bytes          `json:"logsBloom"`
+	Random           *common.Hash            `json:"prevRandao"`
+	Number           *hexutil.Uint64         `json:"blockNumber"`
+	GasLimit         *hexutil.Uint64         `json:"gasLimit"`
+	GasUsed          *hexutil.Uint64         `json:"gasUsed"`
+	Timestamp        *hexutil.Uint64         `json:"timestamp"`
+	ExtraData        *hexutil.Bytes          `json:"extraData"`
+	BaseFeePerGas    *hexutil.Big            `json:"baseFeePerGas"`
+	BlockHash        *common.Hash            `json:"blockHash"`
+	Transactions     []hexutil.Bytes         `json:"transactions"`
+	Withdrawals      []*Withdrawal           `json:"withdrawals"`
+	BlobGasUsed      *hexutil.Uint64         `json:"blobGasUsed"`
+	ExcessBlobGas    *hexutil.Uint64         `json:"excessBlobGas"`
+	ExecutionWitness *types.ExecutionWitness `json:"executionWitness,omitempty"`
 }
 
 type Withdrawal struct {

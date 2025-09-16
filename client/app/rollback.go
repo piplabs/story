@@ -10,7 +10,8 @@ import (
 
 func RollbackCometAndAppState(a *App, cometCfg cmtcfg.Config, rollbackCfg config.RollbackConfig) (lastHeight int64, lastHash []byte, err error) {
 	for range rollbackCfg.RollbackHeights {
-		lastHeight, lastHash, err = cmtcmd.RollbackState(&cometCfg, false)
+		// setting removeBlock true to enable rollback multiple blocks by removing the block data
+		lastHeight, lastHash, err = cmtcmd.RollbackState(&cometCfg, true)
 		if err != nil {
 			return lastHeight, lastHash, errors.Wrap(err, "failed to rollback CometBFT state")
 		}

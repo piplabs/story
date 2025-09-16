@@ -2,19 +2,23 @@ package cmd
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
+	"github.com/piplabs/story/client/app"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/lib/errors"
 
@@ -70,12 +74,15 @@ func (*StakingPeriod) Type() string {
 var ipTokenStakingABI []byte
 
 type baseConfig struct {
-	RPC          string
-	PrivateKey   string
-	Explorer     string
-	ChainID      int64
-	ABI          *abi.ABI
-	ContractAddr common.Address
+	HomeDir        string
+	RPC            string
+	PrivateKey     string
+	Explorer       string
+	ChainID        int64
+	ABI            *abi.ABI
+	ContractAddr   common.Address
+	StoryAPI       string
+	EncPrivKeyFile string
 }
 
 type createValidatorConfig struct {
@@ -115,6 +122,11 @@ type unjailConfig struct {
 	ValidatorPubKey string
 }
 
+type updateCommissionConfig struct {
+	baseConfig
+	CommissionRate uint32
+}
+
 type operatorConfig struct {
 	baseConfig
 	Operator string
@@ -136,9 +148,18 @@ type exportKeyConfig struct {
 	ExportEVMKey     bool
 }
 
+type genPrivKeyJSONConfig struct {
+	baseConfig
+	ValidatorKeyFile string
+}
+
+type showEncryptedConfig struct {
+	baseConfig
+	ShowPrivate bool
+}
+
 func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: No .env file found")
 	}
 }
@@ -165,6 +186,7 @@ func newValidatorCmds() *cobra.Command {
 		newValidatorSetRewardsAddressCmd(),
 		newValidatorUnjailCmd(),
 		newValidatorUnjailOnBehalfCmd(),
+		newUpdateValidatorCommission(),
 	)
 
 	return cmd
@@ -453,7 +475,10 @@ func newValidatorUnjailCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjail(ctx, cfg) },
 		),
 	}
@@ -474,12 +499,41 @@ func newValidatorUnjailOnBehalfCmd() *cobra.Command {
 			return initializeBaseConfig(&cfg.baseConfig)
 		},
 		RunE: runValidatorCommand(
-			validateValidatorUnjailOnBehalfFlags,
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateValidatorUnjailOnBehalfFlags(ctx, cmd, &cfg)
+			},
 			func(ctx context.Context) error { return unjailOnBehalf(ctx, cfg) },
 		),
 	}
 
 	bindValidatorUnjailOnBehalfFlags(cmd, &cfg)
+
+	return cmd
+}
+
+func newUpdateValidatorCommission() *cobra.Command {
+	var cfg updateCommissionConfig
+
+	cmd := &cobra.Command{
+		Use:   "update-validator-commission",
+		Short: "Update the commission rate of validator",
+		Args:  cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return initializeBaseConfig(&cfg.baseConfig)
+		},
+		RunE: runValidatorCommand(
+			func(cmd *cobra.Command) error {
+				ctx := cmd.Context()
+				return validateUpdateValidatorCommissionFlags(ctx, cmd, &cfg)
+			},
+			func(ctx context.Context) error {
+				return updateValidatorCommission(ctx, cfg)
+			},
+		),
+	}
+
+	bindValidatorUpdateCommissionFlags(cmd, &cfg)
 
 	return cmd
 }
@@ -532,9 +586,14 @@ func exportKey(_ context.Context, cfg exportKeyConfig) error {
 }
 
 func createValidator(ctx context.Context, cfg createValidatorConfig) error {
-	compressedPubKeyBytes, err := validatorKeyFileToCmpPubKey(cfg.ValidatorKeyFile)
+	privateKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to extract compressed pub key")
+		return errors.Wrap(err, "failed to decode private key")
+	}
+
+	compressedPubKeyBytes, err := privKeyToCmpPubKey(privateKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert private key to compressed public key")
 	}
 
 	stakeAmount, ok := new(big.Int).SetString(cfg.StakeAmount, 10)
@@ -846,7 +905,6 @@ func redelegate(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
@@ -898,7 +956,6 @@ func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
 		validatorDstPubKeyBytes,
 		delegationID,
 		redelegateAmount,
-		[]byte{},
 	)
 	if err != nil {
 		return err
@@ -972,19 +1029,62 @@ func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 	return nil
 }
 
-func initializeBaseConfig(cfg *baseConfig) error {
-	if cfg.PrivateKey == "" {
-		loadEnv()
-		cfg.PrivateKey = os.Getenv("PRIVATE_KEY")
-		if cfg.PrivateKey == "" {
-			return errors.New("missing required flag", "private-key", "EVM private key")
-		}
+func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) error {
+	privKeyBytes, err := hex.DecodeString(cfg.PrivateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
 	}
 
-	_, err := crypto.HexToECDSA(cfg.PrivateKey)
+	compressedValidatorPubKeyBytes, err := privKeyToCmpPubKey(privKeyBytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to get compressed pub key from private key")
+	}
+
+	result, err := prepareAndReadContract(ctx, &cfg.baseConfig, "fee")
+	if err != nil {
+		return err
+	}
+
+	var updateCommissionFee *big.Int
+	err = cfg.ABI.UnpackIntoInterface(&updateCommissionFee, "fee", result)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack updateValidatorCommissionFee")
+	}
+
+	fmt.Printf("Update validator commission fee: %s\n", updateCommissionFee.String())
+
+	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "updateValidatorCommission", updateCommissionFee, compressedValidatorPubKeyBytes, cfg.CommissionRate)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Validator commission successfully updated!")
+
+	return nil
+}
+
+func initializeBaseConfig(cfg *baseConfig) error {
+	var err error
+	cfg.PrivateKey, err = loadPrivKey(cfg)
+	if err != nil {
+		return errors.Wrap(err, "failed to load private key")
+	}
+	if cfg.PrivateKey == "" {
+		return errors.New("missing required private key")
+	}
+
+	evmPrivKey, err := crypto.HexToECDSA(cfg.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "invalid EVM private key")
 	}
+
+	publicKey, ok := evmPrivKey.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("failed to assert type to *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKey)
+	fmt.Printf("Signing transaction with account address: %s\n", fromAddress)
 
 	contractABI, err := abi.JSON(strings.NewReader(string(ipTokenStakingABI)))
 	if err != nil {
@@ -995,6 +1095,32 @@ func initializeBaseConfig(cfg *baseConfig) error {
 	cfg.ContractAddr = common.HexToAddress(predeploys.IPTokenStaking)
 
 	return nil
+}
+
+func loadPrivKey(cfg *baseConfig) (string, error) {
+	if cmtos.FileExists(cfg.EncPrivKeyFile) {
+		password, err := app.InputPassword(
+			app.PasswordPromptText,
+			"",
+			false,
+			app.ValidatePasswordInput,
+		)
+		if err != nil {
+			return "", errors.Wrap(err, "error occurred while input password")
+		}
+
+		pv, err := app.LoadEncryptedPrivKey(password, cfg.EncPrivKeyFile)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to load encrypted private key")
+		}
+
+		return strings.TrimPrefix(hexutil.Encode(pv.PrivKey.Bytes()), "0x"), nil
+	}
+
+	// TODO(0xHansLee): get priv key from priv_validator_key.json
+	loadEnv()
+
+	return os.Getenv("PRIVATE_KEY"), nil
 }
 
 func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*big.Int, error) {

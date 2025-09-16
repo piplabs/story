@@ -2,9 +2,10 @@
 ARG COMMIT=""
 ARG VERSION=""
 ARG BUILDNUM=""
+ARG NETWORK
 
 # Build Geth in a stock Go builder container
-FROM golang:1.22.10-alpine as builder
+FROM golang:1.22.11-alpine AS builder
 
 # Set the Current Working Directory inside the container
 WORKDIR /story
@@ -33,5 +34,6 @@ ENTRYPOINT ["/bin/sh", "-c", "story init --network $NETWORK && exec story run \"
 ARG COMMIT=""
 ARG VERSION=""
 ARG BUILDNUM=""
+ARG NETWORK
 
 LABEL commit="$COMMIT" version="$VERSION" buildnum="$BUILDNUM" network="$NETWORK"
