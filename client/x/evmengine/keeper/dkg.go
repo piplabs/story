@@ -17,16 +17,8 @@ import (
 	clog "github.com/piplabs/story/lib/log"
 )
 
-func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {
-	for _, evmLog := range logs {
-		if err := evmLog.Verify(); err != nil {
-			return errors.Wrap(err, "verify log [BUG]")
-		}
-		ethlog, err := evmLog.ToEthLog()
-		if err != nil {
-			return err
-		}
-
+func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
+	for _, ethlog := range logs {
 		switch ethlog.Topics[0] {
 		case types.DKGInitializedEvent.ID:
 			if err := k.ProcessDKGInitialized(ctx, ethlog); err != nil {
@@ -95,11 +87,12 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*ty
 	return nil
 }
 
-func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog ethtypes.Log) (err error) {
+//nolint:dupl // ProcessDKGInitialized and ProcessDKGFinalized have similar structure but different logic
+func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDKGInitialized(ethlog)
+	ev, err := k.dkgContract.ParseDKGInitialized(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DKGInitialized log")
 	}
@@ -144,11 +137,11 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog ethtypes.Log)
 	return nil
 }
 
-func (k *Keeper) ProcessDKGCommitmentsUpdated(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGCommitmentsUpdated(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDKGCommitmentsUpdated(ethlog)
+	ev, err := k.dkgContract.ParseDKGCommitmentsUpdated(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DKGCommitmentsUpdated log")
 	}
@@ -195,11 +188,12 @@ func (k *Keeper) ProcessDKGCommitmentsUpdated(ctx context.Context, ethlog ethtyp
 	return nil
 }
 
-func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog ethtypes.Log) (err error) {
+//nolint:dupl // ProcessDKGInitialized and ProcessDKGFinalized have similar structure but different logic
+func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDKGFinalized(ethlog)
+	ev, err := k.dkgContract.ParseDKGFinalized(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DKGFinalized log")
 	}
@@ -244,11 +238,11 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog ethtypes.Log) (
 	return nil
 }
 
-func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseUpgradeScheduled(ethlog)
+	ev, err := k.dkgContract.ParseUpgradeScheduled(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse UpgradeScheduled log")
 	}
@@ -290,11 +284,11 @@ func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog ethtypes
 	return nil
 }
 
-func (k *Keeper) ProcessDKGRegistrationChallenged(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGRegistrationChallenged(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseRegistrationChallenged(ethlog)
+	ev, err := k.dkgContract.ParseRegistrationChallenged(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse RegistrationChallenged log")
 	}
@@ -337,11 +331,11 @@ func (k *Keeper) ProcessDKGRegistrationChallenged(ctx context.Context, ethlog et
 	return nil
 }
 
-func (k *Keeper) ProcessDKGInvalidDKGInitialization(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGInvalidDKGInitialization(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseInvalidDKGInitialization(ethlog)
+	ev, err := k.dkgContract.ParseInvalidDKGInitialization(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse InvalidDKGInitialization log")
 	}
@@ -385,11 +379,11 @@ func (k *Keeper) ProcessDKGInvalidDKGInitialization(ctx context.Context, ethlog 
 	return nil
 }
 
-func (k *Keeper) ProcessDKGRemoteAttestationProcessedOnChain(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGRemoteAttestationProcessedOnChain(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseRemoteAttestationProcessedOnChain(ethlog)
+	ev, err := k.dkgContract.ParseRemoteAttestationProcessedOnChain(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse RemoteAttestationProcessedOnChain log")
 	}
@@ -434,11 +428,11 @@ func (k *Keeper) ProcessDKGRemoteAttestationProcessedOnChain(ctx context.Context
 	return nil
 }
 
-func (k *Keeper) ProcessDKGDealComplaintsSubmitted(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGDealComplaintsSubmitted(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDealComplaintsSubmitted(ethlog)
+	ev, err := k.dkgContract.ParseDealComplaintsSubmitted(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DealComplaintsSubmitted log")
 	}
@@ -488,11 +482,11 @@ func (k *Keeper) ProcessDKGDealComplaintsSubmitted(ctx context.Context, ethlog e
 	return nil
 }
 
-func (k *Keeper) ProcessDKGDealVerified(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGDealVerified(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDealVerified(ethlog)
+	ev, err := k.dkgContract.ParseDealVerified(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DealVerified log")
 	}
@@ -536,11 +530,11 @@ func (k *Keeper) ProcessDKGDealVerified(ctx context.Context, ethlog ethtypes.Log
 	return nil
 }
 
-func (k *Keeper) ProcessDKGInvalidDeal(ctx context.Context, ethlog ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGInvalidDeal(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseInvalidDeal(ethlog)
+	ev, err := k.dkgContract.ParseInvalidDeal(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse InvalidDeal log")
 	}

@@ -144,7 +144,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, err
 	}
 
-	ethLogs, err := verifyPrevPayloadEvents(ctx, msg.PrevPayloadEvents)
+	ethLogs, err := verifyPrevPayloadEvents(msg.PrevPayloadEvents)
 	if err != nil {
 		return nil, errors.Wrap(err, "verify prev payload events")
 	}
@@ -159,7 +159,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.ProcessUBIEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
-	if err := s.ProcessDKGEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessDKGEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver dkg-related event logs")
 	}
 
@@ -174,7 +174,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 }
 
 // verifyPrevPayloadEvents verifies payload events and converts them to Ethereum logs.
-func verifyPrevPayloadEvents(ctx context.Context, prevPayloadEvents []*types.EVMEvent) ([]*ethtypes.Log, error) {
+func verifyPrevPayloadEvents(prevPayloadEvents []*types.EVMEvent) ([]*ethtypes.Log, error) {
 	ethLogs := make([]*ethtypes.Log, 0, len(prevPayloadEvents))
 
 	for _, ev := range prevPayloadEvents {
