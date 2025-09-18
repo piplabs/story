@@ -22,10 +22,12 @@ contract DKG is IDKG {
         bytes calldata pubKey,
         bytes calldata remoteReport
     ) external {
+        require(address(uint160(uint256(keccak256(pubKey)))) == msg.sender, "Invalid pubKey for sender");
         require(
             valSets[mrenclave][round][msg.sender] || _isActiveValSetSubmitted(mrenclave, round),
             "Validator not in active set"
         );
+        require(_isRemoteReportValid(remoteReport), "Invalid remote report");
         
         uint32 index = nodeCount[mrenclave][round];
         nodeCount[mrenclave][round]++;
@@ -60,9 +62,9 @@ contract DKG is IDKG {
         bytes calldata signature
     ) external {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
-        require(node.validator == msg.sender, "Invalid validator");
+        require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyCommitmentSignature(node.pubKey, commitments, signature), "Invalid signature");
+        require(_verifyCommitmentSignature(msg.sender, commitments, signature), "Invalid signature");
 
         node.commitments = commitments;
 
@@ -86,10 +88,12 @@ contract DKG is IDKG {
         bytes calldata signature
     ) external {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
-        require(node.validator == msg.sender, "Invalid validator");
+        require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyFinalizationSignature(node.pubKey, finalized, signature), "Invalid signature");
-        
+        require(
+            _verifyFinalizationSignature(msg.sender, round, index, finalized, mrenclave, signature), "Invalid signature"
+        );
+
         node.finalized = finalized;
 
         emit DKGFinalized(
@@ -183,21 +187,49 @@ contract DKG is IDKG {
     }
 
     function _verifyCommitmentSignature(
-        bytes memory pubKey,
+        address sender,
         bytes calldata commitments,
         bytes calldata signature
     ) internal pure returns (bool) {
-        // TODO: Implementation
-        return pubKey.length > 0 && commitments.length > 0 && signature.length > 0;
+        bytes32 msgHash = keccak256(commitments);
+        return _recoverSigner(msgHash, signature) == sender;
     }
 
     function _verifyFinalizationSignature(
-        bytes memory pubKey,
-        bool /*finalized*/,
-        bytes calldata signature
+    address sender,
+    uint32 round,
+    uint32 index,
+    bool finalized,
+    bytes calldata mrenclave,
+    bytes calldata signature
     ) internal pure returns (bool) {
+        bytes32 msgHash = keccak256(abi.encodePacked(round, index, finalized, mrenclave));
+        return _recoverSigner(msgHash, signature) == sender;
+    }
+
+    function _recoverSigner(bytes32 msgHash, bytes memory signature) internal pure returns (address) {
+        bytes32 ethSignedMessageHash =
+            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash));
+        (bytes32 r, bytes32 s, uint8 v) = _splitSignature(signature);
+        return ecrecover(ethSignedMessageHash, v, r, s);
+    }
+
+    function _splitSignature(bytes memory sig)
+        internal
+        pure
+        returns (bytes32 r, bytes32 s, uint8 v)
+    {
+        require(sig.length == 65, "invalid signature length");
+        assembly {
+            r := mload(add(sig, 32))
+            s := mload(add(sig, 64))
+            v := byte(0, mload(add(sig, 96)))
+        }
+    }
+
+    function _isRemoteReportValid(bytes calldata remoteReport) internal pure returns (bool) {
         // TODO: Implementation
-        return pubKey.length > 0 && signature.length > 0;
+        return remoteReport.length > 0;
     }
 
     function _verifyRemoteAttestation(
