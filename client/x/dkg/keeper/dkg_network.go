@@ -11,7 +11,7 @@ import (
 )
 
 // SetDKGNetwork stores a DKG network in the store using the unique ID as the key
-// If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer
+// If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
 func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	key := fmt.Sprintf("%s_%d", string(dkgNetwork.Mrenclave), dkgNetwork.Round)
 	if err := k.DKGNetworks.Set(ctx, key, *dkgNetwork); err != nil {
@@ -31,7 +31,7 @@ func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 	return nil
 }
 
-// GetDKGNetwork retrieves a DKG network by unique ID
+// GetDKGNetwork retrieves a DKG network by unique ID.
 func (k *Keeper) GetDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) (*types.DKGNetwork, error) {
 	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
@@ -46,7 +46,7 @@ func (k *Keeper) GetDKGNetwork(ctx context.Context, mrenclave []byte, round uint
 	return &dkgNetwork, nil
 }
 
-// GetLatestDKGRound retrieves the latest DKG network
+// GetLatestDKGRound retrieves the latest DKG network.
 func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, error) {
 	latestKey, err := k.LatestDKGNetwork.Get(ctx)
 	if err != nil {
@@ -70,7 +70,7 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 	return &dkgNetwork, nil
 }
 
-// GetDKGNetworksByRound retrieves one or many DKG networks by a specified round number
+// GetDKGNetworksByRound retrieves one or many DKG networks by a specified round number.
 func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]types.DKGNetwork, error) {
 	var foundNetworks []types.DKGNetwork
 
@@ -91,7 +91,7 @@ func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]typ
 	return foundNetworks, nil
 }
 
-// GetAllDKGNetworks retrieves all DKG networks
+// GetAllDKGNetworks retrieves all DKG networks.
 func (k *Keeper) GetAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, error) {
 	var networks []types.DKGNetwork
 
@@ -107,7 +107,7 @@ func (k *Keeper) GetAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, err
 	return networks, nil
 }
 
-// DeleteDKGNetwork removes a DKG network from the store
+// DeleteDKGNetwork removes a DKG network from the store.
 func (k *Keeper) DeleteDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) error {
 	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
 	return k.DKGNetworks.Remove(ctx, key)
@@ -117,7 +117,7 @@ func (k *Keeper) DeleteDKGNetwork(ctx context.Context, mrenclave []byte, round u
 // Returns true if:
 // - No current latest exists, OR
 // - This network has a higher round number, OR
-// - Same round but newer start block (newer TEE binary for same round)
+// - Same round but newer start block (newer TEE binary for same round).
 func (k *Keeper) isLatestDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	currentLatest, err := k.GetLatestDKGRound(ctx)
 	if err != nil {

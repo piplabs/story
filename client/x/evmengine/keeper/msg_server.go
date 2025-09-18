@@ -159,6 +159,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.ProcessUBIEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
+	if err := s.ProcessDKGEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+		return nil, errors.Wrap(err, "deliver dkg-related event logs")
+	}
 
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")

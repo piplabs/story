@@ -7,6 +7,7 @@ import (
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	common "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/contracts/bindings"
@@ -35,4 +36,17 @@ type UpgradeKeeper interface {
 
 type DistrKeeper interface {
 	SetUbi(ctx context.Context, newUbi math.LegacyDec) error
+}
+
+type DKGKeeper interface {
+	Initialized(ctx context.Context, mrenclave []byte, round uint32, index uint32, pubKey []byte, remoteReport []byte) error
+	CommitmentsUpdated(ctx context.Context, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte, mrenclave []byte) error
+	Finalized(ctx context.Context, round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) error
+	UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave []byte) error
+	RegistrationChallenged(ctx context.Context, round uint32, mrenclave []byte, challenger common.Address) error
+	InvalidDKGInitialization(ctx context.Context, round uint32, index uint32, validator common.Address, mrenclave []byte) error
+	RemoteAttestationProcessedOnChain(ctx context.Context, index uint32, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error
+	DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave []byte) error
+	DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, mrenclave []byte) error
+	InvalidDeal(ctx context.Context, index uint32, round uint32, mrenclave []byte) error
 }

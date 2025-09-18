@@ -46,9 +46,11 @@ type Keeper struct {
 	evmstakingKeeper types.EvmStakingKeeper
 	upgradeKeeper    types.UpgradeKeeper
 	distrKeeper      types.DistrKeeper
+	dkgKeeper        types.DKGKeeper
 
 	upgradeContract *bindings.UpgradeEntrypoint
 	ubiContract     *bindings.UBIPool
+	dkgContract     *bindings.DKG
 
 	// mutablePayload contains the previous optimistically triggered payload.
 	// It is optimistic because the validator set can change,
@@ -73,6 +75,7 @@ func NewKeeper(
 	esk types.EvmStakingKeeper,
 	uk types.UpgradeKeeper,
 	dk types.DistrKeeper,
+	dkgk types.DKGKeeper,
 ) (*Keeper, error) {
 	schema := &ormv1alpha1.ModuleSchemaDescriptor{SchemaFile: []*ormv1alpha1.ModuleSchemaDescriptor_FileEntry{
 		{Id: 1, ProtoFileName: File_story_evmengine_v1_keeper_evmengine_proto.Path()},
@@ -98,6 +101,11 @@ func NewKeeper(
 		panic(fmt.Sprintf("failed to bind to the UBIPool contract: %s", err))
 	}
 
+	dkgContract, err := bindings.NewDKG(common.HexToAddress(predeploys.DKG), ethCl)
+	if err != nil {
+		panic(fmt.Sprintf("failed to bind to the DKG contract: %s", err))
+	}
+
 	return &Keeper{
 		cdc:              cdc,
 		storeService:     storeService,
@@ -105,11 +113,13 @@ func NewKeeper(
 		engineCl:         engineCl,
 		txConfig:         txConfig,
 		accountKeeper:    ak,
+		distrKeeper:      dk,
+		dkgKeeper:        dkgk,
 		evmstakingKeeper: esk,
 		upgradeKeeper:    uk,
 		upgradeContract:  upgradeContract,
 		ubiContract:      ubiContract,
-		distrKeeper:      dk,
+		dkgContract:      dkgContract,
 	}, nil
 }
 

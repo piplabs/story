@@ -23,6 +23,7 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 				common.HexToAddress(predeploys.IPTokenStaking),
 				common.HexToAddress(predeploys.UBIPool),
 				common.HexToAddress(predeploys.UpgradeEntrypoint),
+				common.HexToAddress(predeploys.DKG),
 			},
 		})
 		if err != nil {

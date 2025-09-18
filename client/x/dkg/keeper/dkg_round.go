@@ -10,7 +10,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// GetActiveValidators returns the bonded validators excluding jailed validators
+// GetActiveValidators returns the bonded validators excluding jailed validators.
 func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 	validators, err := k.stakingKeeper.GetAllValidators(ctx)
 	if err != nil {
@@ -65,7 +65,7 @@ func (k *Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DK
 	return currentStage, false
 }
 
-// getVerifiedDKGValidators returns the count of verified DKG validators (those who are participating and not invalidated)
+// getVerifiedDKGValidators returns the count of verified DKG validators (those who are participating and not invalidated).
 func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte, round uint32) (uint32, error) {
 	// Get registrations with status VERIFIED
 	verifiedRegs, err := k.GetDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusVerified)
@@ -83,7 +83,7 @@ func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte,
 	return total, nil
 }
 
-// updateDKGNetworkTotalAndThreshold updates the total and threshold for a DKG network after the challenge period
+// updateDKGNetworkTotalAndThreshold updates the total and threshold for a DKG network after the challenge period.
 func (k *Keeper) updateDKGNetworkTotalAndThreshold(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	verifiedCount, err := k.getVerifiedDKGValidators(ctx, dkgNetwork.Mrenclave, dkgNetwork.Round)
 	if err != nil {

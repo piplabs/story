@@ -40,13 +40,14 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 	esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 	uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 	dk := moduletestutil.NewMockDistrKeeper(ctrl)
+	dkgk := moduletestutil.NewMockDKGKeeper(ctrl)
 
 	ctx, storeKey, storeService := setupCtxStore(t, &cmtproto.Header{AppHash: tutil.RandomHash().Bytes()})
 	ctx = ctx.WithExecMode(sdk.ExecModeFinalize)
 	evmLogProc := mockLogProvider{deliverErr: errors.New("test error")}
 	mockEngine, err := newMockEngineAPI(storeKey, 0)
 	require.NoError(t, err)
-	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
+	keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk, dkgk)
 	require.NoError(t, err)
 	populateGenesisHead(ctx, t, keeper)
 	propSrv := NewProposalServer(keeper)

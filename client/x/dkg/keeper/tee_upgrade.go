@@ -10,7 +10,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// SetTEEUpgradeInfo stores a TEE upgrade info in the store using mrenclave as the key
+// SetTEEUpgradeInfo stores a TEE upgrade info in the store using mrenclave as the key.
 func (k *Keeper) SetTEEUpgradeInfo(ctx context.Context, teeUpgradeInfo *types.TEEUpgradeInfo) error {
 	key := string(teeUpgradeInfo.Mrenclave)
 	if err := k.TEEUpgradeInfos.Set(ctx, key, *teeUpgradeInfo); err != nil {
@@ -19,7 +19,7 @@ func (k *Keeper) SetTEEUpgradeInfo(ctx context.Context, teeUpgradeInfo *types.TE
 	return nil
 }
 
-// SetTEEUpgradeInfos stores multiple TEE upgrade infos (used for genesis initialization)
+// SetTEEUpgradeInfos stores multiple TEE upgrade infos (used for genesis initialization).
 func (k *Keeper) SetTEEUpgradeInfos(ctx context.Context, teeUpgradeInfos []types.TEEUpgradeInfo) error {
 	for _, teeInfo := range teeUpgradeInfos {
 		if err := k.SetTEEUpgradeInfo(ctx, &teeInfo); err != nil {
@@ -29,7 +29,7 @@ func (k *Keeper) SetTEEUpgradeInfos(ctx context.Context, teeUpgradeInfos []types
 	return nil
 }
 
-// GetTEEUpgradeInfo retrieves a TEE upgrade info by unique ID
+// GetTEEUpgradeInfo retrieves a TEE upgrade info by unique ID.
 func (k *Keeper) GetTEEUpgradeInfo(ctx context.Context, mrenclave []byte) (*types.TEEUpgradeInfo, error) {
 	key := string(mrenclave)
 	teeInfo, err := k.TEEUpgradeInfos.Get(ctx, key)
@@ -42,7 +42,7 @@ func (k *Keeper) GetTEEUpgradeInfo(ctx context.Context, mrenclave []byte) (*type
 	return &teeInfo, nil
 }
 
-// GetAllTEEUpgradeInfos retrieves all TEE upgrade infos
+// GetAllTEEUpgradeInfos retrieves all TEE upgrade infos.
 func (k *Keeper) GetAllTEEUpgradeInfos(ctx context.Context) ([]types.TEEUpgradeInfo, error) {
 	var teeInfos []types.TEEUpgradeInfo
 
@@ -58,7 +58,7 @@ func (k *Keeper) GetAllTEEUpgradeInfos(ctx context.Context) ([]types.TEEUpgradeI
 	return teeInfos, nil
 }
 
-// GetTEEUpgradeInfoByMrenclave retrieves a TEE upgrade info with a specific mrenclave
+// GetTEEUpgradeInfoByMrenclave retrieves a TEE upgrade info with a specific mrenclave.
 func (k *Keeper) GetTEEUpgradeInfoByMrenclave(ctx context.Context, mrenclave []byte) (types.TEEUpgradeInfo, error) {
 	var upgradeInfo types.TEEUpgradeInfo
 
@@ -78,7 +78,7 @@ func (k *Keeper) GetTEEUpgradeInfoByMrenclave(ctx context.Context, mrenclave []b
 	return upgradeInfo, nil
 }
 
-// DeleteTEEUpgradeInfo removes a TEE upgrade info from the store
+// DeleteTEEUpgradeInfo removes a TEE upgrade info from the store.
 func (k *Keeper) DeleteTEEUpgradeInfo(ctx context.Context, mrenclave []byte) error {
 	key := string(mrenclave)
 	if err := k.TEEUpgradeInfos.Remove(ctx, key); err != nil {
