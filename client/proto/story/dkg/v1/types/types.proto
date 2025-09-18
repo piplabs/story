@@ -1,0 +1,157 @@
+syntax = "proto3";
+package story.dkg.v1.types;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/piplabs/story/client/x/dkg/types";
+
+enum DKGRegStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+  
+  DKG_REG_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGRegStatusUnspecified"];
+  DKG_REG_STATUS_NOT_VERIFIED = 1 [(gogoproto.enumvalue_customname) = "DKGRegStatusNotVerified"];
+  DKG_REG_STATUS_VERIFIED = 2 [(gogoproto.enumvalue_customname) = "DKGRegStatusVerified"];
+  DKG_REG_STATUS_INVALIDATED = 3 [(gogoproto.enumvalue_customname) = "DKGRegStatusInvalidated"];
+  DKG_REG_STATUS_FINALIZED = 4 [(gogoproto.enumvalue_customname) = "DKGRegStatusFinalized"];
+}
+
+
+enum DKGStage {
+  option (gogoproto.goproto_enum_prefix) = false;
+  
+  DKG_STAGE_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGStageUnspecified"];
+  DKG_STAGE_REGISTRATION = 1 [(gogoproto.enumvalue_customname) = "DKGStageRegistration"];
+  DKG_STAGE_CHALLENGE = 2 [(gogoproto.enumvalue_customname) = "DKGStageChallenge"];
+  DKG_STAGE_DEALING = 3 [(gogoproto.enumvalue_customname) = "DKGStageDealing"];
+  DKG_STAGE_FINALIZATION = 4 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
+  DKG_STAGE_ACTIVE = 5 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
+}
+
+message DKGNetwork {
+  uint32 round = 1 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+  
+  int64 start_block = 2 [
+    (gogoproto.moretags) = "yaml:\"start_block\""
+  ];
+  
+  bytes mrenclave = 3 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+  
+  repeated string active_val_set = 4 [
+    (gogoproto.moretags) = "yaml:\"active_val_set\""
+  ];
+  
+  uint32 total = 5 [
+    (gogoproto.moretags) = "yaml:\"total\""
+  ];
+  
+  uint32 threshold = 6 [
+    (gogoproto.moretags) = "yaml:\"threshold\""
+  ];
+  
+  DKGStage stage = 7 [
+    (gogoproto.moretags) = "yaml:\"stage\""
+  ];
+}
+
+message Commitment {
+  bytes data = 1 [
+    (gogoproto.moretags) = "yaml:\"data\""
+  ];
+}
+
+message DKGRegistration {
+  uint32 round = 1 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+  
+  uint32 index = 2 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+  
+  bytes pub_key = 3 [
+    (gogoproto.moretags) = "yaml:\"pub_key\""
+  ];
+  
+  DKGRegStatus status = 4 [
+    (gogoproto.moretags) = "yaml:\"status\""
+  ];
+  
+  repeated Commitment commitments = 5 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"commitments\""
+  ];
+}
+
+message TEEUpgradeInfo {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+  
+  int64 activation_height = 2 [
+    (gogoproto.moretags) = "yaml:\"activation_height\""
+  ];
+}
+
+
+message EncryptedDeal {
+  bytes dh_key = 1 [
+    (gogoproto.moretags) = "yaml:\"dh_key\""
+  ];
+  
+  bytes signature = 2 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+  
+  bytes nonce = 3 [
+    (gogoproto.moretags) = "yaml:\"nonce\""
+  ];
+  
+  bytes cipher = 4 [
+    (gogoproto.moretags) = "yaml:\"cipher\""
+  ];
+}
+
+message Deal {
+  uint32 index = 1 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+  
+  uint32 recipient_index = 2 [
+    (gogoproto.moretags) = "yaml:\"recipient_index\""
+  ];
+  
+  EncryptedDeal deal = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"deal\""
+  ];
+  
+  bytes signature = 4 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}
+
+message DealWithCommitments {
+  repeated Deal deals = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"deals\""
+  ];
+  
+  repeated Commitment commitments = 2 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"commitments\""
+  ];
+}
+
+message Complaint {
+  uint32 dealer_index = 1 [
+    (gogoproto.moretags) = "yaml:\"dealer_index\""
+  ];
+  
+  bytes signature = 2 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}

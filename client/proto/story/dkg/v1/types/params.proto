@@ -1,0 +1,43 @@
+syntax = "proto3";
+package story.dkg.v1.types;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/piplabs/story/client/x/dkg/types";
+
+// Params defines the parameters for the module.
+// All timeouts are in seconds.
+message Params {
+  uint32 registration_period = 1 [
+    (gogoproto.moretags) = "yaml:\"registration_period\""
+  ];
+  
+  uint32 challenge_period = 2 [
+    (gogoproto.moretags) = "yaml:\"challenge_period\""
+  ];
+  
+  uint32 dealing_period = 3 [
+    (gogoproto.moretags) = "yaml:\"dealing_period\""
+  ];
+  
+  uint32 finalization_period = 4 [
+    (gogoproto.moretags) = "yaml:\"finalization_period\""
+  ];
+
+  uint32 active_period = 5 [
+    (gogoproto.moretags) = "yaml:\"active_period\""
+  ];
+  
+  uint32 complaint_period = 6 [
+    (gogoproto.moretags) = "yaml:\"complaint_period\""
+  ];
+
+  uint32 min_committee_size = 7 [
+    (gogoproto.moretags) = "yaml:\"min_committee_size\""
+  ];
+
+  // latest TEE mrenclave
+  bytes mrenclave = 8 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+}
