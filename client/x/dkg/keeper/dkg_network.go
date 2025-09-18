@@ -37,10 +37,10 @@ func (k *Keeper) GetDKGNetwork(ctx context.Context, mrenclave []byte, round uint
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return nil, errors.Wrap(err, "DKG network not found")
+			return nil, errors.Wrap(err, "dkg network not found")
 		}
 
-		return nil, errors.Wrap(err, "failed to get DKG network")
+		return nil, errors.Wrap(err, "failed to get dkg network")
 	}
 
 	return &dkgNetwork, nil
@@ -51,7 +51,7 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 	latestKey, err := k.LatestDKGNetwork.Get(ctx)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return nil, nil // No DKG network set yet
+			return nil, errors.Wrap(err, "no DKG network set yet") // No DKG network set yet
 		}
 
 		return nil, errors.Wrap(err, "failed to get latest DKG network key")
@@ -62,8 +62,10 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 		if errors.Is(err, collections.ErrNotFound) {
 			// This shouldn't happen (pointer exists but network state doesn't)... reset the pointer and return nil
 			_ = k.LatestDKGNetwork.Remove(ctx)
-			return nil, nil
+
+			return nil, errors.Wrap(err, "latest DKG network not found")
 		}
+
 		return nil, errors.Wrap(err, "failed to get latest DKG network")
 	}
 
@@ -75,12 +77,13 @@ func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]typ
 	var foundNetworks []types.DKGNetwork
 
 	// Iterate through all DKG networks to find the one with the specified round
-	err := k.DKGNetworks.Walk(ctx, nil, func(key string, dkgNetwork types.DKGNetwork) (bool, error) {
+	err := k.DKGNetworks.Walk(ctx, nil, func(_ string, dkgNetwork types.DKGNetwork) (bool, error) {
 		if dkgNetwork.Round == round {
 			foundNetworks = append(foundNetworks, dkgNetwork)
 		} else if dkgNetwork.Round > round {
 			return true, nil // Stop iteration
 		}
+
 		return false, nil
 	})
 
@@ -95,8 +98,9 @@ func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]typ
 func (k *Keeper) GetAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, error) {
 	var networks []types.DKGNetwork
 
-	err := k.DKGNetworks.Walk(ctx, nil, func(key string, dkgNetwork types.DKGNetwork) (bool, error) {
+	err := k.DKGNetworks.Walk(ctx, nil, func(_ string, dkgNetwork types.DKGNetwork) (bool, error) {
 		networks = append(networks, dkgNetwork)
+
 		return false, nil
 	})
 
@@ -132,6 +136,7 @@ func (k *Keeper) isLatestDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNe
 	if dkgNetwork.Round == currentLatest.Round && dkgNetwork.StartBlock > currentLatest.StartBlock {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -140,13 +145,15 @@ func (k *Keeper) getNextRoundNumber(ctx context.Context) uint32 {
 	if err != nil || latestNetwork == nil {
 		return 1 // Start with round 1 if no previous rounds exist
 	}
+
 	return latestNetwork.Round + 1
 }
 
-func (k *Keeper) calculateThreshold(total uint32) uint32 {
+func (*Keeper) calculateThreshold(total uint32) uint32 {
 	threshold := (total * 2) / 3
 	if threshold*3 < total*2 {
 		threshold++
 	}
+
 	return threshold + 1 // 2/3 + 1 threshold
 }

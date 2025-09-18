@@ -14,8 +14,9 @@ import (
 func (k *Keeper) SetDKGRegistration(ctx context.Context, mrenclave []byte, dkgReg *types.DKGRegistration) error {
 	key := fmt.Sprintf("%s_%d_%d", string(mrenclave), dkgReg.Round, dkgReg.Index)
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
-		return errors.Wrap(err, "failed to set DKG registration")
+		return errors.Wrap(err, "failed to set dkg registration")
 	}
+
 	return nil
 }
 
@@ -25,10 +26,12 @@ func (k *Keeper) GetDKGRegistration(ctx context.Context, mrenclave []byte, round
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return nil, errors.Wrap(err, "DKG registration not found")
+			return nil, errors.Wrap(err, "dkg registration not found")
 		}
-		return nil, errors.Wrap(err, "failed to get DKG registration")
+
+		return nil, errors.Wrap(err, "failed to get dkg registration")
 	}
+
 	return &dkgReg, nil
 }
 
@@ -41,11 +44,12 @@ func (k *Keeper) GetDKGRegistrationsByRound(ctx context.Context, mrenclave []byt
 		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
 			registrations = append(registrations, reg)
 		}
+
 		return false, nil // Continue iteration
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to iterate DKG registrations")
+		return nil, errors.Wrap(err, "failed to iterate dkg registrations")
 	}
 
 	return registrations, nil
@@ -55,13 +59,14 @@ func (k *Keeper) GetDKGRegistrationsByRound(ctx context.Context, mrenclave []byt
 func (k *Keeper) GetAllDKGRegistrations(ctx context.Context) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
 
-	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
+	err := k.DKGRegistrations.Walk(ctx, nil, func(_ string, reg types.DKGRegistration) (bool, error) {
 		registrations = append(registrations, reg)
+
 		return false, nil // Continue iteration
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to iterate DKG registrations")
+		return nil, errors.Wrap(err, "failed to iterate dkg registrations")
 	}
 
 	return registrations, nil
@@ -71,8 +76,9 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context) ([]types.DKGRegistr
 func (k *Keeper) DeleteDKGRegistration(ctx context.Context, mrenclave []byte, round, index uint32) error {
 	key := fmt.Sprintf("%s_%d_%d", string(mrenclave), round, index)
 	if err := k.DKGRegistrations.Remove(ctx, key); err != nil {
-		return errors.Wrap(err, "failed to delete DKG registration")
+		return errors.Wrap(err, "failed to delete dkg registration")
 	}
+
 	return nil
 }
 
@@ -84,6 +90,7 @@ func (k *Keeper) UpdateDKGRegistrationStatus(ctx context.Context, mrenclave []by
 	}
 
 	dkgReg.Status = status
+
 	return k.SetDKGRegistration(ctx, mrenclave, dkgReg)
 }
 

@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -31,8 +31,8 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			sdk.NewEvent("dkg_initialize_first_round",
-				sdk.NewAttribute("start_block", fmt.Sprintf("%d", currentHeight)),
-				sdk.NewAttribute("round", fmt.Sprintf("%d", 1)),
+				sdk.NewAttribute("start_block", strconv.FormatInt(currentHeight, 10)),
+				sdk.NewAttribute("round", strconv.FormatInt(1, 10)),
 				sdk.NewAttribute("mrenclave", string(params.Mrenclave)),
 			),
 		})
@@ -62,11 +62,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			if err := k.updateDKGNetworkTotalAndThreshold(ctx, latestRound); err != nil {
 				return errors.Wrap(err, "failed to update DKG network total and threshold")
 			}
+
 			return k.emitBeginDKGNetworkSet(ctx, latestRound)
 		case types.DKGStageFinalization:
 			return k.emitBeginDKGFinalization(ctx, latestRound)
 		case types.DKGStageActive:
-			return k.emitDKGCompleted(ctx, latestRound)
+			return k.emitDKGFinalized(ctx, latestRound)
 		case types.DKGStageUnspecified:
 			// This round should not happen since we always have a valid stage (1 to 5) and unspecified is stage 0
 			return nil

@@ -83,11 +83,7 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if err := ValidateMrenclave(p.Mrenclave); err != nil {
-		return err
-	}
-
-	return nil
+	return ValidateMrenclave(p.Mrenclave)
 }
 
 func ValidateRegistrationPeriod(registrationPeriod uint32) error {

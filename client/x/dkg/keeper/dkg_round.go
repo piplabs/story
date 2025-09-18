@@ -27,7 +27,7 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 	return bondedValidators, nil
 }
 
-func (k *Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGNetwork, params types.Params) (types.DKGStage, bool) {
+func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGNetwork, params types.Params) (types.DKGStage, bool) {
 	currentStage := dkgNetwork.Stage
 	elapsed := currentHeight - dkgNetwork.StartBlock
 
@@ -60,6 +60,8 @@ func (k *Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DK
 			// Round has ended, should initiate new round (resharing)
 			return types.DKGStageRegistration, true
 		}
+	case types.DKGStageUnspecified:
+		return types.DKGStageUnspecified, false
 	}
 
 	return currentStage, false
@@ -80,6 +82,7 @@ func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte,
 	}
 
 	total := uint32(len(verifiedRegs) + len(finalizedRegs))
+
 	return total, nil
 }
 
