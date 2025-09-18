@@ -13,13 +13,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	addcollections "github.com/piplabs/story/client/collections"
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
-	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/contracts/bindings"
-	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	clog "github.com/piplabs/story/lib/log"
 )
@@ -110,22 +109,14 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 }
 
 //nolint:gocyclo // a lot of switch cases, could be refactored
-func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*evmenginetypes.EVMEvent) error {
+func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
 	gwei, exp := big.NewInt(10), big.NewInt(9)
 	gwei.Exp(gwei, exp, nil)
 
-	for _, evmLog := range logs {
-		if err := evmLog.Verify(); err != nil {
-			return errors.Wrap(err, "verify log [BUG]") // This shouldn't happen
-		}
-		ethlog, err := evmLog.ToEthLog()
-		if err != nil {
-			return err
-		}
-
+	for _, ethlog := range logs {
 		switch ethlog.Topics[0] {
 		case types.UpdateValidatorCommission.ID:
-			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommission(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseUpdateValidatorCommission(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse UpdateValidatorCommission log", err)
 				continue
@@ -135,7 +126,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.SetWithdrawalAddress.ID:
-			ev, err := k.ipTokenStakingContract.ParseSetWithdrawalAddress(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseSetWithdrawalAddress(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse SetWithdrawalAddress log", err)
 				continue
@@ -145,7 +136,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.SetRewardAddress.ID:
-			ev, err := k.ipTokenStakingContract.ParseSetRewardAddress(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseSetRewardAddress(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
 				continue
@@ -155,7 +146,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.SetOperator.ID:
-			ev, err := k.ipTokenStakingContract.ParseSetOperator(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseSetOperator(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse SetOperator log", err)
 				continue
@@ -165,7 +156,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.UnsetOperator.ID:
-			ev, err := k.ipTokenStakingContract.ParseUnsetOperator(ethlog)
+			ev, err := k.ipTokenStakingContract.ParseUnsetOperator(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse UnsetOperator log", err)
 				continue
@@ -175,7 +166,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.CreateValidatorEvent.ID:
-			ev, err := k.ParseCreateValidatorLog(ethlog)
+			ev, err := k.ParseCreateValidatorLog(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse CreateValidator log", err)
 				continue
@@ -186,7 +177,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.DepositEvent.ID:
-			ev, err := k.ParseDepositLog(ethlog)
+			ev, err := k.ParseDepositLog(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse Deposit log", err)
 				continue
@@ -197,7 +188,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.RedelegateEvent.ID:
-			ev, err := k.ParseRedelegateLog(ethlog)
+			ev, err := k.ParseRedelegateLog(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse Redelegate log", err)
 				continue
@@ -208,7 +199,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.WithdrawEvent.ID:
-			ev, err := k.ParseWithdrawLog(ethlog)
+			ev, err := k.ParseWithdrawLog(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse Withdraw log", err)
 				continue
@@ -219,7 +210,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				continue
 			}
 		case types.UnjailEvent.ID:
-			ev, err := k.ParseUnjailLog(ethlog)
+			ev, err := k.ParseUnjailLog(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse Unjail log", err)
 				continue

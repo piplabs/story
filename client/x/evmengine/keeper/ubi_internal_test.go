@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
@@ -202,7 +203,15 @@ func TestKeeper_ProcessUBIEvents(t *testing.T) {
 				tc.setupMock()
 			}
 			cachedCtx, _ := ctx.CacheContext()
-			err := keeper.ProcessUBIEvents(cachedCtx, 1, tc.evmEvents())
+
+			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
+			for _, evmEvent := range tc.evmEvents() {
+				ethLog, err := evmEvent.ToEthLog()
+				require.NoError(t, err)
+				ethLogs = append(ethLogs, &ethLog)
+			}
+
+			err := keeper.ProcessUBIEvents(cachedCtx, 1, ethLogs)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)

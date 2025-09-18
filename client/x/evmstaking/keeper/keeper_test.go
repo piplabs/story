@@ -1042,7 +1042,14 @@ func TestProcessStakingEvents(t *testing.T) {
 				cachedCtx = tc.setup(cachedCtx, sk, esk)
 			}
 
-			err = esk.ProcessStakingEvents(cachedCtx, 1, tc.evmEvents())
+			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
+			for _, evmEvent := range tc.evmEvents() {
+				ethLog, err := evmEvent.ToEthLog()
+				require.NoError(t, err)
+				ethLogs = append(ethLogs, &ethLog)
+			}
+
+			err = esk.ProcessStakingEvents(cachedCtx, 1, ethLogs)
 			if tc.expectedError != "" {
 				require.ErrorContains(t, err, tc.expectedError)
 			} else {

@@ -11,6 +11,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
@@ -18,20 +19,12 @@ import (
 	clog "github.com/piplabs/story/lib/log"
 )
 
-func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {
-	for _, evmLog := range logs {
-		if err := evmLog.Verify(); err != nil {
-			return errors.Wrap(err, "verify log [BUG]")
-		}
-		ethlog, err := evmLog.ToEthLog()
-		if err != nil {
-			return err
-		}
-
+func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
+	for _, ethlog := range logs {
 		//nolint:gocritic,revive // more cases later
 		switch ethlog.Topics[0] {
 		case types.UBIPercentageSetEvent.ID:
-			ev, err := k.ubiContract.ParseUBIPercentageSet(ethlog)
+			ev, err := k.ubiContract.ParseUBIPercentageSet(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse UBIPercentageSet log", err)
 				continue

@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -143,14 +144,19 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		return nil, err
 	}
 
+	ethLogs, err := verifyPrevPayloadEvents(ctx, msg.PrevPayloadEvents)
+	if err != nil {
+		return nil, errors.Wrap(err, "verify prev payload events")
+	}
+
 	// Deliver all the previous payload log events
-	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver staking-related event logs")
 	}
-	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver upgrade-related event logs")
 	}
-	if err := s.ProcessUBIEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
+	if err := s.ProcessUBIEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
 
@@ -162,6 +168,24 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	promutil.EVMEngineExecutionPayloadMsgSize.Set(float64(msg.Size()))
 
 	return &types.ExecutionPayloadResponse{}, nil
+}
+
+// verifyPrevPayloadEvents verifies payload events and converts them to Ethereum logs.
+func verifyPrevPayloadEvents(ctx context.Context, prevPayloadEvents []*types.EVMEvent) ([]*ethtypes.Log, error) {
+	ethLogs := make([]*ethtypes.Log, 0, len(prevPayloadEvents))
+
+	for _, ev := range prevPayloadEvents {
+		if err := ev.Verify(); err != nil {
+			return nil, errors.Wrap(err, "verify prev payload event")
+		}
+		ethlog, err := ev.ToEthLog()
+		if err != nil {
+			return nil, errors.Wrap(err, "to eth log")
+		}
+		ethLogs = append(ethLogs, &ethlog)
+	}
+
+	return ethLogs, nil
 }
 
 // pushPayload pushes the given Engine API payload to EL and returns the engine payload status or an error.

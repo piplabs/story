@@ -19,7 +19,7 @@ type AccountKeeper interface {
 type EvmStakingKeeper interface {
 	ParseDepositLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingDeposit, error)
 	ParseWithdrawLog(ethlog ethtypes.Log) (*bindings.IPTokenStakingWithdraw, error)
-	ProcessStakingEvents(ctx context.Context, height uint64, logs []*EVMEvent) error
+	ProcessStakingEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error
 	MaxWithdrawalPerBlock(ctx context.Context) (uint32, error)
 	DequeueEligibleWithdrawals(ctx context.Context, maxDequeue uint32) (withdrawals ethtypes.Withdrawals, err error)
 	PeekEligibleWithdrawals(ctx context.Context, maxPeek uint32) (withdrawals ethtypes.Withdrawals, err error)
