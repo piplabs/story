@@ -2,6 +2,8 @@
 pragma solidity ^0.8.23;
 
 import { IDKG } from "../interfaces/IDKG.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title DKG - Distributed Key Generation Contract
@@ -19,24 +21,24 @@ contract DKG is IDKG {
     function initializeDKG(
         uint32 round,
         bytes calldata mrenclave,
-        bytes calldata pubKey,
-        bytes calldata remoteReport
+        bytes calldata dkgPubKey,
+        bytes calldata commPubKey,
+        bytes calldata rawQuote
     ) external {
-        require(address(uint160(uint256(keccak256(pubKey)))) == msg.sender, "Invalid pubKey for sender");
         require(
             valSets[mrenclave][round][msg.sender] || _isActiveValSetSubmitted(mrenclave, round),
             "Validator not in active set"
         );
-        require(_isRemoteReportValid(remoteReport), "Invalid remote report");
-        
+
         uint32 index = nodeCount[mrenclave][round];
         nodeCount[mrenclave][round]++;
 
         dkgNodeInfos[mrenclave][round][index] = NodeInfo({
             index: index,
             validator: msg.sender,
-            pubKey: pubKey,
-            remoteReport: remoteReport,
+            dkgPubKey: dkgPubKey,
+            commPubKey: commPubKey,
+            rawQuote: rawQuote,
             commitments: "",
             chalStatus: ChallengeStatus.NotChallenged,
             finalized: false
@@ -47,8 +49,9 @@ contract DKG is IDKG {
             mrenclave,
             round,
             index,
-            pubKey,
-            remoteReport
+            dkgPubKey,
+            commPubKey,
+            rawQuote
         );
     }
 
@@ -64,7 +67,7 @@ contract DKG is IDKG {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyCommitmentSignature(msg.sender, commitments, signature), "Invalid signature");
+        require(_verifyCommitmentSignature(node.commPubKey, commitments, signature), "Invalid signature");
 
         node.commitments = commitments;
 
@@ -85,13 +88,14 @@ contract DKG is IDKG {
         uint32 index,
         bool finalized,
         bytes calldata mrenclave,
-        bytes calldata signature
+        bytes calldata signature,
+        bytes calldata globalPubKey
     ) external {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
-            _verifyFinalizationSignature(msg.sender, round, index, finalized, mrenclave, signature), "Invalid signature"
+            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature), "Invalid signature"
         );
 
         node.finalized = finalized;
@@ -102,6 +106,7 @@ contract DKG is IDKG {
             index,
             finalized,
             mrenclave,
+            globalPubKey,
             signature
         );
     }
@@ -129,7 +134,7 @@ contract DKG is IDKG {
         require(node.validator != address(0), "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
-        bool isValid = _verifyRemoteAttestation(node.remoteReport, node.validator, round, node.pubKey);        
+        bool isValid = _verifyRemoteAttestation(node.rawQuote, node.validator, round, node.dkgPubKey);        
         if (isValid) {
             node.chalStatus = ChallengeStatus.Resolved;
         } else {
@@ -187,58 +192,36 @@ contract DKG is IDKG {
     }
 
     function _verifyCommitmentSignature(
-        address sender,
+        bytes memory commPubKey,
         bytes calldata commitments,
         bytes calldata signature
     ) internal pure returns (bool) {
         bytes32 msgHash = keccak256(commitments);
-        return _recoverSigner(msgHash, signature) == sender;
+        address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
+        return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
 
     function _verifyFinalizationSignature(
-    address sender,
-    uint32 round,
-    uint32 index,
-    bool finalized,
-    bytes calldata mrenclave,
-    bytes calldata signature
+        bytes memory commPubKey,
+        uint32 round,
+        uint32 index,
+        bool finalized,
+        bytes calldata mrenclave,
+        bytes calldata globalPubKey,
+        bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(round, index, finalized, mrenclave));
-        return _recoverSigner(msgHash, signature) == sender;
-    }
-
-    function _recoverSigner(bytes32 msgHash, bytes memory signature) internal pure returns (address) {
-        bytes32 ethSignedMessageHash =
-            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash));
-        (bytes32 r, bytes32 s, uint8 v) = _splitSignature(signature);
-        return ecrecover(ethSignedMessageHash, v, r, s);
-    }
-
-    function _splitSignature(bytes memory sig)
-        internal
-        pure
-        returns (bytes32 r, bytes32 s, uint8 v)
-    {
-        require(sig.length == 65, "invalid signature length");
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
-    }
-
-    function _isRemoteReportValid(bytes calldata remoteReport) internal pure returns (bool) {
-        // TODO: Implementation
-        return remoteReport.length > 0;
+        bytes32 msgHash = keccak256(abi.encodePacked(round, index, finalized, mrenclave, globalPubKey));
+        address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
+        return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
 
     function _verifyRemoteAttestation(
-        bytes memory remoteReport,
+        bytes memory rawQuote,
         address validator,
         uint32 round,
-        bytes memory pubKey
+        bytes memory dkgPubKey 
     ) internal pure returns (bool) {
         // TODO: Implementation
-        return remoteReport.length > 0 && validator != address(0) && round > 0 && pubKey.length > 0;
+        return rawQuote.length > 0 && validator != address(0) && round > 0 && dkgPubKey.length > 0;
     }
 }

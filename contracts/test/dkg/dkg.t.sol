@@ -10,15 +10,17 @@ contract DKGTest is Test {
     bytes mrenclave = hex"1234";
     uint32 round = 1;
     uint32 index = 0;
-    bytes remoteReport = hex"beef";
+    bytes rawQuote = hex"beef";
     bytes commitments = hex"cafe";
+    bytes dkgPubKey = hex"dead";
+    bytes globalPubKey = hex"ef01";
 
     // How to create a new account:
     // cast wallet new & cast wallet public-key --private-key <private-key>
 
     // private key: 0x1586935bf3a4aa4e40cb0782227d1d302082f727677f2ec4d37054bc92f0079f
     address validator = address(0x061F9f80b3cf1a5cd6769EC0DB77D2Be50A3fa8f);
-    bytes pubKey = hex"ecbfad7a514da8d3bb3dc8d7c5a171ec0ceb04d36f045e519f20cc31ca7c78292d42c8187c9de7238271344bbdf62f5748b5ff339eb0f52cb8463cdc41f595f2";
+    bytes commPubKey = hex"ecbfad7a514da8d3bb3dc8d7c5a171ec0ceb04d36f045e519f20cc31ca7c78292d42c8187c9de7238271344bbdf62f5748b5ff339eb0f52cb8463cdc41f595f2";
 
     // How to generate commitment_signature:
     // 1.cast keccak "0xcafe"
@@ -30,13 +32,13 @@ contract DKGTest is Test {
 
 
     // How to generate finalizeDKG_signature:
-    // 1.cast abi-encode --packed "tuple(uint32,uint32,bool,bytes)" 1 0 true 0x1234
-    //   => 0x0000000100000000011234
-    // 2. cast keccak --hex "0x0000000100000000011234"
-    //   => 0x0c47aae97f3d3737a7a2257ea1435b003f5ba1f21168bda5f111b963076a4f1b
-    // 3. cast wallet sign --private-key 0x1586935bf3a4aa4e40cb0782227d1d302082f727677f2ec4d37054bc92f0079f 0x0c47aae97f3d3737a7a2257ea1435b003f5ba1f21168bda5f111b963076a4f1b
-    //   => a187ec49a839d9f130def4efd2fb0353a5cd7b6a1a32ec0e7a360927f4a4fd4c3bba370f55cfdc053c7a6fda5298da731ec02b3907eacc9be289eb338156fd891c
-    bytes finalizeDKG_signature = hex"a187ec49a839d9f130def4efd2fb0353a5cd7b6a1a32ec0e7a360927f4a4fd4c3bba370f55cfdc053c7a6fda5298da731ec02b3907eacc9be289eb338156fd891c";
+    // 1.cast abi-encode --packed "tuple(uint32,uint32,bool,bytes,bytes)" 1 0 true 0x1234 0xef01
+    //   => 0x0000000100000000011234ef01
+    // 2. cast keccak --hex "0x0000000100000000011234ef01"
+    //   => 0x21af19238192676c10b75e17db2867695680cee6e09418ebf2ef1e524398cf6e
+    // 3. cast wallet sign --private-key 0x1586935bf3a4aa4e40cb0782227d1d302082f727677f2ec4d37054bc92f0079f 0x21af19238192676c10b75e17db2867695680cee6e09418ebf2ef1e524398cf6e
+    //   => 0x70a1d8b96be91078aa807ac9f26127147fd147b0dc68e84676761ad2b70a1b604ea07f56e94d77a041119143cf994b78b64f462ef56aa4d6d289eb352f086d9d1b
+    bytes finalizeDKG_signature = hex"70a1d8b96be91078aa807ac9f26127147fd147b0dc68e84676761ad2b70a1b604ea07f56e94d77a041119143cf994b78b64f462ef56aa4d6d289eb352f086d9d1b";
 
     bytes invalid_signature = hex"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
 
@@ -50,11 +52,12 @@ contract DKGTest is Test {
     function testDKG_Success() public {
         // initialize DKG
         vm.prank(validator);
-        dkg.initializeDKG(round, mrenclave, pubKey, remoteReport);
+        dkg.initializeDKG(round, mrenclave, dkgPubKey, commPubKey, rawQuote);
         DKG.NodeInfo memory info = dkg.getNodeInfo(mrenclave, round, index);
         assertEq(info.validator, validator);
-        assertEq(info.pubKey, pubKey);
-        assertEq(info.remoteReport, remoteReport);
+        assertEq(info.dkgPubKey, dkgPubKey);
+        assertEq(info.commPubKey, commPubKey);
+        assertEq(info.rawQuote, rawQuote);
         assertEq(info.finalized, false);
 
         // update commitments
@@ -65,17 +68,10 @@ contract DKGTest is Test {
 
         // finalize DKG
         vm.prank(validator);
-        dkg.finalizeDKG(round, index, true, mrenclave, finalizeDKG_signature);
+        dkg.finalizeDKG(round, index, true, mrenclave, finalizeDKG_signature, globalPubKey);
         info = dkg.getNodeInfo(mrenclave, round, index);
         assertEq(info.finalized, true);
     }
-
-    function testInitializeDKG_InvalidPubKey() public {
-        vm.prank(address(0x999));
-        vm.expectRevert("Invalid pubKey for sender");
-        dkg.initializeDKG(round, mrenclave, pubKey, remoteReport);
-    }
-
 
     function testUpdateDKGCommitments_RevertIfNotSender() public {
         vm.expectRevert("Invalid sender");
@@ -89,22 +85,22 @@ contract DKGTest is Test {
     function testUpdateDKGCommitments_RevertIfInvalidSignature() public {
         // initialize DKG
         vm.prank(validator);
-        dkg.initializeDKG(round, mrenclave, pubKey, remoteReport);
+        dkg.initializeDKG(round, mrenclave,dkgPubKey, commPubKey, rawQuote);
 
         // update DKG commitments with wrong signature
         vm.prank(validator);
-        vm.expectRevert("Invalid signature");
+        vm.expectRevert("ECDSAInvalidSignature()");
         dkg.updateDKGCommitments(round, 1, 1, index, mrenclave, commitments, invalid_signature);
     }
 
     function testFinalizeDKG_RevertIfInvalidSignature() public {
          // initialize DKG
         vm.prank(validator);
-        dkg.initializeDKG(round, mrenclave, pubKey, remoteReport);
+        dkg.initializeDKG(round, mrenclave,dkgPubKey, commPubKey, rawQuote);
 
         // finalize DKG with wrong signature
         vm.prank(validator);
-        vm.expectRevert("Invalid signature");
-        dkg.finalizeDKG(round, index, true, mrenclave, invalid_signature);
+        vm.expectRevert("ECDSAInvalidSignature()");
+        dkg.finalizeDKG(round, index, true, mrenclave, invalid_signature, globalPubKey);
     }
 }
