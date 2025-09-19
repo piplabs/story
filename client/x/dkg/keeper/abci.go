@@ -57,13 +57,14 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			return k.initiateDKGRound(ctx)
 		case types.DKGStageChallenge:
 			return k.emitBeginChallengePeriod(ctx, latestRound)
-		case types.DKGStageDealing:
-			// Update total and threshold based on verified DKG validators after challenge period
+		case types.DKGStageNetworkSet:
 			if err := k.updateDKGNetworkTotalAndThreshold(ctx, latestRound); err != nil {
 				return errors.Wrap(err, "failed to update DKG network total and threshold")
 			}
 
 			return k.emitBeginDKGNetworkSet(ctx, latestRound)
+		case types.DKGStageDealing:
+			return k.emitBeginDKGDealing(ctx, latestRound)
 		case types.DKGStageFinalization:
 			return k.emitBeginDKGFinalization(ctx, latestRound)
 		case types.DKGStageActive:

@@ -22,6 +22,46 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type EventType int32
+
+const (
+	EventType_EVENT_TYPE_UNSPECIFIED            EventType = 0
+	EventType_EVENT_TYPE_BEGIN_INITIALIZATION   EventType = 1
+	EventType_EVENT_TYPE_BEGIN_CHALLENGE_PERIOD EventType = 2
+	EventType_EVENT_TYPE_BEGIN_NETWORK_SET      EventType = 3
+	EventType_EVENT_TYPE_BEGIN_DEALING          EventType = 4
+	EventType_EVENT_TYPE_BEGIN_FINALIZATION     EventType = 5
+	EventType_EVENT_TYPE_DKG_FINALIZED          EventType = 6
+)
+
+var EventType_name = map[int32]string{
+	0: "EVENT_TYPE_UNSPECIFIED",
+	1: "EVENT_TYPE_BEGIN_INITIALIZATION",
+	2: "EVENT_TYPE_BEGIN_CHALLENGE_PERIOD",
+	3: "EVENT_TYPE_BEGIN_NETWORK_SET",
+	4: "EVENT_TYPE_BEGIN_DEALING",
+	5: "EVENT_TYPE_BEGIN_FINALIZATION",
+	6: "EVENT_TYPE_DKG_FINALIZED",
+}
+
+var EventType_value = map[string]int32{
+	"EVENT_TYPE_UNSPECIFIED":            0,
+	"EVENT_TYPE_BEGIN_INITIALIZATION":   1,
+	"EVENT_TYPE_BEGIN_CHALLENGE_PERIOD": 2,
+	"EVENT_TYPE_BEGIN_NETWORK_SET":      3,
+	"EVENT_TYPE_BEGIN_DEALING":          4,
+	"EVENT_TYPE_BEGIN_FINALIZATION":     5,
+	"EVENT_TYPE_DKG_FINALIZED":          6,
+}
+
+func (x EventType) String() string {
+	return proto.EnumName(EventType_name, int32(x))
+}
+
+func (EventType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_801f42319f883aee, []int{0}
+}
+
 type EventBeginInitialization struct {
 	Mrenclave        []byte   `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
 	Round            uint32   `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
@@ -218,6 +258,58 @@ func (m *EventBeginNetworkSet) GetThreshold() uint32 {
 	return 0
 }
 
+type EventBeginDealing struct {
+	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
+	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+}
+
+func (m *EventBeginDealing) Reset()         { *m = EventBeginDealing{} }
+func (m *EventBeginDealing) String() string { return proto.CompactTextString(m) }
+func (*EventBeginDealing) ProtoMessage()    {}
+func (*EventBeginDealing) Descriptor() ([]byte, []int) {
+	return fileDescriptor_801f42319f883aee, []int{3}
+}
+func (m *EventBeginDealing) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventBeginDealing) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventBeginDealing.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventBeginDealing) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventBeginDealing.Merge(m, src)
+}
+func (m *EventBeginDealing) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventBeginDealing) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventBeginDealing.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventBeginDealing proto.InternalMessageInfo
+
+func (m *EventBeginDealing) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *EventBeginDealing) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
 type EventBeginFinalization struct {
 	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
 	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
@@ -227,7 +319,7 @@ func (m *EventBeginFinalization) Reset()         { *m = EventBeginFinalization{}
 func (m *EventBeginFinalization) String() string { return proto.CompactTextString(m) }
 func (*EventBeginFinalization) ProtoMessage()    {}
 func (*EventBeginFinalization) Descriptor() ([]byte, []int) {
-	return fileDescriptor_801f42319f883aee, []int{3}
+	return fileDescriptor_801f42319f883aee, []int{4}
 }
 func (m *EventBeginFinalization) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -279,7 +371,7 @@ func (m *EventDKGFinalized) Reset()         { *m = EventDKGFinalized{} }
 func (m *EventDKGFinalized) String() string { return proto.CompactTextString(m) }
 func (*EventDKGFinalized) ProtoMessage()    {}
 func (*EventDKGFinalized) Descriptor() ([]byte, []int) {
-	return fileDescriptor_801f42319f883aee, []int{4}
+	return fileDescriptor_801f42319f883aee, []int{5}
 }
 func (m *EventDKGFinalized) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -322,40 +414,248 @@ func (m *EventDKGFinalized) GetRound() uint32 {
 	return 0
 }
 
+type EventDKGRegistrationInitialized struct {
+	Mrenclave  []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
+	Round      uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Index      uint32 `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	MsgSender  string `protobuf:"bytes,4,opt,name=msgSender,proto3" json:"msgSender,omitempty"`
+	DkgPubKey  []byte `protobuf:"bytes,5,opt,name=dkgPubKey,proto3" json:"dkgPubKey,omitempty"`
+	CommPubKey []byte `protobuf:"bytes,6,opt,name=commPubKey,proto3" json:"commPubKey,omitempty"`
+	RawQuote   []byte `protobuf:"bytes,7,opt,name=rawQuote,proto3" json:"rawQuote,omitempty"`
+}
+
+func (m *EventDKGRegistrationInitialized) Reset()         { *m = EventDKGRegistrationInitialized{} }
+func (m *EventDKGRegistrationInitialized) String() string { return proto.CompactTextString(m) }
+func (*EventDKGRegistrationInitialized) ProtoMessage()    {}
+func (*EventDKGRegistrationInitialized) Descriptor() ([]byte, []int) {
+	return fileDescriptor_801f42319f883aee, []int{6}
+}
+func (m *EventDKGRegistrationInitialized) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventDKGRegistrationInitialized) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventDKGRegistrationInitialized.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventDKGRegistrationInitialized) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventDKGRegistrationInitialized.Merge(m, src)
+}
+func (m *EventDKGRegistrationInitialized) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventDKGRegistrationInitialized) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventDKGRegistrationInitialized.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventDKGRegistrationInitialized proto.InternalMessageInfo
+
+func (m *EventDKGRegistrationInitialized) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *EventDKGRegistrationInitialized) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationInitialized) GetIndex() uint32 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationInitialized) GetMsgSender() string {
+	if m != nil {
+		return m.MsgSender
+	}
+	return ""
+}
+
+func (m *EventDKGRegistrationInitialized) GetDkgPubKey() []byte {
+	if m != nil {
+		return m.DkgPubKey
+	}
+	return nil
+}
+
+func (m *EventDKGRegistrationInitialized) GetCommPubKey() []byte {
+	if m != nil {
+		return m.CommPubKey
+	}
+	return nil
+}
+
+func (m *EventDKGRegistrationInitialized) GetRawQuote() []byte {
+	if m != nil {
+		return m.RawQuote
+	}
+	return nil
+}
+
+type EventDKGRegistrationCommitmentsUpdated struct {
+	Mrenclave   []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
+	Round       uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Total       uint32 `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	Threshold   uint32 `protobuf:"varint,4,opt,name=threshold,proto3" json:"threshold,omitempty"`
+	Index       uint32 `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
+	Commitments []byte `protobuf:"bytes,6,opt,name=commitments,proto3" json:"commitments,omitempty"`
+	Signature   []byte `protobuf:"bytes,7,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) Reset() {
+	*m = EventDKGRegistrationCommitmentsUpdated{}
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) String() string { return proto.CompactTextString(m) }
+func (*EventDKGRegistrationCommitmentsUpdated) ProtoMessage()    {}
+func (*EventDKGRegistrationCommitmentsUpdated) Descriptor() ([]byte, []int) {
+	return fileDescriptor_801f42319f883aee, []int{7}
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventDKGRegistrationCommitmentsUpdated.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventDKGRegistrationCommitmentsUpdated.Merge(m, src)
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventDKGRegistrationCommitmentsUpdated.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventDKGRegistrationCommitmentsUpdated proto.InternalMessageInfo
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetTotal() uint32 {
+	if m != nil {
+		return m.Total
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetThreshold() uint32 {
+	if m != nil {
+		return m.Threshold
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetIndex() uint32 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetCommitments() []byte {
+	if m != nil {
+		return m.Commitments
+	}
+	return nil
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
+}
+
 func init() {
+	proto.RegisterEnum("story.dkg.v1.types.EventType", EventType_name, EventType_value)
 	proto.RegisterType((*EventBeginInitialization)(nil), "story.dkg.v1.types.EventBeginInitialization")
 	proto.RegisterType((*EventBeginChallengePeriod)(nil), "story.dkg.v1.types.EventBeginChallengePeriod")
 	proto.RegisterType((*EventBeginNetworkSet)(nil), "story.dkg.v1.types.EventBeginNetworkSet")
+	proto.RegisterType((*EventBeginDealing)(nil), "story.dkg.v1.types.EventBeginDealing")
 	proto.RegisterType((*EventBeginFinalization)(nil), "story.dkg.v1.types.EventBeginFinalization")
 	proto.RegisterType((*EventDKGFinalized)(nil), "story.dkg.v1.types.EventDKGFinalized")
+	proto.RegisterType((*EventDKGRegistrationInitialized)(nil), "story.dkg.v1.types.EventDKGRegistrationInitialized")
+	proto.RegisterType((*EventDKGRegistrationCommitmentsUpdated)(nil), "story.dkg.v1.types.EventDKGRegistrationCommitmentsUpdated")
 }
 
 func init() { proto.RegisterFile("story/dkg/v1/types/event.proto", fileDescriptor_801f42319f883aee) }
 
 var fileDescriptor_801f42319f883aee = []byte{
-	// 349 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xc1, 0x4a, 0xeb, 0x40,
-	0x14, 0x86, 0x9b, 0xdb, 0xdb, 0x0b, 0x9d, 0xab, 0x60, 0x43, 0x91, 0x08, 0x25, 0x96, 0xac, 0x0a,
-	0x85, 0x0c, 0xc5, 0x37, 0xa8, 0xd6, 0x22, 0x8a, 0x4a, 0x05, 0x17, 0x6e, 0xca, 0x24, 0x39, 0x24,
-	0x43, 0xa6, 0x33, 0x61, 0x72, 0x1a, 0xad, 0x0b, 0x9f, 0xc1, 0x67, 0xf1, 0x29, 0x5c, 0x76, 0xe9,
-	0x52, 0xda, 0x17, 0x91, 0x4e, 0x8a, 0xd9, 0x57, 0x97, 0xe7, 0xfb, 0x87, 0x7f, 0xce, 0xfc, 0xf3,
-	0x13, 0x37, 0x47, 0xa5, 0x17, 0x34, 0x4a, 0x63, 0x5a, 0x0c, 0x28, 0x2e, 0x32, 0xc8, 0x29, 0x14,
-	0x20, 0xd1, 0xcf, 0xb4, 0x42, 0x65, 0xdb, 0x46, 0xf7, 0xa3, 0x34, 0xf6, 0x8b, 0x81, 0x6f, 0x74,
-	0xef, 0xcd, 0x22, 0xce, 0x68, 0x73, 0x66, 0x08, 0x31, 0x97, 0x17, 0x92, 0x23, 0x67, 0x82, 0x3f,
-	0x33, 0xe4, 0x4a, 0xda, 0x1d, 0xd2, 0x9c, 0x69, 0x90, 0xa1, 0x60, 0x05, 0x38, 0x56, 0xd7, 0xea,
-	0xed, 0x4d, 0x2a, 0x60, 0xb7, 0x49, 0x43, 0xab, 0xb9, 0x8c, 0x9c, 0x3f, 0x5d, 0xab, 0xb7, 0x3f,
-	0x29, 0x87, 0x0d, 0x45, 0x85, 0x4c, 0x38, 0xf5, 0x92, 0x9a, 0xc1, 0x3e, 0x26, 0xff, 0x73, 0x64,
-	0x1a, 0xa7, 0x81, 0x50, 0x61, 0xea, 0xfc, 0x35, 0x1a, 0x31, 0x68, 0xb8, 0x21, 0x76, 0x9f, 0xb4,
-	0x58, 0x88, 0xbc, 0x80, 0x69, 0xc1, 0x04, 0x8f, 0x18, 0x2a, 0x9d, 0x3b, 0x8d, 0x6e, 0xbd, 0xd7,
-	0x9c, 0x1c, 0x94, 0xc2, 0xfd, 0x37, 0xf7, 0x6e, 0xc8, 0x51, 0xb5, 0xf3, 0x69, 0xc2, 0x84, 0x00,
-	0x19, 0xc3, 0x2d, 0x68, 0xae, 0xa2, 0x5d, 0x96, 0xf6, 0x5e, 0x48, 0xbb, 0x32, 0xbc, 0x06, 0x7c,
-	0x54, 0x3a, 0xbd, 0x03, 0xfc, 0xc5, 0x00, 0x3a, 0xa4, 0x89, 0x89, 0x86, 0x3c, 0x51, 0x22, 0xda,
-	0x3e, 0xbf, 0x02, 0xde, 0x15, 0x39, 0xac, 0xee, 0x3f, 0xe7, 0xf2, 0x47, 0x5f, 0xe0, 0x8d, 0x49,
-	0xcb, 0xb8, 0x9d, 0x5d, 0x8e, 0xb7, 0x5e, 0xb0, 0x53, 0x2c, 0xc3, 0xd1, 0xfb, 0xca, 0xb5, 0x96,
-	0x2b, 0xd7, 0xfa, 0x5c, 0xb9, 0xd6, 0xeb, 0xda, 0xad, 0x2d, 0xd7, 0x6e, 0xed, 0x63, 0xed, 0xd6,
-	0x1e, 0xfa, 0x31, 0xc7, 0x64, 0x1e, 0xf8, 0xa1, 0x9a, 0xd1, 0x8c, 0x67, 0x82, 0x05, 0x39, 0x2d,
-	0xdb, 0x17, 0x0a, 0x0e, 0x12, 0xe9, 0x93, 0xa9, 0xa1, 0xe9, 0x58, 0xf0, 0xcf, 0xd4, 0xef, 0xe4,
-	0x2b, 0x00, 0x00, 0xff, 0xff, 0x85, 0x59, 0x05, 0x2b, 0xa0, 0x02, 0x00, 0x00,
+	// 631 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xcf, 0x6e, 0xda, 0x4a,
+	0x14, 0xc6, 0x71, 0x12, 0x72, 0x2f, 0x93, 0x7b, 0x25, 0x67, 0x14, 0x45, 0x6e, 0x44, 0x1d, 0x42,
+	0xd5, 0x2a, 0x6a, 0x24, 0xac, 0xa8, 0x4f, 0x00, 0x78, 0x42, 0x2d, 0x90, 0xa1, 0xc6, 0x49, 0xd5,
+	0x6c, 0xac, 0xc1, 0x1e, 0x99, 0x11, 0xf6, 0x0c, 0xb2, 0x07, 0x12, 0xba, 0xe8, 0x33, 0xf4, 0x59,
+	0xfa, 0x14, 0x5d, 0x66, 0xd9, 0x65, 0x15, 0xa4, 0x3e, 0x41, 0x1f, 0xa0, 0x62, 0xf8, 0x63, 0x54,
+	0xba, 0x29, 0xed, 0xf2, 0xfc, 0xbe, 0xa3, 0xcf, 0xe7, 0x3b, 0x1e, 0x1d, 0xa0, 0xa7, 0x82, 0x27,
+	0x13, 0x23, 0x18, 0x84, 0xc6, 0xf8, 0xd2, 0x10, 0x93, 0x21, 0x49, 0x0d, 0x32, 0x26, 0x4c, 0x54,
+	0x86, 0x09, 0x17, 0x1c, 0x42, 0xa9, 0x57, 0x82, 0x41, 0x58, 0x19, 0x5f, 0x56, 0xa4, 0x5e, 0xfe,
+	0xa4, 0x00, 0x0d, 0xcd, 0x7a, 0x6a, 0x24, 0xa4, 0xcc, 0x62, 0x54, 0x50, 0x1c, 0xd1, 0xf7, 0x58,
+	0x50, 0xce, 0x60, 0x11, 0x14, 0xe2, 0x84, 0x30, 0x3f, 0xc2, 0x63, 0xa2, 0x29, 0x25, 0xe5, 0xfc,
+	0x3f, 0x27, 0x03, 0xf0, 0x08, 0xe4, 0x13, 0x3e, 0x62, 0x81, 0xb6, 0x53, 0x52, 0xce, 0xff, 0x77,
+	0xe6, 0xc5, 0x8c, 0x0a, 0x2e, 0x70, 0xa4, 0xed, 0xce, 0xa9, 0x2c, 0xe0, 0x29, 0x38, 0x48, 0x05,
+	0x4e, 0x84, 0xd7, 0x8b, 0xb8, 0x3f, 0xd0, 0xf6, 0xa4, 0x06, 0x24, 0xaa, 0xcd, 0x08, 0xbc, 0x00,
+	0x87, 0xd8, 0x17, 0x74, 0x4c, 0xbc, 0x31, 0x8e, 0x68, 0x80, 0x05, 0x4f, 0x52, 0x2d, 0x5f, 0xda,
+	0x3d, 0x2f, 0x38, 0xea, 0x5c, 0xb8, 0x59, 0xf1, 0x72, 0x1b, 0x3c, 0xc9, 0x66, 0xae, 0xf7, 0x71,
+	0x14, 0x11, 0x16, 0x92, 0x0e, 0x49, 0x28, 0x0f, 0xb6, 0x19, 0xba, 0xfc, 0x01, 0x1c, 0x65, 0x86,
+	0x36, 0x11, 0x77, 0x3c, 0x19, 0x74, 0x89, 0xf8, 0x8b, 0x0b, 0x28, 0x82, 0x82, 0xe8, 0x27, 0x24,
+	0xed, 0xf3, 0x28, 0x58, 0xc4, 0xcf, 0x40, 0xb9, 0x01, 0x0e, 0xb3, 0xef, 0x9b, 0x04, 0x47, 0x94,
+	0x85, 0x5b, 0x05, 0x69, 0x81, 0xe3, 0xcc, 0xe8, 0x8a, 0xb2, 0x3f, 0xfa, 0x97, 0xab, 0xb1, 0xcc,
+	0x66, 0x63, 0xe1, 0x45, 0xb6, 0xdb, 0xef, 0x54, 0x01, 0xa7, 0x4b, 0x27, 0x87, 0x84, 0x34, 0x15,
+	0x89, 0x9c, 0x6a, 0xf5, 0xde, 0xb6, 0xf3, 0x9d, 0x51, 0xca, 0x02, 0x72, 0xbf, 0xdc, 0xb5, 0x2c,
+	0xa4, 0x53, 0x1a, 0x76, 0x09, 0x0b, 0x48, 0x22, 0x77, 0x5d, 0x70, 0x32, 0x30, 0x53, 0x83, 0x41,
+	0xd8, 0x19, 0xf5, 0x9a, 0x64, 0xa2, 0xe5, 0xe7, 0xdf, 0x59, 0x01, 0xa8, 0x03, 0xe0, 0xf3, 0x38,
+	0x5e, 0xc8, 0xfb, 0x52, 0x5e, 0x23, 0xf0, 0x04, 0xfc, 0x9b, 0xe0, 0xbb, 0x37, 0x23, 0x2e, 0x88,
+	0xf6, 0x8f, 0x54, 0x57, 0x75, 0xf9, 0x9b, 0x02, 0x5e, 0xfc, 0x2a, 0x65, 0x9d, 0xc7, 0x31, 0x15,
+	0x31, 0x61, 0x22, 0xbd, 0x1e, 0x06, 0x58, 0x6c, 0x1f, 0xf6, 0x77, 0x1f, 0x56, 0xb6, 0xa0, 0xfc,
+	0xfa, 0x82, 0x4a, 0xe0, 0xc0, 0xcf, 0x66, 0x5a, 0xa4, 0x5c, 0x47, 0x33, 0xd7, 0x94, 0x86, 0x0c,
+	0x8b, 0x51, 0xb2, 0xcc, 0x99, 0x81, 0x97, 0xdf, 0x15, 0x50, 0x90, 0x41, 0xdd, 0xc9, 0x90, 0xc0,
+	0x13, 0x70, 0x8c, 0x6e, 0x90, 0xed, 0x7a, 0xee, 0xbb, 0x0e, 0xf2, 0xae, 0xed, 0x6e, 0x07, 0xd5,
+	0xad, 0x2b, 0x0b, 0x99, 0x6a, 0x0e, 0x3e, 0x03, 0xa7, 0x6b, 0x5a, 0x0d, 0x35, 0x2c, 0xdb, 0xb3,
+	0x6c, 0xcb, 0xb5, 0xaa, 0x2d, 0xeb, 0xb6, 0xea, 0x5a, 0x6d, 0x5b, 0x55, 0xe0, 0x73, 0x70, 0xb6,
+	0xd1, 0x54, 0x7f, 0x5d, 0x6d, 0xb5, 0x90, 0xdd, 0x40, 0x5e, 0x07, 0x39, 0x56, 0xdb, 0x54, 0x77,
+	0x60, 0x09, 0x14, 0x37, 0xda, 0x6c, 0xe4, 0xbe, 0x6d, 0x3b, 0x4d, 0xaf, 0x8b, 0x5c, 0x75, 0x17,
+	0x16, 0x81, 0xb6, 0xd1, 0x61, 0xa2, 0x6a, 0xcb, 0xb2, 0x1b, 0xea, 0x1e, 0x3c, 0x03, 0x4f, 0x37,
+	0xd4, 0x2b, 0xcb, 0xce, 0x26, 0xc9, 0xff, 0x64, 0x60, 0x36, 0x1b, 0xcb, 0x06, 0x64, 0xaa, 0xfb,
+	0x35, 0xf4, 0xf9, 0x51, 0x57, 0x1e, 0x1e, 0x75, 0xe5, 0xeb, 0xa3, 0xae, 0x7c, 0x9c, 0xea, 0xb9,
+	0x87, 0xa9, 0x9e, 0xfb, 0x32, 0xd5, 0x73, 0xb7, 0x17, 0x21, 0x15, 0xfd, 0x51, 0xaf, 0xe2, 0xf3,
+	0xd8, 0x18, 0xd2, 0x61, 0x84, 0x7b, 0xa9, 0x31, 0x3f, 0xc6, 0x7e, 0x44, 0x09, 0x13, 0xc6, 0xbd,
+	0xbc, 0xca, 0xf2, 0xe4, 0xf6, 0xf6, 0xe5, 0x35, 0x7e, 0xf5, 0x23, 0x00, 0x00, 0xff, 0xff, 0x19,
+	0xcf, 0xc5, 0x7b, 0xaf, 0x05, 0x00, 0x00,
 }
 
 func (m *EventBeginInitialization) Marshal() (dAtA []byte, err error) {
@@ -492,6 +792,41 @@ func (m *EventBeginNetworkSet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *EventBeginDealing) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventBeginDealing) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EventBeginDealing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Round != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *EventBeginFinalization) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -547,6 +882,138 @@ func (m *EventDKGFinalized) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Round != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EventDKGRegistrationInitialized) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventDKGRegistrationInitialized) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EventDKGRegistrationInitialized) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RawQuote) > 0 {
+		i -= len(m.RawQuote)
+		copy(dAtA[i:], m.RawQuote)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.RawQuote)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.CommPubKey) > 0 {
+		i -= len(m.CommPubKey)
+		copy(dAtA[i:], m.CommPubKey)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CommPubKey)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.DkgPubKey) > 0 {
+		i -= len(m.DkgPubKey)
+		copy(dAtA[i:], m.DkgPubKey)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.DkgPubKey)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.MsgSender) > 0 {
+		i -= len(m.MsgSender)
+		copy(dAtA[i:], m.MsgSender)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.MsgSender)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Index != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Round != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.Commitments) > 0 {
+		i -= len(m.Commitments)
+		copy(dAtA[i:], m.Commitments)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Commitments)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Index != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Threshold != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Threshold))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Total != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Total))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Round != 0 {
 		i = encodeVarintEvent(dAtA, i, uint64(m.Round))
 		i--
@@ -639,6 +1106,22 @@ func (m *EventBeginNetworkSet) Size() (n int) {
 	return n
 }
 
+func (m *EventBeginDealing) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovEvent(uint64(m.Round))
+	}
+	return n
+}
+
 func (m *EventBeginFinalization) Size() (n int) {
 	if m == nil {
 		return 0
@@ -667,6 +1150,74 @@ func (m *EventDKGFinalized) Size() (n int) {
 	}
 	if m.Round != 0 {
 		n += 1 + sovEvent(uint64(m.Round))
+	}
+	return n
+}
+
+func (m *EventDKGRegistrationInitialized) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovEvent(uint64(m.Round))
+	}
+	if m.Index != 0 {
+		n += 1 + sovEvent(uint64(m.Index))
+	}
+	l = len(m.MsgSender)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	l = len(m.DkgPubKey)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	l = len(m.CommPubKey)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	l = len(m.RawQuote)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	return n
+}
+
+func (m *EventDKGRegistrationCommitmentsUpdated) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovEvent(uint64(m.Round))
+	}
+	if m.Total != 0 {
+		n += 1 + sovEvent(uint64(m.Total))
+	}
+	if m.Threshold != 0 {
+		n += 1 + sovEvent(uint64(m.Threshold))
+	}
+	if m.Index != 0 {
+		n += 1 + sovEvent(uint64(m.Index))
+	}
+	l = len(m.Commitments)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
 	}
 	return n
 }
@@ -1094,6 +1645,109 @@ func (m *EventBeginNetworkSet) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *EventBeginDealing) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEvent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventBeginDealing: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventBeginDealing: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEvent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *EventBeginFinalization) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1279,6 +1933,490 @@ func (m *EventDKGFinalized) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEvent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EventDKGRegistrationInitialized) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEvent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventDKGRegistrationInitialized: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventDKGRegistrationInitialized: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MsgSender", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MsgSender = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DkgPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DkgPubKey = append(m.DkgPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.DkgPubKey == nil {
+				m.DkgPubKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CommPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CommPubKey = append(m.CommPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.CommPubKey == nil {
+				m.CommPubKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RawQuote", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RawQuote = append(m.RawQuote[:0], dAtA[iNdEx:postIndex]...)
+			if m.RawQuote == nil {
+				m.RawQuote = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEvent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EventDKGRegistrationCommitmentsUpdated) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEvent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventDKGRegistrationCommitmentsUpdated: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventDKGRegistrationCommitmentsUpdated: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Total", wireType)
+			}
+			m.Total = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Total |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Threshold", wireType)
+			}
+			m.Threshold = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Threshold |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Commitments", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Commitments = append(m.Commitments[:0], dAtA[iNdEx:postIndex]...)
+			if m.Commitments == nil {
+				m.Commitments = []byte{}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipEvent(dAtA[iNdEx:])

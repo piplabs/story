@@ -31,7 +31,7 @@ func (k *Keeper) SetTEEUpgradeInfos(ctx context.Context, teeUpgradeInfos []types
 	return nil
 }
 
-// GetTEEUpgradeInfo retrieves a TEE upgrade info by unique ID.
+// GetTEEUpgradeInfo retrieves a TEE upgrade info by mrenclave.
 func (k *Keeper) GetTEEUpgradeInfo(ctx context.Context, mrenclave []byte) (*types.TEEUpgradeInfo, error) {
 	key := string(mrenclave)
 	teeInfo, err := k.TEEUpgradeInfos.Get(ctx, key)

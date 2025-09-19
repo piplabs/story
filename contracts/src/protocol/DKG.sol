@@ -19,7 +19,8 @@ contract DKG is IDKG {
     function initializeDKG(
         uint32 round,
         bytes calldata mrenclave,
-        bytes calldata pubKey,
+        bytes calldata dkgPubKey,
+        bytes calldata commPubKey,
         bytes calldata remoteReport
     ) external {
         require(
@@ -33,7 +34,8 @@ contract DKG is IDKG {
         dkgNodeInfos[mrenclave][round][index] = NodeInfo({
             index: index,
             validator: msg.sender,
-            pubKey: pubKey,
+            dkgPubKey: dkgPubKey,
+            commPubKey: commPubKey,
             remoteReport: remoteReport,
             commitments: "",
             chalStatus: ChallengeStatus.NotChallenged,
@@ -45,7 +47,8 @@ contract DKG is IDKG {
             mrenclave,
             round,
             index,
-            pubKey,
+            dkgPubKey,
+            commPubKey,
             remoteReport
         );
     }
@@ -62,7 +65,7 @@ contract DKG is IDKG {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid validator");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyCommitmentSignature(node.pubKey, commitments, signature), "Invalid signature");
+        require(_verifyCommitmentSignature(node.commPubKey, commitments, signature), "Invalid signature");
 
         node.commitments = commitments;
 
@@ -88,7 +91,7 @@ contract DKG is IDKG {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid validator");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyFinalizationSignature(node.pubKey, finalized, signature), "Invalid signature");
+        require(_verifyFinalizationSignature(node.commPubKey, finalized, signature), "Invalid signature");
         
         node.finalized = finalized;
 
@@ -125,7 +128,7 @@ contract DKG is IDKG {
         require(node.validator != address(0), "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
-        bool isValid = _verifyRemoteAttestation(node.remoteReport, node.validator, round, node.pubKey);        
+        bool isValid = _verifyRemoteAttestation(node.remoteReport, node.validator, round, node.commPubKey);        
         if (isValid) {
             node.chalStatus = ChallengeStatus.Resolved;
         } else {

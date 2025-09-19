@@ -6,24 +6,30 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
-// Initialized handles DKG initialization event.
-func (*Keeper) Initialized(ctx context.Context, mrenclave []byte, round uint32, index uint32, pubKey []byte, remoteReport []byte) error {
-	log.Info(ctx, "DKG Initialized event received",
+// RegistrationInitialized handles DKG registration initialization event.
+func (k *Keeper) RegistrationInitialized(ctx context.Context, mrenclave []byte, round uint32, index uint32, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) error {
+	log.Info(ctx, "DKG Registration initialized event received",
 		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
 		"index", index,
-		"pubkey_len", len(pubKey),
+		"dkg_pubkey_len", len(dkgPubKey),
+		"comm_pubkey_len", len(commPubKey),
 		"remote_report_len", len(remoteReport),
 	)
-	// TODO: Implement actual initialization logic
+
+	if err := k.emitDKGRegistrationInitialized(ctx, mrenclave, round, index, dkgPubKey, commPubKey, remoteReport); err != nil {
+		return errors.Wrap(err, "failed to emit dkg_registration_initialized event")
+	}
+
 	return nil
 }
 
 // CommitmentsUpdated handles DKG commitments update event.
-func (*Keeper) CommitmentsUpdated(ctx context.Context, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte, mrenclave []byte) error {
+func (k *Keeper) CommitmentsUpdated(ctx context.Context, mrenclave []byte, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte) error {
 	log.Info(ctx, "DKG CommitmentsUpdated event received",
 		"round", round,
 		"total", total,
@@ -33,7 +39,11 @@ func (*Keeper) CommitmentsUpdated(ctx context.Context, round uint32, total uint3
 		"signature_len", len(signature),
 		"mrenclave", hex.EncodeToString(mrenclave),
 	)
-	// TODO: Implement actual commitments update logic
+
+	if err := k.emitDKGRegistrationCommitmentsUpdated(ctx, mrenclave, round, total, threshold, index, commitments, signature); err != nil {
+		return errors.Wrap(err, "failed to emit dkg_registration_commitments_updated event")
+	}
+
 	return nil
 }
 

@@ -1,15 +1,15 @@
 {
   "storage": [
     {
-      "astId": 150,
+      "astId": 154,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dkgNodeInfos",
       "offset": 0,
       "slot": "0",
-      "type": "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)21_storage)))"
+      "type": "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)23_storage)))"
     },
     {
-      "astId": 158,
+      "astId": 162,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "valSets",
       "offset": 0,
@@ -17,7 +17,7 @@
       "type": "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_address,t_bool)))"
     },
     {
-      "astId": 168,
+      "astId": 172,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dealComplaints",
       "offset": 0,
@@ -25,7 +25,7 @@
       "type": "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool))))"
     },
     {
-      "astId": 174,
+      "astId": 178,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "nodeCount",
       "offset": 0,
@@ -80,12 +80,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))"
     },
-    "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)21_storage)))": {
+    "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)23_storage)))": {
       "encoding": "mapping",
       "key": "t_bytes_memory_ptr",
       "label": "mapping(bytes => mapping(uint32 => mapping(uint32 => struct IDKG.NodeInfo)))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)21_storage))"
+      "value": "t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)23_storage))"
     },
     "t_mapping(t_bytes_memory_ptr,t_mapping(t_uint32,t_uint32))": {
       "encoding": "mapping",
@@ -108,19 +108,19 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_address,t_bool))"
     },
-    "t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)21_storage))": {
+    "t_mapping(t_uint32,t_mapping(t_uint32,t_struct(NodeInfo)23_storage))": {
       "encoding": "mapping",
       "key": "t_uint32",
       "label": "mapping(uint32 => mapping(uint32 => struct IDKG.NodeInfo))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_struct(NodeInfo)21_storage)"
+      "value": "t_mapping(t_uint32,t_struct(NodeInfo)23_storage)"
     },
-    "t_mapping(t_uint32,t_struct(NodeInfo)21_storage)": {
+    "t_mapping(t_uint32,t_struct(NodeInfo)23_storage)": {
       "encoding": "mapping",
       "key": "t_uint32",
       "label": "mapping(uint32 => struct IDKG.NodeInfo)",
       "numberOfBytes": "32",
-      "value": "t_struct(NodeInfo)21_storage"
+      "value": "t_struct(NodeInfo)23_storage"
     },
     "t_mapping(t_uint32,t_uint32)": {
       "encoding": "mapping",
@@ -129,10 +129,10 @@
       "numberOfBytes": "32",
       "value": "t_uint32"
     },
-    "t_struct(NodeInfo)21_storage": {
+    "t_struct(NodeInfo)23_storage": {
       "encoding": "inplace",
       "label": "struct IDKG.NodeInfo",
-      "numberOfBytes": "160",
+      "numberOfBytes": "192",
       "members": [
         {
           "astId": 7,
@@ -153,7 +153,7 @@
         {
           "astId": 11,
           "contract": "src/protocol/DKG.sol:DKG",
-          "label": "pubKey",
+          "label": "dkgPubKey",
           "offset": 0,
           "slot": "1",
           "type": "t_bytes_storage"
@@ -161,7 +161,7 @@
         {
           "astId": 13,
           "contract": "src/protocol/DKG.sol:DKG",
-          "label": "remoteReport",
+          "label": "commPubKey",
           "offset": 0,
           "slot": "2",
           "type": "t_bytes_storage"
@@ -169,25 +169,33 @@
         {
           "astId": 15,
           "contract": "src/protocol/DKG.sol:DKG",
-          "label": "commitments",
+          "label": "remoteReport",
           "offset": 0,
           "slot": "3",
           "type": "t_bytes_storage"
         },
         {
-          "astId": 18,
+          "astId": 17,
           "contract": "src/protocol/DKG.sol:DKG",
-          "label": "chalStatus",
+          "label": "commitments",
           "offset": 0,
           "slot": "4",
-          "type": "t_enum(ChallengeStatus)5"
+          "type": "t_bytes_storage"
         },
         {
           "astId": 20,
           "contract": "src/protocol/DKG.sol:DKG",
+          "label": "chalStatus",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_enum(ChallengeStatus)5"
+        },
+        {
+          "astId": 22,
+          "contract": "src/protocol/DKG.sol:DKG",
           "label": "finalized",
           "offset": 1,
-          "slot": "4",
+          "slot": "5",
           "type": "t_bool"
         }
       ]

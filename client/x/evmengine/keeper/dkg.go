@@ -121,14 +121,15 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
-				sdk.NewAttribute(types.AttributeKeyDKGPubKey, hex.EncodeToString(ev.PubKey)),
+				sdk.NewAttribute(types.AttributeKeyDKGDkgPubKey, hex.EncodeToString(ev.DkgPubKey)),
+				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.CommPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGRemoteReport, hex.EncodeToString(ev.RemoteReport)),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	if err = k.dkgKeeper.Initialized(cachedCtx, ev.Mrenclave, ev.Round, ev.Index, ev.PubKey, ev.RemoteReport); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.RegistrationInitialized(cachedCtx, ev.Mrenclave, ev.Round, ev.Index, ev.DkgPubKey, ev.CommPubKey, ev.RemoteReport); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")
@@ -179,7 +180,7 @@ func (k *Keeper) ProcessDKGCommitmentsUpdated(ctx context.Context, ethlog *ethty
 		})
 	}()
 
-	if err = k.dkgKeeper.CommitmentsUpdated(cachedCtx, ev.Round, ev.Total, ev.Threshold, ev.Index, ev.Commitments, ev.Signature, ev.Mrenclave); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.CommitmentsUpdated(cachedCtx, ev.Mrenclave, ev.Round, ev.Total, ev.Threshold, ev.Index, ev.Commitments, ev.Signature); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "update DKG commitments")

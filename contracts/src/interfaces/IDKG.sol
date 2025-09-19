@@ -11,7 +11,8 @@ contract IDKG {
     struct NodeInfo {
         uint32 index;
         address validator;
-        bytes pubKey;
+        bytes dkgPubKey;
+        bytes commPubKey;
         bytes remoteReport;
         bytes commitments;
         ChallengeStatus chalStatus;
@@ -23,7 +24,8 @@ contract IDKG {
         bytes mrenclave,
         uint32 round,
         uint32 index,
-        bytes pubKey,
+        bytes dkgPubKey,
+        bytes commPubKey,
         bytes remoteReport
     );
 

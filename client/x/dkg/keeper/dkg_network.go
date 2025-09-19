@@ -10,7 +10,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// SetDKGNetwork stores a DKG network in the store using the unique ID as the key
+// SetDKGNetwork stores a DKG network in the store using the mrenclave as the key
 // If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
 func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	key := fmt.Sprintf("%s_%d", string(dkgNetwork.Mrenclave), dkgNetwork.Round)
@@ -31,7 +31,7 @@ func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 	return nil
 }
 
-// GetDKGNetwork retrieves a DKG network by unique ID.
+// GetDKGNetwork retrieves a DKG network by mrenclave.
 func (k *Keeper) GetDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) (*types.DKGNetwork, error) {
 	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)

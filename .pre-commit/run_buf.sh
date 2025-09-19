@@ -15,5 +15,9 @@ fi
 echo "buf version: $(buf --version)"
 echo "protoc-gen-go version: $(protoc-gen-go --version)"
 
-./scripts/protocgen.sh
+# Generate DKG service proto files
+./scripts/dkg-protocgen.sh
+
+# Generate Cosmos module proto files
+./scripts/module-protocgen.sh
 cd client/proto && buf lint && cd ../../

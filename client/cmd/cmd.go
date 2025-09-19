@@ -9,6 +9,7 @@ import (
 
 	"github.com/piplabs/story/client/app"
 	storycfg "github.com/piplabs/story/client/config"
+	dkgservice "github.com/piplabs/story/client/dkg/service"
 	"github.com/piplabs/story/lib/buildinfo"
 	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/errors"
@@ -27,6 +28,7 @@ func New() *cobra.Command {
 		newStatusCmd(),
 		newKeyCmds(),
 		newRollbackCmd(app.CreateApp),
+		dkgservice.NewDKGServiceCommand(),
 	)
 }
 
