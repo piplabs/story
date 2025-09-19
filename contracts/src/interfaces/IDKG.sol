@@ -8,6 +8,12 @@ contract IDKG {
         Resolved
     }
 
+    struct RoundInfo {
+        uint32 total;
+        uint32 threshold;
+        bytes globalPubKey;
+    }
+
     struct NodeInfo {
         uint32 index;
         address validator;

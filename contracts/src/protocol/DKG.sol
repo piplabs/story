@@ -13,9 +13,12 @@ contract DKG is IDKG {
     mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => NodeInfo))) public dkgNodeInfos;
     mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
     mapping(bytes mrenclave => mapping(uint32 round => 
-        mapping(uint32 index => mapping(address complainant => bool)))) public dealComplaints;
+    mapping(uint32 index => mapping(address complainant => bool)))) public dealComplaints;
     mapping(bytes mrenclave => mapping(uint32 round => uint32 nodeCount)) public nodeCount;
-    
+
+    mapping(bytes mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes))) public votes;
+    mapping(bytes mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
+
     constructor() {}
 
     function initializeDKG(
@@ -28,6 +31,11 @@ contract DKG is IDKG {
         require(
             valSets[mrenclave][round][msg.sender] || _isActiveValSetSubmitted(mrenclave, round),
             "Validator not in active set"
+        );
+
+        require(
+            _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey),
+            "Invalid remote attestation"
         );
 
         uint32 index = nodeCount[mrenclave][round];
@@ -67,9 +75,17 @@ contract DKG is IDKG {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyCommitmentSignature(node.commPubKey, commitments, signature), "Invalid signature");
+        require(_verifyCommitmentSignature(node.commPubKey, round, total, threshold, index, mrenclave, commitments, signature), "Invalid commitment signature");
 
         node.commitments = commitments;
+
+        // TODO: now we assume all validators submit the same total and threshold
+        // in the future, we handle the case where they are different
+        roundInfo[mrenclave][round] = RoundInfo({
+            total: total,
+            threshold: threshold,
+            globalPubKey: ""
+        });
 
         emit DKGCommitmentsUpdated(
             msg.sender,
@@ -88,27 +104,36 @@ contract DKG is IDKG {
         uint32 index,
         bool finalized,
         bytes calldata mrenclave,
-        bytes calldata signature,
-        bytes calldata globalPubKey
+        bytes calldata globalPubKey,
+        bytes calldata signature
     ) external {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
-            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature), "Invalid signature"
+            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature), "Invalid finalization signature"
         );
 
         node.finalized = finalized;
+        if (finalized) {
+            votes[mrenclave][round][globalPubKey]++;
+            if (votes[mrenclave][round][globalPubKey]  >= roundInfo[mrenclave][round].threshold ) {
+                roundInfo[mrenclave][round].globalPubKey = globalPubKey;
+            }
+            emit DKGFinalized(
+                msg.sender,
+                round,
+                index,
+                finalized,
+                mrenclave,
+                globalPubKey,
+                signature
+            );
+        }
+    }
 
-        emit DKGFinalized(
-            msg.sender,
-            round,
-            index,
-            finalized,
-            mrenclave,
-            globalPubKey,
-            signature
-        );
+    function getGlobalPubKey(bytes calldata mrenclave, uint32 round) external view returns (bytes memory) {
+        return roundInfo[mrenclave][round].globalPubKey;
     }
 
     function submitActiveValSet(
@@ -193,10 +218,15 @@ contract DKG is IDKG {
 
     function _verifyCommitmentSignature(
         bytes memory commPubKey,
+        uint32 round,
+        uint32 total,
+        uint32 threshold,
+        uint32 index,
+        bytes calldata mrenclave,
         bytes calldata commitments,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(commitments);
+        bytes32 msgHash = keccak256(abi.encodePacked(round, total, threshold, index, mrenclave, commitments));
         address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
