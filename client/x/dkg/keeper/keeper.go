@@ -1,4 +1,3 @@
-//nolint:revive // just use interface{}
 package keeper
 
 import (

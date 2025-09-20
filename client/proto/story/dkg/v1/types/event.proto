@@ -1,0 +1,69 @@
+syntax = "proto3";
+package story.dkg.v1.types;
+
+option go_package = "github.com/piplabs/story/client/x/dkg/types";
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_BEGIN_INITIALIZATION = 1;
+  EVENT_TYPE_BEGIN_CHALLENGE_PERIOD = 2;
+  EVENT_TYPE_BEGIN_NETWORK_SET = 3;
+  EVENT_TYPE_BEGIN_DEALING = 4;
+  EVENT_TYPE_BEGIN_FINALIZATION = 5;
+  EVENT_TYPE_DKG_FINALIZED = 6;
+}
+
+message EventBeginInitialization {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  uint32 total = 3;
+  uint32 start_block = 4;
+  repeated string active_validators = 5;
+}
+
+message EventBeginChallengePeriod {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+}
+
+message EventBeginNetworkSet {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  uint32 total = 3;
+  uint32 threshold = 4;
+}
+
+message EventBeginDealing {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+}
+
+message EventBeginFinalization {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+}
+
+message EventDKGFinalized {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+}
+
+message EventDKGRegistrationInitialized {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  uint32 index = 3;
+  string msgSender = 4;
+  bytes dkgPubKey = 5;
+  bytes commPubKey = 6;
+  bytes rawQuote = 7;
+}
+
+message EventDKGRegistrationCommitmentsUpdated {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  uint32 total = 3;
+  uint32 threshold = 4;
+  uint32 index = 5;
+  bytes commitments = 6;
+  bytes signature = 7;
+}

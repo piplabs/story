@@ -11,6 +11,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/contracts/bindings"
@@ -19,19 +20,11 @@ import (
 	"github.com/piplabs/story/lib/netconf"
 )
 
-func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs []*types.EVMEvent) error {
-	for _, evmLog := range logs {
-		if err := evmLog.Verify(); err != nil {
-			return errors.Wrap(err, "verify log [BUG]") // This shouldn't happen
-		}
-		ethlog, err := evmLog.ToEthLog()
-		if err != nil {
-			return err
-		}
-
+func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
+	for _, ethlog := range logs {
 		switch ethlog.Topics[0] {
 		case types.SoftwareUpgradeEvent.ID:
-			ev, err := k.upgradeContract.ParseSoftwareUpgrade(ethlog)
+			ev, err := k.upgradeContract.ParseSoftwareUpgrade(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse SoftwareUpgrade log", err)
 				continue
@@ -41,7 +34,7 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 				continue
 			}
 		case types.CancelUpgradeEvent.ID:
-			ev, err := k.upgradeContract.ParseCancelUpgrade(ethlog)
+			ev, err := k.upgradeContract.ParseCancelUpgrade(*ethlog)
 			if err != nil {
 				clog.Error(ctx, "Failed to parse CancelUpgrade log", err)
 				continue

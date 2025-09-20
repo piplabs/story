@@ -1,0 +1,442 @@
+package service
+
+import (
+	"context"
+	"crypto/ecdsa"
+	"math/big"
+	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+)
+
+// ContractClient wraps the DKG contract interaction.
+type ContractClient struct {
+	ethClient       *ethclient.Client
+	dkgContract     *bindings.DKG
+	dkgContractAbi  *abi.ABI
+	dkgContractAddr common.Address
+	privateKey      *ecdsa.PrivateKey
+	fromAddress     common.Address
+	chainID         *big.Int
+}
+
+// ContractConfig holds configuration for contract interaction.
+type ContractConfig struct {
+	EthRPCEndpoint  string
+	DKGContractAddr string
+	PrivateKey      string
+	ChainID         int64
+}
+
+// NewContractClient creates a new contract client.
+func NewContractClient(ctx context.Context, cfg *ContractConfig) (*ContractClient, error) {
+	ethClient, err := ethclient.Dial(cfg.EthRPCEndpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to connect to Ethereum client")
+	}
+
+	contractAddr := common.HexToAddress(cfg.DKGContractAddr)
+	dkgContract, err := bindings.NewDKG(contractAddr, ethClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create DKG contract instance")
+	}
+
+	dkgContractAbi, err := bindings.DKGMetaData.GetAbi()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get DKG contract ABI")
+	}
+
+	// TODO: read from validator node
+	privateKey, err := crypto.HexToECDSA(cfg.PrivateKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse private key")
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("failed to cast public key to ECDSA")
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	chainID := big.NewInt(cfg.ChainID)
+
+	client := &ContractClient{
+		ethClient:       ethClient,
+		dkgContract:     dkgContract,
+		dkgContractAbi:  dkgContractAbi,
+		dkgContractAddr: contractAddr,
+		privateKey:      privateKey,
+		fromAddress:     fromAddress,
+		chainID:         chainID,
+	}
+
+	log.Info(ctx, "Created contract client",
+		"dkg_contract_address", contractAddr.Hex(),
+		"from_address", fromAddress.Hex(),
+		"chain_id", chainID,
+	)
+
+	return client, nil
+}
+
+// Close closes the contract client connections.
+func (c *ContractClient) Close() {
+	if c.ethClient != nil {
+		c.ethClient.Close()
+	}
+}
+
+// InitializeDKG calls the initializeDKG contract method.
+//
+// TODO: fix the contract and use both dkgPubKey and commPubKey
+func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) (*types.Receipt, error) {
+	log.Info(ctx, "Calling initializeDKG contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"dkg_pub_key", string(dkgPubKey),
+		"comm_pub_key", string(commPubKey),
+		"remote_report_len", len(remoteReport),
+	)
+
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave, dkgPubKey, remoteReport)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for initialize dkg")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave, dkgPubKey, commPubKey, remoteReport)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call initialize dkg")
+	}
+
+	log.Info(ctx, "InitializeDKG transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for initialize dkg transaction")
+	}
+
+	return receipt, nil
+}
+
+// UpdateDKGCommitments calls the updateDKGCommitments contract method.
+func (c *ContractClient) UpdateDKGCommitments(
+	ctx context.Context,
+	round uint32,
+	total uint32,
+	threshold uint32,
+	index uint32,
+	mrenclave []byte,
+	commitments []byte,
+	signature []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling updateDKGCommitments contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"total", total,
+		"threshold", threshold,
+		"index", index,
+		"commitments_len", len(commitments),
+		"signature_len", len(signature),
+	)
+
+	callData, err := c.dkgContractAbi.Pack("updateDKGCommitments", round, total, threshold, index, mrenclave, commitments, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack update dkg commitments call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for update dkg commitments")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.UpdateDKGCommitments(auth, round, total, threshold, index, mrenclave, commitments, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call update dkg commitments")
+	}
+
+	log.Info(ctx, "UpdateDKGCommitments transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for update dkg commitments transaction")
+	}
+
+	return receipt, nil
+}
+
+// FinalizeDKG calls the finalizeDKG contract method.
+func (c *ContractClient) FinalizeDKG(
+	ctx context.Context,
+	round uint32,
+	index uint32,
+	finalized bool,
+	mrenclave []byte,
+	signature []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling finalizeDKG contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"index", index,
+		"finalized", finalized,
+		"signature_len", len(signature),
+	)
+
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, index, finalized, mrenclave, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for finalizeDKG")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.FinalizeDKG(auth, round, index, finalized, mrenclave, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call finalize dkg")
+	}
+
+	log.Info(ctx, "FinalizeDKG transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for finalize dkg transaction")
+	}
+
+	return receipt, nil
+}
+
+// RequestRemoteAttestationOnChain calls the requestRemoteAttestationOnChain contract method.
+func (c *ContractClient) RequestRemoteAttestationOnChain(
+	ctx context.Context,
+	targetIndex uint32,
+	round uint32,
+	mrenclave []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling requestRemoteAttestationOnChain contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"target_index", targetIndex,
+	)
+
+	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetIndex, round, mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack requestRemoteAttestationOnChain call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for requestRemoteAttestationOnChain")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetIndex, round, mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call request remote attestation on chain")
+	}
+
+	log.Info(ctx, "RequestRemoteAttestationOnChain transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for request remote attestation on chain transaction")
+	}
+
+	return receipt, nil
+}
+
+// ComplainDeals calls the complainDeals contract method.
+func (c *ContractClient) ComplainDeals(
+	ctx context.Context,
+	round uint32,
+	index uint32,
+	complainIndexes []uint32,
+	mrenclave []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling complainDeals contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"index", index,
+		"complain_indexes", complainIndexes,
+	)
+
+	callData, err := c.dkgContractAbi.Pack("complainDeals", round, index, complainIndexes, mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack complain deals call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for complain deals")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call complain deals")
+	}
+
+	log.Info(ctx, "Complain deals transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for complain deals transaction")
+	}
+
+	return receipt, nil
+}
+
+// SubmitActiveValSet calls the submitActiveValSet contract method.
+func (c *ContractClient) SubmitActiveValSet(
+	ctx context.Context,
+	round uint32,
+	mrenclave []byte,
+	valSet []common.Address,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling submitActiveValSet contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"val_set", valSet,
+	)
+
+	callData, err := c.dkgContractAbi.Pack("submitActiveValSet", round, mrenclave, valSet)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack submit active val set call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for submit active val set")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.SubmitActiveValSet(auth, round, mrenclave, valSet)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call submit active val set")
+	}
+
+	log.Info(ctx, "SubmitActiveValSet transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for submit active val set transaction")
+	}
+
+	return receipt, nil
+}
+
+// GetNodeInfo queries node information from the contract.
+func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, index uint32) (*bindings.IDKGNodeInfo, error) {
+	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave, round, index)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get node info")
+	}
+
+	return &nodeInfo, nil
+}
+
+// createTransactOpts creates transaction options for contract calls.
+func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64) (*bind.TransactOpts, error) {
+	nonce, err := c.ethClient.PendingNonceAt(ctx, c.fromAddress)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get pending nonce")
+	}
+
+	gasPrice, err := c.ethClient.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get gas price")
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(c.privateKey, c.chainID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transactor")
+	}
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0) // in wei
+	auth.GasLimit = gasLimit
+	auth.GasPrice = gasPrice
+	auth.Context = ctx
+
+	return auth, nil
+}
+
+// estimateGasWithBuffer estimates gas for a contract transaction and adds a safety buffer.
+func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, data []byte) (uint64, error) {
+	msg := ethereum.CallMsg{
+		From: c.fromAddress,
+		To:   &c.dkgContractAddr,
+		Data: data,
+	}
+
+	gasLimit, err := c.ethClient.EstimateGas(ctx, msg)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to estimate gas")
+	}
+
+	// 20% buffer
+	return gasLimit * 12 / 10, nil
+}
+
+// waitForTransaction waits for a transaction to be mined and returns the receipt.
+func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Transaction) (*types.Receipt, error) {
+	log.Info(ctx, "Waiting for transaction to be mined", "tx_hash", tx.Hash().Hex())
+
+	// 60 seconds timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	receipt, err := bind.WaitMined(timeoutCtx, c.ethClient, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for transaction to be mined")
+	}
+
+	if receipt.Status == types.ReceiptStatusFailed {
+		log.Error(ctx, "Transaction failed with receipt", nil, "tx_hash", tx.Hash().Hex(), "receipt", receipt)
+		return nil, errors.New("transaction failed")
+	}
+
+	return receipt, nil
+}

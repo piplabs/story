@@ -662,6 +662,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 				uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 				dk := moduletestutil.NewMockDistrKeeper(ctrl)
+				dkgk := moduletestutil.NewMockDKGKeeper(ctrl)
 
 				if tt.setup != nil {
 					ctx = tt.setup(ctx)
@@ -675,7 +676,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 				require.NoError(t, err)
 
-				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk)
+				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk, dkgk)
 				require.NoError(t, err)
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
 				if !tt.unsetExecutionHead {
@@ -710,13 +711,14 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 		uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 		dk := moduletestutil.NewMockDistrKeeper(ctrl)
+		dkgk := moduletestutil.NewMockDKGKeeper(ctrl)
 		// Expected call for PeekEligibleWithdrawals
 
 		esk.EXPECT().MaxWithdrawalPerBlock(gomock.Any()).Return(uint32(0), nil)
 		esk.EXPECT().PeekEligibleWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		esk.EXPECT().PeekEligibleRewardWithdrawals(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 
-		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk)
+		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk, dkgk)
 		require.NoError(t, err)
 		keeper.SetValidatorAddress(common.BytesToAddress([]byte("test")))
 		populateGenesisHead(ctx, t, keeper)
@@ -980,6 +982,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			esk := moduletestutil.NewMockEvmStakingKeeper(ctrl)
 			uk := moduletestutil.NewMockUpgradeKeeper(ctrl)
 			dk := moduletestutil.NewMockDistrKeeper(ctrl)
+			dkgk := moduletestutil.NewMockDKGKeeper(ctrl)
 
 			if tt.setupMocks != nil {
 				tt.setupMocks(esk)
@@ -1005,7 +1008,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 			require.NoError(t, err)
 
-			k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk)
+			k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk, dkgk)
 			require.NoError(t, err)
 			k.SetCometAPI(cmtAPI)
 			k.SetValidatorAddress(nxtAddr)

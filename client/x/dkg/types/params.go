@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// periods are in seconds
+	// periods are in seconds.
 	MinDkgStagePeriod            uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgRegistrationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgChallengePeriod    uint32 = 7 * 24 * 60 * 60  // 7 days
@@ -14,7 +14,7 @@ const (
 	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
 	DefaultDkgComplaintPeriod    uint32 = 2 * 60 * 60       // 2 hours
 
-	// other parameters
+	// other parameters.
 	DefaultMinCommitteeSize uint32 = 3
 	ExpectedMrenclaveSize   int    = 32 // 256-bit digest (32 bytes)
 )
@@ -83,11 +83,7 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if err := ValidateMrenclave(p.Mrenclave); err != nil {
-		return err
-	}
-
-	return nil
+	return ValidateMrenclave(p.Mrenclave)
 }
 
 func ValidateRegistrationPeriod(registrationPeriod uint32) error {

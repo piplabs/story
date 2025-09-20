@@ -36,6 +36,9 @@ const (
 	// TransparentUpgradeableProxy storage slots.
 	// ProxyImplementationSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
 	// ProxyAdminSlot          = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103".
+
+	// Deployed contracts.
+	DKG = "0xcccccc0000000000000000000000000000000004"
 )
 
 var (

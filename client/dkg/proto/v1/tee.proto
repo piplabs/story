@@ -1,0 +1,295 @@
+syntax = "proto3";
+package story.dkg.v1.tee;
+
+import "gogoproto/gogo.proto";
+import "story/dkg/v1/types/types.proto";
+
+option go_package = "github.com/piplabs/story/client/dkg";
+
+service TEE {
+  rpc GenerateAndSealKey(GenerateAndSealKeyRequest) returns (GenerateAndSealKeyResponse);
+  rpc VerifyRemoteReport(VerifyRemoteReportRequest) returns (VerifyRemoteReportResponse);
+  rpc SetupDKGNetwork(SetupDKGNetworkRequest) returns (SetupDKGNetworkResponse);
+  rpc GenerateDeals(GenerateDealsRequest) returns (GenerateDealsResponse);
+  rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
+  rpc FinalizeDKG(FinalizeDKGRequest) returns (FinalizeDKGResponse);
+}
+
+// GenerateAndSealKeyRequest is sent to TEE client to generate and seal a key
+message GenerateAndSealKeyRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  string address = 3 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+}
+
+// GenerateAndSealKeyResponse is returned from TEE client after key generation
+message GenerateAndSealKeyResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  bytes dkg_pub_key = 3 [
+    (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
+  ];
+
+  bytes comm_pub_key = 4 [
+    (gogoproto.moretags) = "yaml:\"comm_pub_key\""
+  ];
+
+  bytes remote_report = 5 [
+    (gogoproto.moretags) = "yaml:\"remote_report\""
+  ];
+}
+
+// VerifyRemoteReportRequest is sent to TEE client to verify a remote report
+message VerifyRemoteReportRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  string address = 3 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+
+  bytes dkg_pub_key = 4 [
+    (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
+  ];
+
+  bytes comm_pub_key = 5 [
+    (gogoproto.moretags) = "yaml:\"comm_pub_key\""
+  ];
+
+  bytes remote_report = 6 [
+    (gogoproto.moretags) = "yaml:\"remote_report\""
+  ];
+}
+
+message VerifyRemoteReportResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  string address = 2 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+
+  uint32 round = 3 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  bool valid = 4 [
+    (gogoproto.moretags) = "yaml:\"valid\""
+  ];
+}
+
+// SetupDKGNetworkRequest is sent to TEE client to setup DKG network
+message SetupDKGNetworkRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 total = 3 [
+    (gogoproto.moretags) = "yaml:\"total\""
+  ];
+
+  uint32 threshold = 4 [
+    (gogoproto.moretags) = "yaml:\"threshold\""
+  ];
+
+  repeated types.DKGRegistration registrations = 5 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"registrations\""
+  ];
+}
+
+// SetupDKGNetworkResponse is returned from TEE client after DKG network setup
+message SetupDKGNetworkResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 total = 3 [
+    (gogoproto.moretags) = "yaml:\"total\""
+  ];
+
+  uint32 threshold = 4 [
+    (gogoproto.moretags) = "yaml:\"threshold\""
+  ];
+
+  uint32 index = 5 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  bytes commitments = 6 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"commitments\""
+  ];
+
+  bytes signature = 7 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}
+
+// GenerateDealsRequest is sent to TEE client to generate deals
+message GenerateDealsRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+}
+
+// GenerateDealsResponse is returned from TEE client with generated deals
+message GenerateDealsResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  repeated types.Deal deals = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"deals\""
+  ];
+}
+
+// ProcessDealRequest is sent to TEE client to process deals
+message ProcessDealRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 index = 3 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  repeated types.DealWithCommitments deals = 4 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"deals\""
+  ];
+}
+
+// ProcessDealResponse is returned from TEE client after processing deals
+message ProcessDealResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 index = 3 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  repeated types.Complaint complaints = 4 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"complaints\""
+  ];
+}
+
+// FinalizeDKGRequest is sent to TEE client to finalize DKG
+message FinalizeDKGRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+}
+
+// FinalizeDKGResponse is returned from TEE client after DKG finalization
+message FinalizeDKGResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 index = 3 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  bool finalized = 4 [
+    (gogoproto.moretags) = "yaml:\"finalized\""
+  ];
+
+  bytes signature = 5 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}
+
+// GeneratePlainDealRequest is sent to TEE client to generate a plain text deal
+message GeneratePlainDealRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 index = 3 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+}
+
+// GeneratePlainDealResponse is returned from TEE client with plain text deal
+message GeneratePlainDealResponse {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  uint32 index = 3 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  bytes signature = 4 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+
+  types.Deal deal = 5 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"deal\""
+  ];
+}

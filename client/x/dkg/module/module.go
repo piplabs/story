@@ -52,10 +52,10 @@ func (AppModuleBasic) Name() string {
 
 // RegisterLegacyAminoCodec registers the amino codec for the module, which is used
 // to marshal and unmarshal structs to/from []byte in order to persist them in the module's KVStore.
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {}
+func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
 
 // RegisterInterfaces registers a module's interface types and their concrete implementations as proto.Message.
-func (AppModuleBasic) RegisterInterfaces(reg cdctypes.InterfaceRegistry) {}
+func (AppModuleBasic) RegisterInterfaces(cdctypes.InterfaceRegistry) {}
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(client.Context, *runtime.ServeMux) {}
@@ -95,7 +95,7 @@ func (AppModule) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 }
 
 // RegisterServices registers a gRPC query service to respond to the module-specific gRPC queries.
-func (am AppModule) RegisterServices(cfg module.Configurator) {
+func (AppModule) RegisterServices(module.Configurator) {
 	// TODO: implement all query services defined in query.proto
 	// types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 }

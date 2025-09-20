@@ -9,7 +9,7 @@ fi
 
 cd client/proto
 
-echo "Generating proto files"
+echo "Generating module proto files"
 proto_dirs=$(find ./ -path -prune -o -name '*.proto' -print0 | xargs -0 -n1 dirname | sort | uniq)
 for dir in $proto_dirs; do
   echo "DIR: ${dir}"
