@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"github.com/piplabs/story/client/server/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// GetActiveValidators returns the bonded validators excluding jailed validators.
+// GetActiveValidators returns the bonded validators' EVM addresses excluding jailed validators.
 func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 	validators, err := k.stakingKeeper.GetAllValidators(ctx)
 	if err != nil {
@@ -20,7 +21,12 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 	var bondedValidators []string
 	for _, val := range validators {
 		if val.IsBonded() && !val.IsJailed() {
-			bondedValidators = append(bondedValidators, val.OperatorAddress)
+			evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(val.OperatorAddress)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to convert to evm address", "operator_addr", val.OperatorAddress)
+			}
+
+			bondedValidators = append(bondedValidators, evmOperatorAddress)
 		}
 	}
 
@@ -118,7 +124,7 @@ func (k *Keeper) initiateDKGRound(ctx context.Context) error {
 		Round:        roundNum,
 		StartBlock:   currentHeight,
 		Mrenclave:    params.Mrenclave, // latest TEE mrenclave
-		ActiveValSet: activeValidators,
+		ActiveValSet: activeValidators, // list of active validators' EVM addresses
 		Total:        0,
 		Threshold:    0,
 		Stage:        types.DKGStageRegistration,
@@ -131,7 +137,6 @@ func (k *Keeper) initiateDKGRound(ctx context.Context) error {
 	log.Info(ctx, "Initiated new DKG round",
 		"round", roundNum,
 		"start_block", currentHeight,
-		"validators", len(activeValidators),
 		"threshold", dkgNetwork.Threshold,
 	)
 

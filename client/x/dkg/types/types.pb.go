@@ -98,9 +98,10 @@ func (DKGStage) EnumDescriptor() ([]byte, []int) {
 }
 
 type DKGNetwork struct {
-	Mrenclave    []byte   `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round        uint32   `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	StartBlock   int64    `protobuf:"varint,3,opt,name=start_block,json=startBlock,proto3" json:"start_block,omitempty" yaml:"start_block"`
+	Mrenclave  []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round      uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	StartBlock int64  `protobuf:"varint,3,opt,name=start_block,json=startBlock,proto3" json:"start_block,omitempty" yaml:"start_block"`
+	// list of active validators' evm addresses
 	ActiveValSet []string `protobuf:"bytes,4,rep,name=active_val_set,json=activeValSet,proto3" json:"active_val_set,omitempty" yaml:"active_val_set"`
 	Total        uint32   `protobuf:"varint,5,opt,name=total,proto3" json:"total,omitempty" yaml:"total"`
 	Threshold    uint32   `protobuf:"varint,6,opt,name=threshold,proto3" json:"threshold,omitempty" yaml:"threshold"`

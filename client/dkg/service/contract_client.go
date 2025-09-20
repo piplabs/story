@@ -99,16 +99,16 @@ func (c *ContractClient) Close() {
 // InitializeDKG calls the initializeDKG contract method.
 //
 // TODO: fix the contract and use both dkgPubKey and commPubKey
-func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) (*types.Receipt, error) {
+func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
-		"mrenclave", string(mrenclave),
 		"round", round,
+		"mrenclave", string(mrenclave),
 		"dkg_pub_key", string(dkgPubKey),
 		"comm_pub_key", string(commPubKey),
-		"remote_report_len", len(remoteReport),
+		"remote_report_len", len(rawQuote),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave, dkgPubKey, remoteReport)
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave, dkgPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
 	}
@@ -123,7 +123,7 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave, dkgPubKey, commPubKey, remoteReport)
+	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave, dkgPubKey, commPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call initialize dkg")
 	}

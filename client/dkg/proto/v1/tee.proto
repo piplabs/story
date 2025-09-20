@@ -48,8 +48,8 @@ message GenerateAndSealKeyResponse {
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes remote_report = 5 [
-    (gogoproto.moretags) = "yaml:\"remote_report\""
+  bytes raw_quote = 5 [
+    (gogoproto.moretags) = "yaml:\"raw_quote\""
   ];
 }
 

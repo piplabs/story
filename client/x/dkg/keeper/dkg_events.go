@@ -21,19 +21,11 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 		Mrenclave:        dkgNetwork.Mrenclave,
 		Round:            dkgNetwork.Round,
 		ActiveValidators: dkgNetwork.ActiveValSet,
-		Total:            uint32(len(dkgNetwork.ActiveValSet)),
 		StartBlock:       uint32(dkgNetwork.StartBlock),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_initialization event")
 	}
-
-	log.Info(ctx, "Emitted DKG initialization signal",
-		"mrenclave", dkgNetwork.Mrenclave,
-		"round", dkgNetwork.Round,
-		"total_validators", len(dkgNetwork.ActiveValSet),
-		"height", dkgNetwork.StartBlock,
-	)
 
 	return nil
 }

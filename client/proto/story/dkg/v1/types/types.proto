@@ -41,6 +41,7 @@ message DKGNetwork {
     (gogoproto.moretags) = "yaml:\"start_block\""
   ];
 
+  // list of active validators' evm addresses
   repeated string active_val_set = 4 [
     (gogoproto.moretags) = "yaml:\"active_val_set\""
   ];

@@ -43,7 +43,7 @@ func (s *Service) startDKGRegistration(ctx context.Context, session *types.DKGSe
 
 	session.UpdatePhase(types.PhaseRegistering)
 
-	log.Info(ctx, "GenerateAndSealKey contract call",
+	log.Info(ctx, "GenerateAndSealKey call to TEE client",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
 		"validator", s.validatorAddress.Hex(),
@@ -64,19 +64,15 @@ func (s *Service) startDKGRegistration(ctx context.Context, session *types.DKGSe
 		return errors.Wrap(err, "failed to generate and seal key")
 	}
 
-	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to update session")
-	}
-
 	log.Info(ctx, "InitializeDKG contract call",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
 		"dkg_pub_key", hex.EncodeToString(resp.DkgPubKey),
 		"comm_pub_key", hex.EncodeToString(resp.CommPubKey),
-		"remote_report_len", len(resp.RemoteReport),
+		"remote_report_len", len(resp.RawQuote),
 	)
 
-	_, err = s.contractClient.InitializeDKG(ctx, session.Round, session.Mrenclave, resp.DkgPubKey, resp.CommPubKey, resp.RemoteReport)
+	_, err = s.contractClient.InitializeDKG(ctx, session.Round, session.Mrenclave, resp.DkgPubKey, resp.CommPubKey, resp.RawQuote)
 	if err != nil {
 		return errors.Wrap(err, "failed to call InitializeDKG contract method")
 	}

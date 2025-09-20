@@ -2,8 +2,6 @@ package keeper
 
 import (
 	"context"
-	"strconv"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -28,14 +26,6 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	if latestRound == nil {
 		// No active DKG round, start the first round
 		log.Info(ctx, "No active DKG round, starting the first round")
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			sdk.NewEvent("dkg_initialize_first_round",
-				sdk.NewAttribute("start_block", strconv.FormatInt(currentHeight, 10)),
-				sdk.NewAttribute("round", strconv.FormatInt(1, 10)),
-				sdk.NewAttribute("mrenclave", string(params.Mrenclave)),
-			),
-		})
 
 		return k.initiateDKGRound(ctx)
 	}

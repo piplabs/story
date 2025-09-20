@@ -74,9 +74,6 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 			if roundFloat, ok := eventData["round"].(float64); ok {
 				protoEvent.Round = uint32(roundFloat)
 			}
-			if totalFloat, ok := eventData["total"].(float64); ok {
-				protoEvent.Total = uint32(totalFloat)
-			}
 			if startBlockFloat, ok := eventData["start_block"].(float64); ok {
 				//nolint:govet // keep field
 				protoEvent.StartBlock = uint32(startBlockFloat)
@@ -95,7 +92,6 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 		Round:            protoEvent.Round,
 		BlockHeight:      height,
 		ActiveValidators: protoEvent.ActiveValidators,
-		Total:            protoEvent.Total,
 		Attributes:       extractAttributes(event),
 	}
 }
