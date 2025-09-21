@@ -2,8 +2,8 @@
 pragma solidity ^0.8.23;
 
 import { IDKG } from "../interfaces/IDKG.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title DKG - Distributed Key Generation Contract
@@ -12,11 +12,12 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 contract DKG is IDKG {
     mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => NodeInfo))) public dkgNodeInfos;
     mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
-    mapping(bytes mrenclave => mapping(uint32 round => 
-    mapping(uint32 index => mapping(address complainant => bool)))) public dealComplaints;
+    mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
+        public dealComplaints;
     mapping(bytes mrenclave => mapping(uint32 round => uint32 nodeCount)) public nodeCount;
 
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes))) public votes;
+    mapping(bytes mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes)))
+        public votes;
     mapping(bytes mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
 
     constructor() {}
@@ -33,10 +34,7 @@ contract DKG is IDKG {
             "Validator not in active set"
         );
 
-        require(
-            _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey),
-            "Invalid remote attestation"
-        );
+        require(_verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey), "Invalid remote attestation");
 
         uint32 index = nodeCount[mrenclave][round];
         nodeCount[mrenclave][round]++;
@@ -47,56 +45,11 @@ contract DKG is IDKG {
             dkgPubKey: dkgPubKey,
             commPubKey: commPubKey,
             rawQuote: rawQuote,
-            commitments: "",
             chalStatus: ChallengeStatus.NotChallenged,
             finalized: false
         });
 
-        emit DKGInitialized(
-            msg.sender,
-            mrenclave,
-            round,
-            index,
-            dkgPubKey,
-            commPubKey,
-            rawQuote
-        );
-    }
-
-    function updateDKGCommitments(
-        uint32 round,
-        uint32 total,
-        uint32 threshold,
-        uint32 index,
-        bytes calldata mrenclave,
-        bytes calldata commitments,
-        bytes calldata signature
-    ) external {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
-        require(node.validator == msg.sender, "Invalid sender");
-        require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(_verifyCommitmentSignature(node.commPubKey, round, total, threshold, index, mrenclave, commitments, signature), "Invalid commitment signature");
-
-        node.commitments = commitments;
-
-        // TODO: now we assume all validators submit the same total and threshold
-        // in the future, we handle the case where they are different
-        roundInfo[mrenclave][round] = RoundInfo({
-            total: total,
-            threshold: threshold,
-            globalPubKey: ""
-        });
-
-        emit DKGCommitmentsUpdated(
-            msg.sender,
-            round,
-            total,
-            threshold,
-            index,
-            commitments,
-            signature,
-            mrenclave
-        );
+        emit DKGInitialized(msg.sender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote);
     }
 
     function finalizeDKG(
@@ -111,24 +64,17 @@ contract DKG is IDKG {
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
-            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature), "Invalid finalization signature"
+            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature),
+            "Invalid finalization signature"
         );
 
         node.finalized = finalized;
         if (finalized) {
             votes[mrenclave][round][globalPubKey]++;
-            if (votes[mrenclave][round][globalPubKey]  >= roundInfo[mrenclave][round].threshold ) {
+            if (votes[mrenclave][round][globalPubKey] >= roundInfo[mrenclave][round].threshold) {
                 roundInfo[mrenclave][round].globalPubKey = globalPubKey;
             }
-            emit DKGFinalized(
-                msg.sender,
-                round,
-                index,
-                finalized,
-                mrenclave,
-                globalPubKey,
-                signature
-            );
+            emit DKGFinalized(msg.sender, round, index, finalized, mrenclave, globalPubKey, signature);
         }
     }
 
@@ -136,11 +82,7 @@ contract DKG is IDKG {
         return roundInfo[mrenclave][round].globalPubKey;
     }
 
-    function submitActiveValSet(
-        uint32 round,
-        bytes calldata mrenclave,
-        address[] calldata valSet
-    ) external {
+    function submitActiveValSet(uint32 round, bytes calldata mrenclave, address[] calldata valSet) external {
         for (uint256 i = 0; i < valSet.length; i++) {
             // add if validator is not challenged (invalidated)
             // TODO: exclude validators that aren't participating in the DKG system
@@ -150,29 +92,19 @@ contract DKG is IDKG {
         }
     }
 
-    function requestRemoteAttestationOnChain(
-        uint32 targetIndex,
-        uint32 round,
-        bytes calldata mrenclave
-    ) external {
+    function requestRemoteAttestationOnChain(uint32 targetIndex, uint32 round, bytes calldata mrenclave) external {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetIndex];
         require(node.validator != address(0), "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
-        bool isValid = _verifyRemoteAttestation(node.rawQuote, node.validator, round, node.dkgPubKey);        
+        bool isValid = _verifyRemoteAttestation(node.rawQuote, node.validator, round, node.dkgPubKey);
         if (isValid) {
             node.chalStatus = ChallengeStatus.Resolved;
         } else {
             node.chalStatus = ChallengeStatus.Invalidated;
         }
 
-        emit RemoteAttestationProcessedOnChain(
-            targetIndex,
-            node.validator,
-            node.chalStatus,
-            round,
-            mrenclave
-        );
+        emit RemoteAttestationProcessedOnChain(targetIndex, node.validator, node.chalStatus, round, mrenclave);
     }
 
     function complainDeals(
@@ -216,21 +148,6 @@ contract DKG is IDKG {
         return true;
     }
 
-    function _verifyCommitmentSignature(
-        bytes memory commPubKey,
-        uint32 round,
-        uint32 total,
-        uint32 threshold,
-        uint32 index,
-        bytes calldata mrenclave,
-        bytes calldata commitments,
-        bytes calldata signature
-    ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(round, total, threshold, index, mrenclave, commitments));
-        address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
-        return signer == address(uint160(uint256(keccak256(commPubKey))));
-    }
-
     function _verifyFinalizationSignature(
         bytes memory commPubKey,
         uint32 round,
@@ -249,7 +166,7 @@ contract DKG is IDKG {
         bytes memory rawQuote,
         address validator,
         uint32 round,
-        bytes memory dkgPubKey 
+        bytes memory dkgPubKey
     ) internal pure returns (bool) {
         // TODO: Implementation
         return rawQuote.length > 0 && validator != address(0) && round > 0 && dkgPubKey.length > 0;

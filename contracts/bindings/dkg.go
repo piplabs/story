@@ -31,20 +31,19 @@ var (
 
 // IDKGNodeInfo is an auto generated low-level Go binding around an user-defined struct.
 type IDKGNodeInfo struct {
-	Index        uint32
-	Validator    common.Address
-	DkgPubKey    []byte
-	CommPubKey   []byte
-	RemoteReport []byte
-	Commitments  []byte
-	ChalStatus   uint8
-	Finalized    bool
+	Index      uint32
+	Validator  common.Address
+	DkgPubKey  []byte
+	CommPubKey []byte
+	RawQuote   []byte
+	ChalStatus uint8
+	Finalized  bool
 }
 
 // DKGMetaData contains all meta data concerning the DKG contract.
 var DKGMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"complainDeals\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"complainIndexes\",\"type\":\"uint32[]\",\"internalType\":\"uint32[]\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"dealComplaints\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"complainant\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"dkgNodeInfos\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"remoteReport\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commitments\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"finalizeDKG\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getNodeCount\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getNodeInfo\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structIDKG.NodeInfo\",\"components\":[{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"remoteReport\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commitments\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initializeDKG\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"remoteReport\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"isActiveValidator\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nodeCount\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"nodeCount\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"requestRemoteAttestationOnChain\",\"inputs\":[{\"name\":\"targetIndex\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"submitActiveValSet\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"valSet\",\"type\":\"address[]\",\"internalType\":\"address[]\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"updateDKGCommitments\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"total\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"threshold\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commitments\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"valSets\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"DKGCommitmentsUpdated\",\"inputs\":[{\"name\":\"msgSender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"total\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"threshold\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"commitments\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DKGFinalized\",\"inputs\":[{\"name\":\"msgSender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"finalized\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DKGInitialized\",\"inputs\":[{\"name\":\"msgSender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"remoteReport\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealComplaintsSubmitted\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"complainIndexes\",\"type\":\"uint32[]\",\"indexed\":false,\"internalType\":\"uint32[]\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealVerified\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"recipientIndex\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"InvalidDKGInitialization\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"InvalidDeal\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RegistrationChallenged\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"challenger\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RemoteAttestationProcessedOnChain\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"UpgradeScheduled\",\"inputs\":[{\"name\":\"activationHeight\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false}]",
-	Bin: "0x6080806040523461001657611f0b908161001b8239f35b5f80fdfe6080806040526004361015610012575f80fd5b5f3560e01c90816308e4842214611826575080630c5a40201461163d578063159726be146115c65780632e266b4c14611448578063496c634c146111585780634d71b63414610fb35780634f1bf88d14610f0f57806378e510d214610ea55780637a57476514610c02578063a27c2f6c14610ab9578063c2009b9214610a03578063c3c77ff9146101475763fb5a783a146100ab575f80fd5b346101435760606003193601126101435760043567ffffffffffffffff8111610143576100dc903690600401611add565b63ffffffff6100e9611ab7565b9160206100f4611c02565b948260405193849283378101600181520301902091165f5260205273ffffffffffffffffffffffffffffffffffffffff60405f2091165f52602052602060ff60405f2054166040519015158152f35b5f80fd5b346101435760a060031936011261014357610160611aa4565b60243567ffffffffffffffff811161014357610180903690600401611add565b60449291923567ffffffffffffffff8111610143576101a3903690600401611add565b9060643567ffffffffffffffff8111610143576101c4903690600401611add565b9560843567ffffffffffffffff8111610143576101e5903690600401611add565b92909760405187848237602081898101600181520301902063ffffffff89165f5260205260405f20335f5260205260ff60405f20541680156109fb575b1561099d5760405187848237602081898101600381520301902063ffffffff89165f5260205263ffffffff60405f20541697604051888582376020818a8101600381520301902063ffffffff82165f5260205260405f20805463ffffffff80821614610970577fffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000063ffffffff600181841601169116179055604051906102c782611b5e565b8982523360208301526102db368989611b9e565b60408301526102eb368486611b9e565b60608301526102fb36878d611b9e565b608083015260405180602081011067ffffffffffffffff60208301111761079157602081016040525f815260a08301525f60c08301525f60e0830152604051898682376020818b81015f81520301902063ffffffff82165f5260205260405f208a5f5260205260405f2063ffffffff8351168154907fffffffffffffffff00000000000000000000000000000000000000000000000077ffffffffffffffffffffffffffffffffffffffff00000000602087015160201b16921617178155604083015180519067ffffffffffffffff8211610791576103ea826103e16001860154611c25565b60018601611e86565b602090601f83116001146108e35761043792915f91836107be575b50507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60018201555b606083015180519067ffffffffffffffff82116107915761046e826104656002860154611c25565b60028601611e86565b602090601f8311600114610856576104ba92915f91836107be5750507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60028201555b608083015180519067ffffffffffffffff8211610791576104f1826104e86003860154611c25565b60038601611e86565b602090601f83116001146107c95761053d92915f91836107be5750507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60038201555b60a083015180519067ffffffffffffffff8211610791576105748261056b6004860154611c25565b60048601611e86565b602090601f83116001146107035791806105c492600595945f926106f85750507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60048201555b019760c08301519760038910156106cb577f5c5aa077fdba8d39c55de6079c75de88ec2031742c08609237382f11414de6169b63ffffffff61068f6106b69961067e8e60c09f6106c69f9a6106a89b60ff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0060e09454169116178355015115157fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff61ff00835492151560081b169116179055565b6040519e8f9e8f8181520191611d37565b941660208c015260408b015289830360608b0152611d37565b918683036080880152611d37565b9083820360a08501523396611d37565b0390a2005b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602160045260245ffd5b015190505f80610405565b90600484015f5260205f20915f5b601f1985168110610779575091839160019383601f19600598971610610742575b505050811b0160048201556105ca565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558f8080610732565b91926020600181928685015181550194019201610711565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b015190508f80610405565b9190600384015f5260205f20905f935b601f198416851061083b576001945083601f19811610610804575b505050811b016003820155610543565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558e80806107f4565b818101518355602094850194600190930192909101906107d9565b9190600284015f5260205f20905f935b601f19841685106108c8576001945083601f19811610610891575b505050811b0160028201556104c0565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558e8080610881565b81810151835560209485019460019093019290910190610866565b9190600184015f5260205f20905f935b601f1984168510610955576001945083601f1981161061091e575b505050811b01600182015561043d565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558e808061090e565b818101518355602094850194600190930192909101906108f3565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601b60248201527f56616c696461746f72206e6f7420696e206163746976652073657400000000006044820152fd5b506001610222565b346101435760806003193601126101435760043567ffffffffffffffff811161014357610a34903690600401611be4565b610a3c611ab7565b610a44611aca565b6064359173ffffffffffffffffffffffffffffffffffffffff8316809303610143576040518481809651610a7e816020998a809601611b0b565b8101600281520301902063ffffffff8092165f52845260405f2091165f52825260405f20905f52815260ff60405f2054166040519015158152f35b346101435760606003193601126101435760043567ffffffffffffffff811161014357610aff73ffffffffffffffffffffffffffffffffffffffff913690600401611be4565b610b07611ab7565b90610b10611aca565b6040518281809451610b288160209788809601611b0b565b81015f81520301902063ffffffff8094165f5282528260405f2091165f52815260ff610be360405f20610bd5815495610bc7610b6660018501611c76565b610bb9610b7560028701611c76565b91610b8260038801611c76565b946005610b9160048a01611c76565b9801549a6040519d8e9d8e6101009482169052821c16908d01528060408d01528b0190611b2c565b9089820360608b0152611b2c565b908782036080890152611b2c565b9085820360a0870152611b2c565b91610bf360c08501838316611b51565b60081c16151560e08301520390f35b3461014357608060031936011261014357610c1b611aa4565b610c23611ab7565b60443567ffffffffffffffff808211610143573660238301121561014357816004013593602491808611610791576005908660051b9060209560405198610c6c8885018b611b7b565b8952868901602481948301019136831161014357602401905b828210610e895750505060643590811161014357610ca7903690600401611add565b906040518282823787818481015f8152030190209263ffffffff80961693845f5288528560405f20991698895f52885273ffffffffffffffffffffffffffffffffffffffff60405f2054891c163303610e2b575f5b8a51811015610da4576040518484823789818681016002815203019020855f52895260405f208b51821015610d785790600191888b8e848b1b010151165f528a5260405f20335f528a5260405f20827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0082541617905501610cfc565b887f4e487b71000000000000000000000000000000000000000000000000000000005f5260326004525ffd5b509350889285898960405196608088019288526080828901525180925260a0870197925f905b838210610e12577f1c2112af5fd37661e3dd248d701decebf291f13de6a411176337ef21a7b1a6308980610e0d8d8c8c8c60408601528483036060860152611d37565b0390a1005b845181168a529882019893820193600190910190610dca565b606488604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601360248201527f496e76616c696420636f6d706c61696e616e74000000000000000000000000006044820152fd5b813563ffffffff81168103610143578152908801908801610c85565b346101435760406003193601126101435760043567ffffffffffffffff811161014357610ed86020913690600401611add565b82610ee1611ab7565b928260405193849283378101600381520301902063ffffffff8092165f52825260405f205416604051908152f35b346101435760606003193601126101435760043567ffffffffffffffff811161014357610f40903690600401611be4565b610f48611ab7565b63ffffffff610f6e6020610f5a611c02565b948160405193828580945193849201611b0b565b8101600181520301902091165f5260205273ffffffffffffffffffffffffffffffffffffffff60405f2091165f52602052602060ff60405f2054166040519015158152f35b346101435760a060031936011261014357610fcc611aa4565b610fd4611ab7565b60443590811515928383036101435767ffffffffffffffff9360643585811161014357611005903690600401611add565b90956084359081116101435761101f903690600401611add565b919096604051828282376020818481015f8152030190209463ffffffff80911695865f5260205260405f20961695865f5260205260405f209161107d73ffffffffffffffffffffffffffffffffffffffff845460201c163314611d57565b600583019460ff86541660038110156106cb577fbeb92472b2143160d5e8c3fd25327aabddd7a0f4b80ade42661dd5b4e5ff4f90996106c6976110d5600261113f986110cf600161111c971415611dbc565b01611c76565b5115158061114f575b6110e790611e21565b907fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff61ff00835492151560081b169116179055565b60405197889788526020880152604087015260a0606087015260a0860191611d37565b9083820360808501523396611d37565b508715156110de565b346101435760e060031936011261014357611171611aa4565b611179611ab7565b90611182611aca565b916064359163ffffffff938484168094036101435767ffffffffffffffff90608435828111610143576111b9903690600401611add565b96909560a435848111610143576111d4903690600401611add565b91909260c43594868611610143576111f18b963690600401611add565b969097838c83604051948592833781015f81526020948591030190209a16998a5f52825260405f20855f52825260405f2061124673ffffffffffffffffffffffffffffffffffffffff8254851c163314611d57565b60ff6005820154169060038210156106cb57600490611269600180941415611dbc565b61127560028201611c76565b5115158061143f575b80611436575b61128d90611e21565b01918711610791576112a9876112a38454611c25565b84611e86565b5f90601f8811600114611380575093611365979387937f1af28d6ae67078289128cdbaca9c65cda5fda4d71a49bb5e2d917ef3bf5f44dd9e9f9a979361132a866106c69e9b6113579a5f91611375575b507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b90555b826040519e8f9e8f5216908d01521660408b015260608a015260e060808a015260e0890191611d37565b9186830360a0880152611d37565b9083820360c08501523396611d37565b90508901355f6112f9565b90601f198816835f52845f20925f905b82821061141f575050937f1af28d6ae67078289128cdbaca9c65cda5fda4d71a49bb5e2d917ef3bf5f44dd9e9f9a979361135797936113659b97938b6106c69f9c98106113e7575b5050600186811b01905561132d565b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88960031b161c19908901351690555f806113d8565b8b8401358555938401939286019290860190611390565b508a1515611284565b5088151561127e565b3461014357606060031936011261014357611461611aa4565b67ffffffffffffffff6024803582811161014357611483903690600401611add565b9290916044358281116101435736602382011215610143578060040135928311610143576005923660248260051b8401011161014357945f9063ffffffff809816915b8781106114cf57005b6040519082888337818381015f8152602093849103019020845f52825260405f208a82165f52825260ff8760405f20015416600381101561159a57600180910361151f575b5060019150016114c6565b604051848a8237838186810184815203019020855f52835260405f2087838a1b880101359373ffffffffffffffffffffffffffffffffffffffff8516809503610143576001945f525260405f20907fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff008254161790558a611514565b867f4e487b71000000000000000000000000000000000000000000000000000000005f5260216004525ffd5b346101435760406003193601126101435760043567ffffffffffffffff8111610143576115f96020913690600401611be4565b61161982611605611ab7565b928160405193828580945193849201611b0b565b8101600381520301902063ffffffff8092165f52825260405f205416604051908152f35b3461014357606080600319360112610143576004359067ffffffffffffffff82116101435761167260e0923690600401611add565b929061167c611ab7565b93611685611aca565b916040519061169382611b5e565b5f82525f6020958382888096015288604082015288808201528860808201528860a08201528260c0820152015282604051938492833781015f81520301902063ffffffff8095165f5282528360405f2091165f52815260405f2091604051926116fb84611b5e565b805490858216855273ffffffffffffffffffffffffffffffffffffffff908185870193861c16835261172f60018201611c76565b916040870192835261174360028301611c76565b9285880193845261175660038401611c76565b9160808901928352600561176c60048601611c76565b9460a08b0195865201549560ff87169860c08b019960038110156106cb578a5260e08b019760081c60ff16151588526040519b8c9b828d525116908b01525116604089015251610100809689015261012088016117c891611b2c565b9251601f1993848982030160808a01526117e191611b2c565b905190838882030160a08901526117f791611b2c565b9051918682030160c087015261180c91611b2c565b925160e0850161181b91611b51565b511515908301520390f35b346101435760606003193601126101435761183f611aa4565b90611848611ab7565b9160443567ffffffffffffffff811161014357611869903690600401611add565b909381858537838281015f81526020958691030190209063ffffffff80911691825f52855260405f20931692835f52845260405f2073ffffffffffffffffffffffffffffffffffffffff808254871c16159182611a4657600581019283549060ff821660038110156106cb576119e8577f5625cad747d0f660a99f4fe677a17d22db2a71e28505cd2148f61ad3cefc4f1d99959383610e0d98969360ff9361191660036119889801611c76565b61192260028501611c76565b9051151591826119df575b50816119d5575b816119ca575b501561199e575060027fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff008554161784555b548a1c169154169060405198899889528801526040870190611b51565b606085015260a0608085015260a0840191611d37565b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016600117845561196b565b90505115158e61193a565b8815159150611934565b1591508f61192d565b606489604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601760248201527f4e6f646520616c7265616479206368616c6c656e6765640000000000000000006044820152fd5b606487604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601360248201527f4e6f646520646f6573206e6f74206578697374000000000000000000000000006044820152fd5b6004359063ffffffff8216820361014357565b6024359063ffffffff8216820361014357565b6044359063ffffffff8216820361014357565b9181601f840112156101435782359167ffffffffffffffff8311610143576020838186019501011161014357565b5f5b838110611b1c5750505f910152565b8181015183820152602001611b0d565b90601f19601f602093611b4a81518092818752878088019101611b0b565b0116010190565b9060038210156106cb5752565b610100810190811067ffffffffffffffff82111761079157604052565b90601f601f19910116810190811067ffffffffffffffff82111761079157604052565b92919267ffffffffffffffff82116107915760405191611bc86020601f19601f8401160184611b7b565b829481845281830111610143578281602093845f960137010152565b9080601f8301121561014357816020611bff93359101611b9e565b90565b6044359073ffffffffffffffffffffffffffffffffffffffff8216820361014357565b90600182811c92168015611c6c575b6020831014611c3f57565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b91607f1691611c34565b9060405191825f8254611c8881611c25565b908184526020946001916001811690815f14611cf65750600114611cb8575b505050611cb692500383611b7b565b565b5f90815285812095935091905b818310611cde575050611cb693508201015f8080611ca7565b85548884018501529485019487945091830191611cc5565b915050611cb69593507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0091501682840152151560051b8201015f8080611ca7565b601f8260209493601f1993818652868601375f8582860101520116010190565b15611d5e57565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601160248201527f496e76616c69642076616c696461746f720000000000000000000000000000006044820152fd5b15611dc357565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601460248201527f4e6f64652077617320696e76616c6964617465640000000000000000000000006044820152fd5b15611e2857565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601160248201527f496e76616c6964207369676e61747572650000000000000000000000000000006044820152fd5b601f8211611e9357505050565b5f5260205f20906020601f840160051c83019310611ecb575b601f0160051c01905b818110611ec0575050565b5f8155600101611eb5565b9091508190611eac56fea2646970667358221220b9ecadd13cfc7842c9e23cae251a3c1ed476640461b4b9b4e19bec51c53bc0a164736f6c63430008170033",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"complainDeals\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"complainIndexes\",\"type\":\"uint32[]\",\"internalType\":\"uint32[]\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"dealComplaints\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"complainant\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"dkgNodeInfos\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"rawQuote\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"finalizeDKG\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"globalPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getGlobalPubKey\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getNodeCount\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getNodeInfo\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structIDKG.NodeInfo\",\"components\":[{\"name\":\"index\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"rawQuote\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"finalized\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initializeDKG\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"rawQuote\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"isActiveValidator\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nodeCount\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"nodeCount\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"requestRemoteAttestationOnChain\",\"inputs\":[{\"name\":\"targetIndex\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"roundInfo\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"outputs\":[{\"name\":\"total\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"threshold\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"globalPubKey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"submitActiveValSet\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"valSet\",\"type\":\"address[]\",\"internalType\":\"address[]\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"valSets\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"votes\",\"inputs\":[{\"name\":\"mrenclave\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"globalPubKeyCandidates\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"votes\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"DKGFinalized\",\"inputs\":[{\"name\":\"msgSender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"finalized\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"globalPubKey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"signature\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DKGInitialized\",\"inputs\":[{\"name\":\"msgSender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"dkgPubKey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"commPubKey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"rawQuote\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealComplaintsSubmitted\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"complainIndexes\",\"type\":\"uint32[]\",\"indexed\":false,\"internalType\":\"uint32[]\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DealVerified\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"recipientIndex\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"InvalidDKGInitialization\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"InvalidDeal\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RegistrationChallenged\",\"inputs\":[{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"},{\"name\":\"challenger\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RemoteAttestationProcessedOnChain\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"validator\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"chalStatus\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"enumIDKG.ChallengeStatus\"},{\"name\":\"round\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"UpgradeScheduled\",\"inputs\":[{\"name\":\"activationHeight\",\"type\":\"uint32\",\"indexed\":false,\"internalType\":\"uint32\"},{\"name\":\"mrenclave\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"ECDSAInvalidSignature\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ECDSAInvalidSignatureLength\",\"inputs\":[{\"name\":\"length\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"type\":\"error\",\"name\":\"ECDSAInvalidSignatureS\",\"inputs\":[{\"name\":\"s\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]}]",
+	Bin: "0x6080806040523461001657612210908161001b8239f35b5f80fdfe6080806040526004361015610012575f80fd5b5f3560e01c90816308e48422146119cb575080630c5a402014611814578063159726be146117dc578063285f0e63146117845780632e266b4c146116055780633c3acdb4146115535780633ce1c1e0146114d65780634f1bf88d1461143257806378e510d2146113f15780637a5747651461114e578063a27c2f6c14611025578063c2009b9214610f6f578063c3c77ff914610810578063fb5a783a146107785763fe9dee68146100c1575f80fd5b346107745760c0600319360112610774576100da611c1e565b6100e2611c31565b906044351515604435036107745760643567ffffffffffffffff811161077457610110903690600401611c57565b919060843567ffffffffffffffff811161077457610132903690600401611c57565b60a43567ffffffffffffffff811161077457610152903690600401611c57565b939095604051818382376020818381015f81520301902063ffffffff87165f5260205260405f2063ffffffff89165f5260205260405f2073ffffffffffffffffffffffffffffffffffffffff815460201c1633036107165760ff60048201541660038110156106e95760011461068b576102ad73ffffffffffffffffffffffffffffffffffffffff80878c8761026160298e8c6101f160028c01611e4b565b968c60405196879460208601997fffffffff00000000000000000000000000000000000000000000000000000000809260e01b168b5260e01b166024860152604435151560f81b602886015285850137818d8401918583015f815237015f83820152036009810184520182611cf4565b5190207f19457468657265756d205369676e6564204d6573736167653a0a3332000000005f52601c526102a48c61029e603c5f20918d3691611d17565b9061204e565b90959195612088565b602081519101201691160361062d5760040180547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff16604435151560081b61ff00161790556044356102fb57005b60405181838237602081838101600481520301902063ffffffff87165f5260205261032a60405f208486611f2f565b80547fffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000063ffffffff61035d818416611f68565b16911617905560405181838237602081838101600481520301902063ffffffff87165f5260205263ffffffff61039760405f208587611f2f565b541660405182848237602081848101600581520301902063ffffffff88165f5260205263ffffffff60405f205460201c161115610454575b9263ffffffff95949261043161043f9361044f96897f694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c489b9c6040519b8c9b168b521660208a0152604435151560408a015260c060608a015260c0890191611f48565b918683036080880152611f48565b9083820360a08501523396611f48565b0390a2005b60405181838237602081838101600581520301902063ffffffff87165f52602052600160405f20019767ffffffffffffffff8411610600576104a08461049a8b54611dfa565b8b611faa565b5f601f85116001146105445761043f9361044f969363ffffffff87947f694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c489c9d61052387849e9d9b610431985f91610539575b507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b90555b9c9b5050939650935050929495506103cf565b90508a01355f6104f2565b98805f5260205f205f5b601f19871681106105e857509361044f969363ffffffff87946104319461043f987f694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c489e9f88859f9e9c601f1916106105b0575b5050600187811b019055610526565b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88a60031b161c19908a01351690555f806105a1565b878c0135825560209b8c019b6001909201910161054e565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601e60248201527f496e76616c69642066696e616c697a6174696f6e207369676e617475726500006044820152fd5b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601460248201527f4e6f64652077617320696e76616c6964617465640000000000000000000000006044820152fd5b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602160045260245ffd5b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600e60248201527f496e76616c69642073656e6465720000000000000000000000000000000000006044820152fd5b5f80fd5b346107745760606003193601126107745760043567ffffffffffffffff8111610774576107a9903690600401611c57565b63ffffffff6107b6611c31565b9160206107c1611f0c565b948260405193849283378101600181520301902091165f5260205273ffffffffffffffffffffffffffffffffffffffff60405f2091165f52602052602060ff60405f2054166040519015158152f35b346107745760a060031936011261077457610829611c1e565b60243567ffffffffffffffff811161077457610849903690600401611c57565b60449291923567ffffffffffffffff81116107745761086c903690600401611c57565b9060643567ffffffffffffffff81116107745761088d903690600401611c57565b9560843567ffffffffffffffff8111610774576108ae903690600401611c57565b92909760405187848237602081898101600181520301902063ffffffff89165f5260205260405f20335f5260205260ff60405f2054168015610f67575b15610f09576109126108fe36868c611d17565b8961090a368a8a611d17565b913390611ff9565b15610eab57604051878482376003888201526020818981010301902063ffffffff89165f5260205263ffffffff60405f20541697604051888582376020818a8101600381520301902063ffffffff82165f5260205260405f2080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000063ffffffff61099e818416611f68565b169116179055604051906109b182611cd8565b8982523360208301526109c5368989611d17565b60408301526109d5368486611d17565b60608301526109e536878d611d17565b60808301525f60a08301525f60c0830152604051898682376020818b81015f81520301902063ffffffff82165f5260205260405f208a5f5260205260405f2063ffffffff8351168154907fffffffffffffffff00000000000000000000000000000000000000000000000077ffffffffffffffffffffffffffffffffffffffff00000000602087015160201b16921617178155604083015180519067ffffffffffffffff821161060057610aa982610aa06001860154611dfa565b60018601611faa565b602090601f8311600114610e1e57610af692915f9183610d86575b50507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60018201555b606083015180519067ffffffffffffffff821161060057610b2d82610b246002860154611dfa565b60028601611faa565b602090601f8311600114610d9157610b7992915f9183610d865750507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60028201555b608083015180519067ffffffffffffffff821161060057610bb082610ba76003860154611dfa565b60038601611faa565b602090601f8311600114610cf8579180610c0092600495945f92610ced5750507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8260011b9260031b1c19161790565b60038201555b019760a08301519760038910156106e9579061043192918d9c63ffffffff610cd461044f9b9a7f5c5aa077fdba8d39c55de6079c75de88ec2031742c08609237382f11414de6169f9e8060c09f60c0909b61043f9e9d9c60ff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00610cc39654169116178355015115157fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff61ff00835492151560081b169116179055565b6040519e8f9e8f8181520191611f48565b941660208c015260408b015289830360608b0152611f48565b015190505f80610ac4565b90600384015f5260205f20915f5b601f1985168110610d6e575091839160019383601f19600498971610610d37575b505050811b016003820155610c06565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558f8080610d27565b91926020600181928685015181550194019201610d06565b015190508f80610ac4565b9190600284015f5260205f20905f935b601f1984168510610e03576001945083601f19811610610dcc575b505050811b016002820155610b7f565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558e8080610dbc565b81810151835560209485019460019093019290910190610da1565b9190600184015f5260205f20905f935b601f1984168510610e90576001945083601f19811610610e59575b505050811b016001820155610afc565b01517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88460031b161c191690558e8080610e49565b81810151835560209485019460019093019290910190610e2e565b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601a60248201527f496e76616c69642072656d6f7465206174746573746174696f6e0000000000006044820152fd5b60646040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601b60248201527f56616c696461746f72206e6f7420696e206163746976652073657400000000006044820152fd5b5060016108eb565b346107745760806003193601126107745760043567ffffffffffffffff811161077457610fa0903690600401611d5d565b610fa8611c31565b610fb0611c44565b6064359173ffffffffffffffffffffffffffffffffffffffff8316809303610774576040518481809651610fea816020998a809601611c85565b8101600281520301902063ffffffff8092165f52845260405f2091165f52825260405f20905f52815260ff60405f2054166040519015158152f35b346107745760606003193601126107745760043567ffffffffffffffff811161077457611056903690600401611d5d565b61105e611c31565b611066611c44565b604051838180955161107e8160209889809601611c85565b81015f81520301902063ffffffff8093165f5283528160405f2091165f52825260405f209160ff61112f8454946111216110ba60018301611e4b565b6111136110c960028501611e4b565b9160046110d860038701611e4b565b9501549773ffffffffffffffffffffffffffffffffffffffff6040519b8c9b81168c52821c16908a015260e060408a015260e0890190611ca6565b908782036060890152611ca6565b908582036080870152611ca6565b9161113f60a08501838316611ccb565b60081c16151560c08301520390f35b3461077457608060031936011261077457611167611c1e565b61116f611c31565b60443567ffffffffffffffff808211610774573660238301121561077457816004013593602491808611610600576005908660051b90602095604051986111b88885018b611cf4565b8952868901602481948301019136831161077457602401905b8282106113d557505050606435908111610774576111f3903690600401611c57565b906040518282823787818481015f8152030190209263ffffffff80961693845f5288528560405f20991698895f52885273ffffffffffffffffffffffffffffffffffffffff60405f2054891c163303611377575f5b8a518110156112f0576040518484823789818681016002815203019020855f52895260405f208b518210156112c45790600191888b8e848b1b010151165f528a5260405f20335f528a5260405f20827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0082541617905501611248565b887f4e487b71000000000000000000000000000000000000000000000000000000005f5260326004525ffd5b509350889285898960405196608088019288526080828901525180925260a0870197925f905b83821061135e577f1c2112af5fd37661e3dd248d701decebf291f13de6a411176337ef21a7b1a63089806113598d8c8c8c60408601528483036060860152611f48565b0390a1005b845181168a529882019893820193600190910190611316565b606488604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601360248201527f496e76616c696420636f6d706c61696e616e74000000000000000000000000006044820152fd5b813563ffffffff811681036107745781529088019088016111d1565b346107745760208061140236611dba565b9290918260405193849283378101600381520301902063ffffffff8092165f52825260405f205416604051908152f35b346107745760606003193601126107745760043567ffffffffffffffff811161077457611463903690600401611d5d565b61146b611c31565b63ffffffff611491602061147d611f0c565b948160405193828580945193849201611c85565b8101600181520301902091165f5260205273ffffffffffffffffffffffffffffffffffffffff60405f2091165f52602052602060ff60405f2054166040519015158152f35b346107745760206114fe6114e936611d7b565b92908160405193828580945193849201611c85565b8101600581520301902063ffffffff8092165f5260205260405f2061154f61152a600183549301611e4b565b604051938381869516855260201c166020840152606060408401526060830190611ca6565b0390f35b346107745760606003193601126107745767ffffffffffffffff60043581811161077457611585903690600401611d5d565b9061158e611c31565b90604435908111610774576115aa6115f2913690600401611d5d565b604051908185519581876115c56020998a9788809601611c85565b8101600481520301902063ffffffff8095165f52825260405f208260405194838680955193849201611c85565b8201908152030190205416604051908152f35b346107745760606003193601126107745761161e611c1e565b67ffffffffffffffff6024803582811161077457611640903690600401611c57565b9290916044358281116107745736602382011215610774578060040135928311610774576005923660248260051b8401011161077457945f9063ffffffff809816915b87811061168c57005b6040519082888337818381015f8152602093849103019020845f52825260405f208a82165f52825260ff600460405f2001541660038110156117585760018091036116dd575b506001915001611683565b604051848a8237838186810184815203019020855f52835260405f2087838a1b880101359373ffffffffffffffffffffffffffffffffffffffff8516809503610774576001945f525260405f20907fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff008254161790558a6116d2565b867f4e487b71000000000000000000000000000000000000000000000000000000005f5260216004525ffd5b3461077457602063ffffffff61179936611dba565b9390918260405193849283378101600581520301902091165f5260205261154f6117c8600160405f2001611e4b565b604051918291602083526020830190611ca6565b34610774576020806117f06114e936611d7b565b8101600381520301902063ffffffff8092165f52825260405f205416604051908152f35b3461077457606080600319360112610774576004359067ffffffffffffffff82116107745761184960c0923690600401611c57565b9290611853611c31565b9361185c611c44565b916040519061186a82611cd8565b5f82525f6020958382888096015288604082015288808201528860808201528260a0820152015282604051938492833781015f81520301902063ffffffff8095165f5282528360405f2091165f52815260405f20604051926118cb84611cd8565b815491858316855273ffffffffffffffffffffffffffffffffffffffff918285870194861c1684526118ff60018301611e4b565b6040870190815261191260028401611e4b565b93828801948552600461192760038601611e4b565b9460808a0195865201549560ff87169760a08a019860038110156106e957895260c08a019760081c60ff16151588526040519a8b9a828c525116908a0152511660408801525190860160e09052610100860161198291611ca6565b9151601f19928387820301608088015261199b91611ca6565b9051918582030160a08601526119b091611ca6565b915160c084016119bf91611ccb565b51151560e08301520390f35b34610774576060600319360112610774576119e4611c1e565b906119ed611c31565b9160443567ffffffffffffffff811161077457611a0e903690600401611c57565b909381858537838281015f81526020958691030190209063ffffffff80821692835f52865260405f20941693845f52855260405f2073ffffffffffffffffffffffffffffffffffffffff90818154881c16928315611bc057600482019384549160ff831660038110156106e957611b62579383611359989693611ad360ff947f5625cad747d0f660a99f4fe677a17d22db2a71e28505cd2148f61ad3cefc4f1d9e9a98611ac06003611b209a01611e4b565b91611acd60018701611e4b565b92611ff9565b15611b36575060027fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff008554161784555b548a1c169154169060405198899889528801526040870190611ccb565b606085015260a0608085015260a0840191611f48565b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00166001178455611b03565b60648a604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601760248201527f4e6f646520616c7265616479206368616c6c656e6765640000000000000000006044820152fd5b606488604051907f08c379a00000000000000000000000000000000000000000000000000000000082526004820152601360248201527f4e6f646520646f6573206e6f74206578697374000000000000000000000000006044820152fd5b6004359063ffffffff8216820361077457565b6024359063ffffffff8216820361077457565b6044359063ffffffff8216820361077457565b9181601f840112156107745782359167ffffffffffffffff8311610774576020838186019501011161077457565b5f5b838110611c965750505f910152565b8181015183820152602001611c87565b90601f19601f602093611cc481518092818752878088019101611c85565b0116010190565b9060038210156106e95752565b60e0810190811067ffffffffffffffff82111761060057604052565b90601f601f19910116810190811067ffffffffffffffff82111761060057604052565b92919267ffffffffffffffff82116106005760405191611d416020601f19601f8401160184611cf4565b829481845281830111610774578281602093845f960137010152565b9080601f8301121561077457816020611d7893359101611d17565b90565b6040600319820112610774576004359067ffffffffffffffff821161077457611da691600401611d5d565b9060243563ffffffff811681036107745790565b6040600319820112610774576004359067ffffffffffffffff821161077457611de591600401611c57565b909160243563ffffffff811681036107745790565b90600182811c92168015611e41575b6020831014611e1457565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b91607f1691611e09565b9060405191825f8254611e5d81611dfa565b908184526020946001916001811690815f14611ecb5750600114611e8d575b505050611e8b92500383611cf4565b565b5f90815285812095935091905b818310611eb3575050611e8b93508201015f8080611e7c565b85548884018501529485019487945091830191611e9a565b915050611e8b9593507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0091501682840152151560051b8201015f8080611e7c565b6044359073ffffffffffffffffffffffffffffffffffffffff8216820361077457565b6020919283604051948593843782019081520301902090565b601f8260209493601f1993818652868601375f8582860101520116010190565b63ffffffff809116908114611f7d5760010190565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b601f8211611fb757505050565b5f5260205f20906020601f840160051c83019310611fef575b601f0160051c01905b818110611fe4575050565b5f8155600101611fd9565b9091508190611fd0565b5115159291908361202e575b508261201e575b5081612016575090565b905051151590565b63ffffffff16151591505f61200c565b73ffffffffffffffffffffffffffffffffffffffff16151592505f612005565b815191906041830361207e576120779250602082015190606060408401519301515f1a90612140565b9192909190565b50505f9160029190565b60048110156106e9578061209a575050565b600181036120cc5760046040517ff645eedf000000000000000000000000000000000000000000000000000000008152fd5b6002810361210557602482604051907ffce698f70000000000000000000000000000000000000000000000000000000082526004820152fd5b60031461210f5750565b602490604051907fd78bce0c0000000000000000000000000000000000000000000000000000000082526004820152fd5b91907f7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a084116121cf579160209360809260ff5f9560405194855216868401526040830152606082015282805260015afa156121c4575f5173ffffffffffffffffffffffffffffffffffffffff8116156121ba57905f905f90565b505f906001905f90565b6040513d5f823e3d90fd5b5050505f916003919056fea26469706673582212201519ab4a7549720292a430109a35b6bfdba52f9b1a206a50216976eb3e54e85e64736f6c63430008170033",
 }
 
 // DKGABI is the input ABI used to generate the binding from.
@@ -247,29 +246,27 @@ func (_DKG *DKGCallerSession) DealComplaints(mrenclave []byte, round uint32, ind
 
 // DkgNodeInfos is a free data retrieval call binding the contract method 0xa27c2f6c.
 //
-// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes remoteReport, bytes commitments, uint8 chalStatus, bool finalized)
+// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes rawQuote, uint8 chalStatus, bool finalized)
 func (_DKG *DKGCaller) DkgNodeInfos(opts *bind.CallOpts, mrenclave []byte, round uint32, index uint32) (struct {
-	Index        uint32
-	Validator    common.Address
-	DkgPubKey    []byte
-	CommPubKey   []byte
-	RemoteReport []byte
-	Commitments  []byte
-	ChalStatus   uint8
-	Finalized    bool
+	Index      uint32
+	Validator  common.Address
+	DkgPubKey  []byte
+	CommPubKey []byte
+	RawQuote   []byte
+	ChalStatus uint8
+	Finalized  bool
 }, error) {
 	var out []interface{}
 	err := _DKG.contract.Call(opts, &out, "dkgNodeInfos", mrenclave, round, index)
 
 	outstruct := new(struct {
-		Index        uint32
-		Validator    common.Address
-		DkgPubKey    []byte
-		CommPubKey   []byte
-		RemoteReport []byte
-		Commitments  []byte
-		ChalStatus   uint8
-		Finalized    bool
+		Index      uint32
+		Validator  common.Address
+		DkgPubKey  []byte
+		CommPubKey []byte
+		RawQuote   []byte
+		ChalStatus uint8
+		Finalized  bool
 	})
 	if err != nil {
 		return *outstruct, err
@@ -279,10 +276,9 @@ func (_DKG *DKGCaller) DkgNodeInfos(opts *bind.CallOpts, mrenclave []byte, round
 	outstruct.Validator = *abi.ConvertType(out[1], new(common.Address)).(*common.Address)
 	outstruct.DkgPubKey = *abi.ConvertType(out[2], new([]byte)).(*[]byte)
 	outstruct.CommPubKey = *abi.ConvertType(out[3], new([]byte)).(*[]byte)
-	outstruct.RemoteReport = *abi.ConvertType(out[4], new([]byte)).(*[]byte)
-	outstruct.Commitments = *abi.ConvertType(out[5], new([]byte)).(*[]byte)
-	outstruct.ChalStatus = *abi.ConvertType(out[6], new(uint8)).(*uint8)
-	outstruct.Finalized = *abi.ConvertType(out[7], new(bool)).(*bool)
+	outstruct.RawQuote = *abi.ConvertType(out[4], new([]byte)).(*[]byte)
+	outstruct.ChalStatus = *abi.ConvertType(out[5], new(uint8)).(*uint8)
+	outstruct.Finalized = *abi.ConvertType(out[6], new(bool)).(*bool)
 
 	return *outstruct, err
 
@@ -290,34 +286,63 @@ func (_DKG *DKGCaller) DkgNodeInfos(opts *bind.CallOpts, mrenclave []byte, round
 
 // DkgNodeInfos is a free data retrieval call binding the contract method 0xa27c2f6c.
 //
-// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes remoteReport, bytes commitments, uint8 chalStatus, bool finalized)
+// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes rawQuote, uint8 chalStatus, bool finalized)
 func (_DKG *DKGSession) DkgNodeInfos(mrenclave []byte, round uint32, index uint32) (struct {
-	Index        uint32
-	Validator    common.Address
-	DkgPubKey    []byte
-	CommPubKey   []byte
-	RemoteReport []byte
-	Commitments  []byte
-	ChalStatus   uint8
-	Finalized    bool
+	Index      uint32
+	Validator  common.Address
+	DkgPubKey  []byte
+	CommPubKey []byte
+	RawQuote   []byte
+	ChalStatus uint8
+	Finalized  bool
 }, error) {
 	return _DKG.Contract.DkgNodeInfos(&_DKG.CallOpts, mrenclave, round, index)
 }
 
 // DkgNodeInfos is a free data retrieval call binding the contract method 0xa27c2f6c.
 //
-// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes remoteReport, bytes commitments, uint8 chalStatus, bool finalized)
+// Solidity: function dkgNodeInfos(bytes mrenclave, uint32 round, uint32 index) view returns(uint32 index, address validator, bytes dkgPubKey, bytes commPubKey, bytes rawQuote, uint8 chalStatus, bool finalized)
 func (_DKG *DKGCallerSession) DkgNodeInfos(mrenclave []byte, round uint32, index uint32) (struct {
-	Index        uint32
-	Validator    common.Address
-	DkgPubKey    []byte
-	CommPubKey   []byte
-	RemoteReport []byte
-	Commitments  []byte
-	ChalStatus   uint8
-	Finalized    bool
+	Index      uint32
+	Validator  common.Address
+	DkgPubKey  []byte
+	CommPubKey []byte
+	RawQuote   []byte
+	ChalStatus uint8
+	Finalized  bool
 }, error) {
 	return _DKG.Contract.DkgNodeInfos(&_DKG.CallOpts, mrenclave, round, index)
+}
+
+// GetGlobalPubKey is a free data retrieval call binding the contract method 0x285f0e63.
+//
+// Solidity: function getGlobalPubKey(bytes mrenclave, uint32 round) view returns(bytes)
+func (_DKG *DKGCaller) GetGlobalPubKey(opts *bind.CallOpts, mrenclave []byte, round uint32) ([]byte, error) {
+	var out []interface{}
+	err := _DKG.contract.Call(opts, &out, "getGlobalPubKey", mrenclave, round)
+
+	if err != nil {
+		return *new([]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
+
+	return out0, err
+
+}
+
+// GetGlobalPubKey is a free data retrieval call binding the contract method 0x285f0e63.
+//
+// Solidity: function getGlobalPubKey(bytes mrenclave, uint32 round) view returns(bytes)
+func (_DKG *DKGSession) GetGlobalPubKey(mrenclave []byte, round uint32) ([]byte, error) {
+	return _DKG.Contract.GetGlobalPubKey(&_DKG.CallOpts, mrenclave, round)
+}
+
+// GetGlobalPubKey is a free data retrieval call binding the contract method 0x285f0e63.
+//
+// Solidity: function getGlobalPubKey(bytes mrenclave, uint32 round) view returns(bytes)
+func (_DKG *DKGCallerSession) GetGlobalPubKey(mrenclave []byte, round uint32) ([]byte, error) {
+	return _DKG.Contract.GetGlobalPubKey(&_DKG.CallOpts, mrenclave, round)
 }
 
 // GetNodeCount is a free data retrieval call binding the contract method 0x78e510d2.
@@ -353,7 +378,7 @@ func (_DKG *DKGCallerSession) GetNodeCount(mrenclave []byte, round uint32) (uint
 
 // GetNodeInfo is a free data retrieval call binding the contract method 0x0c5a4020.
 //
-// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,bytes,uint8,bool))
+// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,uint8,bool))
 func (_DKG *DKGCaller) GetNodeInfo(opts *bind.CallOpts, mrenclave []byte, round uint32, index uint32) (IDKGNodeInfo, error) {
 	var out []interface{}
 	err := _DKG.contract.Call(opts, &out, "getNodeInfo", mrenclave, round, index)
@@ -370,14 +395,14 @@ func (_DKG *DKGCaller) GetNodeInfo(opts *bind.CallOpts, mrenclave []byte, round 
 
 // GetNodeInfo is a free data retrieval call binding the contract method 0x0c5a4020.
 //
-// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,bytes,uint8,bool))
+// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,uint8,bool))
 func (_DKG *DKGSession) GetNodeInfo(mrenclave []byte, round uint32, index uint32) (IDKGNodeInfo, error) {
 	return _DKG.Contract.GetNodeInfo(&_DKG.CallOpts, mrenclave, round, index)
 }
 
 // GetNodeInfo is a free data retrieval call binding the contract method 0x0c5a4020.
 //
-// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,bytes,uint8,bool))
+// Solidity: function getNodeInfo(bytes mrenclave, uint32 round, uint32 index) view returns((uint32,address,bytes,bytes,bytes,uint8,bool))
 func (_DKG *DKGCallerSession) GetNodeInfo(mrenclave []byte, round uint32, index uint32) (IDKGNodeInfo, error) {
 	return _DKG.Contract.GetNodeInfo(&_DKG.CallOpts, mrenclave, round, index)
 }
@@ -444,6 +469,56 @@ func (_DKG *DKGCallerSession) NodeCount(mrenclave []byte, round uint32) (uint32,
 	return _DKG.Contract.NodeCount(&_DKG.CallOpts, mrenclave, round)
 }
 
+// RoundInfo is a free data retrieval call binding the contract method 0x3ce1c1e0.
+//
+// Solidity: function roundInfo(bytes mrenclave, uint32 round) view returns(uint32 total, uint32 threshold, bytes globalPubKey)
+func (_DKG *DKGCaller) RoundInfo(opts *bind.CallOpts, mrenclave []byte, round uint32) (struct {
+	Total        uint32
+	Threshold    uint32
+	GlobalPubKey []byte
+}, error) {
+	var out []interface{}
+	err := _DKG.contract.Call(opts, &out, "roundInfo", mrenclave, round)
+
+	outstruct := new(struct {
+		Total        uint32
+		Threshold    uint32
+		GlobalPubKey []byte
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Total = *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	outstruct.Threshold = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+	outstruct.GlobalPubKey = *abi.ConvertType(out[2], new([]byte)).(*[]byte)
+
+	return *outstruct, err
+
+}
+
+// RoundInfo is a free data retrieval call binding the contract method 0x3ce1c1e0.
+//
+// Solidity: function roundInfo(bytes mrenclave, uint32 round) view returns(uint32 total, uint32 threshold, bytes globalPubKey)
+func (_DKG *DKGSession) RoundInfo(mrenclave []byte, round uint32) (struct {
+	Total        uint32
+	Threshold    uint32
+	GlobalPubKey []byte
+}, error) {
+	return _DKG.Contract.RoundInfo(&_DKG.CallOpts, mrenclave, round)
+}
+
+// RoundInfo is a free data retrieval call binding the contract method 0x3ce1c1e0.
+//
+// Solidity: function roundInfo(bytes mrenclave, uint32 round) view returns(uint32 total, uint32 threshold, bytes globalPubKey)
+func (_DKG *DKGCallerSession) RoundInfo(mrenclave []byte, round uint32) (struct {
+	Total        uint32
+	Threshold    uint32
+	GlobalPubKey []byte
+}, error) {
+	return _DKG.Contract.RoundInfo(&_DKG.CallOpts, mrenclave, round)
+}
+
 // ValSets is a free data retrieval call binding the contract method 0x4f1bf88d.
 //
 // Solidity: function valSets(bytes mrenclave, uint32 round, address validator) view returns(bool)
@@ -475,6 +550,37 @@ func (_DKG *DKGCallerSession) ValSets(mrenclave []byte, round uint32, validator 
 	return _DKG.Contract.ValSets(&_DKG.CallOpts, mrenclave, round, validator)
 }
 
+// Votes is a free data retrieval call binding the contract method 0x3c3acdb4.
+//
+// Solidity: function votes(bytes mrenclave, uint32 round, bytes globalPubKeyCandidates) view returns(uint32 votes)
+func (_DKG *DKGCaller) Votes(opts *bind.CallOpts, mrenclave []byte, round uint32, globalPubKeyCandidates []byte) (uint32, error) {
+	var out []interface{}
+	err := _DKG.contract.Call(opts, &out, "votes", mrenclave, round, globalPubKeyCandidates)
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// Votes is a free data retrieval call binding the contract method 0x3c3acdb4.
+//
+// Solidity: function votes(bytes mrenclave, uint32 round, bytes globalPubKeyCandidates) view returns(uint32 votes)
+func (_DKG *DKGSession) Votes(mrenclave []byte, round uint32, globalPubKeyCandidates []byte) (uint32, error) {
+	return _DKG.Contract.Votes(&_DKG.CallOpts, mrenclave, round, globalPubKeyCandidates)
+}
+
+// Votes is a free data retrieval call binding the contract method 0x3c3acdb4.
+//
+// Solidity: function votes(bytes mrenclave, uint32 round, bytes globalPubKeyCandidates) view returns(uint32 votes)
+func (_DKG *DKGCallerSession) Votes(mrenclave []byte, round uint32, globalPubKeyCandidates []byte) (uint32, error) {
+	return _DKG.Contract.Votes(&_DKG.CallOpts, mrenclave, round, globalPubKeyCandidates)
+}
+
 // ComplainDeals is a paid mutator transaction binding the contract method 0x7a574765.
 //
 // Solidity: function complainDeals(uint32 round, uint32 index, uint32[] complainIndexes, bytes mrenclave) returns()
@@ -496,46 +602,46 @@ func (_DKG *DKGTransactorSession) ComplainDeals(round uint32, index uint32, comp
 	return _DKG.Contract.ComplainDeals(&_DKG.TransactOpts, round, index, complainIndexes, mrenclave)
 }
 
-// FinalizeDKG is a paid mutator transaction binding the contract method 0x4d71b634.
+// FinalizeDKG is a paid mutator transaction binding the contract method 0xfe9dee68.
 //
-// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature) returns()
-func (_DKG *DKGTransactor) FinalizeDKG(opts *bind.TransactOpts, round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.contract.Transact(opts, "finalizeDKG", round, index, finalized, mrenclave, signature)
+// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature) returns()
+func (_DKG *DKGTransactor) FinalizeDKG(opts *bind.TransactOpts, round uint32, index uint32, finalized bool, mrenclave []byte, globalPubKey []byte, signature []byte) (*types.Transaction, error) {
+	return _DKG.contract.Transact(opts, "finalizeDKG", round, index, finalized, mrenclave, globalPubKey, signature)
 }
 
-// FinalizeDKG is a paid mutator transaction binding the contract method 0x4d71b634.
+// FinalizeDKG is a paid mutator transaction binding the contract method 0xfe9dee68.
 //
-// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature) returns()
-func (_DKG *DKGSession) FinalizeDKG(round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.Contract.FinalizeDKG(&_DKG.TransactOpts, round, index, finalized, mrenclave, signature)
+// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature) returns()
+func (_DKG *DKGSession) FinalizeDKG(round uint32, index uint32, finalized bool, mrenclave []byte, globalPubKey []byte, signature []byte) (*types.Transaction, error) {
+	return _DKG.Contract.FinalizeDKG(&_DKG.TransactOpts, round, index, finalized, mrenclave, globalPubKey, signature)
 }
 
-// FinalizeDKG is a paid mutator transaction binding the contract method 0x4d71b634.
+// FinalizeDKG is a paid mutator transaction binding the contract method 0xfe9dee68.
 //
-// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature) returns()
-func (_DKG *DKGTransactorSession) FinalizeDKG(round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.Contract.FinalizeDKG(&_DKG.TransactOpts, round, index, finalized, mrenclave, signature)
-}
-
-// InitializeDKG is a paid mutator transaction binding the contract method 0xc3c77ff9.
-//
-// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes remoteReport) returns()
-func (_DKG *DKGTransactor) InitializeDKG(opts *bind.TransactOpts, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) (*types.Transaction, error) {
-	return _DKG.contract.Transact(opts, "initializeDKG", round, mrenclave, dkgPubKey, commPubKey, remoteReport)
+// Solidity: function finalizeDKG(uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature) returns()
+func (_DKG *DKGTransactorSession) FinalizeDKG(round uint32, index uint32, finalized bool, mrenclave []byte, globalPubKey []byte, signature []byte) (*types.Transaction, error) {
+	return _DKG.Contract.FinalizeDKG(&_DKG.TransactOpts, round, index, finalized, mrenclave, globalPubKey, signature)
 }
 
 // InitializeDKG is a paid mutator transaction binding the contract method 0xc3c77ff9.
 //
-// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes remoteReport) returns()
-func (_DKG *DKGSession) InitializeDKG(round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) (*types.Transaction, error) {
-	return _DKG.Contract.InitializeDKG(&_DKG.TransactOpts, round, mrenclave, dkgPubKey, commPubKey, remoteReport)
+// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes rawQuote) returns()
+func (_DKG *DKGTransactor) InitializeDKG(opts *bind.TransactOpts, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Transaction, error) {
+	return _DKG.contract.Transact(opts, "initializeDKG", round, mrenclave, dkgPubKey, commPubKey, rawQuote)
 }
 
 // InitializeDKG is a paid mutator transaction binding the contract method 0xc3c77ff9.
 //
-// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes remoteReport) returns()
-func (_DKG *DKGTransactorSession) InitializeDKG(round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) (*types.Transaction, error) {
-	return _DKG.Contract.InitializeDKG(&_DKG.TransactOpts, round, mrenclave, dkgPubKey, commPubKey, remoteReport)
+// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes rawQuote) returns()
+func (_DKG *DKGSession) InitializeDKG(round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Transaction, error) {
+	return _DKG.Contract.InitializeDKG(&_DKG.TransactOpts, round, mrenclave, dkgPubKey, commPubKey, rawQuote)
+}
+
+// InitializeDKG is a paid mutator transaction binding the contract method 0xc3c77ff9.
+//
+// Solidity: function initializeDKG(uint32 round, bytes mrenclave, bytes dkgPubKey, bytes commPubKey, bytes rawQuote) returns()
+func (_DKG *DKGTransactorSession) InitializeDKG(round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Transaction, error) {
+	return _DKG.Contract.InitializeDKG(&_DKG.TransactOpts, round, mrenclave, dkgPubKey, commPubKey, rawQuote)
 }
 
 // RequestRemoteAttestationOnChain is a paid mutator transaction binding the contract method 0x08e48422.
@@ -578,178 +684,6 @@ func (_DKG *DKGSession) SubmitActiveValSet(round uint32, mrenclave []byte, valSe
 // Solidity: function submitActiveValSet(uint32 round, bytes mrenclave, address[] valSet) returns()
 func (_DKG *DKGTransactorSession) SubmitActiveValSet(round uint32, mrenclave []byte, valSet []common.Address) (*types.Transaction, error) {
 	return _DKG.Contract.SubmitActiveValSet(&_DKG.TransactOpts, round, mrenclave, valSet)
-}
-
-// UpdateDKGCommitments is a paid mutator transaction binding the contract method 0x496c634c.
-//
-// Solidity: function updateDKGCommitments(uint32 round, uint32 total, uint32 threshold, uint32 index, bytes mrenclave, bytes commitments, bytes signature) returns()
-func (_DKG *DKGTransactor) UpdateDKGCommitments(opts *bind.TransactOpts, round uint32, total uint32, threshold uint32, index uint32, mrenclave []byte, commitments []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.contract.Transact(opts, "updateDKGCommitments", round, total, threshold, index, mrenclave, commitments, signature)
-}
-
-// UpdateDKGCommitments is a paid mutator transaction binding the contract method 0x496c634c.
-//
-// Solidity: function updateDKGCommitments(uint32 round, uint32 total, uint32 threshold, uint32 index, bytes mrenclave, bytes commitments, bytes signature) returns()
-func (_DKG *DKGSession) UpdateDKGCommitments(round uint32, total uint32, threshold uint32, index uint32, mrenclave []byte, commitments []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.Contract.UpdateDKGCommitments(&_DKG.TransactOpts, round, total, threshold, index, mrenclave, commitments, signature)
-}
-
-// UpdateDKGCommitments is a paid mutator transaction binding the contract method 0x496c634c.
-//
-// Solidity: function updateDKGCommitments(uint32 round, uint32 total, uint32 threshold, uint32 index, bytes mrenclave, bytes commitments, bytes signature) returns()
-func (_DKG *DKGTransactorSession) UpdateDKGCommitments(round uint32, total uint32, threshold uint32, index uint32, mrenclave []byte, commitments []byte, signature []byte) (*types.Transaction, error) {
-	return _DKG.Contract.UpdateDKGCommitments(&_DKG.TransactOpts, round, total, threshold, index, mrenclave, commitments, signature)
-}
-
-// DKGDKGCommitmentsUpdatedIterator is returned from FilterDKGCommitmentsUpdated and is used to iterate over the raw logs and unpacked data for DKGCommitmentsUpdated events raised by the DKG contract.
-type DKGDKGCommitmentsUpdatedIterator struct {
-	Event *DKGDKGCommitmentsUpdated // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *DKGDKGCommitmentsUpdatedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(DKGDKGCommitmentsUpdated)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(DKGDKGCommitmentsUpdated)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *DKGDKGCommitmentsUpdatedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *DKGDKGCommitmentsUpdatedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// DKGDKGCommitmentsUpdated represents a DKGCommitmentsUpdated event raised by the DKG contract.
-type DKGDKGCommitmentsUpdated struct {
-	MsgSender   common.Address
-	Round       uint32
-	Total       uint32
-	Threshold   uint32
-	Index       uint32
-	Commitments []byte
-	Signature   []byte
-	Mrenclave   []byte
-	Raw         types.Log // Blockchain specific contextual infos
-}
-
-// FilterDKGCommitmentsUpdated is a free log retrieval operation binding the contract event 0x1af28d6ae67078289128cdbaca9c65cda5fda4d71a49bb5e2d917ef3bf5f44dd.
-//
-// Solidity: event DKGCommitmentsUpdated(address indexed msgSender, uint32 round, uint32 total, uint32 threshold, uint32 index, bytes commitments, bytes signature, bytes mrenclave)
-func (_DKG *DKGFilterer) FilterDKGCommitmentsUpdated(opts *bind.FilterOpts, msgSender []common.Address) (*DKGDKGCommitmentsUpdatedIterator, error) {
-
-	var msgSenderRule []interface{}
-	for _, msgSenderItem := range msgSender {
-		msgSenderRule = append(msgSenderRule, msgSenderItem)
-	}
-
-	logs, sub, err := _DKG.contract.FilterLogs(opts, "DKGCommitmentsUpdated", msgSenderRule)
-	if err != nil {
-		return nil, err
-	}
-	return &DKGDKGCommitmentsUpdatedIterator{contract: _DKG.contract, event: "DKGCommitmentsUpdated", logs: logs, sub: sub}, nil
-}
-
-// WatchDKGCommitmentsUpdated is a free log subscription operation binding the contract event 0x1af28d6ae67078289128cdbaca9c65cda5fda4d71a49bb5e2d917ef3bf5f44dd.
-//
-// Solidity: event DKGCommitmentsUpdated(address indexed msgSender, uint32 round, uint32 total, uint32 threshold, uint32 index, bytes commitments, bytes signature, bytes mrenclave)
-func (_DKG *DKGFilterer) WatchDKGCommitmentsUpdated(opts *bind.WatchOpts, sink chan<- *DKGDKGCommitmentsUpdated, msgSender []common.Address) (event.Subscription, error) {
-
-	var msgSenderRule []interface{}
-	for _, msgSenderItem := range msgSender {
-		msgSenderRule = append(msgSenderRule, msgSenderItem)
-	}
-
-	logs, sub, err := _DKG.contract.WatchLogs(opts, "DKGCommitmentsUpdated", msgSenderRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(DKGDKGCommitmentsUpdated)
-				if err := _DKG.contract.UnpackLog(event, "DKGCommitmentsUpdated", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseDKGCommitmentsUpdated is a log parse operation binding the contract event 0x1af28d6ae67078289128cdbaca9c65cda5fda4d71a49bb5e2d917ef3bf5f44dd.
-//
-// Solidity: event DKGCommitmentsUpdated(address indexed msgSender, uint32 round, uint32 total, uint32 threshold, uint32 index, bytes commitments, bytes signature, bytes mrenclave)
-func (_DKG *DKGFilterer) ParseDKGCommitmentsUpdated(log types.Log) (*DKGDKGCommitmentsUpdated, error) {
-	event := new(DKGDKGCommitmentsUpdated)
-	if err := _DKG.contract.UnpackLog(event, "DKGCommitmentsUpdated", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
 }
 
 // DKGDKGFinalizedIterator is returned from FilterDKGFinalized and is used to iterate over the raw logs and unpacked data for DKGFinalized events raised by the DKG contract.
@@ -821,18 +755,19 @@ func (it *DKGDKGFinalizedIterator) Close() error {
 
 // DKGDKGFinalized represents a DKGFinalized event raised by the DKG contract.
 type DKGDKGFinalized struct {
-	MsgSender common.Address
-	Round     uint32
-	Index     uint32
-	Finalized bool
-	Mrenclave []byte
-	Signature []byte
-	Raw       types.Log // Blockchain specific contextual infos
+	MsgSender    common.Address
+	Round        uint32
+	Index        uint32
+	Finalized    bool
+	Mrenclave    []byte
+	GlobalPubKey []byte
+	Signature    []byte
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterDKGFinalized is a free log retrieval operation binding the contract event 0xbeb92472b2143160d5e8c3fd25327aabddd7a0f4b80ade42661dd5b4e5ff4f90.
+// FilterDKGFinalized is a free log retrieval operation binding the contract event 0x694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c48.
 //
-// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature)
+// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature)
 func (_DKG *DKGFilterer) FilterDKGFinalized(opts *bind.FilterOpts, msgSender []common.Address) (*DKGDKGFinalizedIterator, error) {
 
 	var msgSenderRule []interface{}
@@ -847,9 +782,9 @@ func (_DKG *DKGFilterer) FilterDKGFinalized(opts *bind.FilterOpts, msgSender []c
 	return &DKGDKGFinalizedIterator{contract: _DKG.contract, event: "DKGFinalized", logs: logs, sub: sub}, nil
 }
 
-// WatchDKGFinalized is a free log subscription operation binding the contract event 0xbeb92472b2143160d5e8c3fd25327aabddd7a0f4b80ade42661dd5b4e5ff4f90.
+// WatchDKGFinalized is a free log subscription operation binding the contract event 0x694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c48.
 //
-// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature)
+// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature)
 func (_DKG *DKGFilterer) WatchDKGFinalized(opts *bind.WatchOpts, sink chan<- *DKGDKGFinalized, msgSender []common.Address) (event.Subscription, error) {
 
 	var msgSenderRule []interface{}
@@ -889,9 +824,9 @@ func (_DKG *DKGFilterer) WatchDKGFinalized(opts *bind.WatchOpts, sink chan<- *DK
 	}), nil
 }
 
-// ParseDKGFinalized is a log parse operation binding the contract event 0xbeb92472b2143160d5e8c3fd25327aabddd7a0f4b80ade42661dd5b4e5ff4f90.
+// ParseDKGFinalized is a log parse operation binding the contract event 0x694566864b727668476d766533aac9ac9c8f2a98c4c58322f1cc6b01258a5c48.
 //
-// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes signature)
+// Solidity: event DKGFinalized(address indexed msgSender, uint32 round, uint32 index, bool finalized, bytes mrenclave, bytes globalPubKey, bytes signature)
 func (_DKG *DKGFilterer) ParseDKGFinalized(log types.Log) (*DKGDKGFinalized, error) {
 	event := new(DKGDKGFinalized)
 	if err := _DKG.contract.UnpackLog(event, "DKGFinalized", log); err != nil {
@@ -970,19 +905,19 @@ func (it *DKGDKGInitializedIterator) Close() error {
 
 // DKGDKGInitialized represents a DKGInitialized event raised by the DKG contract.
 type DKGDKGInitialized struct {
-	MsgSender    common.Address
-	Mrenclave    []byte
-	Round        uint32
-	Index        uint32
-	DkgPubKey    []byte
-	CommPubKey   []byte
-	RemoteReport []byte
-	Raw          types.Log // Blockchain specific contextual infos
+	MsgSender  common.Address
+	Mrenclave  []byte
+	Round      uint32
+	Index      uint32
+	DkgPubKey  []byte
+	CommPubKey []byte
+	RawQuote   []byte
+	Raw        types.Log // Blockchain specific contextual infos
 }
 
 // FilterDKGInitialized is a free log retrieval operation binding the contract event 0x5c5aa077fdba8d39c55de6079c75de88ec2031742c08609237382f11414de616.
 //
-// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes remoteReport)
+// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes rawQuote)
 func (_DKG *DKGFilterer) FilterDKGInitialized(opts *bind.FilterOpts, msgSender []common.Address) (*DKGDKGInitializedIterator, error) {
 
 	var msgSenderRule []interface{}
@@ -999,7 +934,7 @@ func (_DKG *DKGFilterer) FilterDKGInitialized(opts *bind.FilterOpts, msgSender [
 
 // WatchDKGInitialized is a free log subscription operation binding the contract event 0x5c5aa077fdba8d39c55de6079c75de88ec2031742c08609237382f11414de616.
 //
-// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes remoteReport)
+// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes rawQuote)
 func (_DKG *DKGFilterer) WatchDKGInitialized(opts *bind.WatchOpts, sink chan<- *DKGDKGInitialized, msgSender []common.Address) (event.Subscription, error) {
 
 	var msgSenderRule []interface{}
@@ -1041,7 +976,7 @@ func (_DKG *DKGFilterer) WatchDKGInitialized(opts *bind.WatchOpts, sink chan<- *
 
 // ParseDKGInitialized is a log parse operation binding the contract event 0x5c5aa077fdba8d39c55de6079c75de88ec2031742c08609237382f11414de616.
 //
-// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes remoteReport)
+// Solidity: event DKGInitialized(address indexed msgSender, bytes mrenclave, uint32 round, uint32 index, bytes dkgPubKey, bytes commPubKey, bytes rawQuote)
 func (_DKG *DKGFilterer) ParseDKGInitialized(log types.Log) (*DKGDKGInitialized, error) {
 	event := new(DKGDKGInitialized)
 	if err := _DKG.contract.UnpackLog(event, "DKGInitialized", log); err != nil {
