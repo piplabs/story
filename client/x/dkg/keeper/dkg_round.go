@@ -76,13 +76,13 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 // getVerifiedDKGValidators returns the count of verified DKG validators (those who are participating and not invalidated).
 func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte, round uint32) (uint32, error) {
 	// Get registrations with status VERIFIED
-	verifiedRegs, err := k.GetDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusVerified)
+	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusVerified)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get verified registrations")
 	}
 
 	// Get registrations with status FINALIZED
-	finalizedRegs, err := k.GetDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusFinalized)
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get finalized registrations")
 	}

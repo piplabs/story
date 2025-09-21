@@ -14,14 +14,15 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/piplabs/story/client/dkg/config"
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func NewDKGServiceCommand() *cobra.Command {

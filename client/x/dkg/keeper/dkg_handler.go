@@ -6,43 +6,87 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
 // RegistrationInitialized handles DKG registration initialization event.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, mrenclave []byte, round uint32, index uint32, dkgPubKey []byte, commPubKey []byte, remoteReport []byte) error {
-	log.Info(ctx, "DKG Registration initialized event received",
+func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, index uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+	dkgReg := &types.DKGRegistration{
+		Mrenclave:   mrenclave,
+		Round:       round,
+		MsgSender:   msgSender.Hex(),
+		Index:       index,
+		DkgPubKey:   dkgPubKey,
+		CommPubKey:  commPubKey,
+		RawQuote:    rawQuote,
+		Status:      types.DKGRegStatusNotVerified, // not verified initially, will be set in CommitmentsUpdated
+		Commitments: nil,                           // empty initially, will be set in CommitmentsUpdated
+	}
+
+	if err := k.setDKGRegistration(ctx, mrenclave, dkgReg); err != nil {
+		log.Error(ctx, "Failed to store DKG registration", err,
+			"mrenclave", hex.EncodeToString(mrenclave),
+			"round", round,
+			"index", index,
+		)
+
+		return errors.Wrap(err, "failed to store dkg registration")
+	}
+
+	log.Info(ctx, "DKG registration stored successfully",
 		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
+		"status", "verified",
+		"msg_sender", msgSender.Hex(),
 		"index", index,
 		"dkg_pubkey_len", len(dkgPubKey),
 		"comm_pubkey_len", len(commPubKey),
-		"remote_report_len", len(remoteReport),
+		"raw_quote_len", len(rawQuote),
 	)
-
-	if err := k.emitDKGRegistrationInitialized(ctx, mrenclave, round, index, dkgPubKey, commPubKey, remoteReport); err != nil {
-		return errors.Wrap(err, "failed to emit dkg_registration_initialized event")
-	}
 
 	return nil
 }
 
 // CommitmentsUpdated handles DKG commitments update event.
-func (k *Keeper) CommitmentsUpdated(ctx context.Context, mrenclave []byte, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte) error {
-	log.Info(ctx, "DKG CommitmentsUpdated event received",
+func (k *Keeper) CommitmentsUpdated(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte) error {
+	dkgReg, err := k.getDKGRegistration(ctx, mrenclave, round, index)
+	if err != nil {
+		log.Error(ctx, "Failed to retrieve DKG registration for commitments update", err,
+			"mrenclave", hex.EncodeToString(mrenclave),
+			"round", round,
+			"index", index,
+		)
+
+		return errors.Wrap(err, "failed to get dkg registration for commitments update")
+	}
+
+	// TODO: verify commitments and signature
+	dkgReg.Commitments = commitments
+	dkgReg.Status = types.DKGRegStatusVerified
+
+	if err := k.setDKGRegistration(ctx, mrenclave, dkgReg); err != nil {
+		log.Error(ctx, "Failed to update DKG registration with commitments", err,
+			"mrenclave", hex.EncodeToString(mrenclave),
+			"round", round,
+			"index", index,
+		)
+
+		return errors.Wrap(err, "failed to update dkg registration with commitments")
+	}
+
+	log.Info(ctx, "DKG registration commitments updated successfully",
+		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
+		"status", "verified",
+		"msg_sender", msgSender.Hex(),
 		"total", total,
 		"threshold", threshold,
 		"index", index,
 		"commitments_len", len(commitments),
 		"signature_len", len(signature),
-		"mrenclave", hex.EncodeToString(mrenclave),
 	)
-
-	if err := k.emitDKGRegistrationCommitmentsUpdated(ctx, mrenclave, round, total, threshold, index, commitments, signature); err != nil {
-		return errors.Wrap(err, "failed to emit dkg_registration_commitments_updated event")
-	}
 
 	return nil
 }

@@ -69,7 +69,7 @@ func (s *Service) startDKGRegistration(ctx context.Context, session *types.DKGSe
 		"round", session.Round,
 		"dkg_pub_key", hex.EncodeToString(resp.DkgPubKey),
 		"comm_pub_key", hex.EncodeToString(resp.CommPubKey),
-		"remote_report_len", len(resp.RawQuote),
+		"raw_quote_len", len(resp.RawQuote),
 	)
 
 	_, err = s.contractClient.InitializeDKG(ctx, session.Round, session.Mrenclave, resp.DkgPubKey, resp.CommPubKey, resp.RawQuote)

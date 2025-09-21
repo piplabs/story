@@ -332,17 +332,17 @@ func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
 }
 
 // CommitmentsUpdated mocks base method.
-func (m *MockDKGKeeper) CommitmentsUpdated(ctx context.Context, round, total, threshold, index uint32, commitments, signature, mrenclave []byte) error {
+func (m *MockDKGKeeper) CommitmentsUpdated(ctx context.Context, msgSender common.Address, mrenclave []byte, round, total, threshold, index uint32, commitments, signature []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CommitmentsUpdated", ctx, round, total, threshold, index, commitments, signature, mrenclave)
+	ret := m.ctrl.Call(m, "CommitmentsUpdated", ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CommitmentsUpdated indicates an expected call of CommitmentsUpdated.
-func (mr *MockDKGKeeperMockRecorder) CommitmentsUpdated(ctx, round, total, threshold, index, commitments, signature, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) CommitmentsUpdated(ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitmentsUpdated", reflect.TypeOf((*MockDKGKeeper)(nil).CommitmentsUpdated), ctx, round, total, threshold, index, commitments, signature, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitmentsUpdated", reflect.TypeOf((*MockDKGKeeper)(nil).CommitmentsUpdated), ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature)
 }
 
 // DealComplaintsSubmitted mocks base method.
@@ -430,17 +430,17 @@ func (mr *MockDKGKeeperMockRecorder) RegistrationChallenged(ctx, round, mrenclav
 }
 
 // RegistrationInitialized mocks base method.
-func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, mrenclave []byte, round, index uint32, pubKey, remoteReport []byte) error {
+func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round, index uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, mrenclave, round, index, pubKey, remoteReport)
+	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegistrationInitialized indicates an expected call of RegistrationInitialized.
-func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, mrenclave, round, index, pubKey, remoteReport any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, mrenclave, round, index, pubKey, remoteReport)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote)
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.

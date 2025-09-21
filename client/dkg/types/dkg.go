@@ -122,12 +122,6 @@ type DKGEventData struct {
 	ValidatorAddr    string            `json:"validator_address,omitempty"`
 	Index            uint32            `json:"index,omitempty"`
 	Attributes       map[string]string `json:"attributes,omitempty"`
-	// registration-specific
-	Commitments []byte `json:"commitments,omitempty"`
-	Signature   []byte `json:"signature,omitempty"`
-	DkgPubKey   []byte `json:"dkg_pub_key,omitempty"`
-	CommPubKey  []byte `json:"comm_pub_key,omitempty"`
-	RawQuote    []byte `json:"raw_quote,omitempty"`
 }
 
 // ParseMrenclave converts the hex-encoded mrenclave string to bytes.

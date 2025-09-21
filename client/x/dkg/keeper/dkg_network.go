@@ -31,10 +31,28 @@ func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 	return nil
 }
 
-// GetDKGNetwork retrieves a DKG network by mrenclave.
-func (k *Keeper) GetDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) (*types.DKGNetwork, error) {
+// GetDKGNetworkByKey retrieves a DKG network by mrenclave.
+func (k *Keeper) getDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) (*types.DKGNetwork, error) {
 	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, errors.Wrap(err, "dkg network not found")
+		}
+
+		return nil, errors.Wrap(err, "failed to get dkg network")
+	}
+
+	return &dkgNetwork, nil
+}
+
+func (k *Keeper) getLatestDKGNetwork(ctx context.Context) (*types.DKGNetwork, error) {
+	latestKey, err := k.LatestDKGNetwork.Get(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get latest DKG network key")
+	}
+
+	dkgNetwork, err := k.DKGNetworks.Get(ctx, latestKey)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
 			return nil, errors.Wrap(err, "dkg network not found")
@@ -94,8 +112,8 @@ func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]typ
 	return foundNetworks, nil
 }
 
-// GetAllDKGNetworks retrieves all DKG networks.
-func (k *Keeper) GetAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, error) {
+// getAllDKGNetworks retrieves all DKG networks.
+func (k *Keeper) getAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, error) {
 	var networks []types.DKGNetwork
 
 	err := k.DKGNetworks.Walk(ctx, nil, func(_ string, dkgNetwork types.DKGNetwork) (bool, error) {

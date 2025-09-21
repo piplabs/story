@@ -40,8 +40,8 @@ func (*MockDataGenerator) GenerateMockPubKey() []byte {
 	return pubKey
 }
 
-// GenerateMockRemoteReport generates a mock remote report.
-func (*MockDataGenerator) GenerateMockRemoteReport(validatorAddr string, round uint32, pubKey []byte) []byte {
+// GenerateMockRawQuote generates a mock raw quote.
+func (*MockDataGenerator) GenerateMockRawQuote(validatorAddr string, round uint32, pubKey []byte) []byte {
 	report := make([]byte, 432)
 	copy(report[:len(validatorAddr)], validatorAddr)
 

@@ -46,23 +46,3 @@ message EventDKGFinalized {
   bytes mrenclave = 1;
   uint32 round = 2;
 }
-
-message EventDKGRegistrationInitialized {
-  bytes mrenclave = 1;
-  uint32 round = 2;
-  uint32 index = 3;
-  string msgSender = 4;
-  bytes dkgPubKey = 5;
-  bytes commPubKey = 6;
-  bytes rawQuote = 7;
-}
-
-message EventDKGRegistrationCommitmentsUpdated {
-  bytes mrenclave = 1;
-  uint32 round = 2;
-  uint32 total = 3;
-  uint32 threshold = 4;
-  uint32 index = 5;
-  bytes commitments = 6;
-  bytes signature = 7;
-}

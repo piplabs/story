@@ -55,7 +55,7 @@ const (
 	AttributeKeyDKGMrenclave        = "dkg_mrenclave"
 	AttributeKeyDKGDkgPubKey        = "dkg_dkg_pub_key"
 	AttributeKeyDKGCommPubKey       = "dkg_comm_pub_key"
-	AttributeKeyDKGRemoteReport     = "dkg_remote_report"
+	AttributeKeyDKGRawQuote         = "dkg_raw_quote"
 	AttributeKeyDKGFinalized        = "dkg_finalized"
 	AttributeKeyDKGActivationHeight = "dkg_activation_height"
 	AttributeKeyDKGChallenger       = "dkg_challenger"

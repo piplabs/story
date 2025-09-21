@@ -5,7 +5,6 @@ import (
 
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/client/dkg/types"
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
@@ -31,11 +30,9 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 		return errors.Wrap(err, "failed to get DKG session")
 	}
 
-	var dkgRegistrations []*dkgtypes.DKGRegistration
-	for _, registration := range session.Registrations {
-		if registration.Status == dkgtypes.DKGRegStatusVerified {
-			dkgRegistrations = append(dkgRegistrations, &registration)
-		}
+	dkgRegistrations, err := s.queryVerifiedDKGRegistrations(ctx, mrenclave, event.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get verified dkg registrations from x/dkg module")
 	}
 
 	req := &dkgpb.SetupDKGNetworkRequest{
@@ -58,10 +55,10 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 	session.ActiveValidators = event.ActiveValidators
 	session.Total = event.Total
 	session.Threshold = event.Threshold
-	session.Index = resp.Index
-	session.Commitments = resp.Commitments
+	session.Index = resp.GetIndex()
+	session.Commitments = resp.GetCommitments()
 
-	if err := s.submitUpdateDKGCommitments(ctx, session, resp.Commitments, resp.Signature); err != nil {
+	if err := s.submitUpdateDKGCommitments(ctx, session, resp.GetCommitments(), resp.GetSignature()); err != nil {
 		return errors.Wrap(err, "failed to submit deals to blockchain")
 	}
 

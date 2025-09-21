@@ -48,7 +48,7 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to create deals")
 	}
 
-	for _, deal := range resp.Deals {
+	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
 	}
 

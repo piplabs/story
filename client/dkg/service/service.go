@@ -189,11 +189,6 @@ func (s *Service) handleDKGEvent(ctx context.Context, event *types.DKGEventData)
 		return s.handleDKGResharing(ctx, event)
 	case "dkg_begin_tee_upgrade":
 		return s.handleTEEUpgrade(ctx, event)
-	// registration-specific
-	case "dkg_registration_initialized":
-		return s.handleDKGRegistrationInitialized(ctx, event)
-	case "dkg_registration_commitments_updated":
-		return s.handleDKGRegistrationCommitmentsUpdated(ctx, event)
 	default:
 		log.Warn(ctx, "Unknown DKG event type", nil, "type", event.EventType)
 	}

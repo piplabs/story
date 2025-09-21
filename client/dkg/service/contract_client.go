@@ -105,7 +105,7 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 		"mrenclave", string(mrenclave),
 		"dkg_pub_key", string(dkgPubKey),
 		"comm_pub_key", string(commPubKey),
-		"remote_report_len", len(rawQuote),
+		"raw_quote_len", len(rawQuote),
 	)
 
 	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave, dkgPubKey, rawQuote)

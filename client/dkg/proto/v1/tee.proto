@@ -8,7 +8,7 @@ option go_package = "github.com/piplabs/story/client/dkg";
 
 service TEE {
   rpc GenerateAndSealKey(GenerateAndSealKeyRequest) returns (GenerateAndSealKeyResponse);
-  rpc VerifyRemoteReport(VerifyRemoteReportRequest) returns (VerifyRemoteReportResponse);
+  rpc VerifyRawQuote(VerifyRawQuoteRequest) returns (VerifyRawQuoteResponse);
   rpc SetupDKGNetwork(SetupDKGNetworkRequest) returns (SetupDKGNetworkResponse);
   rpc GenerateDeals(GenerateDealsRequest) returns (GenerateDealsResponse);
   rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
@@ -53,8 +53,8 @@ message GenerateAndSealKeyResponse {
   ];
 }
 
-// VerifyRemoteReportRequest is sent to TEE client to verify a remote report
-message VerifyRemoteReportRequest {
+// VerifyRawQuoteRequest is sent to TEE client to verify a raw quote
+message VerifyRawQuoteRequest {
   bytes mrenclave = 1 [
     (gogoproto.moretags) = "yaml:\"mrenclave\""
   ];
@@ -75,12 +75,12 @@ message VerifyRemoteReportRequest {
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes remote_report = 6 [
-    (gogoproto.moretags) = "yaml:\"remote_report\""
+  bytes raw_quote = 6 [
+    (gogoproto.moretags) = "yaml:\"raw_quote\""
   ];
 }
 
-message VerifyRemoteReportResponse {
+message VerifyRawQuoteResponse {
   bytes mrenclave = 1 [
     (gogoproto.moretags) = "yaml:\"mrenclave\""
   ];

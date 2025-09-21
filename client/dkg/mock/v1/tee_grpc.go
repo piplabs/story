@@ -142,24 +142,24 @@ func (mr *MockTEEClientMockRecorder) SetupDKGNetwork(ctx, in any, opts ...any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEClient)(nil).SetupDKGNetwork), varargs...)
 }
 
-// VerifyRemoteReport mocks base method.
-func (m *MockTEEClient) VerifyRemoteReport(ctx context.Context, in *dkg.VerifyRemoteReportRequest, opts ...grpc.CallOption) (*dkg.VerifyRemoteReportResponse, error) {
+// VerifyRawQuote mocks base method.
+func (m *MockTEEClient) VerifyRawQuote(ctx context.Context, in *dkg.VerifyRawQuoteRequest, opts ...grpc.CallOption) (*dkg.VerifyRawQuoteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "VerifyRemoteReport", varargs...)
-	ret0, _ := ret[0].(*dkg.VerifyRemoteReportResponse)
+	ret := m.ctrl.Call(m, "VerifyRawQuote", varargs...)
+	ret0, _ := ret[0].(*dkg.VerifyRawQuoteResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// VerifyRemoteReport indicates an expected call of VerifyRemoteReport.
-func (mr *MockTEEClientMockRecorder) VerifyRemoteReport(ctx, in any, opts ...any) *gomock.Call {
+// VerifyRawQuote indicates an expected call of VerifyRawQuote.
+func (mr *MockTEEClientMockRecorder) VerifyRawQuote(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRemoteReport", reflect.TypeOf((*MockTEEClient)(nil).VerifyRemoteReport), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRawQuote", reflect.TypeOf((*MockTEEClient)(nil).VerifyRawQuote), varargs...)
 }
 
 // MockTEEServer is a mock of TEEServer interface.
@@ -261,19 +261,19 @@ func (mr *MockTEEServerMockRecorder) SetupDKGNetwork(arg0, arg1 any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEServer)(nil).SetupDKGNetwork), arg0, arg1)
 }
 
-// VerifyRemoteReport mocks base method.
-func (m *MockTEEServer) VerifyRemoteReport(arg0 context.Context, arg1 *dkg.VerifyRemoteReportRequest) (*dkg.VerifyRemoteReportResponse, error) {
+// VerifyRawQuote mocks base method.
+func (m *MockTEEServer) VerifyRawQuote(arg0 context.Context, arg1 *dkg.VerifyRawQuoteRequest) (*dkg.VerifyRawQuoteResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyRemoteReport", arg0, arg1)
-	ret0, _ := ret[0].(*dkg.VerifyRemoteReportResponse)
+	ret := m.ctrl.Call(m, "VerifyRawQuote", arg0, arg1)
+	ret0, _ := ret[0].(*dkg.VerifyRawQuoteResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// VerifyRemoteReport indicates an expected call of VerifyRemoteReport.
-func (mr *MockTEEServerMockRecorder) VerifyRemoteReport(arg0, arg1 any) *gomock.Call {
+// VerifyRawQuote indicates an expected call of VerifyRawQuote.
+func (mr *MockTEEServerMockRecorder) VerifyRawQuote(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRemoteReport", reflect.TypeOf((*MockTEEServer)(nil).VerifyRemoteReport), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRawQuote", reflect.TypeOf((*MockTEEServer)(nil).VerifyRawQuote), arg0, arg1)
 }
 
 // mustEmbedUnimplementedTEEServer mocks base method.

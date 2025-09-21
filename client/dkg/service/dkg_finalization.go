@@ -51,7 +51,7 @@ func (s *Service) handleDKGFinalization(ctx context.Context, event *types.DKGEve
 		return errors.Wrap(err, "failed to finalize DKG")
 	}
 
-	if !finalizeResp.Finalized {
+	if !finalizeResp.GetFinalized() {
 		log.Warn(ctx, "DKG finalization failed, marking session as failed", nil)
 		session.UpdatePhase(types.PhaseFailed)
 
@@ -63,14 +63,14 @@ func (s *Service) handleDKGFinalization(ctx context.Context, event *types.DKGEve
 		return errors.Wrap(err, "failed to update session")
 	}
 
-	if err := s.submitFinalizeDKG(ctx, session, finalizeResp.Signature); err != nil {
+	if err := s.submitFinalizeDKG(ctx, session, finalizeResp.GetSignature()); err != nil {
 		return errors.Wrap(err, "failed to submit DKG finalization to blockchain")
 	}
 
 	log.Info(ctx, "DKG finalization phase complete",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"finalized", finalizeResp.Finalized,
+		"finalized", finalizeResp.GetFinalized(),
 	)
 
 	return nil

@@ -20,7 +20,7 @@ type Keeper struct {
 	stakingKeeper types.StakingKeeper
 
 	Schema           collections.Schema
-	Params           collections.Item[types.Params]
+	ParamsStore      collections.Item[types.Params]
 	DKGNetworks      collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
 	LatestDKGNetwork collections.Item[string]                       // stores mrenclave key of latest DKG network
 	DKGRegistrations collections.Map[string, types.DKGRegistration] // key: mrenclave_round_index
@@ -50,7 +50,7 @@ func NewKeeper(
 		storeService:     storeService,
 		ethClient:        ethClient,
 		stakingKeeper:    sk,
-		Params:           collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		ParamsStore:      collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:      collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork: collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
 		DKGRegistrations: collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
