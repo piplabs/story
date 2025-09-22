@@ -10,17 +10,27 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
  * @dev Core contract for managing DKG-related state and operations
  */
 contract DKG is IDKG {
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => NodeInfo))) public dkgNodeInfos;
+    uint32 constant UINT32_MAX = type(uint32).max;
+
+    bytes public curMrenclave;
+
+    mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
     mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
     mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
-    mapping(bytes mrenclave => mapping(uint32 round => uint32 nodeCount)) public nodeCount;
 
     mapping(bytes mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes)))
         public votes;
     mapping(bytes mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
 
-    constructor() {}
+    constructor(bytes calldata mrenclave) {
+        curMrenclave = mrenclave;
+    }
+
+    modifier onlyValidMrenclave(bytes calldata mrenclave) {
+        require(keccak256(mrenclave) == keccak256(curMrenclave), "Invalid mrenclave");
+        _;
+    }
 
     function initializeDKG(
         uint32 round,
@@ -28,20 +38,17 @@ contract DKG is IDKG {
         bytes calldata dkgPubKey,
         bytes calldata commPubKey,
         bytes calldata rawQuote
-    ) external {
+    ) external onlyValidMrenclave(mrenclave) {
+        // TODO: round check if it is current active round or not
+
         require(
-            valSets[mrenclave][round][msg.sender] || _isActiveValSetSubmitted(mrenclave, round),
+            valSets[mrenclave][round][msg.sender] || !_isActiveValSetSubmitted(mrenclave, round),
             "Validator not in active set"
         );
 
-        require(_verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey), "Invalid remote attestation");
+        require(_verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey), "Invalid remote attestation");
 
-        uint32 index = nodeCount[mrenclave][round];
-        nodeCount[mrenclave][round]++;
-
-        dkgNodeInfos[mrenclave][round][index] = NodeInfo({
-            index: index,
-            validator: msg.sender,
+        dkgNodeInfos[mrenclave][round][msg.sender] = NodeInfo({
             dkgPubKey: dkgPubKey,
             commPubKey: commPubKey,
             rawQuote: rawQuote,
@@ -49,62 +56,60 @@ contract DKG is IDKG {
             finalized: false
         });
 
-        emit DKGInitialized(msg.sender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote);
+        emit DKGInitialized(msg.sender, mrenclave, round, dkgPubKey, commPubKey, rawQuote);
     }
 
     function finalizeDKG(
         uint32 round,
-        uint32 index,
-        bool finalized,
         bytes calldata mrenclave,
         bytes calldata globalPubKey,
         bytes calldata signature
-    ) external {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][index];
+    ) external onlyValidMrenclave(mrenclave) {
+        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
         require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
-            _verifyFinalizationSignature(node.commPubKey, round, index, finalized, mrenclave, globalPubKey, signature),
+            _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
             "Invalid finalization signature"
         );
 
-        node.finalized = finalized;
-        if (finalized) {
-            votes[mrenclave][round][globalPubKey]++;
-            if (votes[mrenclave][round][globalPubKey] >= roundInfo[mrenclave][round].threshold) {
-                roundInfo[mrenclave][round].globalPubKey = globalPubKey;
-            }
-            emit DKGFinalized(msg.sender, round, index, finalized, mrenclave, globalPubKey, signature);
+        node.finalized = true;
+
+        votes[mrenclave][round][globalPubKey]++;
+        if (votes[mrenclave][round][globalPubKey]  >= roundInfo[mrenclave][round].threshold ) {
+            roundInfo[mrenclave][round].globalPubKey = globalPubKey;
         }
+
+        emit DKGFinalized(msg.sender, round, mrenclave, globalPubKey, signature);
     }
 
     function getGlobalPubKey(bytes calldata mrenclave, uint32 round) external view returns (bytes memory) {
         return roundInfo[mrenclave][round].globalPubKey;
     }
 
-    function submitActiveValSet(uint32 round, bytes calldata mrenclave, address[] calldata valSet) external {
+    function submitActiveValSet(uint32 round, bytes calldata mrenclave, address[] calldata valSet) external onlyValidMrenclave(mrenclave) {
         for (uint256 i = 0; i < valSet.length; i++) {
             // add if validator is not challenged (invalidated)
             // TODO: exclude validators that aren't participating in the DKG system
-            if (dkgNodeInfos[mrenclave][round][uint32(i)].chalStatus != ChallengeStatus.Invalidated) {
+            if (dkgNodeInfos[mrenclave][round][valSet[i]].chalStatus != ChallengeStatus.Invalidated) {
                 valSets[mrenclave][round][valSet[i]] = true;
             }
         }
     }
 
-    function requestRemoteAttestationOnChain(uint32 targetIndex, uint32 round, bytes calldata mrenclave) external {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetIndex];
-        require(node.validator != address(0), "Node does not exist");
+    function requestRemoteAttestationOnChain(address targetValidatorAddr, uint32 round, bytes calldata mrenclave) external onlyValidMrenclave(mrenclave) {
+        NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetValidatorAddr];
+        require(node.dkgPubKey.length != 0, "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
-        bool isValid = _verifyRemoteAttestation(node.rawQuote, node.validator, round, node.dkgPubKey);
+        bool isValid = _verifyRemoteAttestation(node.rawQuote, targetValidatorAddr, round, node.dkgPubKey);
         if (isValid) {
             node.chalStatus = ChallengeStatus.Resolved;
         } else {
             node.chalStatus = ChallengeStatus.Invalidated;
         }
 
-        emit RemoteAttestationProcessedOnChain(targetIndex, node.validator, node.chalStatus, round, mrenclave);
+        emit RemoteAttestationProcessedOnChain(targetValidatorAddr, node.chalStatus, round, mrenclave);
     }
 
     function complainDeals(
@@ -112,9 +117,8 @@ contract DKG is IDKG {
         uint32 index,
         uint32[] memory complainIndexes,
         bytes calldata mrenclave
-    ) external {
-        NodeInfo storage complainant = dkgNodeInfos[mrenclave][round][index];
-        require(complainant.validator == msg.sender, "Invalid complainant");
+    ) external onlyValidMrenclave(mrenclave) {
+        NodeInfo storage complainant = dkgNodeInfos[mrenclave][round][msg.sender];
 
         for (uint256 i = 0; i < complainIndexes.length; i++) {
             dealComplaints[mrenclave][round][complainIndexes[i]][msg.sender] = true;
@@ -127,12 +131,8 @@ contract DKG is IDKG {
     //                      Getter Functions                    //
     //////////////////////////////////////////////////////////////
 
-    function getNodeInfo(bytes calldata mrenclave, uint32 round, uint32 index) external view returns (NodeInfo memory) {
-        return dkgNodeInfos[mrenclave][round][index];
-    }
-
-    function getNodeCount(bytes calldata mrenclave, uint32 round) external view returns (uint32) {
-        return nodeCount[mrenclave][round];
+    function getNodeInfo(bytes calldata mrenclave, uint32 round, address validator) external view returns (NodeInfo memory) {
+        return dkgNodeInfos[mrenclave][round][validator];
     }
 
     function isActiveValidator(bytes calldata mrenclave, uint32 round, address validator) external view returns (bool) {
@@ -145,19 +145,17 @@ contract DKG is IDKG {
 
     function _isActiveValSetSubmitted(bytes calldata /*mrenclave*/, uint32 /*round*/) internal pure returns (bool) {
         // TODO: Implementation
-        return true;
+        return false;
     }
 
     function _verifyFinalizationSignature(
         bytes memory commPubKey,
         uint32 round,
-        uint32 index,
-        bool finalized,
         bytes calldata mrenclave,
         bytes calldata globalPubKey,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(round, index, finalized, mrenclave, globalPubKey));
+        bytes32 msgHash = keccak256(abi.encodePacked(round, mrenclave, globalPubKey));
         address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
@@ -166,9 +164,10 @@ contract DKG is IDKG {
         bytes memory rawQuote,
         address validator,
         uint32 round,
-        bytes memory dkgPubKey
+        bytes memory dkgPubKey,
+        bytes memory commPubKey
     ) internal pure returns (bool) {
-        // TODO: Implementation
-        return rawQuote.length > 0 && validator != address(0) && round > 0 && dkgPubKey.length > 0;
+        // TODO: verify the report data and remote attestation
+        return rawQuote.length > 0 && validator != address(0) && round > 0 && dkgPubKey.length > 0 && commPubKey.length > 0;
     }
 }

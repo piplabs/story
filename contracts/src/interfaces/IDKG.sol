@@ -15,8 +15,6 @@ contract IDKG {
     }
 
     struct NodeInfo {
-        uint32 index;
-        address validator;
         bytes dkgPubKey;
         bytes commPubKey;
         bytes rawQuote;
@@ -28,7 +26,6 @@ contract IDKG {
         address indexed msgSender,
         bytes mrenclave,
         uint32 round,
-        uint32 index,
         bytes dkgPubKey,
         bytes commPubKey,
         bytes rawQuote
@@ -38,7 +35,6 @@ contract IDKG {
         address indexed msgSender,
         uint32 round,
         uint32 index,
-        bool finalized,
         bytes mrenclave,
         bytes globalPubKey,
         bytes signature
@@ -51,7 +47,6 @@ contract IDKG {
     event InvalidDKGInitialization(uint32 round, uint32 index, address validator, bytes mrenclave);
 
     event RemoteAttestationProcessedOnChain(
-        uint32 index,
         address validator,
         ChallengeStatus chalStatus,
         uint32 round,
