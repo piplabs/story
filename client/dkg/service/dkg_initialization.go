@@ -67,12 +67,12 @@ func (s *Service) startDKGRegistration(ctx context.Context, session *types.DKGSe
 	log.Info(ctx, "InitializeDKG contract call",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"dkg_pub_key", hex.EncodeToString(resp.DkgPubKey),
-		"comm_pub_key", hex.EncodeToString(resp.CommPubKey),
-		"raw_quote_len", len(resp.RawQuote),
+		"dkg_pub_key", hex.EncodeToString(resp.GetDkgPubKey()),
+		"comm_pub_key", hex.EncodeToString(resp.GetCommPubKey()),
+		"raw_quote_len", len(resp.GetRawQuote()),
 	)
 
-	_, err = s.contractClient.InitializeDKG(ctx, session.Round, session.Mrenclave, resp.DkgPubKey, resp.CommPubKey, resp.RawQuote)
+	_, err = s.contractClient.InitializeDKG(ctx, session.Round, session.Mrenclave, resp.GetDkgPubKey(), resp.GetCommPubKey(), resp.GetRawQuote())
 	if err != nil {
 		return errors.Wrap(err, "failed to call InitializeDKG contract method")
 	}

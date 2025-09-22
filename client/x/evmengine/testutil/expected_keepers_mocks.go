@@ -331,20 +331,6 @@ func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
 	return m.recorder
 }
 
-// CommitmentsUpdated mocks base method.
-func (m *MockDKGKeeper) CommitmentsUpdated(ctx context.Context, msgSender common.Address, mrenclave []byte, round, total, threshold, index uint32, commitments, signature []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CommitmentsUpdated", ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CommitmentsUpdated indicates an expected call of CommitmentsUpdated.
-func (mr *MockDKGKeeperMockRecorder) CommitmentsUpdated(ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitmentsUpdated", reflect.TypeOf((*MockDKGKeeper)(nil).CommitmentsUpdated), ctx, msgSender, mrenclave, round, total, threshold, index, commitments, signature)
-}
-
 // DealComplaintsSubmitted mocks base method.
 func (m *MockDKGKeeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave []byte) error {
 	m.ctrl.T.Helper()

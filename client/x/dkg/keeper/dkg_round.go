@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"context"
-	"github.com/piplabs/story/client/server/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"

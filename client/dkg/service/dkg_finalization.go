@@ -90,6 +90,7 @@ func (s *Service) submitFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		session.Index,
 		session.IsFinalized,
 		session.Mrenclave,
+		session.GlobalPubKey,
 		signature,
 	)
 	if err != nil {

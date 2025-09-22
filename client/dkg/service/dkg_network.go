@@ -58,10 +58,6 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 	session.Index = resp.GetIndex()
 	session.Commitments = resp.GetCommitments()
 
-	if err := s.submitUpdateDKGCommitments(ctx, session, resp.GetCommitments(), resp.GetSignature()); err != nil {
-		return errors.Wrap(err, "failed to submit deals to blockchain")
-	}
-
 	session.UpdatePhase(types.PhaseChallenging)
 	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session")
@@ -74,35 +70,6 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 		"total", session.Total,
 		"threshold", session.Threshold,
 	)
-
-	return nil
-}
-
-// submitUpdateDKGCommitments submits commitments to the DKG contract.
-func (s *Service) submitUpdateDKGCommitments(ctx context.Context, session *types.DKGSession, commitments types.Commitments, signature []byte) error {
-	log.Info(ctx, "UpdateDKGCommitments contract call",
-		"mrenclave", session.GetMrenclaveString(),
-		"round", session.Round,
-		"total", session.Total,
-		"threshold", session.Threshold,
-		"index", session.Index,
-		"commitments_len", len(commitments),
-		"signature_len", len(signature),
-	)
-
-	_, err := s.contractClient.UpdateDKGCommitments(
-		ctx,
-		session.Round,
-		session.Total,
-		session.Threshold,
-		session.Index,
-		session.Mrenclave,
-		commitments,
-		signature,
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to call UpdateDKGCommitments contract method")
-	}
 
 	return nil
 }

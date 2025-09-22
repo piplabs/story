@@ -145,17 +145,6 @@ message Deal {
   ];
 }
 
-message DealWithCommitments {
-  repeated Deal deals = 1 [
-    (gogoproto.nullable) = false,
-    (gogoproto.moretags) = "yaml:\"deals\""
-  ];
-
-  repeated bytes commitments = 2 [
-    (gogoproto.moretags) = "yaml:\"commitments\""
-  ];
-}
-
 message Complaint {
   uint32 dealer_index = 1 [
     (gogoproto.moretags) = "yaml:\"dealer_index\""

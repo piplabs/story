@@ -26,12 +26,6 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				continue
 			}
 
-		case types.DKGCommitmentsUpdatedEvent.ID:
-			if err := k.ProcessDKGCommitmentsUpdated(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGCommitmentsUpdated", err)
-				continue
-			}
-
 		case types.DKGFinalizedEvent.ID:
 			if err := k.ProcessDKGFinalized(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGFinalized", err)
@@ -132,57 +126,6 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGCommitmentsUpdated(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseDKGCommitmentsUpdated(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse DKGCommitmentsUpdated log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGCommitmentsUpdatedSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGCommitmentsUpdatedFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGTotal, strconv.FormatUint(uint64(ev.Total), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGThreshold, strconv.FormatUint(uint64(ev.Threshold), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCommitments, hex.EncodeToString(ev.Commitments)),
-				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.CommitmentsUpdated(cachedCtx, ev.MsgSender, ev.Mrenclave, ev.Round, ev.Total, ev.Threshold, ev.Index, ev.Commitments, ev.Signature); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "update DKG commitments")
 	}
 
 	return nil

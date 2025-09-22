@@ -62,26 +62,6 @@ func (*MockDataGenerator) GenerateMockRawQuote(validatorAddr string, round uint3
 	return report
 }
 
-// GenerateMockCommitments generates mock VSS commitments.
-func (*MockDataGenerator) GenerateMockCommitments(threshold uint32) []byte {
-	commitmentSize := 33
-	commitmentsLen := int(threshold) * commitmentSize
-	commitments := make([]byte, commitmentsLen)
-
-	for i := range int(threshold) {
-		offset := i * commitmentSize
-		commitments[offset] = 0x02
-		_, err := rand.Read(commitments[offset+1 : offset+commitmentSize])
-		if err != nil {
-			for j := 1; j < commitmentSize; j++ {
-				commitments[offset+j] = byte((i*j + 42) % 256)
-			}
-		}
-	}
-
-	return commitments
-}
-
 // GenerateMockSignature generates a mock ECDSA signature.
 func (*MockDataGenerator) GenerateMockSignature() []byte {
 	signature := make([]byte, 64)

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"math/big"
 	"time"
 
@@ -98,7 +99,7 @@ func (c *ContractClient) Close() {
 
 // InitializeDKG calls the initializeDKG contract method.
 //
-// TODO: fix the contract and use both dkgPubKey and commPubKey
+// TODO: fix the contract and use both dkgPubKey and commPubKey.
 func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
 		"round", round,
@@ -138,57 +139,6 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 	return receipt, nil
 }
 
-// UpdateDKGCommitments calls the updateDKGCommitments contract method.
-func (c *ContractClient) UpdateDKGCommitments(
-	ctx context.Context,
-	round uint32,
-	total uint32,
-	threshold uint32,
-	index uint32,
-	mrenclave []byte,
-	commitments []byte,
-	signature []byte,
-) (*types.Receipt, error) {
-	log.Info(ctx, "Calling updateDKGCommitments contract method",
-		"mrenclave", string(mrenclave),
-		"round", round,
-		"total", total,
-		"threshold", threshold,
-		"index", index,
-		"commitments_len", len(commitments),
-		"signature_len", len(signature),
-	)
-
-	callData, err := c.dkgContractAbi.Pack("updateDKGCommitments", round, total, threshold, index, mrenclave, commitments, signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack update dkg commitments call data")
-	}
-
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for update dkg commitments")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	tx, err := c.dkgContract.UpdateDKGCommitments(auth, round, total, threshold, index, mrenclave, commitments, signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call update dkg commitments")
-	}
-
-	log.Info(ctx, "UpdateDKGCommitments transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for update dkg commitments transaction")
-	}
-
-	return receipt, nil
-}
-
 // FinalizeDKG calls the finalizeDKG contract method.
 func (c *ContractClient) FinalizeDKG(
 	ctx context.Context,
@@ -196,6 +146,7 @@ func (c *ContractClient) FinalizeDKG(
 	index uint32,
 	finalized bool,
 	mrenclave []byte,
+	globalPubKey []byte,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
@@ -203,10 +154,11 @@ func (c *ContractClient) FinalizeDKG(
 		"round", round,
 		"index", index,
 		"finalized", finalized,
+		"global_pub_key", hex.EncodeToString(globalPubKey),
 		"signature_len", len(signature),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, index, finalized, mrenclave, signature)
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, index, finalized, mrenclave, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
@@ -221,7 +173,7 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.FinalizeDKG(auth, round, index, finalized, mrenclave, signature)
+	tx, err := c.dkgContract.FinalizeDKG(auth, round, index, finalized, mrenclave, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call finalize dkg")
 	}

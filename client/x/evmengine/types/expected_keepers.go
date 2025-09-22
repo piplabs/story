@@ -41,7 +41,6 @@ type DistrKeeper interface {
 type DKGKeeper interface {
 	// NOTE: completed
 	RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, index uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
-	CommitmentsUpdated(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte) error
 	// TODO: complete these functions
 	Finalized(ctx context.Context, round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) error
 	UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave []byte) error

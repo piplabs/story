@@ -49,48 +49,6 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	return nil
 }
 
-// CommitmentsUpdated handles DKG commitments update event.
-func (k *Keeper) CommitmentsUpdated(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, total uint32, threshold uint32, index uint32, commitments []byte, signature []byte) error {
-	dkgReg, err := k.getDKGRegistration(ctx, mrenclave, round, index)
-	if err != nil {
-		log.Error(ctx, "Failed to retrieve DKG registration for commitments update", err,
-			"mrenclave", hex.EncodeToString(mrenclave),
-			"round", round,
-			"index", index,
-		)
-
-		return errors.Wrap(err, "failed to get dkg registration for commitments update")
-	}
-
-	// TODO: verify commitments and signature
-	dkgReg.Commitments = commitments
-	dkgReg.Status = types.DKGRegStatusVerified
-
-	if err := k.setDKGRegistration(ctx, mrenclave, dkgReg); err != nil {
-		log.Error(ctx, "Failed to update DKG registration with commitments", err,
-			"mrenclave", hex.EncodeToString(mrenclave),
-			"round", round,
-			"index", index,
-		)
-
-		return errors.Wrap(err, "failed to update dkg registration with commitments")
-	}
-
-	log.Info(ctx, "DKG registration commitments updated successfully",
-		"mrenclave", hex.EncodeToString(mrenclave),
-		"round", round,
-		"status", "verified",
-		"msg_sender", msgSender.Hex(),
-		"total", total,
-		"threshold", threshold,
-		"index", index,
-		"commitments_len", len(commitments),
-		"signature_len", len(signature),
-	)
-
-	return nil
-}
-
 // Finalized handles DKG finalization event.
 func (*Keeper) Finalized(ctx context.Context, round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) error {
 	log.Info(ctx, "DKG Finalized event received",

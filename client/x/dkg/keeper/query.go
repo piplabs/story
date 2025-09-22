@@ -3,10 +3,10 @@ package keeper
 import (
 	"context"
 
+	"github.com/piplabs/story/client/x/dkg/types"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/piplabs/story/client/x/dkg/types"
 )
 
 var _ types.QueryServer = (*Keeper)(nil)

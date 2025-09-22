@@ -195,7 +195,7 @@ message ProcessDealRequest {
     (gogoproto.moretags) = "yaml:\"index\""
   ];
 
-  repeated types.DealWithCommitments deals = 4 [
+  repeated types.Deal deals = 4 [
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"deals\""
   ];

@@ -7,7 +7,6 @@ import (
 var (
 	dkgContractABI                            = mustGetABI(bindings.DKGMetaData)
 	DKGInitializedEvent                       = mustGetEvent(dkgContractABI, "DKGInitialized")
-	DKGCommitmentsUpdatedEvent                = mustGetEvent(dkgContractABI, "DKGCommitmentsUpdated")
 	DKGFinalizedEvent                         = mustGetEvent(dkgContractABI, "DKGFinalized")
 	DKGUpgradeScheduledEvent                  = mustGetEvent(dkgContractABI, "UpgradeScheduled")
 	DKGRegistrationChallengedEvent            = mustGetEvent(dkgContractABI, "RegistrationChallenged")

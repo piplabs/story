@@ -15,7 +15,6 @@ type DKGPhase int32
 // re-export types from x/dkg/types.
 type Deal = dkgtypes.Deal
 type EncryptedDeal = dkgtypes.EncryptedDeal
-type DealWithCommitments = dkgtypes.DealWithCommitments
 type Complaint = dkgtypes.Complaint
 type Commitments = []byte
 
@@ -57,6 +56,7 @@ func (p DKGPhase) String() string {
 type DKGSession struct {
 	Mrenclave     []byte    `json:"mrenclave"`
 	Round         uint32    `json:"round"`
+	GlobalPubKey  []byte    `json:"global_pub_key"` // TODO: update global pubkey in future stages
 	Phase         DKGPhase  `json:"phase"`
 	StartTime     time.Time `json:"start_time"`
 	LastUpdate    time.Time `json:"last_update"`
@@ -83,6 +83,7 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *D
 	return &DKGSession{
 		Mrenclave:        mrenclave,
 		Round:            round,
+		GlobalPubKey:     make([]byte, 0),
 		Phase:            PhaseInitializing,
 		StartTime:        now,
 		LastUpdate:       now,
@@ -122,6 +123,11 @@ type DKGEventData struct {
 	ValidatorAddr    string            `json:"validator_address,omitempty"`
 	Index            uint32            `json:"index,omitempty"`
 	Attributes       map[string]string `json:"attributes,omitempty"`
+	// registration-specific
+	Signature  []byte `json:"signature,omitempty"`
+	DkgPubKey  []byte `json:"dkg_pub_key,omitempty"`
+	CommPubKey []byte `json:"comm_pub_key,omitempty"`
+	RawQuote   []byte `json:"raw_quote,omitempty"`
 }
 
 // ParseMrenclave converts the hex-encoded mrenclave string to bytes.
