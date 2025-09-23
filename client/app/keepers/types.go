@@ -16,6 +16,7 @@ import (
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	evmengkeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
@@ -38,4 +39,5 @@ type Keepers struct {
 	EvmStakingKeeper *evmstakingkeeper.Keeper
 	EVMEngKeeper     *evmengkeeper.Keeper
 	MintKeeper       mintkeeper.Keeper
+	DKGKeeper        *dkgkeeper.Keeper
 }

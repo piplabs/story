@@ -6,8 +6,10 @@ import (
 	"cosmossdk.io/collections"
 	storetypes "cosmossdk.io/core/store"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 
+	"github.com/cosmos/gogoproto/grpc"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/ethclient"
 )
@@ -18,6 +20,7 @@ type Keeper struct {
 	storeService  storetypes.KVStoreService
 	ethClient     ethclient.Client
 	stakingKeeper types.StakingKeeper
+	skeeper       baseapp.ValidatorStore
 
 	Schema           collections.Schema
 	ParamsStore      collections.Item[types.Params]
@@ -33,6 +36,7 @@ func NewKeeper(
 	storeService storetypes.KVStoreService,
 	ak types.AccountKeeper,
 	sk types.StakingKeeper,
+	skeeper baseapp.ValidatorStore,
 	authority string,
 	ethClient ethclient.Client,
 ) Keeper {
@@ -50,6 +54,7 @@ func NewKeeper(
 		storeService:     storeService,
 		ethClient:        ethClient,
 		stakingKeeper:    sk,
+		skeeper:          skeeper,
 		ParamsStore:      collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:      collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork: collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
@@ -64,4 +69,8 @@ func NewKeeper(
 	k.Schema = schema
 
 	return k
+}
+
+func (k *Keeper) RegisterProposalService(server grpc.Server) {
+	types.RegisterMsgServiceServer(server, NewProposalServer(k))
 }

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package story.dkg.v1.types;
+
+import "gogoproto/gogo.proto";
+import "cosmos/msg/v1/msg.proto";
+import "story/dkg/v1/types/types.proto";
+
+option go_package = "github.com/piplabs/story/client/x/dkg/types";
+
+// MsgService defines all the gRPC methods for DKG voting.
+service MsgService {
+  // Enables Cosmos SDK message routing for this service.
+  option (cosmos.msg.v1.service) = true;
+
+  // AddVote allows a validator to submit a dkg vote.
+  rpc AddVote (MsgAddDkgVote) returns (AddDkgVoteResponse);
+}
+
+// Vote represents a validator's vote on DKG deals and its verification responses.
+message Vote {
+  // The deals.
+  repeated types.Deal deals = 1;
+}
+
+// MsgAddDkgVote is the request type for submitting a dkg vote.
+message MsgAddDkgVote {
+  // The signer of the message (validator address).
+  option (cosmos.msg.v1.signer) = "authority";
+
+  // Validator address submitting the vote.
+  string authority = 1;
+
+  // The vote details.
+  Vote vote = 2;
+}
+
+// AddDkgVoteResponse is the response type for AddVote.
+message AddDkgVoteResponse {}

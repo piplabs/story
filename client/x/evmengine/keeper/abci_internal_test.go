@@ -1146,7 +1146,7 @@ func newMockEngineAPI(key *storetypes.KVStoreKey, syncings int) (mockEngineAPI, 
 
 type mockVEProvider struct{}
 
-func (m mockVEProvider) PrepareVotes(_ context.Context, _ abci.ExtendedCommitInfo) ([]sdk.Msg, error) {
+func (m mockVEProvider) PrepareVotes(_ context.Context, _ abci.ExtendedCommitInfo, _ uint64) ([]sdk.Msg, error) {
 	coin := sdk.NewInt64Coin("stake", 100)
 	msg := stypes.NewMsgDelegate(
 		"addr", "addr", coin,

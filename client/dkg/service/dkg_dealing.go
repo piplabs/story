@@ -9,6 +9,8 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+var Deals []*types.Deal
+
 // handleDKGDealing handles the dealing phase event.
 func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG dealing phase event",
@@ -48,8 +50,11 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to create deals")
 	}
 
+	// todo: the slice length should be restricted by the max tx size
+	Deals = []*types.Deal{}
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
+		Deals = append(Deals, deal)
 	}
 
 	// TODO: dealing logic (via vote extension in Cosmos SDK)
