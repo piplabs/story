@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/client/dkg/types"
@@ -9,8 +10,30 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-var Deals []*types.Deal
-var Responses []*types.Response
+var (
+	dealsMu   sync.Mutex
+	Deals     []*types.Deal
+	respsMu   sync.Mutex
+	Responses []*types.Response
+)
+
+// todo: limit the number popped each time
+func PopDeals() []*types.Deal {
+	dealsMu.Lock()
+	defer dealsMu.Unlock()
+	out := Deals
+	Deals = nil
+	return out
+}
+
+// todo: limit the number popped each time
+func PopResponses() []*types.Response {
+	respsMu.Lock()
+	defer respsMu.Unlock()
+	out := Responses
+	Responses = nil
+	return out
+}
 
 // handleDKGDealing handles the dealing phase event.
 func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventData) error {
@@ -52,16 +75,13 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 	}
 
 	// todo: the slice length should be restricted by the max tx size
+	dealsMu.Lock()
+	defer dealsMu.Unlock()
 	Deals = []*types.Deal{}
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
 		Deals = append(Deals, deal)
 	}
-
-	// TODO: dealing logic (via vote extension in Cosmos SDK)
-	// DKG service would request to process the deals which is given through vote extension to the TEE client.
-	// Then, the TEE client will process the deals. If there is any invalid deals, it will return the complaints in ProcessDealResponse (step 5 in DKG dealing section).
-
 	return nil
 }
 
@@ -100,6 +120,8 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 	if err != nil {
 		return errors.Wrap(err, "failed to process deals")
 	}
+	respsMu.Lock()
+	defer respsMu.Unlock()
 	Responses = resp.GetResponses()
 
 	return nil

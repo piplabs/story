@@ -75,10 +75,15 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 				//nolint:govet // keep field
 				protoEvent.StartBlock = uint32(startBlockFloat)
 			}
-			if activeValidators, ok := eventData["active_validators"].([]string); ok {
-				protoEvent.ActiveValidators = append(protoEvent.ActiveValidators, activeValidators...)
+			if activeValidators, ok := eventData["active_validators"].([]interface{}); ok {
+				var validators []string
+				for _, v := range activeValidators {
+					if s, ok := v.(string); ok {
+						validators = append(validators, s)
+					}
+				}
+				protoEvent.ActiveValidators = validators
 			}
-
 			break
 		}
 	}
@@ -179,8 +184,12 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 			if roundFloat, ok := eventData["round"].(float64); ok {
 				protoEvent.Round = uint32(roundFloat)
 			}
-			if deals, ok := eventData["deals"].([]map[string]any); ok {
-				for _, deal := range deals {
+			if deals, ok := eventData["deals"].([]interface{}); ok {
+				for _, dealRaw := range deals {
+					deal, ok := dealRaw.(map[string]interface{})
+					if !ok {
+						continue
+					}
 					var dkgDeal dkgtypes.Deal
 					if indexFloat, ok := deal["index"].(float64); ok {
 						dkgDeal.Index = uint32(indexFloat)
@@ -188,9 +197,13 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 					if recipientIndex, ok := deal["recipient_index"].(float64); ok {
 						dkgDeal.RecipientIndex = uint32(recipientIndex)
 					}
-					if encryptedDeal, ok := deal["deal"].([]map[string]any); ok {
+					if encryptedDealArr, ok := deal["deal"].([]interface{}); ok {
 						dkgDeal.Deal = dkgtypes.EncryptedDeal{}
-						for _, edAttr := range encryptedDeal {
+						for _, edAttrRaw := range encryptedDealArr {
+							edAttr, ok := edAttrRaw.(map[string]interface{})
+							if !ok {
+								continue
+							}
 							if edKey, ok := edAttr["key"].(string); ok {
 								switch edKey {
 								case "dh_key":
@@ -213,7 +226,6 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 							}
 						}
 					}
-
 					if signature, ok := deal["signature"].(string); ok {
 						dkgDeal.Signature = []byte(signature)
 					}
@@ -236,7 +248,9 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 }
 
 func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var protoEvent dkgtypes.EventBeginProcessResponses
+	var mrenclave string
+	var round uint32
+	var responses []*types.Response
 
 	for _, attr := range event.Attributes {
 		if attr.Key == "data" {
@@ -244,35 +258,39 @@ func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types
 			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
 				break
 			}
-
 			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+				mrenclave = mrenclaveStr
 			}
 			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+				round = uint32(roundFloat)
 			}
-			if responses, ok := eventData["responses"].([]map[string]any); ok {
-				for _, response := range responses {
-					var dkgResponse dkgtypes.Response
-					if indexFloat, ok := response["index"].(float64); ok {
-						dkgResponse.Index = uint32(indexFloat)
+			if respArr, ok := eventData["responses"].([]interface{}); ok {
+				for _, respRaw := range respArr {
+					respMap, ok := respRaw.(map[string]interface{})
+					if !ok {
+						continue
 					}
-					if vssResponse, ok := response["vss_response"].(map[string]any); ok {
-						dkgResponse.VssResponse = &dkgtypes.VSSResponse{}
-						if sessionID, ok := vssResponse["session_id"].(string); ok {
-							dkgResponse.VssResponse.SessionId = []byte(sessionID)
-						}
-						if index, ok := vssResponse["index"].(float64); ok {
-							dkgResponse.VssResponse.Index = uint32(index)
-						}
-						if status, ok := vssResponse["status"].(bool); ok {
-							dkgResponse.VssResponse.Status = status
-						}
-						if signature, ok := vssResponse["signature"].(string); ok {
-							dkgResponse.VssResponse.Signature = []byte(signature)
-						}
+					var resp types.Response
+					if idx, ok := respMap["index"].(float64); ok {
+						resp.Index = uint32(idx)
 					}
-					protoEvent.Responses = append(protoEvent.Responses, &dkgResponse)
+					if vssRespMap, ok := respMap["vss_response"].(map[string]interface{}); ok {
+						var vss types.VSSResponse
+						if sid, ok := vssRespMap["session_id"].(string); ok {
+							vss.SessionId = []byte(sid)
+						}
+						if idx, ok := vssRespMap["index"].(float64); ok {
+							vss.Index = uint32(idx)
+						}
+						if status, ok := vssRespMap["status"].(bool); ok {
+							vss.Status = status
+						}
+						if sig, ok := vssRespMap["signature"].(string); ok {
+							vss.Signature = []byte(sig)
+						}
+						resp.VssResponse = &vss
+					}
+					responses = append(responses, &resp)
 				}
 			}
 			break
@@ -281,10 +299,10 @@ func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types
 
 	return &types.DKGEventData{
 		EventType:   "dkg_begin_process_responses",
-		Mrenclave:   string(protoEvent.Mrenclave),
-		Round:       protoEvent.Round,
+		Mrenclave:   mrenclave,
+		Round:       round,
 		BlockHeight: height,
-		Responses:   protoEvent.Responses,
+		Responses:   responses,
 		Attributes:  extractAttributes(event),
 	}
 }
