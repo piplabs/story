@@ -8,7 +8,7 @@ import { Test } from "../utils/Test.sol";
 contract DKGTest is Test {
     DKG dkg;
 
-    bytes mrenclave = hex"1234";
+    bytes32 mrenclave = hex"4d53ef0428afd0bc343e4c0ca19efd05ad5d5747b4b230491c5e1237ca294739";
     uint32 round = 1;
     uint32 index = 0;
     uint32 total = 3;

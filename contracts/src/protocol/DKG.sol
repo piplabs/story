@@ -12,29 +12,29 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 contract DKG is IDKG {
     uint32 constant UINT32_MAX = type(uint32).max;
 
-    bytes public curMrenclave;
+    bytes32 public curMrenclave;
 
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
 
-    mapping(bytes mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes)))
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes)))
         public votes;
-    mapping(bytes mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
+    mapping(bytes32 mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
 
-    constructor(bytes memory mrenclave) {
+    constructor(bytes32 mrenclave) {
         curMrenclave = mrenclave;
     }
 
-    modifier onlyValidMrenclave(bytes calldata mrenclave) {
-        require(keccak256(mrenclave) == keccak256(curMrenclave), "Invalid mrenclave");
+    modifier onlyValidMrenclave(bytes32 mrenclave) {
+        require(keccak256(abi.encodePacked(mrenclave)) == keccak256(abi.encodePacked(curMrenclave)), "Invalid mrenclave");
         _;
     }
 
     function initializeDKG(
         uint32 round,
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         bytes calldata dkgPubKey,
         bytes calldata commPubKey,
         bytes calldata rawQuote
@@ -64,7 +64,7 @@ contract DKG is IDKG {
 
     function finalizeDKG(
         uint32 round,
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         bytes calldata globalPubKey,
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
@@ -85,13 +85,13 @@ contract DKG is IDKG {
         emit DKGFinalized(msg.sender, round, mrenclave, globalPubKey, signature);
     }
 
-    function getGlobalPubKey(bytes calldata mrenclave, uint32 round) external view returns (bytes memory) {
+    function getGlobalPubKey(bytes32 mrenclave, uint32 round) external view returns (bytes memory) {
         return roundInfo[mrenclave][round].globalPubKey;
     }
 
     function submitActiveValSet(
         uint32 round,
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         address[] calldata valSet
     ) external onlyValidMrenclave(mrenclave) {
         for (uint256 i = 0; i < valSet.length; i++) {
@@ -106,7 +106,7 @@ contract DKG is IDKG {
     function requestRemoteAttestationOnChain(
         address targetValidatorAddr,
         uint32 round,
-        bytes calldata mrenclave
+        bytes32 mrenclave
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetValidatorAddr];
         require(node.dkgPubKey.length != 0, "Node does not exist");
@@ -132,7 +132,7 @@ contract DKG is IDKG {
         uint32 round,
         uint32 index,
         uint32[] memory complainIndexes,
-        bytes calldata mrenclave
+        bytes32 mrenclave
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage complainant = dkgNodeInfos[mrenclave][round][msg.sender];
 
@@ -147,7 +147,7 @@ contract DKG is IDKG {
         uint32 round,
         uint32 total,
         uint32 threshold,
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
@@ -167,14 +167,14 @@ contract DKG is IDKG {
     //////////////////////////////////////////////////////////////
 
     function getNodeInfo(
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         uint32 round,
         address validator
     ) external view returns (NodeInfo memory) {
         return dkgNodeInfos[mrenclave][round][validator];
     }
 
-    function isActiveValidator(bytes calldata mrenclave, uint32 round, address validator) external view returns (bool) {
+    function isActiveValidator(bytes32 mrenclave, uint32 round, address validator) external view returns (bool) {
         return valSets[mrenclave][round][validator];
     }
 
@@ -182,7 +182,7 @@ contract DKG is IDKG {
     //                      Internal Functions                  //
     //////////////////////////////////////////////////////////////
 
-    function _isActiveValSetSubmitted(bytes calldata /*mrenclave*/, uint32 /*round*/) internal pure returns (bool) {
+    function _isActiveValSetSubmitted(bytes32 /*mrenclave*/, uint32 /*round*/) internal pure returns (bool) {
         // TODO: Implementation
         return false;
     }
@@ -190,7 +190,7 @@ contract DKG is IDKG {
     function _verifyFinalizationSignature(
         bytes memory commPubKey,
         uint32 round,
-        bytes calldata mrenclave,
+        bytes32 mrenclave,
         bytes calldata globalPubKey,
         bytes calldata signature
     ) internal pure returns (bool) {
@@ -204,7 +204,7 @@ contract DKG is IDKG {
         uint32 /*round*/,
         uint32 /*total*/,
         uint32 /*threshold*/,
-        bytes calldata /*mrenclave*/,
+        bytes32 /*mrenclave*/,
         bytes calldata /*signature*/
     ) internal pure returns (bool) {
         // TODO: verification logic
