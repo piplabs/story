@@ -74,18 +74,20 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to create deals")
 	}
 
-	// todo: the slice length should be restricted by the max tx size
 	dealsMu.Lock()
 	defer dealsMu.Unlock()
+
 	Deals = []*types.Deal{}
+
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
 		Deals = append(Deals, deal)
+		s.index = Deals[0].Index
 	}
 	return nil
 }
 
-// handleDKGProcessDeals handles the deal verification phase event.
+// handleDKGProcessDeals handles the deals from other committee members.
 func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG deal verification phase event",
 		"mrenclave", event.Mrenclave,
@@ -114,8 +116,16 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 		Mrenclave: session.Mrenclave,
 		Round:     session.Round,
 		Index:     session.Index,
-		Deals:     event.Deals,
+		Deals:     []*types.Deal{},
 	}
+
+	for _, deal := range event.Deals {
+		if deal.RecipientIndex == s.index {
+			req.Deals = append(req.Deals, deal)
+		}
+	}
+	log.Info(ctx, "Processing deals", "event_deals", len(event.Deals), "req_deals", len(req.Deals), "index", s.index)
+
 	resp, err := s.teeClient.ProcessDeals(ctx, req)
 	if err != nil {
 		return errors.Wrap(err, "failed to process deals")
@@ -127,6 +137,7 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 	return nil
 }
 
+// handleDKGProcessResponses handles the responses of processDeals from other committee members.
 func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG process responses event",
 		"mrenclave", event.Mrenclave,
@@ -154,8 +165,16 @@ func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DK
 	req := &dkgpb.ProcessResponsesRequest{
 		Mrenclave: session.Mrenclave,
 		Round:     session.Round,
-		Responses: event.Responses,
+		Responses: []*types.Response{},
 	}
+
+	for _, resp := range event.Responses {
+		if resp.Index != s.index {
+			req.Responses = append(req.Responses, resp)
+		}
+	}
+	log.Info(ctx, "Processing responses", "event_responses", len(event.Responses), "req_responses", len(req.Responses), "index", s.index)
+
 	_, err = s.teeClient.ProcessResponses(ctx, req)
 	if err != nil {
 		return errors.Wrap(err, "failed to process responses")
