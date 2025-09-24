@@ -63,3 +63,41 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 
 	return nil
 }
+
+// handleDKGDealVerification handles the deal verification phase event.
+func (s *Service) handleDKGDealVerification(ctx context.Context, event *types.DKGEventData) error {
+	log.Info(ctx, "Handling DKG deal verification phase event",
+		"mrenclave", event.Mrenclave,
+		"round", event.Round,
+	)
+
+	mrenclave, err := event.ParseMrenclave()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse mrenclave")
+	}
+
+	session, err := s.stateManager.GetSession(mrenclave, event.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG session")
+	}
+
+	if session.Phase != types.PhaseDealing {
+		log.Warn(ctx, "Session not in dealing phase, skipping deal verification", nil,
+			"current_phase", session.Phase.String(),
+		)
+
+		return nil
+	}
+
+	req := &dkgpb.ProcessDealRequest{
+		Mrenclave: session.Mrenclave,
+		Round:     session.Round,
+		Index:     session.Index,
+		Deals:     event.Deals,
+	}
+	_, err = s.teeClient.ProcessDeals(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed to process deals")
+	}
+	return nil
+}

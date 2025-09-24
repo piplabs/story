@@ -124,6 +124,7 @@ type DKGEventData struct {
 	Threshold        uint32            `json:"threshold,omitempty"`
 	ValidatorAddr    string            `json:"validator_address,omitempty"`
 	Index            uint32            `json:"index,omitempty"`
+	Deals            []*Deal           `json:"deals,omitempty"`
 	Attributes       map[string]string `json:"attributes,omitempty"`
 	// registration-specific
 	Signature  []byte `json:"signature,omitempty"`

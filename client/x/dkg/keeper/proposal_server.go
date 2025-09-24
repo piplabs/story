@@ -15,7 +15,11 @@ type proposalServer struct {
 func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
 
-	// TODO: send votes to tee client for verification
+	latestRound, err := s.Keeper.GetLatestDKGRound(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_ = s.Keeper.emitBeginDealVerification(ctx, latestRound, msg.Vote.Deals)
 	return &types.AddDkgVoteResponse{}, nil
 }
 

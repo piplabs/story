@@ -16,6 +16,7 @@ func isDKGEvent(eventType string) bool {
 		"/story.dkg.v1.types.EventBeginInitialization",
 		"/story.dkg.v1.types.EventBeginNetworkSet",
 		"/story.dkg.v1.types.EventBeginDealing",
+		"/story.dkg.v1.types.EventBeginDealVerification",
 		"/story.dkg.v1.types.EventBeginFinalization",
 		"/story.dkg.v1.types.EventDKGFinalized",
 	}
@@ -39,6 +40,8 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 		return parseBeginNetworkSetEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginDealing":
 		return parseBeginDealingEvent(event, height)
+	case "/story.dkg.v1.types.EventBeginDealVerification":
+		return parseBeginDealVerificationEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginFinalization":
 		return parseBeginFinalizationEvent(event, height)
 	case "/story.dkg.v1.types.EventDKGFinalized":
@@ -154,6 +157,77 @@ func parseBeginDealingEvent(event abcitypes.Event, height int64) *types.DKGEvent
 		Mrenclave:   string(protoEvent.Mrenclave),
 		Round:       protoEvent.Round,
 		BlockHeight: height,
+		Attributes:  extractAttributes(event),
+	}
+}
+
+func parseBeginDealVerificationEvent(event abcitypes.Event, height int64) *types.DKGEventData {
+	var protoEvent dkgtypes.EventBeginDealVerification
+
+	for _, attr := range event.Attributes {
+		if attr.Key == "data" {
+			var eventData map[string]any
+			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
+				break
+			}
+			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
+				protoEvent.Mrenclave = []byte(mrenclaveStr)
+			}
+			if roundFloat, ok := eventData["round"].(float64); ok {
+				protoEvent.Round = uint32(roundFloat)
+			}
+			if deals, ok := eventData["deals"].([]map[string]any); ok {
+				for _, deal := range deals {
+					var dkgDeal dkgtypes.Deal
+					if indexFloat, ok := deal["index"].(float64); ok {
+						dkgDeal.Index = uint32(indexFloat)
+					}
+					if recipientIndex, ok := deal["recipient_index"].(float64); ok {
+						dkgDeal.RecipientIndex = uint32(recipientIndex)
+					}
+					if encryptedDeal, ok := deal["deal"].([]map[string]any); ok {
+						dkgDeal.Deal = dkgtypes.EncryptedDeal{}
+						for _, edAttr := range encryptedDeal {
+							if edKey, ok := edAttr["key"].(string); ok {
+								switch edKey {
+								case "dh_key":
+									if dhKey, ok := edAttr["value"].(string); ok {
+										dkgDeal.Deal.DhKey = []byte(dhKey)
+									}
+								case "signature":
+									if signature, ok := edAttr["value"].(string); ok {
+										dkgDeal.Deal.Signature = []byte(signature)
+									}
+								case "nonce":
+									if nonce, ok := edAttr["value"].(string); ok {
+										dkgDeal.Deal.Nonce = []byte(nonce)
+									}
+								case "cipher":
+									if cipher, ok := edAttr["value"].(string); ok {
+										dkgDeal.Deal.Cipher = []byte(cipher)
+									}
+								}
+							}
+						}
+					}
+
+					if signature, ok := deal["signature"].(string); ok {
+						dkgDeal.Signature = []byte(signature)
+					}
+					protoEvent.Deals = append(protoEvent.Deals, &dkgDeal)
+				}
+			}
+
+			break
+		}
+	}
+
+	return &types.DKGEventData{
+		EventType:   "dkg_begin_deal_verification",
+		Mrenclave:   string(protoEvent.Mrenclave),
+		Round:       protoEvent.Round,
+		BlockHeight: height,
+		Deals:       protoEvent.Deals,
 		Attributes:  extractAttributes(event),
 	}
 }

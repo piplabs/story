@@ -181,6 +181,8 @@ func (s *Service) handleDKGEvent(ctx context.Context, event *types.DKGEventData)
 		return s.handleDKGNetworkSet(ctx, event)
 	case "dkg_begin_dealing":
 		return s.handleDKGDealing(ctx, event)
+	case "dkg_verify_dealings":
+		return s.handleDKGDealVerification(ctx, event)
 	case "dkg_begin_finalization":
 		return s.handleDKGFinalization(ctx, event)
 	case "dkg_finalized":
