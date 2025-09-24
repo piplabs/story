@@ -52,7 +52,7 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		session.Deals[deal.Index] = *deal
 	}
 
-	// TODO: dealing logic
+	// TODO: dealing logic (via vote extension in Cosmos SDK)
 	// DKG service would request to process the deals which is given through vote extension to the TEE client.
 	// Then, the TEE client will process the deals. If there is any invalid deals, it will return the complaints in ProcessDealResponse (step 5 in DKG dealing section).
 

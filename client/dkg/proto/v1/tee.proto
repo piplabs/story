@@ -140,16 +140,7 @@ message SetupDKGNetworkResponse {
     (gogoproto.moretags) = "yaml:\"threshold\""
   ];
 
-  uint32 index = 5 [
-    (gogoproto.moretags) = "yaml:\"index\""
-  ];
-
-  bytes commitments = 6 [
-    (gogoproto.nullable) = false,
-    (gogoproto.moretags) = "yaml:\"commitments\""
-  ];
-
-  bytes signature = 7 [
+  bytes signature = 5 [
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
 }

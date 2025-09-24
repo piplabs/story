@@ -23,7 +23,7 @@ contract DKG is IDKG {
         public votes;
     mapping(bytes mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
 
-    constructor(bytes calldata mrenclave) {
+    constructor(bytes memory mrenclave) {
         curMrenclave = mrenclave;
     }
 
@@ -46,14 +46,17 @@ contract DKG is IDKG {
             "Validator not in active set"
         );
 
-        require(_verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey), "Invalid remote attestation");
+        require(
+            _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey),
+            "Invalid remote attestation"
+        );
 
         dkgNodeInfos[mrenclave][round][msg.sender] = NodeInfo({
             dkgPubKey: dkgPubKey,
             commPubKey: commPubKey,
             rawQuote: rawQuote,
             chalStatus: ChallengeStatus.NotChallenged,
-            finalized: false
+            nodeStatus: NodeStatus.Registered
         });
 
         emit DKGInitialized(msg.sender, mrenclave, round, dkgPubKey, commPubKey, rawQuote);
@@ -66,17 +69,16 @@ contract DKG is IDKG {
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
-        require(node.validator == msg.sender, "Invalid sender");
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
             _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
             "Invalid finalization signature"
         );
 
-        node.finalized = true;
+        node.nodeStatus = NodeStatus.Finalized;
 
         votes[mrenclave][round][globalPubKey]++;
-        if (votes[mrenclave][round][globalPubKey]  >= roundInfo[mrenclave][round].threshold ) {
+        if (votes[mrenclave][round][globalPubKey] >= roundInfo[mrenclave][round].threshold) {
             roundInfo[mrenclave][round].globalPubKey = globalPubKey;
         }
 
@@ -87,7 +89,11 @@ contract DKG is IDKG {
         return roundInfo[mrenclave][round].globalPubKey;
     }
 
-    function submitActiveValSet(uint32 round, bytes calldata mrenclave, address[] calldata valSet) external onlyValidMrenclave(mrenclave) {
+    function submitActiveValSet(
+        uint32 round,
+        bytes calldata mrenclave,
+        address[] calldata valSet
+    ) external onlyValidMrenclave(mrenclave) {
         for (uint256 i = 0; i < valSet.length; i++) {
             // add if validator is not challenged (invalidated)
             // TODO: exclude validators that aren't participating in the DKG system
@@ -97,12 +103,22 @@ contract DKG is IDKG {
         }
     }
 
-    function requestRemoteAttestationOnChain(address targetValidatorAddr, uint32 round, bytes calldata mrenclave) external onlyValidMrenclave(mrenclave) {
+    function requestRemoteAttestationOnChain(
+        address targetValidatorAddr,
+        uint32 round,
+        bytes calldata mrenclave
+    ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetValidatorAddr];
         require(node.dkgPubKey.length != 0, "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
-        bool isValid = _verifyRemoteAttestation(node.rawQuote, targetValidatorAddr, round, node.dkgPubKey);
+        bool isValid = _verifyRemoteAttestation(
+            node.rawQuote,
+            targetValidatorAddr,
+            round,
+            node.dkgPubKey,
+            node.commPubKey
+        );
         if (isValid) {
             node.chalStatus = ChallengeStatus.Resolved;
         } else {
@@ -127,11 +143,34 @@ contract DKG is IDKG {
         emit DealComplaintsSubmitted(index, complainIndexes, round, mrenclave);
     }
 
+    function setNetwork(
+        uint32 round,
+        uint32 total,
+        uint32 threshold,
+        bytes calldata mrenclave,
+        bytes calldata signature
+    ) external onlyValidMrenclave(mrenclave) {
+        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
+
+        require(
+            _verifySetNetworkSignature(node.commPubKey, round, total, threshold, mrenclave, signature),
+            "Invalid set network signature"
+        );
+
+        node.nodeStatus = NodeStatus.NetworkSetDone;
+
+        emit DKGNetworkSet(msg.sender, round, total, threshold, mrenclave, signature);
+    }
+
     //////////////////////////////////////////////////////////////
     //                      Getter Functions                    //
     //////////////////////////////////////////////////////////////
 
-    function getNodeInfo(bytes calldata mrenclave, uint32 round, address validator) external view returns (NodeInfo memory) {
+    function getNodeInfo(
+        bytes calldata mrenclave,
+        uint32 round,
+        address validator
+    ) external view returns (NodeInfo memory) {
         return dkgNodeInfos[mrenclave][round][validator];
     }
 
@@ -160,6 +199,18 @@ contract DKG is IDKG {
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
 
+    function _verifySetNetworkSignature(
+        bytes memory /*commPubKey*/,
+        uint32 /*round*/,
+        uint32 /*total*/,
+        uint32 /*threshold*/,
+        bytes calldata /*mrenclave*/,
+        bytes calldata /*signature*/
+    ) internal pure returns (bool) {
+        // TODO: verification logic
+        return true;
+    }
+
     function _verifyRemoteAttestation(
         bytes memory rawQuote,
         address validator,
@@ -168,6 +219,11 @@ contract DKG is IDKG {
         bytes memory commPubKey
     ) internal pure returns (bool) {
         // TODO: verify the report data and remote attestation
-        return rawQuote.length > 0 && validator != address(0) && round > 0 && dkgPubKey.length > 0 && commPubKey.length > 0;
+        return
+            rawQuote.length > 0 &&
+            validator != address(0) &&
+            round > 0 &&
+            dkgPubKey.length > 0 &&
+            commPubKey.length > 0;
     }
 }

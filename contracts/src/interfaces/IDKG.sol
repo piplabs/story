@@ -8,6 +8,13 @@ contract IDKG {
         Resolved
     }
 
+    enum NodeStatus {
+        Unregistered,
+        Registered,
+        NetworkSetDone,
+        Finalized
+    }
+
     struct RoundInfo {
         uint32 total;
         uint32 threshold;
@@ -19,7 +26,7 @@ contract IDKG {
         bytes commPubKey;
         bytes rawQuote;
         ChallengeStatus chalStatus;
-        bool finalized;
+        NodeStatus nodeStatus;
     }
 
     event DKGInitialized(
@@ -31,20 +38,18 @@ contract IDKG {
         bytes rawQuote
     );
 
-    event DKGFinalized(
+    event DKGFinalized(address indexed msgSender, uint32 round, bytes mrenclave, bytes globalPubKey, bytes signature);
+
+    event DKGNetworkSet(
         address indexed msgSender,
         uint32 round,
-        uint32 index,
+        uint32 total,
+        uint32 threshold,
         bytes mrenclave,
-        bytes globalPubKey,
         bytes signature
     );
 
     event UpgradeScheduled(uint32 activationHeight, bytes mrenclave);
-
-    event RegistrationChallenged(uint32 round, bytes mrenclave, address indexed challenger);
-
-    event InvalidDKGInitialization(uint32 round, uint32 index, address validator, bytes mrenclave);
 
     event RemoteAttestationProcessedOnChain(
         address validator,
@@ -53,6 +58,7 @@ contract IDKG {
         bytes mrenclave
     );
 
+    // TODO: remove index and use validator address instead
     event DealComplaintsSubmitted(uint32 index, uint32[] complainIndexes, uint32 round, bytes mrenclave);
 
     event DealVerified(uint32 index, uint32 recipientIndex, uint32 round, bytes mrenclave);

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -26,7 +27,7 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 				return nil, errors.Wrap(err, "failed to convert to evm address", "operator_addr", val.OperatorAddress)
 			}
 
-			bondedValidators = append(bondedValidators, evmOperatorAddress)
+			bondedValidators = append(bondedValidators, strings.ToLower(evmOperatorAddress))
 		}
 	}
 
@@ -38,8 +39,8 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	elapsed := currentHeight - dkgNetwork.StartBlock
 
 	registrationEnd := int64(params.RegistrationPeriod)
-	challengeEnd := registrationEnd + int64(params.ChallengePeriod)
-	dealingEnd := challengeEnd + int64(params.DealingPeriod)
+	networkSetEnd := registrationEnd + int64(params.NetworkSetPeriod)
+	dealingEnd := networkSetEnd + int64(params.DealingPeriod)
 	finalizationEnd := dealingEnd + int64(params.FinalizationPeriod)
 	activeEnd := finalizationEnd + int64(params.ActivePeriod)
 
@@ -47,10 +48,11 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	switch currentStage {
 	case types.DKGStageRegistration:
 		if elapsed >= registrationEnd {
-			return types.DKGStageChallenge, true
+			return types.DKGStageNetworkSet, true
 		}
-	case types.DKGStageChallenge:
-		if elapsed >= challengeEnd {
+	// NOTE: DKGStageNetworkSet
+	case types.DKGStageNetworkSetCompleted:
+		if elapsed >= networkSetEnd {
 			return types.DKGStageDealing, true
 		}
 	case types.DKGStageDealing:
@@ -71,38 +73,6 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	}
 
 	return currentStage, false
-}
-
-// getVerifiedDKGValidators returns the count of verified DKG validators (those who are participating and not invalidated).
-func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte, round uint32) (uint32, error) {
-	// Get registrations with status VERIFIED
-	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusVerified)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to get verified registrations")
-	}
-
-	// Get registrations with status FINALIZED
-	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusFinalized)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to get finalized registrations")
-	}
-
-	total := uint32(len(verifiedRegs) + len(finalizedRegs))
-
-	return total, nil
-}
-
-// updateDKGNetworkTotalAndThreshold updates the total and threshold for a DKG network after the challenge period.
-func (k *Keeper) updateDKGNetworkTotalAndThreshold(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	verifiedCount, err := k.getVerifiedDKGValidators(ctx, dkgNetwork.Mrenclave, dkgNetwork.Round)
-	if err != nil {
-		return errors.Wrap(err, "failed to get verified DKG validators count")
-	}
-
-	dkgNetwork.Total = verifiedCount
-	dkgNetwork.Threshold = k.calculateThreshold(verifiedCount)
-
-	return k.SetDKGNetwork(ctx, dkgNetwork)
 }
 
 func (k *Keeper) initiateDKGRound(ctx context.Context) error {

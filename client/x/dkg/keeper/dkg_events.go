@@ -30,22 +30,6 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 	return nil
 }
 
-func (*Keeper) emitBeginChallengePeriod(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-
-	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginChallengePeriod{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to emit dkg_begin_challenge_period event")
-	}
-
-	log.Info(ctx, "Emitted BeginChallengePeriod event", "round", dkgNetwork.Round)
-
-	return nil
-}
-
 func (*Keeper) emitBeginDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 

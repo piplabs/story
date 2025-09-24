@@ -87,8 +87,6 @@ func (s *Service) submitFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	_, err := s.contractClient.FinalizeDKG(
 		ctx,
 		session.Round,
-		session.Index,
-		session.IsFinalized,
 		session.Mrenclave,
 		session.GlobalPubKey,
 		signature,
@@ -99,7 +97,6 @@ func (s *Service) submitFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 	log.Info(ctx, "FinalizeDKG contract call successful",
 		"round", session.Round,
-		"index", session.Index,
 		"finalized", session.IsFinalized,
 		"signature_len", len(signature),
 	)

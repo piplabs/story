@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"slices"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -11,25 +13,44 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// RegistrationInitialized handles DKG registration initialization event.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, index uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
-	dkgReg := &types.DKGRegistration{
-		Mrenclave:   mrenclave,
-		Round:       round,
-		MsgSender:   msgSender.Hex(),
-		Index:       index,
-		DkgPubKey:   dkgPubKey,
-		CommPubKey:  commPubKey,
-		RawQuote:    rawQuote,
-		Status:      types.DKGRegStatusNotVerified, // not verified initially, will be set in CommitmentsUpdated
-		Commitments: nil,                           // empty initially, will be set in CommitmentsUpdated
+// RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
+// by the DKG module & service to set the DKG network and perform further steps such as dealing.
+func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+	dkgNetwork, err := k.getDKGNetwork(ctx, mrenclave, round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get dkg network")
 	}
 
-	if err := k.setDKGRegistration(ctx, mrenclave, dkgReg); err != nil {
+	if dkgNetwork.Stage != types.DKGStageRegistration {
+		return errors.New("round is not in registration stage")
+	}
+
+	if !slices.Contains(dkgNetwork.ActiveValSet, strings.ToLower(msgSender.Hex())) {
+		return errors.New("msg sender is not in the active validator set")
+	}
+
+	index, err := k.getNextDKGRegistrationIndex(ctx, mrenclave, round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get next dkg registration index")
+	}
+
+	dkgReg := &types.DKGRegistration{
+		Mrenclave:  mrenclave,
+		Round:      round,
+		MsgSender:  msgSender.Hex(),
+		Index:      index,
+		DkgPubKey:  dkgPubKey,
+		CommPubKey: commPubKey,
+		RawQuote:   rawQuote,
+		Status:     types.DKGRegStatusVerified,
+	}
+
+	if err := k.setDKGRegistration(ctx, mrenclave, msgSender, dkgReg); err != nil {
 		log.Error(ctx, "Failed to store DKG registration", err,
 			"mrenclave", hex.EncodeToString(mrenclave),
 			"round", round,
-			"index", index,
+			"validator_address", msgSender.Hex(),
+			"next_index", index,
 		)
 
 		return errors.Wrap(err, "failed to store dkg registration")
@@ -39,8 +60,8 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
 		"status", "verified",
-		"msg_sender", msgSender.Hex(),
-		"index", index,
+		"validator_address", msgSender.Hex(),
+		"next_index", index,
 		"dkg_pubkey_len", len(dkgPubKey),
 		"comm_pubkey_len", len(commPubKey),
 		"raw_quote_len", len(rawQuote),
@@ -49,16 +70,49 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	return nil
 }
 
-// Finalized handles DKG finalization event.
-func (*Keeper) Finalized(ctx context.Context, round uint32, index uint32, finalized bool, mrenclave []byte, signature []byte) error {
-	log.Info(ctx, "DKG Finalized event received",
+// NetworkSet handles DKG network set event.
+func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, total uint32, threshold uint32, signature []byte) error {
+	log.Info(ctx, "DKG NetworkSet event received",
 		"round", round,
-		"index", index,
-		"finalized", finalized,
+		"msg_sender", msgSender.Hex(),
 		"mrenclave", hex.EncodeToString(mrenclave),
+		"total", total,
+		"threshold", threshold,
 		"signature_len", len(signature),
 	)
-	// TODO: Implement actual finalization logic
+
+	err := k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusNetworkSet)
+	if err != nil {
+		return errors.Wrap(err, "failed to update dkg registration status")
+	}
+
+	// TODO: Implement remaining network set logic
+
+	return nil
+}
+
+// Finalized handles DKG finalization event.
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave []byte, signature []byte) error {
+	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, msgSender)
+	if err != nil {
+		return errors.Wrap(err, "failed to get dkg registration index")
+	}
+
+	log.Info(ctx, "DKG Finalized event received",
+		"round", round,
+		"msg_sender", msgSender.Hex(),
+		"mrenclave", hex.EncodeToString(mrenclave),
+		"signature_len", len(signature),
+		"index", index,
+	)
+
+	k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to update dkg registration status")
+	}
+
+	// TODO: Implement remaining finalization logic
+
 	return nil
 }
 
@@ -72,31 +126,13 @@ func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mr
 	return nil
 }
 
-// RegistrationChallenged handles registration challenge event.
-func (*Keeper) RegistrationChallenged(ctx context.Context, round uint32, mrenclave []byte, challenger common.Address) error {
-	log.Info(ctx, "DKG RegistrationChallenged event received",
-		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
-		"challenger", challenger.Hex(),
-	)
-	// TODO: Implement actual registration challenge logic
-	return nil
-}
-
-// InvalidDKGInitialization handles invalid DKG initialization event.
-func (*Keeper) InvalidDKGInitialization(ctx context.Context, round uint32, index uint32, validator common.Address, mrenclave []byte) error {
-	log.Info(ctx, "DKG InvalidDKGInitialization event received",
-		"round", round,
-		"index", index,
-		"validator", validator.Hex(),
-		"mrenclave", hex.EncodeToString(mrenclave),
-	)
-	// TODO: Implement actual invalid initialization handling logic
-	return nil
-}
-
 // RemoteAttestationProcessedOnChain handles remote attestation processed event.
-func (*Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, index uint32, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
+func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
+	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, validator)
+	if err != nil {
+		return errors.Wrap(err, "failed to get dkg registration index")
+	}
+
 	log.Info(ctx, "DKG RemoteAttestationProcessedOnChain event received",
 		"index", index,
 		"validator", validator.Hex(),

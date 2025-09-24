@@ -8,7 +8,7 @@ const (
 	// periods are in seconds.
 	MinDkgStagePeriod            uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgRegistrationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
-	DefaultDkgChallengePeriod    uint32 = 7 * 24 * 60 * 60  // 7 days
+	DefaultDkgNetworkSetPeriod   uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgDealingPeriod      uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgFinalizationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
@@ -22,7 +22,7 @@ const (
 // NewParams creates a new Params instance.
 func NewParams(
 	registrationPeriod uint32,
-	challengePeriod uint32,
+	networkSetPeriod uint32,
 	dealingPeriod uint32,
 	finalizationPeriod uint32,
 	activePeriod uint32,
@@ -31,7 +31,7 @@ func NewParams(
 ) Params {
 	return Params{
 		RegistrationPeriod: registrationPeriod,
-		ChallengePeriod:    challengePeriod,
+		NetworkSetPeriod:   networkSetPeriod,
 		DealingPeriod:      dealingPeriod,
 		FinalizationPeriod: finalizationPeriod,
 		ActivePeriod:       activePeriod,
@@ -44,7 +44,7 @@ func NewParams(
 func DefaultParams() Params {
 	return NewParams(
 		DefaultDkgRegistrationPeriod,
-		DefaultDkgChallengePeriod,
+		DefaultDkgNetworkSetPeriod,
 		DefaultDkgDealingPeriod,
 		DefaultDkgFinalizationPeriod,
 		DefaultDkgActivePeriod,
@@ -59,7 +59,7 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if err := ValidateChallengePeriod(p.ChallengePeriod); err != nil {
+	if err := ValidateNetworkSetPeriod(p.NetworkSetPeriod); err != nil {
 		return err
 	}
 
@@ -98,13 +98,13 @@ func ValidateRegistrationPeriod(registrationPeriod uint32) error {
 	return nil
 }
 
-func ValidateChallengePeriod(challengePeriod uint32) error {
-	if challengePeriod == 0 {
-		return errors.New("invalid dkg challenge period", "period", challengePeriod)
+func ValidateNetworkSetPeriod(networkSetPeriod uint32) error {
+	if networkSetPeriod == 0 {
+		return errors.New("invalid dkg network set period", "period", networkSetPeriod)
 	}
 
-	if challengePeriod < MinDkgStagePeriod {
-		return errors.New("minimum dkg challenge period is 1 day", "period", challengePeriod)
+	if networkSetPeriod < MinDkgStagePeriod {
+		return errors.New("minimum dkg network set period is 1 day", "period", networkSetPeriod)
 	}
 
 	return nil

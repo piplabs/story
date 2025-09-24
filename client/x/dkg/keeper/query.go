@@ -78,7 +78,7 @@ func (k *Keeper) GetDKGRegistration(ctx context.Context, req *types.QueryGetDKGR
 	return nil, status.Error(codes.Unimplemented, "GetDKGRegistration by validator address not implemented")
 }
 
-// GetAllDKGRegistrations queries all DKG registrations for a specific mrenclave and round.
+// GetAllDKGRegistrations queries all DKG registrations (registered & verified) for a specific mrenclave and round.
 func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGetAllDKGRegistrationsRequest) (*types.QueryGetAllDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -94,4 +94,18 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 		Registrations: registrations,
 		Pagination:    nil,
 	}, nil
+}
+
+// GetVerifiedDKGRegistrations queries the count of verified DKG registrations (verified == registered) for a specific mrenclave and round.
+func (k *Keeper) GetVerifiedDKGRegistrations(ctx context.Context, req *types.QueryGetVerifiedDKGRegistrationsRequest) (*types.QueryGetVerifiedDKGRegistrationsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	registrations, err := k.getDKGRegistrationsByStatus(ctx, req.Mrenclave, req.Round, types.DKGRegStatusVerified)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryGetVerifiedDKGRegistrationsResponse{Registrations: registrations}, nil
 }

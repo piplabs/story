@@ -11,15 +11,15 @@ message Params {
   uint32 registration_period = 1 [
     (gogoproto.moretags) = "yaml:\"registration_period\""
   ];
-  
-  uint32 challenge_period = 2 [
-    (gogoproto.moretags) = "yaml:\"challenge_period\""
+
+  uint32 network_set_period = 2 [
+    (gogoproto.moretags) = "yaml:\"network_set_period\""
   ];
-  
+
   uint32 dealing_period = 3 [
     (gogoproto.moretags) = "yaml:\"dealing_period\""
   ];
-  
+
   uint32 finalization_period = 4 [
     (gogoproto.moretags) = "yaml:\"finalization_period\""
   ];
@@ -27,7 +27,7 @@ message Params {
   uint32 active_period = 5 [
     (gogoproto.moretags) = "yaml:\"active_period\""
   ];
-  
+
   uint32 complaint_period = 6 [
     (gogoproto.moretags) = "yaml:\"complaint_period\""
   ];

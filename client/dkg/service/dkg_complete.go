@@ -28,7 +28,7 @@ func (s *Service) handleDKGComplete(ctx context.Context, event *types.DKGEventDa
 	}
 
 	session.UpdatePhase(types.PhaseCompleted)
-	session.IsFinalized = true
+	session.IsFinalized = true // ready to start DKG threshold encryption/decryption
 
 	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update completed session")

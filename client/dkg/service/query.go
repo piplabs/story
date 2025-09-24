@@ -11,21 +11,19 @@ import (
 func (s *Service) queryVerifiedDKGRegistrations(ctx context.Context, mrenclave []byte, round uint32) ([]*dkgtypes.DKGRegistration, error) {
 	queryClient := dkgtypes.NewQueryClient(s.cosmosClient)
 
-	req := &dkgtypes.QueryGetAllDKGRegistrationsRequest{
+	req := &dkgtypes.QueryGetVerifiedDKGRegistrationsRequest{
 		Round:     round,
 		Mrenclave: mrenclave,
 	}
-	resp, err := queryClient.GetAllDKGRegistrations(ctx, req)
+	resp, err := queryClient.GetVerifiedDKGRegistrations(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query DKG registrations from x/dkg module")
 	}
 
-	var verifiedRegistrations []*dkgtypes.DKGRegistration
+	registrations := make([]*dkgtypes.DKGRegistration, len(resp.Registrations))
 	for i := range resp.Registrations {
-		if resp.Registrations[i].Status == dkgtypes.DKGRegStatusVerified {
-			verifiedRegistrations = append(verifiedRegistrations, &resp.Registrations[i])
-		}
+		registrations[i] = &resp.Registrations[i]
 	}
 
-	return verifiedRegistrations, nil
+	return registrations, nil
 }

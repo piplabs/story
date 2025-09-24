@@ -6,11 +6,10 @@ option go_package = "github.com/piplabs/story/client/x/dkg/types";
 enum EventType {
   EVENT_TYPE_UNSPECIFIED = 0;
   EVENT_TYPE_BEGIN_INITIALIZATION = 1;
-  EVENT_TYPE_BEGIN_CHALLENGE_PERIOD = 2;
-  EVENT_TYPE_BEGIN_NETWORK_SET = 3;
-  EVENT_TYPE_BEGIN_DEALING = 4;
-  EVENT_TYPE_BEGIN_FINALIZATION = 5;
-  EVENT_TYPE_DKG_FINALIZED = 6;
+  EVENT_TYPE_BEGIN_NETWORK_SET = 2;
+  EVENT_TYPE_BEGIN_DEALING = 3;
+  EVENT_TYPE_BEGIN_FINALIZATION = 4;
+  EVENT_TYPE_DKG_FINALIZED = 5;
 }
 
 message EventBeginInitialization {
@@ -18,11 +17,6 @@ message EventBeginInitialization {
   uint32 round = 2;
   uint32 start_block = 3;
   repeated string active_validators = 4;
-}
-
-message EventBeginChallengePeriod {
-  bytes mrenclave = 1;
-  uint32 round = 2;
 }
 
 message EventBeginNetworkSet {

@@ -55,8 +55,7 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 	session.ActiveValidators = event.ActiveValidators
 	session.Total = event.Total
 	session.Threshold = event.Threshold
-	session.Index = resp.GetIndex()
-	session.Commitments = resp.GetCommitments()
+	// session.Signature = resp.GetSignature()
 
 	session.UpdatePhase(types.PhaseChallenging)
 	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
@@ -69,6 +68,37 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 		"index", session.Index,
 		"total", session.Total,
 		"threshold", session.Threshold,
+	)
+
+	return s.submitSetNetwork(ctx, session, resp.GetSignature())
+}
+
+// submitSetNetwork submits the network set to the DKG contract.
+func (s *Service) submitSetNetwork(ctx context.Context, session *types.DKGSession, signature []byte) error {
+	log.Info(ctx, "Submitting network set to DKG contract",
+		"mrenclave", session.GetMrenclaveString(),
+		"round", session.Round,
+		"signature_len", len(signature),
+	)
+
+	// TODO: ensure these parameters are set correctly before calling SetNetwork
+	_, err := s.contractClient.SetNetwork(
+		ctx,
+		session.Round,
+		session.Total,
+		session.Threshold,
+		session.Mrenclave,
+		signature,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to call SetNetwork contract method")
+	}
+
+	log.Info(ctx, "SetNetwork contract call successful",
+		"round", session.Round,
+		"total", session.Total,
+		"threshold", session.Threshold,
+		"signature_len", len(signature),
 	)
 
 	return nil

@@ -6,13 +6,15 @@ import (
 
 	"cosmossdk.io/collections"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
 
 // setDKGRegistration stores a DKG registration in the store using mrenclave_round_index as the key.
-func (k *Keeper) setDKGRegistration(ctx context.Context, mrenclave []byte, dkgReg *types.DKGRegistration) error {
-	key := fmt.Sprintf("%s_%d_%d", string(mrenclave), dkgReg.Round, dkgReg.Index)
+func (k *Keeper) setDKGRegistration(ctx context.Context, mrenclave []byte, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
+	key := fmt.Sprintf("%s_%d_%s", string(mrenclave), dkgReg.Round, validatorAddr.Hex())
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
 		return errors.Wrap(err, "failed to set dkg registration")
 	}
@@ -21,8 +23,8 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, mrenclave []byte, dkgRe
 }
 
 // getDKGRegistration retrieves a DKG registration by mrenclave, round, and index.
-func (k *Keeper) getDKGRegistration(ctx context.Context, mrenclave []byte, round, index uint32) (*types.DKGRegistration, error) {
-	key := fmt.Sprintf("%s_%d_%d", string(mrenclave), round, index)
+func (k *Keeper) getDKGRegistration(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
+	key := fmt.Sprintf("%s_%d_%s", string(mrenclave), round, validatorAddr.Hex())
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -33,6 +35,43 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, mrenclave []byte, round
 	}
 
 	return &dkgReg, nil
+}
+
+// getDKGRegistrationIndex gets the index of a specific DKG registration by mrenclave, round, and msg sender.
+//
+// TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
+func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, mrenclave []byte, round uint32, msgSender common.Address) (uint32, error) {
+	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, round)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, registration := range registrations {
+		if registration.MsgSender == msgSender.Hex() {
+			return registration.Index, nil
+		}
+	}
+
+	return 0, errors.New("dkg registration not found")
+}
+
+// getNextDKGRegistrationIndex gets the next DKG registration index for a specific mrenclave and round.
+//
+// TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
+func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, mrenclave []byte, round uint32) (uint32, error) {
+	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, round)
+	if err != nil {
+		return 0, err
+	}
+
+	index := uint32(0)
+	for _, registration := range registrations {
+		if registration.Index > index {
+			index = registration.Index
+		}
+	}
+
+	return index + 1, nil
 }
 
 // getDKGRegistrationsByRound retrieves all DKG registrations for a specific mrenclave and round.
@@ -56,8 +95,8 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, mrenclave []byt
 }
 
 // deleteDKGRegistration removes a DKG registration from the store.
-func (k *Keeper) deleteDKGRegistration(ctx context.Context, mrenclave []byte, round, index uint32) error {
-	key := fmt.Sprintf("%s_%d_%d", string(mrenclave), round, index)
+func (k *Keeper) deleteDKGRegistration(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) error {
+	key := fmt.Sprintf("%s_%d_%s", string(mrenclave), round, validatorAddr.Hex())
 	if err := k.DKGRegistrations.Remove(ctx, key); err != nil {
 		return errors.Wrap(err, "failed to delete dkg registration")
 	}
@@ -66,15 +105,15 @@ func (k *Keeper) deleteDKGRegistration(ctx context.Context, mrenclave []byte, ro
 }
 
 // updateDKGRegistrationStatus updates the status of a specific DKG registration.
-func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, mrenclave []byte, round, index uint32, status types.DKGRegStatus) error {
-	dkgReg, err := k.getDKGRegistration(ctx, mrenclave, round, index)
+func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address, status types.DKGRegStatus) error {
+	dkgReg, err := k.getDKGRegistration(ctx, mrenclave, round, validatorAddr)
 	if err != nil {
 		return err
 	}
 
 	dkgReg.Status = status
 
-	return k.setDKGRegistration(ctx, mrenclave, dkgReg)
+	return k.setDKGRegistration(ctx, mrenclave, validatorAddr, dkgReg)
 }
 
 // getDKGRegistrationsByStatus retrieves all DKG registrations with a specific status for a given mrenclave and round.

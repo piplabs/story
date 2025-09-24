@@ -143,8 +143,6 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 func (c *ContractClient) FinalizeDKG(
 	ctx context.Context,
 	round uint32,
-	index uint32,
-	finalized bool,
 	mrenclave []byte,
 	globalPubKey []byte,
 	signature []byte,
@@ -152,13 +150,11 @@ func (c *ContractClient) FinalizeDKG(
 	log.Info(ctx, "Calling finalizeDKG contract method",
 		"mrenclave", string(mrenclave),
 		"round", round,
-		"index", index,
-		"finalized", finalized,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
 		"signature_len", len(signature),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, index, finalized, mrenclave, globalPubKey, signature)
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, mrenclave, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
@@ -173,7 +169,7 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.FinalizeDKG(auth, round, index, finalized, mrenclave, globalPubKey, signature)
+	tx, err := c.dkgContract.FinalizeDKG(auth, round, mrenclave, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call finalize dkg")
 	}
@@ -188,20 +184,67 @@ func (c *ContractClient) FinalizeDKG(
 	return receipt, nil
 }
 
+// SetNetwork calls the setNetwork contract method.
+func (c *ContractClient) SetNetwork(
+	ctx context.Context,
+	round uint32,
+	total uint32,
+	threshold uint32,
+	mrenclave []byte,
+	signature []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling setNetwork contract method",
+		"mrenclave", string(mrenclave),
+		"round", round,
+		"total", total,
+		"threshold", threshold,
+		"signature_len", len(signature),
+	)
+
+	callData, err := c.dkgContractAbi.Pack("setNetwork", round, total, threshold, mrenclave, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack setNetwork call data")
+	}
+
+	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to estimate gas for setNetwork")
+	}
+
+	auth, err := c.createTransactOpts(ctx, gasLimit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create transaction options")
+	}
+
+	tx, err := c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave, signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to call setNetwork")
+	}
+
+	log.Info(ctx, "SetNetwork transaction sent", "tx_hash", tx.Hash().Hex())
+
+	receipt, err := c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to wait for setNetwork transaction")
+	}
+
+	return receipt, nil
+}
+
 // RequestRemoteAttestationOnChain calls the requestRemoteAttestationOnChain contract method.
 func (c *ContractClient) RequestRemoteAttestationOnChain(
 	ctx context.Context,
-	targetIndex uint32,
+	targetValidatorAddr common.Address,
 	round uint32,
 	mrenclave []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling requestRemoteAttestationOnChain contract method",
 		"mrenclave", string(mrenclave),
 		"round", round,
-		"target_index", targetIndex,
+		"target_validator_addr", targetValidatorAddr.Hex(),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetIndex, round, mrenclave)
+	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetValidatorAddr, round, mrenclave)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack requestRemoteAttestationOnChain call data")
 	}
@@ -216,7 +259,7 @@ func (c *ContractClient) RequestRemoteAttestationOnChain(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetIndex, round, mrenclave)
+	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, mrenclave)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call request remote attestation on chain")
 	}
@@ -320,8 +363,8 @@ func (c *ContractClient) SubmitActiveValSet(
 }
 
 // GetNodeInfo queries node information from the contract.
-func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, index uint32) (*bindings.IDKGNodeInfo, error) {
-	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave, round, index)
+func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
+	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave, round, validatorAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get node info")
 	}

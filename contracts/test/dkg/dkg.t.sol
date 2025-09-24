@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import { DKG } from "../../src/protocol/DKG.sol";
+import { IDKG } from "../../src/interfaces/IDKG.sol";
 import { Test } from "../utils/Test.sol";
 
 contract DKGTest is Test {
@@ -12,7 +13,6 @@ contract DKGTest is Test {
     uint32 index = 0;
     uint32 total = 3;
     uint32 threshold = 2;
-    bool finalized = true;
     bytes rawQuote = hex"beef";
     bytes dkgPubKey = hex"dead";
     bytes globalPubKey = hex"ef01";
@@ -48,7 +48,7 @@ contract DKGTest is Test {
         hex"d5114c69a70f800fc3af7459db55039fac78d2301bc685b36b60becd260dad9f17ef076bbe966deb5a2710daca2717aad3da3e0035ca202d26a1d4a61c10b7f41b";
 
     function setUp() public override {
-        dkg = new DKG();
+        dkg = new DKG(mrenclave);
     }
 
     function testThreeNodeDKG_Success() public {
@@ -56,30 +56,27 @@ contract DKGTest is Test {
         // 1.1 validator 0
         vm.prank(validator1);
         dkg.initializeDKG(round, mrenclave, dkgPubKey, commPubKey1, rawQuote);
-        DKG.NodeInfo memory info = dkg.getNodeInfo(mrenclave, round, index);
-        assertEq(info.validator, validator1);
+        DKG.NodeInfo memory info = dkg.getNodeInfo(mrenclave, round, validator1);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey1);
         assertEq(info.rawQuote, rawQuote);
-        assertEq(info.finalized, false);
+        assertEq(uint8(info.nodeStatus), 1); // Registered
         // 1.2 validator 1
         vm.prank(validator2);
         dkg.initializeDKG(round, mrenclave, dkgPubKey, commPubKey2, rawQuote);
-        info = dkg.getNodeInfo(mrenclave, round, index + 1);
-        assertEq(info.validator, validator2);
+        info = dkg.getNodeInfo(mrenclave, round, validator2);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey2);
         assertEq(info.rawQuote, rawQuote);
-        assertEq(info.finalized, false);
+        assertEq(uint8(info.nodeStatus), 1); // Registered
         // 1.3 validator 2
         vm.prank(validator3);
         dkg.initializeDKG(round, mrenclave, dkgPubKey, commPubKey3, rawQuote);
-        info = dkg.getNodeInfo(mrenclave, round, index + 2);
-        assertEq(info.validator, validator3);
+        info = dkg.getNodeInfo(mrenclave, round, validator3);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey3);
         assertEq(info.rawQuote, rawQuote);
-        assertEq(info.finalized, false);
+        assertEq(uint8(info.nodeStatus), 1); // Registered
 
         assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
 
@@ -87,21 +84,21 @@ contract DKGTest is Test {
 
         // 3. finalize DKG
         vm.prank(validator1);
-        dkg.finalizeDKG(round, index, finalized, mrenclave, globalPubKey, finalizeDKG_signature1);
-        info = dkg.getNodeInfo(mrenclave, round, index);
-        assertEq(info.finalized, true);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature1);
+        info = dkg.getNodeInfo(mrenclave, round, validator1);
+        assertEq(uint8(info.nodeStatus), 3); // Finalized
         assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
 
         vm.prank(validator2);
-        dkg.finalizeDKG(round, index + 1, finalized, mrenclave, globalPubKey, finalizeDKG_signature2);
-        info = dkg.getNodeInfo(mrenclave, round, index + 1);
-        assertEq(info.finalized, true);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature2);
+        info = dkg.getNodeInfo(mrenclave, round, validator2);
+        assertEq(uint8(info.nodeStatus), 3); // Finalized
         assertEq(dkg.getGlobalPubKey(mrenclave, round), globalPubKey);
 
         vm.prank(validator3);
-        dkg.finalizeDKG(round, index + 2, finalized, mrenclave, globalPubKey, finalizeDKG_signature3);
-        info = dkg.getNodeInfo(mrenclave, round, index + 2);
-        assertEq(info.finalized, true);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature3);
+        info = dkg.getNodeInfo(mrenclave, round, validator3);
+        assertEq(uint8(info.nodeStatus), 3); // Finalized
         assertEq(dkg.getGlobalPubKey(mrenclave, round), globalPubKey);
     }
 
@@ -113,6 +110,6 @@ contract DKGTest is Test {
         // finalize DKG with wrong signature
         vm.prank(validator);
         vm.expectRevert("ECDSAInvalidSignature()");
-        dkg.finalizeDKG(round, index, true, mrenclave, globalPubKey, invalid_signature);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, invalid_signature);
     }
 }

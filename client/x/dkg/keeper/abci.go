@@ -46,12 +46,10 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// 1. it's the initial (first) round, OR
 			// 2. the active stage of the previous round has ended, so DKG needs to reshare deals
 			return k.initiateDKGRound(ctx)
-		case types.DKGStageChallenge:
-			return k.emitBeginChallengePeriod(ctx, latestRound)
 		case types.DKGStageNetworkSet:
-			if err := k.updateDKGNetworkTotalAndThreshold(ctx, latestRound); err != nil {
-				return errors.Wrap(err, "failed to update DKG network total and threshold")
-			}
+			// TODO: Update current round's DKG Network data's total and threshold (based on registrations from the active validators)
+			// TODO: check if there's enough number of registrations to set the network (and start dealing).
+			// Use a DKG module parameter (minDKGMemberAmount). If the amount is less, we need to restart the round.
 
 			return k.emitBeginDKGNetworkSet(ctx, latestRound)
 		case types.DKGStageDealing:

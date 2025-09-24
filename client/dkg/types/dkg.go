@@ -57,6 +57,7 @@ type DKGSession struct {
 	Mrenclave     []byte    `json:"mrenclave"`
 	Round         uint32    `json:"round"`
 	GlobalPubKey  []byte    `json:"global_pub_key"` // TODO: update global pubkey in future stages
+	CommPubKey    []byte    `json:"comm_pub_key"`   // TODO: update comm pubkey in future stages
 	Phase         DKGPhase  `json:"phase"`
 	StartTime     time.Time `json:"start_time"`
 	LastUpdate    time.Time `json:"last_update"`
@@ -84,6 +85,7 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *D
 		Mrenclave:        mrenclave,
 		Round:            round,
 		GlobalPubKey:     make([]byte, 0),
+		CommPubKey:       make([]byte, 0),
 		Phase:            PhaseInitializing,
 		StartTime:        now,
 		LastUpdate:       now,

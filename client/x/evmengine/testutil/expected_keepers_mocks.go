@@ -360,31 +360,17 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round, index uint32, finalized bool, mrenclave, signature []byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, signature []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, index, finalized, mrenclave, signature)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, signature)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, index, finalized, mrenclave, signature any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, index, finalized, mrenclave, signature)
-}
-
-// InvalidDKGInitialization mocks base method.
-func (m *MockDKGKeeper) InvalidDKGInitialization(ctx context.Context, round, index uint32, validator common.Address, mrenclave []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InvalidDKGInitialization", ctx, round, index, validator, mrenclave)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// InvalidDKGInitialization indicates an expected call of InvalidDKGInitialization.
-func (mr *MockDKGKeeperMockRecorder) InvalidDKGInitialization(ctx, round, index, validator, mrenclave any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDKGInitialization", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDKGInitialization), ctx, round, index, validator, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, signature)
 }
 
 // InvalidDeal mocks base method.
@@ -401,46 +387,46 @@ func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, mrenclave an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDeal", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDeal), ctx, index, round, mrenclave)
 }
 
-// RegistrationChallenged mocks base method.
-func (m *MockDKGKeeper) RegistrationChallenged(ctx context.Context, round uint32, mrenclave []byte, challenger common.Address) error {
+// NetworkSet mocks base method.
+func (m *MockDKGKeeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave []byte, round, total, threshold uint32, signature []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegistrationChallenged", ctx, round, mrenclave, challenger)
+	ret := m.ctrl.Call(m, "NetworkSet", ctx, msgSender, mrenclave, round, total, threshold, signature)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RegistrationChallenged indicates an expected call of RegistrationChallenged.
-func (mr *MockDKGKeeperMockRecorder) RegistrationChallenged(ctx, round, mrenclave, challenger any) *gomock.Call {
+// NetworkSet indicates an expected call of NetworkSet.
+func (mr *MockDKGKeeperMockRecorder) NetworkSet(ctx, msgSender, mrenclave, round, total, threshold, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationChallenged", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationChallenged), ctx, round, mrenclave, challenger)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkSet", reflect.TypeOf((*MockDKGKeeper)(nil).NetworkSet), ctx, msgSender, mrenclave, round, total, threshold, signature)
 }
 
 // RegistrationInitialized mocks base method.
-func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round, index uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
+func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote)
+	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegistrationInitialized indicates an expected call of RegistrationInitialized.
-func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, mrenclave, round, index, dkgPubKey, commPubKey, rawQuote)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote)
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.
-func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, index uint32, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoteAttestationProcessedOnChain", ctx, index, validator, chalStatus, round, mrenclave)
+	ret := m.ctrl.Call(m, "RemoteAttestationProcessedOnChain", ctx, validator, chalStatus, round, mrenclave)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RemoteAttestationProcessedOnChain indicates an expected call of RemoteAttestationProcessedOnChain.
-func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, index, validator, chalStatus, round, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, validator, chalStatus, round, mrenclave any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, index, validator, chalStatus, round, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, mrenclave)
 }
 
 // UpgradeScheduled mocks base method.

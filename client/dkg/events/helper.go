@@ -14,7 +14,6 @@ func isDKGEvent(eventType string) bool {
 	// Check for typed proto events from x/dkg module
 	dkgEventTypes := []string{
 		"/story.dkg.v1.types.EventBeginInitialization",
-		"/story.dkg.v1.types.EventBeginChallengePeriod",
 		"/story.dkg.v1.types.EventBeginNetworkSet",
 		"/story.dkg.v1.types.EventBeginDealing",
 		"/story.dkg.v1.types.EventBeginFinalization",
@@ -36,8 +35,6 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 	switch event.Type {
 	case "/story.dkg.v1.types.EventBeginInitialization":
 		return parseBeginInitializationEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginChallengePeriod":
-		return parseBeginChallengePeriodEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginNetworkSet":
 		return parseBeginNetworkSetEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginDealing":
@@ -87,37 +84,6 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 		BlockHeight:      height,
 		ActiveValidators: protoEvent.ActiveValidators,
 		Attributes:       extractAttributes(event),
-	}
-}
-
-// parseBeginChallengePeriodEvent parses EventBeginChallengePeriod typed event.
-func parseBeginChallengePeriodEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var protoEvent dkgtypes.EventBeginChallengePeriod
-
-	for _, attr := range event.Attributes {
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
-
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
-			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
-			}
-
-			break
-		}
-	}
-
-	return &types.DKGEventData{
-		EventType:   "dkg_begin_challenge_period",
-		Mrenclave:   string(protoEvent.Mrenclave),
-		Round:       protoEvent.Round,
-		BlockHeight: height,
-		Attributes:  extractAttributes(event),
 	}
 }
 
