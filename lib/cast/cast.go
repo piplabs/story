@@ -2,6 +2,7 @@
 package cast
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/lib/errors"
@@ -71,4 +72,14 @@ func Array8[A any](slice []A) ([8]A, error) {
 	}
 
 	return [8]A{}, errors.New("slice length not 8", "len", len(slice))
+}
+
+func ToBytes32(b []byte) ([32]byte, error) {
+	var arr [32]byte
+	if len(b) != 32 {
+		return arr, fmt.Errorf("invalid length: got %d, want 32", len(b))
+	}
+	copy(arr[:], b)
+
+	return arr, nil
 }

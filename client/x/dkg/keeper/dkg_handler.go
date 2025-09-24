@@ -15,7 +15,7 @@ import (
 
 // RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
 	dkgNetwork, err := k.getDKGNetwork(ctx, mrenclave, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg network")
@@ -35,7 +35,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	}
 
 	dkgReg := &types.DKGRegistration{
-		Mrenclave:  mrenclave,
+		Mrenclave:  mrenclave[:],
 		Round:      round,
 		MsgSender:  msgSender.Hex(),
 		Index:      index,
@@ -47,7 +47,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 
 	if err := k.setDKGRegistration(ctx, mrenclave, msgSender, dkgReg); err != nil {
 		log.Error(ctx, "Failed to store DKG registration", err,
-			"mrenclave", hex.EncodeToString(mrenclave),
+			"mrenclave", hex.EncodeToString(mrenclave[:]),
 			"round", round,
 			"validator_address", msgSender.Hex(),
 			"next_index", index,
@@ -57,7 +57,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	}
 
 	log.Info(ctx, "DKG registration stored successfully",
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 		"round", round,
 		"status", "verified",
 		"validator_address", msgSender.Hex(),
@@ -71,11 +71,11 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 }
 
 // NetworkSet handles DKG network set event.
-func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, total uint32, threshold uint32, signature []byte) error {
+func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, total uint32, threshold uint32, signature []byte) error {
 	log.Info(ctx, "DKG NetworkSet event received",
 		"round", round,
 		"msg_sender", msgSender.Hex(),
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 		"total", total,
 		"threshold", threshold,
 		"signature_len", len(signature),
@@ -92,7 +92,7 @@ func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenc
 }
 
 // Finalized handles DKG finalization event.
-func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave []byte, signature []byte) error {
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature []byte) error {
 	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, msgSender)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg registration index")
@@ -101,7 +101,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 	log.Info(ctx, "DKG Finalized event received",
 		"round", round,
 		"msg_sender", msgSender.Hex(),
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 		"signature_len", len(signature),
 		"index", index,
 	)
@@ -117,17 +117,17 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 }
 
 // UpgradeScheduled handles upgrade scheduled event.
-func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave []byte) error {
+func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error {
 	log.Info(ctx, "DKG UpgradeScheduled event received",
 		"activation_height", activationHeight,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 	)
 	// TODO: Implement actual upgrade scheduling logic
 	return nil
 }
 
 // RemoteAttestationProcessedOnChain handles remote attestation processed event.
-func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
+func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error {
 	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, validator)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg registration index")
@@ -138,42 +138,42 @@ func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validato
 		"validator", validator.Hex(),
 		"challenge_status", chalStatus,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 	)
 	// TODO: Implement actual remote attestation processing logic
 	return nil
 }
 
 // DealComplaintsSubmitted handles deal complaints submission event.
-func (*Keeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave []byte) error {
+func (*Keeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave [32]byte) error {
 	log.Info(ctx, "DKG DealComplaintsSubmitted event received",
 		"index", index,
 		"complain_indexes", complainIndexes,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 	)
 	// TODO: Implement actual deal complaints handling logic
 	return nil
 }
 
 // DealVerified handles deal verification event.
-func (*Keeper) DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, mrenclave []byte) error {
+func (*Keeper) DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, mrenclave [32]byte) error {
 	log.Info(ctx, "DKG DealVerified event received",
 		"index", index,
 		"recipient_index", recipientIndex,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 	)
 	// TODO: Implement actual deal verification logic
 	return nil
 }
 
 // InvalidDeal handles invalid deal event.
-func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mrenclave []byte) error {
+func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mrenclave [32]byte) error {
 	log.Info(ctx, "DKG InvalidDeal event received",
 		"index", index,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
 	)
 	// TODO: Implement actual invalid deal handling logic
 	return nil

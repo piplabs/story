@@ -32,8 +32,8 @@ func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 }
 
 // GetDKGNetworkByKey retrieves a DKG network by mrenclave.
-func (k *Keeper) getDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) (*types.DKGNetwork, error) {
-	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
+func (k *Keeper) getDKGNetwork(ctx context.Context, mrenclave [32]byte, round uint32) (*types.DKGNetwork, error) {
+	key := fmt.Sprintf("%s_%d", string(mrenclave[:]), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
