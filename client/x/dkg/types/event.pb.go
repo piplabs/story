@@ -248,24 +248,24 @@ func (m *EventBeginDealing) GetRound() uint32 {
 	return 0
 }
 
-type EventBeginDealVerification struct {
+type EventBeginProcessDeal struct {
 	Mrenclave []byte  `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
 	Round     uint32  `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 	Deals     []*Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals,omitempty"`
 }
 
-func (m *EventBeginDealVerification) Reset()         { *m = EventBeginDealVerification{} }
-func (m *EventBeginDealVerification) String() string { return proto.CompactTextString(m) }
-func (*EventBeginDealVerification) ProtoMessage()    {}
-func (*EventBeginDealVerification) Descriptor() ([]byte, []int) {
+func (m *EventBeginProcessDeal) Reset()         { *m = EventBeginProcessDeal{} }
+func (m *EventBeginProcessDeal) String() string { return proto.CompactTextString(m) }
+func (*EventBeginProcessDeal) ProtoMessage()    {}
+func (*EventBeginProcessDeal) Descriptor() ([]byte, []int) {
 	return fileDescriptor_801f42319f883aee, []int{4}
 }
-func (m *EventBeginDealVerification) XXX_Unmarshal(b []byte) error {
+func (m *EventBeginProcessDeal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *EventBeginDealVerification) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *EventBeginProcessDeal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_EventBeginDealVerification.Marshal(b, m, deterministic)
+		return xxx_messageInfo_EventBeginProcessDeal.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -275,33 +275,33 @@ func (m *EventBeginDealVerification) XXX_Marshal(b []byte, deterministic bool) (
 		return b[:n], nil
 	}
 }
-func (m *EventBeginDealVerification) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EventBeginDealVerification.Merge(m, src)
+func (m *EventBeginProcessDeal) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventBeginProcessDeal.Merge(m, src)
 }
-func (m *EventBeginDealVerification) XXX_Size() int {
+func (m *EventBeginProcessDeal) XXX_Size() int {
 	return m.Size()
 }
-func (m *EventBeginDealVerification) XXX_DiscardUnknown() {
-	xxx_messageInfo_EventBeginDealVerification.DiscardUnknown(m)
+func (m *EventBeginProcessDeal) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventBeginProcessDeal.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EventBeginDealVerification proto.InternalMessageInfo
+var xxx_messageInfo_EventBeginProcessDeal proto.InternalMessageInfo
 
-func (m *EventBeginDealVerification) GetMrenclave() []byte {
+func (m *EventBeginProcessDeal) GetMrenclave() []byte {
 	if m != nil {
 		return m.Mrenclave
 	}
 	return nil
 }
 
-func (m *EventBeginDealVerification) GetRound() uint32 {
+func (m *EventBeginProcessDeal) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
-func (m *EventBeginDealVerification) GetDeals() []*Deal {
+func (m *EventBeginProcessDeal) GetDeals() []*Deal {
 	if m != nil {
 		return m.Deals
 	}
@@ -417,7 +417,7 @@ func init() {
 	proto.RegisterType((*EventBeginInitialization)(nil), "story.dkg.v1.types.EventBeginInitialization")
 	proto.RegisterType((*EventBeginNetworkSet)(nil), "story.dkg.v1.types.EventBeginNetworkSet")
 	proto.RegisterType((*EventBeginDealing)(nil), "story.dkg.v1.types.EventBeginDealing")
-	proto.RegisterType((*EventBeginDealVerification)(nil), "story.dkg.v1.types.EventBeginDealVerification")
+	proto.RegisterType((*EventBeginProcessDeal)(nil), "story.dkg.v1.types.EventBeginProcessDeal")
 	proto.RegisterType((*EventBeginFinalization)(nil), "story.dkg.v1.types.EventBeginFinalization")
 	proto.RegisterType((*EventDKGFinalized)(nil), "story.dkg.v1.types.EventDKGFinalized")
 }
@@ -586,7 +586,7 @@ func (m *EventBeginDealing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *EventBeginDealVerification) Marshal() (dAtA []byte, err error) {
+func (m *EventBeginProcessDeal) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -596,12 +596,12 @@ func (m *EventBeginDealVerification) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EventBeginDealVerification) MarshalTo(dAtA []byte) (int, error) {
+func (m *EventBeginProcessDeal) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *EventBeginDealVerification) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *EventBeginProcessDeal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -779,7 +779,7 @@ func (m *EventBeginDealing) Size() (n int) {
 	return n
 }
 
-func (m *EventBeginDealVerification) Size() (n int) {
+func (m *EventBeginProcessDeal) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1237,7 +1237,7 @@ func (m *EventBeginDealing) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EventBeginDealVerification) Unmarshal(dAtA []byte) error {
+func (m *EventBeginProcessDeal) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1260,10 +1260,10 @@ func (m *EventBeginDealVerification) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EventBeginDealVerification: wiretype end group for non-group")
+			return fmt.Errorf("proto: EventBeginProcessDeal: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EventBeginDealVerification: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EventBeginProcessDeal: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

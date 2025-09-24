@@ -16,7 +16,7 @@ func isDKGEvent(eventType string) bool {
 		"/story.dkg.v1.types.EventBeginInitialization",
 		"/story.dkg.v1.types.EventBeginNetworkSet",
 		"/story.dkg.v1.types.EventBeginDealing",
-		"/story.dkg.v1.types.EventBeginDealVerification",
+		"/story.dkg.v1.types.EventBeginProcessDeal",
 		"/story.dkg.v1.types.EventBeginFinalization",
 		"/story.dkg.v1.types.EventDKGFinalized",
 	}
@@ -40,8 +40,8 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 		return parseBeginNetworkSetEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginDealing":
 		return parseBeginDealingEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginDealVerification":
-		return parseBeginDealVerificationEvent(event, height)
+	case "/story.dkg.v1.types.EventBeginProcessDeal":
+		return parseBeginProcessDealEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginFinalization":
 		return parseBeginFinalizationEvent(event, height)
 	case "/story.dkg.v1.types.EventDKGFinalized":
@@ -161,8 +161,8 @@ func parseBeginDealingEvent(event abcitypes.Event, height int64) *types.DKGEvent
 	}
 }
 
-func parseBeginDealVerificationEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var protoEvent dkgtypes.EventBeginDealVerification
+func parseBeginProcessDealEvent(event abcitypes.Event, height int64) *types.DKGEventData {
+	var protoEvent dkgtypes.EventBeginProcessDeal
 
 	for _, attr := range event.Attributes {
 		if attr.Key == "data" {

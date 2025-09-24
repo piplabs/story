@@ -64,10 +64,10 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	return nil
 }
 
-func (k *Keeper) emitBeginDealVerification(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
+func (k *Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginDealVerification{
+	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeal{
 		Mrenclave: dkgNetwork.Mrenclave,
 		Round:     dkgNetwork.Round,
 		Deals:     deals,
@@ -76,7 +76,7 @@ func (k *Keeper) emitBeginDealVerification(ctx context.Context, dkgNetwork *type
 		return errors.Wrap(err, "failed to emit dkg_begin_deal_verification event")
 	}
 
-	log.Info(ctx, "Emitted BeginDealVerification event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginProcessDeal event", "round", dkgNetwork.Round)
 
 	return nil
 }

@@ -64,8 +64,8 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 	return nil
 }
 
-// handleDKGDealVerification handles the deal verification phase event.
-func (s *Service) handleDKGDealVerification(ctx context.Context, event *types.DKGEventData) error {
+// handleDKGProcessDeal handles the deal verification phase event.
+func (s *Service) handleDKGProcessDeal(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG deal verification phase event",
 		"mrenclave", event.Mrenclave,
 		"round", event.Round,

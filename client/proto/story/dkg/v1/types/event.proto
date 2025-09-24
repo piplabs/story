@@ -34,7 +34,7 @@ message EventBeginDealing {
   uint32 round = 2;
 }
 
-message EventBeginDealVerification {
+message EventBeginProcessDeal {
   bytes mrenclave = 1;
   uint32 round = 2;
   repeated types.Deal deals = 3;
