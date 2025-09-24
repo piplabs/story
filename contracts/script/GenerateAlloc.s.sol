@@ -11,6 +11,7 @@ import { IIPTokenStaking } from "../src/interfaces/IIPTokenStaking.sol";
 import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
 import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 import { UBIPool } from "../src/protocol/UBIPool.sol";
+import { DKG } from "../src/protocol/DKG.sol";
 
 import { ChainIds } from "./utils/ChainIds.sol";
 import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
@@ -334,6 +335,20 @@ contract GenerateAlloc is Script {
         console2.log("UBIPool ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.UBIPool));
         console2.log("UBIPool impl at:", EIP1967Helper.getImplementation(Predeploys.UBIPool));
         console2.log("UBIPool owner:", UBIPool(Predeploys.UBIPool).owner());
+    }
+
+    function setDKG() internal {
+        // temp value of MRENCLAVE
+        bytes memory initialMrenclave = hex"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        address impl = Predeploys.getImplAddress(Predeploys.DKG);
+        address tmp = address(new DKG(initialMrenclave)); // initial MRENCLAVE
+        vm.etch(impl, tmp.code);
+
+        // reset tmp
+        vm.etch(tmp, "");
+        vm.store(tmp, 0, "0x");
+        vm.resetNonce(tmp);
     }
 
     /// @notice Sets the bytecode for Create3 factory as a predeploy
