@@ -46,6 +46,7 @@ type Service struct {
 	contractClient   *ContractClient
 	stopChan         chan struct{}
 	validatorAddress common.Address
+	index            uint32
 }
 
 // NewService creates a new DKG service.
