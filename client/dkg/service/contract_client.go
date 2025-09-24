@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -124,7 +125,12 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave, dkgPubKey, commPubKey, rawQuote)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call initialize dkg")
 	}
@@ -169,7 +175,12 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.FinalizeDKG(auth, round, mrenclave, globalPubKey, signature)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call finalize dkg")
 	}
@@ -216,7 +227,12 @@ func (c *ContractClient) SetNetwork(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave, signature)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave32, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call setNetwork")
 	}
@@ -259,7 +275,12 @@ func (c *ContractClient) RequestRemoteAttestationOnChain(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, mrenclave)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, mrenclave32)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call request remote attestation on chain")
 	}
@@ -304,7 +325,12 @@ func (c *ContractClient) ComplainDeals(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, mrenclave)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, mrenclave32)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call complain deals")
 	}
@@ -347,7 +373,12 @@ func (c *ContractClient) SubmitActiveValSet(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	tx, err := c.dkgContract.SubmitActiveValSet(auth, round, mrenclave, valSet)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	tx, err := c.dkgContract.SubmitActiveValSet(auth, round, mrenclave32, valSet)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call submit active val set")
 	}
@@ -364,7 +395,12 @@ func (c *ContractClient) SubmitActiveValSet(
 
 // GetNodeInfo queries node information from the contract.
 func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
-	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave, round, validatorAddr)
+	mrenclave32, err := ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave32, round, validatorAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get node info")
 	}
@@ -434,4 +470,14 @@ func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Trans
 	}
 
 	return receipt, nil
+}
+
+func ToBytes32(b []byte) ([32]byte, error) {
+	var arr [32]byte
+	if len(b) != 32 {
+		return arr, fmt.Errorf("invalid length: got %d, want 32", len(b))
+	}
+	copy(arr[:], b)
+
+	return arr, nil
 }
