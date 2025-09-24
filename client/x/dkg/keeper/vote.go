@@ -16,8 +16,8 @@ import (
 
 func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
 	// TODO: add limits on the size of the deals&responses included in the vote extension
-	deals := dkgservice.Deals
-	responses := dkgservice.Responses
+	deals := dkgservice.PopDeals()
+	responses := dkgservice.PopResponses()
 	log.Info(ctx, "Extending vote with DKG deals", "num_deals", len(deals), "num_responses", len(responses))
 	bz, err := proto.Marshal(&types.Vote{
 		Deals:     deals,

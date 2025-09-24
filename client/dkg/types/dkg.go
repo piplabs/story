@@ -15,6 +15,7 @@ type DKGPhase int32
 // re-export types from x/dkg/types.
 type Deal = dkgtypes.Deal
 type Response = dkgtypes.Response
+type VSSResponse = dkgtypes.VSSResponse
 type EncryptedDeal = dkgtypes.EncryptedDeal
 type Complaint = dkgtypes.Complaint
 type Commitments = []byte
