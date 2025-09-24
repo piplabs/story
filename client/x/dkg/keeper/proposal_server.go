@@ -20,6 +20,7 @@ func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 		return nil, err
 	}
 	_ = s.Keeper.emitBeginProcessDeal(ctx, latestRound, msg.Vote.Deals)
+	_ = s.Keeper.emitBeginProcessResponses(ctx, latestRound, msg.Vote.Responses)
 	return &types.AddDkgVoteResponse{}, nil
 }
 

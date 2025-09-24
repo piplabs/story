@@ -21,6 +21,8 @@ service MsgService {
 message Vote {
   // The deals.
   repeated types.Deal deals = 1;
+  // The responses of process_deals from other peers.
+  repeated Response responses =2;
 }
 
 // MsgAddDkgVote is the request type for submitting a dkg vote.

@@ -16,7 +16,8 @@ func isDKGEvent(eventType string) bool {
 		"/story.dkg.v1.types.EventBeginInitialization",
 		"/story.dkg.v1.types.EventBeginNetworkSet",
 		"/story.dkg.v1.types.EventBeginDealing",
-		"/story.dkg.v1.types.EventBeginProcessDeal",
+		"/story.dkg.v1.types.EventBeginProcessDeals",
+		"/story.dkg.v1.types.EventBeginProcessResponses",
 		"/story.dkg.v1.types.EventBeginFinalization",
 		"/story.dkg.v1.types.EventDKGFinalized",
 	}
@@ -40,8 +41,10 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 		return parseBeginNetworkSetEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginDealing":
 		return parseBeginDealingEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginProcessDeal":
-		return parseBeginProcessDealEvent(event, height)
+	case "/story.dkg.v1.types.EventBeginProcessDeals":
+		return parseBeginProcessDealsEvent(event, height)
+	case "/story.dkg.v1.types.EventBeginProcessResponses":
+		return parseBeginProcessResponsesEvent(event, height)
 	case "/story.dkg.v1.types.EventBeginFinalization":
 		return parseBeginFinalizationEvent(event, height)
 	case "/story.dkg.v1.types.EventDKGFinalized":
@@ -161,8 +164,8 @@ func parseBeginDealingEvent(event abcitypes.Event, height int64) *types.DKGEvent
 	}
 }
 
-func parseBeginProcessDealEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var protoEvent dkgtypes.EventBeginProcessDeal
+func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKGEventData {
+	var protoEvent dkgtypes.EventBeginProcessDeals
 
 	for _, attr := range event.Attributes {
 		if attr.Key == "data" {
@@ -223,11 +226,65 @@ func parseBeginProcessDealEvent(event abcitypes.Event, height int64) *types.DKGE
 	}
 
 	return &types.DKGEventData{
-		EventType:   "dkg_begin_deal_verification",
+		EventType:   "dkg_begin_process_deals",
 		Mrenclave:   string(protoEvent.Mrenclave),
 		Round:       protoEvent.Round,
 		BlockHeight: height,
 		Deals:       protoEvent.Deals,
+		Attributes:  extractAttributes(event),
+	}
+}
+
+func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types.DKGEventData {
+	var protoEvent dkgtypes.EventBeginProcessResponses
+
+	for _, attr := range event.Attributes {
+		if attr.Key == "data" {
+			var eventData map[string]any
+			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
+				break
+			}
+
+			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
+				protoEvent.Mrenclave = []byte(mrenclaveStr)
+			}
+			if roundFloat, ok := eventData["round"].(float64); ok {
+				protoEvent.Round = uint32(roundFloat)
+			}
+			if responses, ok := eventData["responses"].([]map[string]any); ok {
+				for _, response := range responses {
+					var dkgResponse dkgtypes.Response
+					if indexFloat, ok := response["index"].(float64); ok {
+						dkgResponse.Index = uint32(indexFloat)
+					}
+					if vssResponse, ok := response["vss_response"].(map[string]any); ok {
+						dkgResponse.VssResponse = &dkgtypes.VSSResponse{}
+						if sessionID, ok := vssResponse["session_id"].(string); ok {
+							dkgResponse.VssResponse.SessionId = []byte(sessionID)
+						}
+						if index, ok := vssResponse["index"].(float64); ok {
+							dkgResponse.VssResponse.Index = uint32(index)
+						}
+						if status, ok := vssResponse["status"].(bool); ok {
+							dkgResponse.VssResponse.Status = status
+						}
+						if signature, ok := vssResponse["signature"].(string); ok {
+							dkgResponse.VssResponse.Signature = []byte(signature)
+						}
+					}
+					protoEvent.Responses = append(protoEvent.Responses, &dkgResponse)
+				}
+			}
+			break
+		}
+	}
+
+	return &types.DKGEventData{
+		EventType:   "dkg_begin_process_responses",
+		Mrenclave:   string(protoEvent.Mrenclave),
+		Round:       protoEvent.Round,
+		BlockHeight: height,
+		Responses:   protoEvent.Responses,
 		Attributes:  extractAttributes(event),
 	}
 }

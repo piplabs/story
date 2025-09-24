@@ -12,6 +12,7 @@ service TEE {
   rpc SetupDKGNetwork(SetupDKGNetworkRequest) returns (SetupDKGNetworkResponse);
   rpc GenerateDeals(GenerateDealsRequest) returns (GenerateDealsResponse);
   rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
+  rpc ProcessResponses(ProcessResponsesRequest) returns (ProcessResponsesResponse);
   rpc FinalizeDKG(FinalizeDKGRequest) returns (FinalizeDKGResponse);
 }
 
@@ -206,7 +207,7 @@ message ProcessDealResponse {
     (gogoproto.moretags) = "yaml:\"index\""
   ];
 
-  repeated types.Complaint complaints = 4 [
+  repeated types.Response responses = 4 [
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"complaints\""
   ];
@@ -283,4 +284,46 @@ message GeneratePlainDealResponse {
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"deal\""
   ];
+}
+
+message ProcessResponsesRequest {
+  bytes mrenclave = 1 [json_name = "mrenclave"];
+  uint32 round = 2 [json_name = "round"];
+  repeated types.Response responses = 3 [json_name = "responses"];
+}
+
+message ProcessResponsesResponse {
+  repeated Justification justifications = 1 [json_name = "justifications"];
+}
+
+message Justification {
+  uint32 index = 1 [json_name = "index"];
+  VSSJustification vss_justification = 2 [json_name = "vss_justification"];
+}
+
+message VSSJustification {
+  bytes session_id = 1 [json_name = "session_id"];
+  uint32 index = 2 [json_name = "index"];
+  PlainDeal plain_deal = 3 [json_name = "plain_deal"];
+  bytes signature = 4 [json_name = "signature"];
+}
+
+message PlainDeal {
+  bytes session_id = 1 [json_name = "session_id"];
+  SecShare sec_share = 2 [json_name = "sec_share"];
+  uint32 threshold = 3 [json_name = "threshold"];
+  repeated Point commitments = 4 [json_name = "commitments"];
+}
+
+message SecShare {
+  uint32 I = 1 [json_name = "i"];
+  Scalar V = 2 [json_name = "v"];
+}
+
+message Scalar {
+  bytes data = 1 [json_name = "scalar"];
+}
+
+message Point {
+  bytes data = 1 [json_name = "data"];
 }

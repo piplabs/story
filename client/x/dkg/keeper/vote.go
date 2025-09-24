@@ -15,11 +15,13 @@ import (
 )
 
 func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// TODO: add limits on the size of the deals included in the vote extension
+	// TODO: add limits on the size of the deals&responses included in the vote extension
 	deals := dkgservice.Deals
-	log.Info(ctx, "Extending vote with DKG deals", "num_deals", len(deals))
+	responses := dkgservice.Responses
+	log.Info(ctx, "Extending vote with DKG deals", "num_deals", len(deals), "num_responses", len(responses))
 	bz, err := proto.Marshal(&types.Vote{
-		Deals: deals,
+		Deals:     deals,
+		Responses: responses,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal vote")

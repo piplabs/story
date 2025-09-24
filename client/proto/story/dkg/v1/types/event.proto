@@ -34,10 +34,16 @@ message EventBeginDealing {
   uint32 round = 2;
 }
 
-message EventBeginProcessDeal {
+message EventBeginProcessDeals {
   bytes mrenclave = 1;
   uint32 round = 2;
   repeated types.Deal deals = 3;
+}
+
+message EventBeginProcessResponses {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  repeated types.Response responses = 3;
 }
 
 message EventBeginFinalization {

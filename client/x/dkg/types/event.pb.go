@@ -248,24 +248,24 @@ func (m *EventBeginDealing) GetRound() uint32 {
 	return 0
 }
 
-type EventBeginProcessDeal struct {
+type EventBeginProcessDeals struct {
 	Mrenclave []byte  `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
 	Round     uint32  `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 	Deals     []*Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals,omitempty"`
 }
 
-func (m *EventBeginProcessDeal) Reset()         { *m = EventBeginProcessDeal{} }
-func (m *EventBeginProcessDeal) String() string { return proto.CompactTextString(m) }
-func (*EventBeginProcessDeal) ProtoMessage()    {}
-func (*EventBeginProcessDeal) Descriptor() ([]byte, []int) {
+func (m *EventBeginProcessDeals) Reset()         { *m = EventBeginProcessDeals{} }
+func (m *EventBeginProcessDeals) String() string { return proto.CompactTextString(m) }
+func (*EventBeginProcessDeals) ProtoMessage()    {}
+func (*EventBeginProcessDeals) Descriptor() ([]byte, []int) {
 	return fileDescriptor_801f42319f883aee, []int{4}
 }
-func (m *EventBeginProcessDeal) XXX_Unmarshal(b []byte) error {
+func (m *EventBeginProcessDeals) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *EventBeginProcessDeal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *EventBeginProcessDeals) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_EventBeginProcessDeal.Marshal(b, m, deterministic)
+		return xxx_messageInfo_EventBeginProcessDeals.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -275,35 +275,95 @@ func (m *EventBeginProcessDeal) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return b[:n], nil
 	}
 }
-func (m *EventBeginProcessDeal) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EventBeginProcessDeal.Merge(m, src)
+func (m *EventBeginProcessDeals) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventBeginProcessDeals.Merge(m, src)
 }
-func (m *EventBeginProcessDeal) XXX_Size() int {
+func (m *EventBeginProcessDeals) XXX_Size() int {
 	return m.Size()
 }
-func (m *EventBeginProcessDeal) XXX_DiscardUnknown() {
-	xxx_messageInfo_EventBeginProcessDeal.DiscardUnknown(m)
+func (m *EventBeginProcessDeals) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventBeginProcessDeals.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EventBeginProcessDeal proto.InternalMessageInfo
+var xxx_messageInfo_EventBeginProcessDeals proto.InternalMessageInfo
 
-func (m *EventBeginProcessDeal) GetMrenclave() []byte {
+func (m *EventBeginProcessDeals) GetMrenclave() []byte {
 	if m != nil {
 		return m.Mrenclave
 	}
 	return nil
 }
 
-func (m *EventBeginProcessDeal) GetRound() uint32 {
+func (m *EventBeginProcessDeals) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
-func (m *EventBeginProcessDeal) GetDeals() []*Deal {
+func (m *EventBeginProcessDeals) GetDeals() []*Deal {
 	if m != nil {
 		return m.Deals
+	}
+	return nil
+}
+
+type EventBeginProcessResponses struct {
+	Mrenclave []byte      `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
+	Round     uint32      `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Responses []*Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses,omitempty"`
+}
+
+func (m *EventBeginProcessResponses) Reset()         { *m = EventBeginProcessResponses{} }
+func (m *EventBeginProcessResponses) String() string { return proto.CompactTextString(m) }
+func (*EventBeginProcessResponses) ProtoMessage()    {}
+func (*EventBeginProcessResponses) Descriptor() ([]byte, []int) {
+	return fileDescriptor_801f42319f883aee, []int{5}
+}
+func (m *EventBeginProcessResponses) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventBeginProcessResponses) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventBeginProcessResponses.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventBeginProcessResponses) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventBeginProcessResponses.Merge(m, src)
+}
+func (m *EventBeginProcessResponses) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventBeginProcessResponses) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventBeginProcessResponses.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventBeginProcessResponses proto.InternalMessageInfo
+
+func (m *EventBeginProcessResponses) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *EventBeginProcessResponses) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *EventBeginProcessResponses) GetResponses() []*Response {
+	if m != nil {
+		return m.Responses
 	}
 	return nil
 }
@@ -417,7 +477,8 @@ func init() {
 	proto.RegisterType((*EventBeginInitialization)(nil), "story.dkg.v1.types.EventBeginInitialization")
 	proto.RegisterType((*EventBeginNetworkSet)(nil), "story.dkg.v1.types.EventBeginNetworkSet")
 	proto.RegisterType((*EventBeginDealing)(nil), "story.dkg.v1.types.EventBeginDealing")
-	proto.RegisterType((*EventBeginProcessDeal)(nil), "story.dkg.v1.types.EventBeginProcessDeal")
+	proto.RegisterType((*EventBeginProcessDeals)(nil), "story.dkg.v1.types.EventBeginProcessDeals")
+	proto.RegisterType((*EventBeginProcessResponses)(nil), "story.dkg.v1.types.EventBeginProcessResponses")
 	proto.RegisterType((*EventBeginFinalization)(nil), "story.dkg.v1.types.EventBeginFinalization")
 	proto.RegisterType((*EventDKGFinalized)(nil), "story.dkg.v1.types.EventDKGFinalized")
 }
@@ -586,7 +647,7 @@ func (m *EventBeginDealing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *EventBeginProcessDeal) Marshal() (dAtA []byte, err error) {
+func (m *EventBeginProcessDeals) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -596,12 +657,12 @@ func (m *EventBeginProcessDeal) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EventBeginProcessDeal) MarshalTo(dAtA []byte) (int, error) {
+func (m *EventBeginProcessDeals) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *EventBeginProcessDeal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *EventBeginProcessDeals) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -610,6 +671,55 @@ func (m *EventBeginProcessDeal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		for iNdEx := len(m.Deals) - 1; iNdEx >= 0; iNdEx-- {
 			{
 				size, err := m.Deals[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintEvent(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Round != 0 {
+		i = encodeVarintEvent(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EventBeginProcessResponses) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventBeginProcessResponses) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EventBeginProcessResponses) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Responses) > 0 {
+		for iNdEx := len(m.Responses) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Responses[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -779,7 +889,7 @@ func (m *EventBeginDealing) Size() (n int) {
 	return n
 }
 
-func (m *EventBeginProcessDeal) Size() (n int) {
+func (m *EventBeginProcessDeals) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -794,6 +904,28 @@ func (m *EventBeginProcessDeal) Size() (n int) {
 	}
 	if len(m.Deals) > 0 {
 		for _, e := range m.Deals {
+			l = e.Size()
+			n += 1 + l + sovEvent(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *EventBeginProcessResponses) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovEvent(uint64(m.Round))
+	}
+	if len(m.Responses) > 0 {
+		for _, e := range m.Responses {
 			l = e.Size()
 			n += 1 + l + sovEvent(uint64(l))
 		}
@@ -1237,7 +1369,7 @@ func (m *EventBeginDealing) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EventBeginProcessDeal) Unmarshal(dAtA []byte) error {
+func (m *EventBeginProcessDeals) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1260,10 +1392,10 @@ func (m *EventBeginProcessDeal) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EventBeginProcessDeal: wiretype end group for non-group")
+			return fmt.Errorf("proto: EventBeginProcessDeals: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EventBeginProcessDeal: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EventBeginProcessDeals: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1350,6 +1482,143 @@ func (m *EventBeginProcessDeal) Unmarshal(dAtA []byte) error {
 			}
 			m.Deals = append(m.Deals, &Deal{})
 			if err := m.Deals[len(m.Deals)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEvent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EventBeginProcessResponses) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEvent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventBeginProcessResponses: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventBeginProcessResponses: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Responses", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Responses = append(m.Responses, &Response{})
+			if err := m.Responses[len(m.Responses)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
