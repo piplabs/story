@@ -107,7 +107,7 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGDkgPubKey, hex.EncodeToString(ev.DkgPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.CommPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGRawQuote, hex.EncodeToString(ev.RawQuote)),
@@ -157,7 +157,7 @@ func (k *Keeper) ProcessDKGNetworkSet(ctx context.Context, ethlog *ethtypes.Log)
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGTotal, strconv.FormatUint(uint64(ev.Total), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGThreshold, strconv.FormatUint(uint64(ev.Threshold), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
@@ -207,7 +207,7 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
@@ -254,7 +254,7 @@ func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog *ethtype
 			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGActivationHeight, strconv.FormatUint(uint64(ev.ActivationHeight), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -302,7 +302,7 @@ func (k *Keeper) ProcessDKGRemoteAttestationProcessedOnChain(ctx context.Context
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.Validator.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGChalStatus, strconv.FormatUint(uint64(ev.ChalStatus), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -356,7 +356,7 @@ func (k *Keeper) ProcessDKGDealComplaintsSubmitted(ctx context.Context, ethlog *
 				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGComplainIndexes, strings.Join(complainIndexesStr, ",")),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -404,7 +404,7 @@ func (k *Keeper) ProcessDKGDealVerified(ctx context.Context, ethlog *ethtypes.Lo
 				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRecipientIndex, strconv.FormatUint(uint64(ev.RecipientIndex), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
@@ -451,7 +451,7 @@ func (k *Keeper) ProcessDKGInvalidDeal(ctx context.Context, ethlog *ethtypes.Log
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave)),
+				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
