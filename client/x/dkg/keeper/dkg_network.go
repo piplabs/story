@@ -69,7 +69,8 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 	latestKey, err := k.LatestDKGNetwork.Get(ctx)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return nil, errors.Wrap(err, "no DKG network set yet") // No DKG network set yet
+			// No DKG network set yet
+			return nil, nil
 		}
 
 		return nil, errors.Wrap(err, "failed to get latest DKG network key")

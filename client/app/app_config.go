@@ -18,6 +18,7 @@ import (
 	"cosmossdk.io/depinject"
 	evidencetypes "cosmossdk.io/x/evidence/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,6 +31,7 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	dkgmodulev1 "github.com/piplabs/story/client/api/story/dkg/v1/module"
 	evmenginemodulev1 "github.com/piplabs/story/client/api/story/evmengine/v1/module"
 	evmstakingmodulev1 "github.com/piplabs/story/client/api/story/evmstaking/v1/module"
 	mintmodulev1 "github.com/piplabs/story/client/api/story/mint/v1/module"
@@ -89,6 +91,7 @@ var (
 		// Story modules
 		evmenginetypes.ModuleName,
 		evmstakingtypes.ModuleName,
+		dkgtypes.ModuleName,
 	}
 
 	// NOTE: upgrade module must come first, as upgrades might break state schema.
@@ -106,6 +109,7 @@ var (
 		slashingtypes.ModuleName,
 		evidencetypes.ModuleName,
 		stakingtypes.ModuleName,
+		dkgtypes.ModuleName,
 	}
 
 	endBlockers = []string{
@@ -121,6 +125,7 @@ var (
 		stakingtypes.BondedPoolName,
 		stakingtypes.NotBondedPoolName,
 		evmstakingtypes.ModuleName,
+		dkgtypes.ModuleName,
 	}
 
 	moduleAccPerms = []*authmodulev1.ModuleAccountPermission{
@@ -131,6 +136,7 @@ var (
 		{Account: stakingtypes.NotBondedPoolName, Permissions: []string{authtypes.Burner, authtypes.Staking}},
 		{Account: evmstakingtypes.ModuleName, Permissions: []string{authtypes.Burner, authtypes.Minter}},
 		{Account: govtypes.ModuleName, Permissions: []string{authtypes.Burner}},
+		{Account: dkgtypes.ModuleName},
 	}
 
 	// appConfig application configuration (used by depinject).
@@ -215,6 +221,10 @@ var (
 			{
 				Name:   minttypes.ModuleName,
 				Config: appconfig.WrapAny(&mintmodulev1.Module{}),
+			},
+			{
+				Name:   dkgtypes.ModuleName,
+				Config: appconfig.WrapAny(&dkgmodulev1.Module{}),
 			},
 		},
 	})

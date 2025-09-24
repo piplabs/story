@@ -27,6 +27,8 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 		return errors.Wrap(err, "failed to emit dkg_begin_initialization event")
 	}
 
+	log.Info(ctx, "[DKG] Emitted BeginInitialization event", "round", dkgNetwork.Round)
+
 	return nil
 }
 

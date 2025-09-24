@@ -10,9 +10,15 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+const dkgStartBlock = 10
+
 func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
+
+	if currentHeight < dkgStartBlock {
+		return nil
+	}
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -26,7 +32,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 
 	if latestRound == nil {
 		// No active DKG round, start the first round
-		log.Info(ctx, "No active DKG round, starting the first round")
+		log.Info(ctx, "[DKG] No active DKG round, starting the first round")
 
 		return k.initiateDKGRound(ctx)
 	}

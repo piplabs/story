@@ -104,7 +104,7 @@ func (k *Keeper) initiateDKGRound(ctx context.Context) error {
 		return err
 	}
 
-	log.Info(ctx, "Initiated new DKG round",
+	log.Info(ctx, "[DKG] Initiated new DKG round",
 		"round", roundNum,
 		"start_block", currentHeight,
 		"threshold", dkgNetwork.Threshold,

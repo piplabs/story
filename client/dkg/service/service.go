@@ -80,7 +80,7 @@ func NewService(
 		return nil, errors.Wrap(err, "failed to create contract client")
 	}
 
-	privateKey, err := crypto.HexToECDSA(cfg.PrivateKey)
+	privateKey, err := crypto.HexToECDSA(contractConfig.PrivateKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse private key")
 	}

@@ -42,6 +42,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/gov"                  // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/slashing"             // import for side-effects
 	_ "github.com/cosmos/cosmos-sdk/x/staking"              // import for side-effects
+	_ "github.com/piplabs/story/client/x/dkg/module"        // import for side-effects
 	_ "github.com/piplabs/story/client/x/evmengine/module"  // import for side-effects
 	_ "github.com/piplabs/story/client/x/evmstaking/module" // import for side-effects
 	_ "github.com/piplabs/story/client/x/mint/module"       // import for side-effects
@@ -102,6 +103,7 @@ func newApp(
 		&app.Keepers.EvmStakingKeeper,
 		&app.Keepers.EVMEngKeeper,
 		&app.Keepers.MintKeeper,
+		&app.Keepers.DKGKeeper,
 	); err != nil {
 		return nil, errors.Wrap(err, "dep inject")
 	}

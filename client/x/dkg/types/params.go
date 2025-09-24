@@ -6,7 +6,7 @@ import (
 
 const (
 	// periods are in seconds.
-	MinDkgStagePeriod            uint32 = 1 * 24 * 60 * 60  // 1 day
+	MinDkgStagePeriod            uint32 = 1                 // 1 block
 	DefaultDkgRegistrationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgNetworkSetPeriod   uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgDealingPeriod      uint32 = 1 * 24 * 60 * 60  // 1 day

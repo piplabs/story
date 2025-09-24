@@ -22,12 +22,6 @@ type DKGConfig struct {
 	// Cosmos chain ID
 	CosmosChainID string `mapstructure:"cosmos_chain_id"`
 
-	// Contract configuration for Ethereum DKG contract interaction
-	EthRPCEndpoint     string `mapstructure:"eth_rpc_endpoint"`
-	DKGContractAddress string `mapstructure:"dkg_contract_address"`
-	PrivateKey         string `mapstructure:"private_key"`
-	ChainID            int64  `mapstructure:"chain_id"`
-
 	// Event polling interval for listening to blockchain events
 	EventPollingInterval time.Duration `mapstructure:"event_polling_interval"`
 
@@ -50,10 +44,6 @@ func DefaultDKGConfig() *DKGConfig {
 		Enable:               false,
 		TEEEndpoint:          "",
 		CosmosRPCEndpoint:    "http://localhost:26657",
-		EthRPCEndpoint:       "http://localhost:8545",
-		DKGContractAddress:   "",
-		PrivateKey:           "",
-		ChainID:              31337, // Local test chain ID
 		CosmosChainID:        netconf.TestChainID,
 		EventPollingInterval: 5 * time.Second, // Poll every 5 seconds
 		MaxTEERetries:        3,
