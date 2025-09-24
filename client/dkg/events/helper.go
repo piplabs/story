@@ -59,6 +59,7 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 	var protoEvent dkgtypes.EventBeginInitialization
 
 	for _, attr := range event.Attributes {
+		//nolint:nestif,goconst // ignore nestedif linting
 		if attr.Key == "data" {
 			var eventData map[string]any
 			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
@@ -122,6 +123,7 @@ func parseBeginNetworkSetEvent(event abcitypes.Event, height int64) *types.DKGEv
 			if thresholdFloat, ok := eventData["threshold"].(float64); ok {
 				protoEvent.Threshold = uint32(thresholdFloat)
 			}
+
 			break
 		}
 	}
@@ -173,6 +175,7 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 	var protoEvent dkgtypes.EventBeginProcessDeals
 
 	for _, attr := range event.Attributes {
+		//nolint:nestif // ignore nestedif linting
 		if attr.Key == "data" {
 			var eventData map[string]any
 			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
@@ -207,18 +210,22 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 							if edKey, ok := edAttr["key"].(string); ok {
 								switch edKey {
 								case "dh_key":
+									//nolint:revive,max-control-nesting // ignore max control nesting linting
 									if dhKey, ok := edAttr["value"].(string); ok {
 										dkgDeal.Deal.DhKey = []byte(dhKey)
 									}
 								case "signature":
+									//nolint:revive,max-control-nesting // ignore max control nesting linting
 									if signature, ok := edAttr["value"].(string); ok {
 										dkgDeal.Deal.Signature = []byte(signature)
 									}
 								case "nonce":
+									//nolint:revive,max-control-nesting // ignore max control nesting linting
 									if nonce, ok := edAttr["value"].(string); ok {
 										dkgDeal.Deal.Nonce = []byte(nonce)
 									}
 								case "cipher":
+									//nolint:revive,max-control-nesting // ignore max control nesting linting
 									if cipher, ok := edAttr["value"].(string); ok {
 										dkgDeal.Deal.Cipher = []byte(cipher)
 									}
@@ -253,6 +260,7 @@ func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types
 	var responses []*types.Response
 
 	for _, attr := range event.Attributes {
+		//nolint:nestif // ignore nestedif linting
 		if attr.Key == "data" {
 			var eventData map[string]any
 			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
@@ -293,6 +301,7 @@ func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types
 					responses = append(responses, &resp)
 				}
 			}
+
 			break
 		}
 	}

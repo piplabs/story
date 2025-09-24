@@ -46,6 +46,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		}
 
 		// Emit appropriate events for stage transitions
+		//nolint:exhaustive // skip `types.DKGStageNetworkSetCompleted` for now
 		switch nextStage {
 		case types.DKGStageRegistration:
 			// round = DKGStageRegistration if either

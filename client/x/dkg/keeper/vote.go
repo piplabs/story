@@ -8,13 +8,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/gogoproto/proto"
+
 	dkgservice "github.com/piplabs/story/client/dkg/service"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
-func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
+func (*Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
 	// TODO: add limits on the size of the deals&responses included in the vote extension
 	deals := dkgservice.PopDeals()
 	responses := dkgservice.PopResponses()
@@ -26,32 +27,32 @@ func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.R
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal vote")
 	}
+
 	return &abci.ResponseExtendVote{
 		VoteExtension: bz,
 	}, nil
 }
 
-func (k *Keeper) VerifyVoteExtension(ctx sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
+func (k *Keeper) VerifyVoteExtension(_ sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
 	// todo: consider adding more checks here
-	_, _, err := k.parseAndVerifyVoteExtension(ctx, req.VoteExtension)
+	_, _, err := k.parseAndVerifyVoteExtension(req.VoteExtension)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse vote extension")
 	}
+
 	return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_ACCEPT}, nil
 }
 
-func (k *Keeper) parseAndVerifyVoteExtension(
-	ctx sdk.Context,
-	voteExt []byte,
-) ([]*types.Vote, bool, error) {
+//nolint:unparam // ignore unused param error
+func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool, error) {
 	vote, ok, err := votesFromExtension(voteExt)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse vote extension")
 	} else if !ok {
 		return nil, true, nil // Empty vote extension is fine
-	} else {
-		return []*types.Vote{vote}, true, nil
 	}
+
+	return []*types.Vote{vote}, true, nil
 }
 
 // PrepareVotes returns the cosmosSDK transaction MsgAddVotes that will include all the validator votes included
@@ -72,7 +73,7 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	var allVotes []*types.Vote
 	log.Info(ctx, "Processing vote extensions", "height", commitHeight, "num_votes", len(commit.Votes))
 	for _, vote := range commit.Votes {
-		selected, _, err := k.parseAndVerifyVoteExtension(sdkCtx, vote.VoteExtension) //nolint:contextcheck // sdkCtx passed
+		selected, _, err := k.parseAndVerifyVoteExtension(vote.VoteExtension)
 		if err != nil {
 			log.Warn(ctx, "Discarding invalid vote extension", err, log.Hex7("validator", vote.Validator.Address))
 			continue
@@ -81,10 +82,7 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 		allVotes = append(allVotes, selected...)
 	}
 
-	votes, err := aggregateVotes(allVotes)
-	if err != nil {
-		return nil, err
-	}
+	votes := aggregateVotes(allVotes)
 
 	return []sdk.Msg{&types.MsgAddDkgVote{
 		Authority: authtypes.NewModuleAddress(types.ModuleName).String(),
@@ -92,14 +90,13 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	}}, nil
 }
 
-func aggregateVotes(votes []*types.Vote) (*types.Vote, error) {
+func aggregateVotes(votes []*types.Vote) *types.Vote {
 	dealMap := make([]*types.Deal, 0)
 	for _, vote := range votes {
 		dealMap = append(dealMap, vote.Deals...)
 	}
-	return &types.Vote{
-		Deals: dealMap,
-	}, nil
+
+	return &types.Vote{Deals: dealMap}
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.

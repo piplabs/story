@@ -70,7 +70,7 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
 			// No DKG network set yet
-			return nil, nil
+			return nil, errors.Wrap(err, "latest DKG network not set")
 		}
 
 		return nil, errors.Wrap(err, "failed to get latest DKG network key")
@@ -168,6 +168,7 @@ func (k *Keeper) getNextRoundNumber(ctx context.Context) uint32 {
 	return latestNetwork.Round + 1
 }
 
+//nolint:unused // ignore unused error
 func (*Keeper) calculateThreshold(total uint32) uint32 {
 	threshold := (total * 2) / 3
 	if threshold*3 < total*2 {

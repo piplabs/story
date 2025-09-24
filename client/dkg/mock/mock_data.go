@@ -6,6 +6,8 @@ import (
 )
 
 // MockDataGenerator generates mock data for DKG testing.
+//
+//nolint:exported,revive // ignore exported and revive linting
 type MockDataGenerator struct{}
 
 // NewMockDataGenerator creates a new mock data generator.

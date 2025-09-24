@@ -160,5 +160,6 @@ func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DK
 	if err != nil {
 		return errors.Wrap(err, "failed to process responses")
 	}
+
 	return nil
 }

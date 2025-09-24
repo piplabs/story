@@ -122,6 +122,26 @@ func (mr *MockTEEClientMockRecorder) ProcessDeals(ctx, in any, opts ...any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEClient)(nil).ProcessDeals), varargs...)
 }
 
+// ProcessResponses mocks base method.
+func (m *MockTEEClient) ProcessResponses(ctx context.Context, in *dkg.ProcessResponsesRequest, opts ...grpc.CallOption) (*dkg.ProcessResponsesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ProcessResponses", varargs...)
+	ret0, _ := ret[0].(*dkg.ProcessResponsesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessResponses indicates an expected call of ProcessResponses.
+func (mr *MockTEEClientMockRecorder) ProcessResponses(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEClient)(nil).ProcessResponses), varargs...)
+}
+
 // SetupDKGNetwork mocks base method.
 func (m *MockTEEClient) SetupDKGNetwork(ctx context.Context, in *dkg.SetupDKGNetworkRequest, opts ...grpc.CallOption) (*dkg.SetupDKGNetworkResponse, error) {
 	m.ctrl.T.Helper()
@@ -244,6 +264,21 @@ func (m *MockTEEServer) ProcessDeals(arg0 context.Context, arg1 *dkg.ProcessDeal
 func (mr *MockTEEServerMockRecorder) ProcessDeals(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEServer)(nil).ProcessDeals), arg0, arg1)
+}
+
+// ProcessResponses mocks base method.
+func (m *MockTEEServer) ProcessResponses(arg0 context.Context, arg1 *dkg.ProcessResponsesRequest) (*dkg.ProcessResponsesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProcessResponses", arg0, arg1)
+	ret0, _ := ret[0].(*dkg.ProcessResponsesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessResponses indicates an expected call of ProcessResponses.
+func (mr *MockTEEServerMockRecorder) ProcessResponses(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEServer)(nil).ProcessResponses), arg0, arg1)
 }
 
 // SetupDKGNetwork mocks base method.

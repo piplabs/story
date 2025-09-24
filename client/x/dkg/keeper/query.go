@@ -68,7 +68,7 @@ func (k *Keeper) GetAllDKGNetworks(ctx context.Context, req *types.QueryGetAllDK
 }
 
 // GetDKGRegistration queries a DKG registration by mrenclave, round, and validator address.
-func (k *Keeper) GetDKGRegistration(ctx context.Context, req *types.QueryGetDKGRegistrationRequest) (*types.QueryGetDKGRegistrationResponse, error) {
+func (*Keeper) GetDKGRegistration(_ context.Context, req *types.QueryGetDKGRegistrationRequest) (*types.QueryGetDKGRegistrationResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}

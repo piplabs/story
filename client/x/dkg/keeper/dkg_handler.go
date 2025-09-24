@@ -106,7 +106,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		"index", index,
 	)
 
-	k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized)
+	err = k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized)
 	if err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}

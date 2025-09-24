@@ -94,16 +94,6 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, mrenclave []byt
 	return registrations, nil
 }
 
-// deleteDKGRegistration removes a DKG registration from the store.
-func (k *Keeper) deleteDKGRegistration(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) error {
-	key := fmt.Sprintf("%s_%d_%s", string(mrenclave), round, validatorAddr.Hex())
-	if err := k.DKGRegistrations.Remove(ctx, key); err != nil {
-		return errors.Wrap(err, "failed to delete dkg registration")
-	}
-
-	return nil
-}
-
 // updateDKGRegistrationStatus updates the status of a specific DKG registration.
 func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address, status types.DKGRegStatus) error {
 	dkgReg, err := k.getDKGRegistration(ctx, mrenclave, round, validatorAddr)

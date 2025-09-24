@@ -8,8 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+
 	"github.com/piplabs/story/client/api/story/dkg/v1/module"
 	"github.com/piplabs/story/client/x/dkg/keeper"
 	"github.com/piplabs/story/client/x/dkg/types"

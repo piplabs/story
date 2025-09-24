@@ -8,8 +8,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-
 	"github.com/cosmos/gogoproto/grpc"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/ethclient"
 )

@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -71,6 +72,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		// Ensure only expected messages types are included the expected number of times.
 		expectedMsgCounts := map[string]int{
 			sdk.MsgTypeURL(&evmenginetypes.MsgExecutionPayload{}): 1, // Only a single EVM execution payload is allowed.
+			sdk.MsgTypeURL(&dkgtypes.MsgAddDkgVote{}):             1,
 		}
 
 		rawTX := req.Txs[0]

@@ -18,7 +18,6 @@ import (
 	"cosmossdk.io/depinject"
 	evidencetypes "cosmossdk.io/x/evidence/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,6 +34,7 @@ import (
 	evmenginemodulev1 "github.com/piplabs/story/client/api/story/evmengine/v1/module"
 	evmstakingmodulev1 "github.com/piplabs/story/client/api/story/evmstaking/v1/module"
 	mintmodulev1 "github.com/piplabs/story/client/api/story/mint/v1/module"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	evmstakingtypes "github.com/piplabs/story/client/x/evmstaking/types"
 	minttypes "github.com/piplabs/story/client/x/mint/types"

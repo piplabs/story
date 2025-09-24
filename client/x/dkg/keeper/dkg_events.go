@@ -66,7 +66,7 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	return nil
 }
 
-func (k *Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
+func (*Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
@@ -83,7 +83,7 @@ func (k *Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKG
 	return nil
 }
 
-func (k *Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []*types.Response) error {
+func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []*types.Response) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{
