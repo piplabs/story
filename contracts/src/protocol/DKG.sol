@@ -158,6 +158,8 @@ contract DKG is IDKG {
         );
 
         node.nodeStatus = NodeStatus.NetworkSetDone;
+        roundInfo[mrenclave][round].total = total;
+        roundInfo[mrenclave][round].threshold = threshold;
 
         emit DKGNetworkSet(msg.sender, round, total, threshold, mrenclave, signature);
     }
