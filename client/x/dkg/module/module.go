@@ -99,6 +99,7 @@ func (AppModule) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 // RegisterServices registers a gRPC query service to respond to the module-specific gRPC queries.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+	types.RegisterMsgServiceServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.keeper))
 }
 
 // ValidateGenesis performs genesis state validation for the bank module.

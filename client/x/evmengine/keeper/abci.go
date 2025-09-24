@@ -181,14 +181,14 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		ExecutionPayloadDeneb: payloadProto,
 	}
 
-	voteMsgs, err := k.voteProvider.PrepareVotes(ctx, req.LocalLastCommit, uint64(req.Height-1))
+	voteMsg, err := k.voteProvider.PrepareVotes(ctx, req.LocalLastCommit, uint64(req.Height-1))
 	if err != nil {
 		return nil, errors.Wrap(err, "prepare votes")
 	}
 
 	// Combine all the votes messages and the payload message into a single transaction.
 	b := k.txConfig.NewTxBuilder()
-	if err := b.SetMsgs(append(voteMsgs, payloadMsg)...); err != nil { // b.SetMsgs(append(voteMsgs, payloadMsg)...)
+	if err := b.SetMsgs([]sdk.Msg{payloadMsg, voteMsg}...); err != nil { // b.SetMsgs(append(voteMsgs, payloadMsg)...)
 		return nil, errors.Wrap(err, "set tx builder msgs")
 	}
 

@@ -18,8 +18,11 @@ func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 	if err != nil {
 		return nil, err
 	}
-	_ = s.Keeper.emitBeginProcessDeal(ctx, latestRound, msg.Vote.Deals)
-	_ = s.Keeper.emitBeginProcessResponses(ctx, latestRound, msg.Vote.Responses)
+
+	if latestRound != nil && latestRound.Stage == types.DKGStageDealing {
+		_ = s.Keeper.emitBeginProcessDeal(ctx, latestRound, msg.Vote.Deals)
+		_ = s.Keeper.emitBeginProcessResponses(ctx, latestRound, msg.Vote.Responses)
+	}
 
 	return &types.AddDkgVoteResponse{}, nil
 }

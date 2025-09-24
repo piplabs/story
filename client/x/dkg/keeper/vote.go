@@ -60,7 +60,7 @@ func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool,
 //
 // Note that the commit is assumed to be valid and only contains valid VEs from the previous block as
 // provided by a trusted cometBFT. Some votes (contained inside VE) may however be invalid, they are discarded.
-func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInfo, commitHeight uint64) ([]sdk.Msg, error) {
+func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInfo, commitHeight uint64) (sdk.Msg, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	// The VEs in LastLocalCommit is expected to be valid
 	if err := baseapp.ValidateVoteExtensions(sdkCtx, k.skeeper, 0, "", commit); err != nil {
@@ -84,10 +84,10 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 
 	votes := aggregateVotes(allVotes)
 
-	return []sdk.Msg{&types.MsgAddDkgVote{
+	return &types.MsgAddDkgVote{
 		Authority: authtypes.NewModuleAddress(types.ModuleName).String(),
 		Vote:      votes,
-	}}, nil
+	}, nil
 }
 
 func aggregateVotes(votes []*types.Vote) *types.Vote {
