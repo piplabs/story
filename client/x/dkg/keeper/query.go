@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"github.com/piplabs/story/lib/cast"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 
@@ -31,7 +32,12 @@ func (k *Keeper) GetDKGNetwork(ctx context.Context, req *types.QueryGetDKGNetwor
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	network, err := k.getDKGNetwork(ctx, req.Mrenclave, req.Round)
+	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+	}
+
+	network, err := k.getDKGNetwork(ctx, mrenclave, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, err.Error())
 	}
@@ -84,7 +90,12 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	registrations, err := k.getDKGRegistrationsByRound(ctx, req.Mrenclave, req.Round)
+	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+	}
+
+	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -102,7 +113,12 @@ func (k *Keeper) GetVerifiedDKGRegistrations(ctx context.Context, req *types.Que
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	registrations, err := k.getDKGRegistrationsByStatus(ctx, req.Mrenclave, req.Round, types.DKGRegStatusVerified)
+	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+	}
+
+	registrations, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, req.Round, types.DKGRegStatusVerified)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
