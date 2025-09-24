@@ -1,6 +1,8 @@
 syntax = "proto3";
 package story.dkg.v1.types;
 
+import "story/dkg/v1/types/types.proto";
+
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
 enum EventType {
@@ -8,8 +10,10 @@ enum EventType {
   EVENT_TYPE_BEGIN_INITIALIZATION = 1;
   EVENT_TYPE_BEGIN_NETWORK_SET = 2;
   EVENT_TYPE_BEGIN_DEALING = 3;
-  EVENT_TYPE_BEGIN_FINALIZATION = 4;
-  EVENT_TYPE_DKG_FINALIZED = 5;
+  EVENT_TYPE_BEGIN_PROCESS_DEALS = 4;
+  EVENT_TYPE_BEGIN_PROCESS_RESPONSES = 5;
+  EVENT_TYPE_BEGIN_FINALIZATION = 6;
+  EVENT_TYPE_DKG_FINALIZED = 7;
 }
 
 message EventBeginInitialization {
@@ -29,6 +33,18 @@ message EventBeginNetworkSet {
 message EventBeginDealing {
   bytes mrenclave = 1;
   uint32 round = 2;
+}
+
+message EventBeginProcessDeals {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  repeated types.Deal deals = 3;
+}
+
+message EventBeginProcessResponses {
+  bytes mrenclave = 1;
+  uint32 round = 2;
+  repeated types.Response responses = 3;
 }
 
 message EventBeginFinalization {

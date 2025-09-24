@@ -30,6 +30,7 @@ func makeProcessProposalRouter(app *App) *baseapp.MsgServiceRouter {
 	router := baseapp.NewMsgServiceRouter()
 	router.SetInterfaceRegistry(app.interfaceRegistry)
 	app.Keepers.EVMEngKeeper.RegisterProposalService(router) // EVMEngine calls NewPayload on proposals to verify it.
+	app.Keepers.DKGKeeper.RegisterProposalService(router)    // DKG calls VerifyVoteExtension on proposals to verify VEs.
 
 	return router
 }

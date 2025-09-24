@@ -41,6 +41,7 @@ type Keeper struct {
 	buildDelay      time.Duration
 	buildOptimistic bool
 	validatorAddr   common.Address
+	voteProvider    types.VoteExtensionProvider
 
 	accountKeeper    types.AccountKeeper
 	evmstakingKeeper types.EvmStakingKeeper

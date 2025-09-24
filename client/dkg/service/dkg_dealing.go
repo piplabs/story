@@ -9,6 +9,9 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+var Deals []*types.Deal
+var Responses []*types.Response
+
 // handleDKGDealing handles the dealing phase event.
 func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG dealing phase event",
@@ -48,13 +51,92 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to create deals")
 	}
 
+	// todo: the slice length should be restricted by the max tx size
+	Deals = []*types.Deal{}
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
+		Deals = append(Deals, deal)
 	}
 
 	// TODO: dealing logic (via vote extension in Cosmos SDK)
 	// DKG service would request to process the deals which is given through vote extension to the TEE client.
 	// Then, the TEE client will process the deals. If there is any invalid deals, it will return the complaints in ProcessDealResponse (step 5 in DKG dealing section).
 
+	return nil
+}
+
+// handleDKGProcessDeals handles the deal verification phase event.
+func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEventData) error {
+	log.Info(ctx, "Handling DKG deal verification phase event",
+		"mrenclave", event.Mrenclave,
+		"round", event.Round,
+	)
+
+	mrenclave, err := event.ParseMrenclave()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse mrenclave")
+	}
+
+	session, err := s.stateManager.GetSession(mrenclave, event.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG session")
+	}
+
+	if session.Phase != types.PhaseDealing {
+		log.Warn(ctx, "Session not in dealing phase, skipping deal verification", nil,
+			"current_phase", session.Phase.String(),
+		)
+
+		return nil
+	}
+
+	req := &dkgpb.ProcessDealRequest{
+		Mrenclave: session.Mrenclave,
+		Round:     session.Round,
+		Index:     session.Index,
+		Deals:     event.Deals,
+	}
+	resp, err := s.teeClient.ProcessDeals(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed to process deals")
+	}
+	Responses = resp.GetResponses()
+
+	return nil
+}
+
+func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DKGEventData) error {
+	log.Info(ctx, "Handling DKG process responses event",
+		"mrenclave", event.Mrenclave,
+		"round", event.Round,
+	)
+
+	mrenclave, err := event.ParseMrenclave()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse mrenclave")
+	}
+
+	session, err := s.stateManager.GetSession(mrenclave, event.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG session")
+	}
+
+	if session.Phase != types.PhaseDealing {
+		log.Warn(ctx, "Session not in dealing phase, skipping process responses", nil,
+			"current_phase", session.Phase.String(),
+		)
+
+		return nil
+	}
+
+	req := &dkgpb.ProcessResponsesRequest{
+		Mrenclave: session.Mrenclave,
+		Round:     session.Round,
+		Responses: event.Responses,
+	}
+	_, err = s.teeClient.ProcessResponses(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed to process responses")
+	}
 	return nil
 }

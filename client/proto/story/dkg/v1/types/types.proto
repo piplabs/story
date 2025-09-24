@@ -148,3 +148,15 @@ message Complaint {
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
 }
+
+message Response {
+  uint32 index = 1 [json_name = "index"];
+  VSSResponse vss_response = 2 [json_name = "vss_response"];
+}
+
+message VSSResponse {
+  bytes session_id = 1 [json_name = "session_id"];
+  uint32 index = 2 [json_name = "index"];
+  bool status = 3 [json_name = "status"];
+  bytes signature = 4 [json_name = "signature"];
+}

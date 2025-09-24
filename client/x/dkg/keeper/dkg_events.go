@@ -64,6 +64,40 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	return nil
 }
 
+func (k *Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
+		Mrenclave: dkgNetwork.Mrenclave,
+		Round:     dkgNetwork.Round,
+		Deals:     deals,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to emit dkg_begin_deal_verification event")
+	}
+
+	log.Info(ctx, "Emitted BeginProcessDeal event", "round", dkgNetwork.Round)
+
+	return nil
+}
+
+func (k *Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []*types.Response) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{
+		Mrenclave: dkgNetwork.Mrenclave,
+		Round:     dkgNetwork.Round,
+		Responses: responses,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to emit dkg_begin_process_responses event")
+	}
+
+	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round)
+
+	return nil
+}
+
 func (*Keeper) emitBeginDKGFinalization(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 

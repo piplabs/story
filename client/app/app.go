@@ -106,6 +106,7 @@ func newApp(
 		return nil, errors.Wrap(err, "dep inject")
 	}
 
+	app.Keepers.EVMEngKeeper.SetVoteProvider(app.Keepers.DKGKeeper)
 	baseAppOpts = append(baseAppOpts, func(bapp *baseapp.BaseApp) {
 		// Use evm engine to create block proposals.
 		// Note that we do not check MaxTxBytes since all EngineEVM transaction MUST be included since we cannot
@@ -114,6 +115,9 @@ func newApp(
 
 		// Route proposed messages to keepers for verification and external state updates.
 		bapp.SetProcessProposal(makeProcessProposalHandler(makeProcessProposalRouter(app), app.txConfig))
+
+		bapp.SetExtendVoteHandler(app.Keepers.DKGKeeper.ExtendVote)
+		bapp.SetVerifyVoteExtensionHandler(app.Keepers.DKGKeeper.VerifyVoteExtension)
 	})
 
 	app.App = appBuilder.Build(db, nil, baseAppOpts...)
