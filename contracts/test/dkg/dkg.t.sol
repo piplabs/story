@@ -26,26 +26,27 @@ contract DKGTest is Test {
     bytes finalizeDKG_signature =
         hex"70a1d8b96be91078aa807ac9f26127147fd147b0dc68e84676761ad2b70a1b604ea07f56e94d77a041119143cf994b78b64f462ef56aa4d6d289eb352f086d9d1b";
 
+
     // validator 1
-    address validator1 = address(0x8d16983bCa5509C4cca4A73ce7bF5034A152dAb8);
+    address validator1 = address(0x591942F67Cf7d6104aD2f41Be899713fCb60dceB);
     bytes commPubKey1 =
-        hex"c69a9c874eaf034562948a2c771e3ceed4365dc442c838617fc2b09e634198ba4497f208889c626d40941235e29774e8c290b421f2f8668e2214477986072689";
+        hex"55a921e6dce5eef957df0b9a322122ed81d0c2a98deadd20e6ff17fdc714143cbf376aab658436baf321b8cce34a06078f2082c9762445d98e51d6808950f600";
     bytes finalizeDKG_signature1 =
-        hex"1d69f0f6988cbb69c2957fa625dc610639bb0f4380f53024a48d01840d4fce0a07e5b1b6c715784d521977e02cfabbd83235104ccb1a1b1eaec108db968c3c841c";
+        hex"c945b681a8c3872b2d50b9ab2db56f5eead49902d02e99a8054b4b0015fb5aff319d4d704e415e87a89abfc1be1ec9f1fa73db92842fb3967d6d2e780e24c9601b";
 
     // validator 2
-    address validator2 = address(0x1BaAfE5C84f0df458362cb05Ac3a1C0dd3585a12);
+    address validator2 = address(0xEB8e62E11504B3961DF295bA363385B241606355);
     bytes commPubKey2 =
-        hex"27b35c5949ef1e72336a61a0252f5a8eb08a9c935b8d93a6f1eba4e176bffbe9899b80725d7c733b5ed91f0035604f0d186992ec2d000fe2c6bd86be5893ab86";
+        hex"7f28a5e6d5ad9b315b7241b73c4c5f9d68d3fd2051d52e0ec39b70a557acdd3d5d7e53f87bb3c6c74be59775247fc280f827f36e3fa45bcf3e95aa6f94e3f8c0";
     bytes finalizeDKG_signature2 =
-        hex"ca42aeb5400df43b98d2bd3cc97769aef486ca56a17e526c4dbd76731c88c6ec6e1c547174cd5719ab98cdf19ca556fc65838134f4cab5a4ac039f0f302c5ea81c";
+        hex"b3ab103cecd44f3202f1e68c795493148c7eeb1e30b9b821ffe9e85cd6d3ea48258b541e76d75e810bb2382ce0b2a010585f1fb1bdf338f0e7d3def01c0964ae1c";
 
     // validator 3
-    address validator3 = address(0x4DdeCF53cafE924A40461ee1AE19d51363c25686);
+    address validator3 = address(0xd80E4c5D255c28305572D452D6f381f3DA06fE0b);
     bytes commPubKey3 =
-        hex"bafa47a40e19c197ab18f39ef41da4cba37e66a230f2dc7cee9b8ccbef5e9548231809951d60a0ef7c80f7ffdae10fa173ebcef5761f8be6db157e2e3b856951";
+        hex"4971528c66918f5eb181a70ffd455569aadec5aeee4dbd01d8dc208241381b137f92101076e3b7cf2c5c2e0fb63793abef2360570429a1b597da0422a4aaf10e";
     bytes finalizeDKG_signature3 =
-        hex"d5114c69a70f800fc3af7459db55039fac78d2301bc685b36b60becd260dad9f17ef076bbe966deb5a2710daca2717aad3da3e0035ca202d26a1d4a61c10b7f41b";
+        hex"31ab1b5bfc86648bba3c5783a3795df750c8517009b623a0281eda3520ad240b505f2a83ecde1dc9a205defcaebe0ab20cf41122f596f4ad4e188d4fde7321101b";
 
     function setUp() public override {
         dkg = new DKG(mrenclave);
@@ -80,7 +81,9 @@ contract DKGTest is Test {
 
         assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
 
-        assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
+        // 2. set DKG network
+        vm.prank(validator1);
+        dkg.setNetwork(round, total, threshold, mrenclave, invalid_signature);
 
         // 3. finalize DKG
         vm.prank(validator1);
