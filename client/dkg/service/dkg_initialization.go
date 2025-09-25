@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"slices"
+	"strings"
 
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/client/dkg/types"
@@ -14,7 +15,7 @@ import (
 // handleDKGInitialization handles the DKG initialization event.
 func (s *Service) handleDKGInitialization(ctx context.Context, event *types.DKGEventData) error {
 	valAddr := s.validatorAddress.Hex()
-	isParticipant := slices.Contains(event.ActiveValidators, valAddr)
+	isParticipant := slices.Contains(event.ActiveValidators, strings.ToLower(valAddr))
 	if !isParticipant {
 		log.Debug(ctx, "Validator is not part of DKG committee", "validator", valAddr)
 

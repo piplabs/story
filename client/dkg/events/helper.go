@@ -13,13 +13,13 @@ import (
 func isDKGEvent(eventType string) bool {
 	// Check for typed proto events from x/dkg module
 	dkgEventTypes := []string{
-		"/story.dkg.v1.types.EventBeginInitialization",
-		"/story.dkg.v1.types.EventBeginNetworkSet",
-		"/story.dkg.v1.types.EventBeginDealing",
-		"/story.dkg.v1.types.EventBeginProcessDeals",
-		"/story.dkg.v1.types.EventBeginProcessResponses",
-		"/story.dkg.v1.types.EventBeginFinalization",
-		"/story.dkg.v1.types.EventDKGFinalized",
+		"story.dkg.v1.types.EventBeginInitialization",
+		"story.dkg.v1.types.EventBeginNetworkSet",
+		"story.dkg.v1.types.EventBeginDealing",
+		"story.dkg.v1.types.EventBeginProcessDeals",
+		"story.dkg.v1.types.EventBeginProcessResponses",
+		"story.dkg.v1.types.EventBeginFinalization",
+		"story.dkg.v1.types.EventDKGFinalized",
 	}
 
 	for _, validType := range dkgEventTypes {
@@ -35,19 +35,19 @@ func isDKGEvent(eventType string) bool {
 func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKGEventData {
 	// Handle typed proto events from x/dkg module
 	switch event.Type {
-	case "/story.dkg.v1.types.EventBeginInitialization":
+	case "story.dkg.v1.types.EventBeginInitialization":
 		return parseBeginInitializationEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginNetworkSet":
+	case "story.dkg.v1.types.EventBeginNetworkSet":
 		return parseBeginNetworkSetEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginDealing":
+	case "story.dkg.v1.types.EventBeginDealing":
 		return parseBeginDealingEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginProcessDeals":
+	case "story.dkg.v1.types.EventBeginProcessDeals":
 		return parseBeginProcessDealsEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginProcessResponses":
+	case "story.dkg.v1.types.EventBeginProcessResponses":
 		return parseBeginProcessResponsesEvent(event, height)
-	case "/story.dkg.v1.types.EventBeginFinalization":
+	case "story.dkg.v1.types.EventBeginFinalization":
 		return parseBeginFinalizationEvent(event, height)
-	case "/story.dkg.v1.types.EventDKGFinalized":
+	case "story.dkg.v1.types.EventDKGFinalized":
 		return parseDKGFinalizedEvent(event, height)
 	default:
 		return nil
