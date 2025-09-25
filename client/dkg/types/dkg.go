@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -138,7 +139,11 @@ type DKGEventData struct {
 
 // ParseMrenclave converts the hex-encoded mrenclave string to bytes.
 func (e *DKGEventData) ParseMrenclave() ([]byte, error) {
-	b := []byte(e.Mrenclave)
+	b, err := base64.StdEncoding.DecodeString(e.Mrenclave)
+	if err != nil {
+		return nil, errors.New("failed to decode mrenclave", err)
+	}
+
 	if len(b) != 32 { // expect 256-bit digest (32 bytes)
 		return nil, errors.New("mrenclave is not a 256-bit digest", "expected_size", 32, "actual_size", len(b))
 	}

@@ -2,6 +2,7 @@ package events
 
 import (
 	"encoding/json"
+	"strconv"
 
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 
@@ -56,47 +57,46 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 
 // parseBeginInitializationEvent parses EventBeginInitialization typed event.
 func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var protoEvent dkgtypes.EventBeginInitialization
+	protoEvent := &types.DKGEventData{
+		EventType:  "dkg_begin_initialization",
+		Attributes: make(map[string]string),
+	}
 
 	for _, attr := range event.Attributes {
-		//nolint:nestif,goconst // ignore nestedif linting
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
+		key, val := attr.Key, attr.Value
 
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = val
+			} else {
+				protoEvent.Mrenclave = unquoted
 			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-			if startBlockFloat, ok := eventData["start_block"].(float64); ok {
-				//nolint:govet // keep field
-				protoEvent.StartBlock = uint32(startBlockFloat)
+			protoEvent.Round = uint32(round)
+		case "start_block":
+			h, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				continue
 			}
-			if activeValidators, ok := eventData["active_validators"].([]interface{}); ok {
-				var validators []string
-				for _, v := range activeValidators {
-					if s, ok := v.(string); ok {
-						validators = append(validators, s)
-					}
-				}
-				protoEvent.ActiveValidators = validators
+			protoEvent.BlockHeight = h
+		case "active_validators":
+			var validators []string
+			if err := json.Unmarshal([]byte(val), &validators); err != nil {
+				continue
 			}
-			break
+			protoEvent.ActiveValidators = validators
+		default:
+			protoEvent.Attributes[key] = val
 		}
 	}
 
-	return &types.DKGEventData{
-		EventType:        "dkg_begin_initialization",
-		Mrenclave:        string(protoEvent.Mrenclave),
-		Round:            protoEvent.Round,
-		BlockHeight:      height,
-		ActiveValidators: protoEvent.ActiveValidators,
-		Attributes:       extractAttributes(event),
-	}
+	return protoEvent
 }
 
 // parseBeginNetworkSetEvent parses EventBeginNetworkSet typed event.
