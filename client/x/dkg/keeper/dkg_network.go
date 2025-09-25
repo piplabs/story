@@ -70,7 +70,7 @@ func (k *Keeper) GetLatestDKGRound(ctx context.Context) (*types.DKGNetwork, erro
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
 			// No DKG network set yet
-			return nil, nil
+			return nil, errors.Wrap(err, "no dkg network set yet")
 		}
 
 		return nil, errors.Wrap(err, "failed to get latest DKG network key")
@@ -138,12 +138,17 @@ func (k *Keeper) DeleteDKGNetwork(ctx context.Context, mrenclave []byte, round u
 
 // isLatestDKGNetwork determines if the given DKG network should be the new latest
 // Returns true if:
-// - No current latest exists, OR
+// - No current latest exists (collection not found), OR
 // - This network has a higher round number, OR
 // - Same round but newer start block (newer TEE binary for same round).
 func (k *Keeper) isLatestDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	currentLatest, err := k.GetLatestDKGRound(ctx)
 	if err != nil {
+		// If no latest DKG network exists yet, return true
+		if errors.Is(err, collections.ErrNotFound) {
+			return true, nil
+		}
+
 		return false, err
 	}
 	if currentLatest == nil {

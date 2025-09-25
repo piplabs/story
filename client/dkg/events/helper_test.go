@@ -1,162 +1,212 @@
+//nolint:testpackage // fix this later to events_test
 package events
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/stretchr/testify/require"
+
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 )
 
 func TestParseBeginInitializationEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave":         "initmrenclave",
-		"round":             float64(1),
-		"start_block":       float64(100),
-		"active_validators": []interface{}{"val1", "val2"},
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	mrenclave := "initmrenclave"
+	activeValidators := []string{"val1", "val2"}
+	activeValidatorsBytes, err := json.Marshal(activeValidators)
+	require.NoError(t, err)
+	height := int64(10)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventBeginInitialization",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: "1"},
+			{Key: "start_block", Value: strconv.FormatInt(height, 10)},
+			{Key: "active_validators", Value: string(activeValidatorsBytes)},
 		},
 	}
-	height := int64(10)
+
 	result := parseBeginInitializationEvent(event, height)
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_begin_initialization", result.EventType)
-	require.Equal(t, "initmrenclave", result.Mrenclave)
+	require.Equal(t, mrenclave, result.Mrenclave)
 	require.Equal(t, uint32(1), result.Round)
 	require.Equal(t, height, result.BlockHeight)
 	require.ElementsMatch(t, []string{"val1", "val2"}, result.ActiveValidators)
 }
 
 func TestParseBeginNetworkSetEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "netmrenclave",
-		"round":     float64(2),
-		"total":     float64(5),
-		"threshold": float64(3),
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	height := int64(20)
+	mrenclave := "netmrenclave"
+	total := uint32(5)
+	threshold := uint32(3)
+	round := uint32(2)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventBeginNetworkSet",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
+			{Key: "total", Value: strconv.FormatUint(uint64(total), 10)},
+			{Key: "threshold", Value: strconv.FormatUint(uint64(threshold), 10)},
 		},
 	}
-	height := int64(20)
+
 	result := parseBeginNetworkSetEvent(event, height)
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_begin_network_set", result.EventType)
-	require.Equal(t, "netmrenclave", result.Mrenclave)
-	require.Equal(t, uint32(2), result.Round)
-	require.Equal(t, uint32(5), result.Total)
-	require.Equal(t, uint32(3), result.Threshold)
+	require.Equal(t, mrenclave, result.Mrenclave)
+	require.Equal(t, round, result.Round)
+	require.Equal(t, total, result.Total)
+	require.Equal(t, threshold, result.Threshold)
 	require.Equal(t, height, result.BlockHeight)
 }
 
 func TestParseBeginDealingEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "dealermrenclave",
-		"round":     float64(3),
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	height := int64(30)
+	mrenclave := "dealermrenclave"
+	round := uint32(3)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventBeginDealing",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
 		},
 	}
-	height := int64(30)
+
 	result := parseBeginDealingEvent(event, height)
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_begin_dealing", result.EventType)
-	require.Equal(t, "dealermrenclave", result.Mrenclave)
-	require.Equal(t, uint32(3), result.Round)
+	require.Equal(t, mrenclave, result.Mrenclave)
+	require.Equal(t, round, result.Round)
 	require.Equal(t, height, result.BlockHeight)
 }
 
 func TestParseBeginFinalizationEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "finalizemrenclave",
-		"round":     float64(4),
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	height := int64(40)
+	mrenclave := "finalizemrenclave"
+	round := uint32(4)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventBeginFinalization",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
 		},
 	}
-	height := int64(40)
+
 	result := parseBeginFinalizationEvent(event, height)
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_begin_finalization", result.EventType)
-	require.Equal(t, "finalizemrenclave", result.Mrenclave)
-	require.Equal(t, uint32(4), result.Round)
+	require.Equal(t, mrenclave, result.Mrenclave)
+	require.Equal(t, round, result.Round)
 	require.Equal(t, height, result.BlockHeight)
 }
 
 func TestParseDKGFinalizedEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "finalizedmrenclave",
-		"round":     float64(5),
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	height := int64(50)
+	mrenclave := "finalizedmrenclave"
+	round := uint32(5)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventDKGFinalized",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
 		},
 	}
-	height := int64(50)
+
 	result := parseDKGFinalizedEvent(event, height)
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_finalized", result.EventType)
-	require.Equal(t, "finalizedmrenclave", result.Mrenclave)
-	require.Equal(t, uint32(5), result.Round)
+	require.Equal(t, mrenclave, result.Mrenclave)
+	require.Equal(t, round, result.Round)
 	require.Equal(t, height, result.BlockHeight)
 }
 
-func TestParseBeginProcessResponsesEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "testmrenclave",
-		"round":     float64(5),
-		"responses": []interface{}{
-			map[string]interface{}{
-				"index": float64(1),
-				"vss_response": map[string]interface{}{
-					"session_id": "sessid1",
-					"index":      float64(2),
-					"status":     true,
-					"signature":  "sig1",
-				},
+func TestParseBeginProcessDealsEvent(t *testing.T) {
+	deals := []*dkgtypes.Deal{
+		{
+			Index:          1,
+			RecipientIndex: 2,
+			Deal: dkgtypes.EncryptedDeal{
+				DhKey:     []byte("dhkeybytes"),
+				Signature: []byte("sigbytes"),
+				Nonce:     []byte("noncebytes"),
+				Cipher:    []byte("cipherbytes"),
 			},
-			map[string]interface{}{
-				"index": float64(3),
-				"vss_response": map[string]interface{}{
-					"session_id": "sessid2",
-					"index":      float64(4),
-					"status":     false,
-					"signature":  "sig2",
-				},
+			Signature: []byte("dealsig"),
+		},
+	}
+	dealsBytes, err := json.Marshal(deals)
+	require.NoError(t, err)
+
+	height := int64(123)
+	mrenclave := "testmrenclave"
+	round := uint32(3)
+	event := abcitypes.Event{
+		Type: "/story.dkg.v1.types.EventBeginProcessDeals",
+		Attributes: []abcitypes.EventAttribute{
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
+			{Key: "deals", Value: string(dealsBytes)},
+		},
+	}
+
+	result := parseBeginProcessDealsEvent(event, height)
+	require.NotNil(t, result)
+	require.Equal(t, "dkg_begin_process_deals", result.EventType)
+	require.Equal(t, mrenclave, result.Mrenclave)
+	require.Equal(t, round, result.Round)
+	require.Equal(t, height, result.BlockHeight)
+	require.Len(t, result.Deals, 1)
+
+	deal := result.Deals[0]
+	require.Equal(t, uint32(1), deal.Index)
+	require.Equal(t, uint32(2), deal.RecipientIndex)
+	require.Equal(t, []byte("dhkeybytes"), deal.Deal.DhKey)
+	require.Equal(t, []byte("sigbytes"), deal.Deal.Signature)
+	require.Equal(t, []byte("noncebytes"), deal.Deal.Nonce)
+	require.Equal(t, []byte("cipherbytes"), deal.Deal.Cipher)
+	require.Equal(t, []byte("dealsig"), deal.Signature)
+}
+
+func TestParseBeginProcessResponsesEvent(t *testing.T) {
+	responses := []*dkgtypes.Response{
+		{
+			Index: 1,
+			VssResponse: &dkgtypes.VSSResponse{
+				SessionId: []byte("sessid1"),
+				Index:     2,
+				Status:    true,
+				Signature: []byte("sig1"),
+			},
+		},
+		{
+			Index: 3,
+			VssResponse: &dkgtypes.VSSResponse{
+				SessionId: []byte("sessid2"),
+				Index:     4,
+				Status:    false,
+				Signature: []byte("sig2"),
 			},
 		},
 	}
-	eventDataBytes, _ := json.Marshal(eventData)
+	responsesBytes, err := json.Marshal(responses)
+	require.NoError(t, err)
 
+	height := int64(456)
+	mrenclave := "testmrenclave"
+	round := uint32(5)
 	event := abcitypes.Event{
 		Type: "/story.dkg.v1.types.EventBeginProcessResponses",
 		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
+			{Key: "mrenclave", Value: mrenclave},
+			{Key: "round", Value: strconv.FormatUint(uint64(round), 10)},
+			{Key: "responses", Value: string(responsesBytes)},
 		},
 	}
 
-	height := int64(456)
 	result := parseBeginProcessResponsesEvent(event, height)
-
 	require.NotNil(t, result)
 	require.Equal(t, "dkg_begin_process_responses", result.EventType)
 	require.Equal(t, "testmrenclave", result.Mrenclave)
@@ -169,7 +219,7 @@ func TestParseBeginProcessResponsesEvent(t *testing.T) {
 	require.NotNil(t, resp1.VssResponse)
 	require.Equal(t, []byte("sessid1"), resp1.VssResponse.SessionId)
 	require.Equal(t, uint32(2), resp1.VssResponse.Index)
-	require.Equal(t, true, resp1.VssResponse.Status)
+	require.True(t, resp1.VssResponse.Status)
 	require.Equal(t, []byte("sig1"), resp1.VssResponse.Signature)
 
 	resp2 := result.Responses[1]
@@ -177,53 +227,6 @@ func TestParseBeginProcessResponsesEvent(t *testing.T) {
 	require.NotNil(t, resp2.VssResponse)
 	require.Equal(t, []byte("sessid2"), resp2.VssResponse.SessionId)
 	require.Equal(t, uint32(4), resp2.VssResponse.Index)
-	require.Equal(t, false, resp2.VssResponse.Status)
+	require.False(t, resp2.VssResponse.Status)
 	require.Equal(t, []byte("sig2"), resp2.VssResponse.Signature)
-}
-
-func TestParseBeginProcessDealsEvent(t *testing.T) {
-	eventData := map[string]interface{}{
-		"mrenclave": "testmrenclave",
-		"round":     float64(3),
-		"deals": []interface{}{
-			map[string]interface{}{
-				"index":           float64(1),
-				"recipient_index": float64(2),
-				"deal": []interface{}{
-					map[string]interface{}{"key": "dh_key", "value": "dhkeybytes"},
-					map[string]interface{}{"key": "signature", "value": "sigbytes"},
-					map[string]interface{}{"key": "nonce", "value": "noncebytes"},
-					map[string]interface{}{"key": "cipher", "value": "cipherbytes"},
-				},
-				"signature": "dealsig",
-			},
-		},
-	}
-	eventDataBytes, _ := json.Marshal(eventData)
-
-	event := abcitypes.Event{
-		Type: "/story.dkg.v1.types.EventBeginProcessDeals",
-		Attributes: []abcitypes.EventAttribute{
-			{Key: "data", Value: string(eventDataBytes)},
-		},
-	}
-
-	height := int64(123)
-	result := parseBeginProcessDealsEvent(event, height)
-
-	require.NotNil(t, result)
-	require.Equal(t, "dkg_begin_process_deals", result.EventType)
-	require.Equal(t, "testmrenclave", result.Mrenclave)
-	require.Equal(t, uint32(3), result.Round)
-	require.Equal(t, height, result.BlockHeight)
-	require.Len(t, result.Deals, 1)
-
-	deal := result.Deals[0]
-	require.Equal(t, uint32(1), deal.Index)
-	require.Equal(t, uint32(2), deal.RecipientIndex)
-	require.Equal(t, []byte("dhkeybytes"), deal.Deal.DhKey)
-	require.Equal(t, []byte("sigbytes"), deal.Deal.Signature)
-	require.Equal(t, []byte("noncebytes"), deal.Deal.Nonce)
-	require.Equal(t, []byte("cipherbytes"), deal.Deal.Cipher)
-	require.Equal(t, []byte("dealsig"), deal.Signature)
 }

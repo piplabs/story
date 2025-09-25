@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"github.com/piplabs/story/lib/cast"
 	"math/big"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/piplabs/story/contracts/bindings"
+	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )

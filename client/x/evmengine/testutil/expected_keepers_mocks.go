@@ -332,7 +332,7 @@ func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
 }
 
 // DealComplaintsSubmitted mocks base method.
-func (m *MockDKGKeeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DealComplaintsSubmitted", ctx, index, complainIndexes, round, mrenclave)
 	ret0, _ := ret[0].(error)
@@ -346,7 +346,7 @@ func (mr *MockDKGKeeperMockRecorder) DealComplaintsSubmitted(ctx, index, complai
 }
 
 // DealVerified mocks base method.
-func (m *MockDKGKeeper) DealVerified(ctx context.Context, index, recipientIndex, round uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) DealVerified(ctx context.Context, index, recipientIndex, round uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DealVerified", ctx, index, recipientIndex, round, mrenclave)
 	ret0, _ := ret[0].(error)
@@ -360,7 +360,7 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, signature []byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, signature)
 	ret0, _ := ret[0].(error)
@@ -374,7 +374,7 @@ func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave,
 }
 
 // InvalidDeal mocks base method.
-func (m *MockDKGKeeper) InvalidDeal(ctx context.Context, index, round uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) InvalidDeal(ctx context.Context, index, round uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InvalidDeal", ctx, index, round, mrenclave)
 	ret0, _ := ret[0].(error)
@@ -388,7 +388,7 @@ func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, mrenclave an
 }
 
 // NetworkSet mocks base method.
-func (m *MockDKGKeeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave []byte, round, total, threshold uint32, signature []byte) error {
+func (m *MockDKGKeeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round, total, threshold uint32, signature []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NetworkSet", ctx, msgSender, mrenclave, round, total, threshold, signature)
 	ret0, _ := ret[0].(error)
@@ -402,7 +402,7 @@ func (mr *MockDKGKeeperMockRecorder) NetworkSet(ctx, msgSender, mrenclave, round
 }
 
 // RegistrationInitialized mocks base method.
-func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave []byte, round uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
+func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote)
 	ret0, _ := ret[0].(error)
@@ -416,7 +416,7 @@ func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, mre
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.
-func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoteAttestationProcessedOnChain", ctx, validator, chalStatus, round, mrenclave)
 	ret0, _ := ret[0].(error)
@@ -430,7 +430,7 @@ func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, vali
 }
 
 // UpgradeScheduled mocks base method.
-func (m *MockDKGKeeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave []byte) error {
+func (m *MockDKGKeeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpgradeScheduled", ctx, activationHeight, mrenclave)
 	ret0, _ := ret[0].(error)

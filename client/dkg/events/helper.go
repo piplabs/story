@@ -57,10 +57,7 @@ func (*EventListener) parseEvent(event abcitypes.Event, height int64) *types.DKG
 
 // parseBeginInitializationEvent parses EventBeginInitialization typed event.
 func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	protoEvent := &types.DKGEventData{
-		EventType:  "dkg_begin_initialization",
-		Attributes: make(map[string]string),
-	}
+	var protoEvent dkgtypes.EventBeginInitialization
 
 	for _, attr := range event.Attributes {
 		key, val := attr.Key, attr.Value
@@ -69,9 +66,9 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 		case "mrenclave":
 			unquoted, err := strconv.Unquote(val)
 			if err != nil {
-				protoEvent.Mrenclave = val
+				protoEvent.Mrenclave = []byte(val)
 			} else {
-				protoEvent.Mrenclave = unquoted
+				protoEvent.Mrenclave = []byte(unquoted)
 			}
 		case "round":
 			round, err := strconv.Atoi(val)
@@ -84,7 +81,7 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 			if err != nil {
 				continue
 			}
-			protoEvent.BlockHeight = h
+			protoEvent.StartBlock = uint32(h)
 		case "active_validators":
 			var validators []string
 			if err := json.Unmarshal([]byte(val), &validators); err != nil {
@@ -92,11 +89,18 @@ func parseBeginInitializationEvent(event abcitypes.Event, height int64) *types.D
 			}
 			protoEvent.ActiveValidators = validators
 		default:
-			protoEvent.Attributes[key] = val
+			continue
 		}
 	}
 
-	return protoEvent
+	return &types.DKGEventData{
+		EventType:        "dkg_begin_initialization",
+		Mrenclave:        string(protoEvent.Mrenclave),
+		Round:            protoEvent.Round,
+		BlockHeight:      height,
+		ActiveValidators: protoEvent.ActiveValidators,
+		Attributes:       extractAttributes(event),
+	}
 }
 
 // parseBeginNetworkSetEvent parses EventBeginNetworkSet typed event.
@@ -104,27 +108,36 @@ func parseBeginNetworkSetEvent(event abcitypes.Event, height int64) *types.DKGEv
 	var protoEvent dkgtypes.EventBeginNetworkSet
 
 	for _, attr := range event.Attributes {
-		//nolint:nestif // ignore nestedif linting
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
+		key, val := attr.Key, attr.Value
 
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
 			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-			if totalFloat, ok := eventData["total"].(float64); ok {
-				protoEvent.Total = uint32(totalFloat)
+			protoEvent.Round = uint32(round)
+		case "total":
+			total, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-			if thresholdFloat, ok := eventData["threshold"].(float64); ok {
-				protoEvent.Threshold = uint32(thresholdFloat)
+			protoEvent.Total = uint32(total)
+		case "threshold":
+			threshold, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-
-			break
+			protoEvent.Threshold = uint32(threshold)
+		default:
+			continue
 		}
 	}
 
@@ -145,20 +158,24 @@ func parseBeginDealingEvent(event abcitypes.Event, height int64) *types.DKGEvent
 	var protoEvent dkgtypes.EventBeginDealing
 
 	for _, attr := range event.Attributes {
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
+		key, val := attr.Key, attr.Value
 
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
 			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-
-			break
+			protoEvent.Round = uint32(round)
+		default:
+			continue
 		}
 	}
 
@@ -176,71 +193,30 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 
 	for _, attr := range event.Attributes {
 		//nolint:nestif // ignore nestedif linting
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
-			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
-			}
-			if deals, ok := eventData["deals"].([]interface{}); ok {
-				for _, dealRaw := range deals {
-					deal, ok := dealRaw.(map[string]interface{})
-					if !ok {
-						continue
-					}
-					var dkgDeal dkgtypes.Deal
-					if indexFloat, ok := deal["index"].(float64); ok {
-						dkgDeal.Index = uint32(indexFloat)
-					}
-					if recipientIndex, ok := deal["recipient_index"].(float64); ok {
-						dkgDeal.RecipientIndex = uint32(recipientIndex)
-					}
-					if encryptedDealArr, ok := deal["deal"].([]interface{}); ok {
-						dkgDeal.Deal = dkgtypes.EncryptedDeal{}
-						for _, edAttrRaw := range encryptedDealArr {
-							edAttr, ok := edAttrRaw.(map[string]interface{})
-							if !ok {
-								continue
-							}
-							if edKey, ok := edAttr["key"].(string); ok {
-								switch edKey {
-								case "dh_key":
-									//nolint:revive,max-control-nesting // ignore max control nesting linting
-									if dhKey, ok := edAttr["value"].(string); ok {
-										dkgDeal.Deal.DhKey = []byte(dhKey)
-									}
-								case "signature":
-									//nolint:revive,max-control-nesting // ignore max control nesting linting
-									if signature, ok := edAttr["value"].(string); ok {
-										dkgDeal.Deal.Signature = []byte(signature)
-									}
-								case "nonce":
-									//nolint:revive,max-control-nesting // ignore max control nesting linting
-									if nonce, ok := edAttr["value"].(string); ok {
-										dkgDeal.Deal.Nonce = []byte(nonce)
-									}
-								case "cipher":
-									//nolint:revive,max-control-nesting // ignore max control nesting linting
-									if cipher, ok := edAttr["value"].(string); ok {
-										dkgDeal.Deal.Cipher = []byte(cipher)
-									}
-								}
-							}
-						}
-					}
-					if signature, ok := deal["signature"].(string); ok {
-						dkgDeal.Signature = []byte(signature)
-					}
-					protoEvent.Deals = append(protoEvent.Deals, &dkgDeal)
-				}
-			}
+		key, val := attr.Key, attr.Value
 
-			break
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
+			}
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
+			}
+			protoEvent.Round = uint32(round)
+		case "deals":
+			var deals []*dkgtypes.Deal
+			if err := json.Unmarshal([]byte(val), &deals); err != nil {
+				continue
+			}
+			protoEvent.Deals = deals
+		default:
+			continue
 		}
 	}
 
@@ -255,63 +231,43 @@ func parseBeginProcessDealsEvent(event abcitypes.Event, height int64) *types.DKG
 }
 
 func parseBeginProcessResponsesEvent(event abcitypes.Event, height int64) *types.DKGEventData {
-	var mrenclave string
-	var round uint32
-	var responses []*types.Response
+	var protoEvent dkgtypes.EventBeginProcessResponses
 
 	for _, attr := range event.Attributes {
 		//nolint:nestif // ignore nestedif linting
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				mrenclave = mrenclaveStr
-			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				round = uint32(roundFloat)
-			}
-			if respArr, ok := eventData["responses"].([]interface{}); ok {
-				for _, respRaw := range respArr {
-					respMap, ok := respRaw.(map[string]interface{})
-					if !ok {
-						continue
-					}
-					var resp types.Response
-					if idx, ok := respMap["index"].(float64); ok {
-						resp.Index = uint32(idx)
-					}
-					if vssRespMap, ok := respMap["vss_response"].(map[string]interface{}); ok {
-						var vss types.VSSResponse
-						if sid, ok := vssRespMap["session_id"].(string); ok {
-							vss.SessionId = []byte(sid)
-						}
-						if idx, ok := vssRespMap["index"].(float64); ok {
-							vss.Index = uint32(idx)
-						}
-						if status, ok := vssRespMap["status"].(bool); ok {
-							vss.Status = status
-						}
-						if sig, ok := vssRespMap["signature"].(string); ok {
-							vss.Signature = []byte(sig)
-						}
-						resp.VssResponse = &vss
-					}
-					responses = append(responses, &resp)
-				}
-			}
+		key, val := attr.Key, attr.Value
 
-			break
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
+			}
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
+			}
+			protoEvent.Round = uint32(round)
+		case "responses":
+			var responses []*dkgtypes.Response
+			if err := json.Unmarshal([]byte(val), &responses); err != nil {
+				continue
+			}
+			protoEvent.Responses = responses
+		default:
+			continue
 		}
 	}
 
 	return &types.DKGEventData{
 		EventType:   "dkg_begin_process_responses",
-		Mrenclave:   mrenclave,
-		Round:       round,
+		Mrenclave:   string(protoEvent.Mrenclave),
+		Round:       protoEvent.Round,
 		BlockHeight: height,
-		Responses:   responses,
+		Responses:   protoEvent.Responses,
 		Attributes:  extractAttributes(event),
 	}
 }
@@ -321,20 +277,24 @@ func parseBeginFinalizationEvent(event abcitypes.Event, height int64) *types.DKG
 	var protoEvent dkgtypes.EventBeginFinalization
 
 	for _, attr := range event.Attributes {
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
+		key, val := attr.Key, attr.Value
 
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
 			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-
-			break
+			protoEvent.Round = uint32(round)
+		default:
+			continue
 		}
 	}
 
@@ -352,20 +312,24 @@ func parseDKGFinalizedEvent(event abcitypes.Event, height int64) *types.DKGEvent
 	var protoEvent dkgtypes.EventDKGFinalized
 
 	for _, attr := range event.Attributes {
-		if attr.Key == "data" {
-			var eventData map[string]any
-			if err := json.Unmarshal([]byte(attr.Value), &eventData); err != nil {
-				break
-			}
+		key, val := attr.Key, attr.Value
 
-			if mrenclaveStr, ok := eventData["mrenclave"].(string); ok {
-				protoEvent.Mrenclave = []byte(mrenclaveStr)
+		switch key {
+		case "mrenclave":
+			unquoted, err := strconv.Unquote(val)
+			if err != nil {
+				protoEvent.Mrenclave = []byte(val)
+			} else {
+				protoEvent.Mrenclave = []byte(unquoted)
 			}
-			if roundFloat, ok := eventData["round"].(float64); ok {
-				protoEvent.Round = uint32(roundFloat)
+		case "round":
+			round, err := strconv.Atoi(val)
+			if err != nil {
+				continue
 			}
-
-			break
+			protoEvent.Round = uint32(round)
+		default:
+			continue
 		}
 	}
 

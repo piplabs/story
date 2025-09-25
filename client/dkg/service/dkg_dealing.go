@@ -9,11 +9,6 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-var (
-	Deals     []*types.Deal
-	Responses []*types.Response
-)
-
 // handleDKGDealing handles the dealing phase event.
 func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventData) error {
 	log.Info(ctx, "Handling DKG dealing phase event",
@@ -62,6 +57,7 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 	if err != nil {
 		return errors.Wrap(err, "failed to add deals to file")
 	}
+
 	return nil
 }
 
@@ -102,7 +98,7 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 			req.Deals = append(req.Deals, deal)
 		}
 	}
-	log.Info(ctx, "Processing deals", "event_deals", len(event.Deals), "req_deals", len(req.Deals), "index", s.index)
+	log.Info(ctx, "Processing deals", "event_deals", len(event.Deals), "req_deals", len(req.GetDeals()), "index", s.index)
 
 	resp, err := s.teeClient.ProcessDeals(ctx, req)
 	if err != nil {
@@ -153,7 +149,7 @@ func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DK
 			req.Responses = append(req.Responses, resp)
 		}
 	}
-	log.Info(ctx, "Processing responses", "event_responses", len(event.Responses), "req_responses", len(req.Responses), "index", s.index)
+	log.Info(ctx, "Processing responses", "event_responses", len(event.Responses), "req_responses", len(req.GetResponses()), "index", s.index)
 
 	_, err = s.teeClient.ProcessResponses(ctx, req)
 	if err != nil {

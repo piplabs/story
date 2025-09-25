@@ -12,9 +12,8 @@ type msgServer struct {
 }
 
 // AddVotes is called with all aggregated votes included in a new finalized block.
-func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
+func (msgServer) AddVote(_ context.Context, _ *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
-
 	return &types.AddDkgVoteResponse{}, nil
 }
 

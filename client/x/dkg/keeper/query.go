@@ -2,9 +2,9 @@ package keeper
 
 import (
 	"context"
-	"github.com/piplabs/story/lib/cast"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/cast"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
