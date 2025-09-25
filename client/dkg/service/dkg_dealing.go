@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"sync"
 
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/client/dkg/types"
@@ -11,29 +10,9 @@ import (
 )
 
 var (
-	dealsMu   sync.Mutex
 	Deals     []*types.Deal
-	respsMu   sync.Mutex
 	Responses []*types.Response
 )
-
-// todo: limit the number popped each time
-func PopDeals() []*types.Deal {
-	dealsMu.Lock()
-	defer dealsMu.Unlock()
-	out := Deals
-	Deals = nil
-	return out
-}
-
-// todo: limit the number popped each time
-func PopResponses() []*types.Response {
-	respsMu.Lock()
-	defer respsMu.Unlock()
-	out := Responses
-	Responses = nil
-	return out
-}
 
 // handleDKGDealing handles the dealing phase event.
 func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventData) error {
@@ -74,15 +53,14 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to create deals")
 	}
 
-	dealsMu.Lock()
-	defer dealsMu.Unlock()
-
-	Deals = []*types.Deal{}
-
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = *deal
-		Deals = append(Deals, deal)
-		s.index = Deals[0].Index
+		s.index = deal.Index // same for all deals
+	}
+
+	err = AddDealsFile(resp.GetDeals())
+	if err != nil {
+		return errors.Wrap(err, "failed to add deals to file")
 	}
 	return nil
 }
@@ -130,9 +108,11 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 	if err != nil {
 		return errors.Wrap(err, "failed to process deals")
 	}
-	respsMu.Lock()
-	defer respsMu.Unlock()
-	Responses = resp.GetResponses()
+
+	err = AddResponsesFile(resp.GetResponses())
+	if err != nil {
+		return errors.Wrap(err, "failed to add responses to file")
+	}
 
 	return nil
 }
