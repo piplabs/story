@@ -67,7 +67,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				// Network already set up in test setup
 			},
 			expectedRegData: &types.DKGRegistration{
-				Mrenclave:  testMrenclave[:],
 				Round:      testRound,
 				MsgSender:  testValidator.Hex(),
 				Index:      1,
@@ -153,7 +152,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				require.NoError(t, k.SetDKGNetwork(ctx, networkWithMultipleValidators))
 
 				firstReg := &types.DKGRegistration{
-					Mrenclave:  testMrenclave[:],
 					Round:      testRound,
 					MsgSender:  anotherValidator.Hex(),
 					Index:      1,
@@ -165,7 +163,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, anotherValidator, firstReg))
 			},
 			expectedRegData: &types.DKGRegistration{
-				Mrenclave:  testMrenclave[:],
 				Round:      testRound,
 				MsgSender:  testValidator.Hex(),
 				Index:      2,
@@ -194,7 +191,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				if tc.expectedRegData != nil {
 					storedReg, err := k.getDKGRegistration(ctx, tc.mrenclave, tc.round, tc.msgSender)
 					require.NoError(t, err)
-					require.Equal(t, tc.expectedRegData.Mrenclave, storedReg.Mrenclave)
 					require.Equal(t, tc.expectedRegData.Round, storedReg.Round)
 					require.Equal(t, tc.expectedRegData.MsgSender, storedReg.MsgSender)
 					require.Equal(t, tc.expectedRegData.Index, storedReg.Index)
@@ -219,7 +215,6 @@ func TestKeeper_NetworkSet(t *testing.T) {
 	testSignature := []byte("test-signature")
 
 	testReg := &types.DKGRegistration{
-		Mrenclave:  testMrenclave[:],
 		Round:      testRound,
 		MsgSender:  testValidator.Hex(),
 		Index:      1,
@@ -288,7 +283,6 @@ func TestKeeper_Finalized(t *testing.T) {
 	testSignature := []byte("test-signature")
 
 	testReg := &types.DKGRegistration{
-		Mrenclave:  testMrenclave[:],
 		Round:      testRound,
 		MsgSender:  testValidator.Hex(),
 		Index:      1,
@@ -384,7 +378,6 @@ func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
 	testChalStatus := 1 // ChallengeStatus.Invalidated
 
 	testReg := &types.DKGRegistration{
-		Mrenclave:  testMrenclave[:],
 		Round:      testRound,
 		MsgSender:  testValidator.Hex(),
 		Index:      1,

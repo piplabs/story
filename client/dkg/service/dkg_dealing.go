@@ -26,7 +26,7 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 		return errors.Wrap(err, "failed to get DKG session")
 	}
 
-	if session.Phase != types.PhaseChallenging {
+	if session.Phase != types.PhaseDealing {
 		log.Warn(ctx, "Session not in challenge phase, skipping dealing", nil,
 			"current_phase", session.Phase.String(),
 		)

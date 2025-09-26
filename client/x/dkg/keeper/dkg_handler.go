@@ -35,7 +35,6 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	}
 
 	dkgReg := &types.DKGRegistration{
-		Mrenclave:  mrenclave[:],
 		Round:      round,
 		MsgSender:  msgSender.Hex(),
 		Index:      index,

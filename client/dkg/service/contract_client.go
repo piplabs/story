@@ -104,13 +104,18 @@ func (c *ContractClient) Close() {
 func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
 		"round", round,
-		"mrenclave", string(mrenclave),
-		"dkg_pub_key", string(dkgPubKey),
-		"comm_pub_key", string(commPubKey),
+		"mrenclave", hex.EncodeToString(mrenclave),
+		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
+		"comm_pub_key", hex.EncodeToString(commPubKey),
 		"raw_quote_len", len(rawQuote),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave, dkgPubKey, rawQuote)
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
 	}
@@ -123,11 +128,6 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 	auth, err := c.createTransactOpts(ctx, gasLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	mrenclave32, err := cast.ToBytes32(mrenclave)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
 	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
@@ -160,7 +160,12 @@ func (c *ContractClient) FinalizeDKG(
 		"signature_len", len(signature),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, mrenclave, globalPubKey, signature)
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, mrenclave32, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
@@ -173,11 +178,6 @@ func (c *ContractClient) FinalizeDKG(
 	auth, err := c.createTransactOpts(ctx, gasLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	mrenclave32, err := cast.ToBytes32(mrenclave)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
 	tx, err := c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
@@ -212,7 +212,12 @@ func (c *ContractClient) SetNetwork(
 		"signature_len", len(signature),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("setNetwork", round, total, threshold, mrenclave, signature)
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	callData, err := c.dkgContractAbi.Pack("setNetwork", round, total, threshold, mrenclave32, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack setNetwork call data")
 	}
@@ -225,11 +230,6 @@ func (c *ContractClient) SetNetwork(
 	auth, err := c.createTransactOpts(ctx, gasLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	mrenclave32, err := cast.ToBytes32(mrenclave)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
 	tx, err := c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave32, signature)
@@ -468,6 +468,8 @@ func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Trans
 		log.Error(ctx, "Transaction failed with receipt", nil, "tx_hash", tx.Hash().Hex(), "receipt", receipt)
 		return nil, errors.New("transaction failed")
 	}
+
+	log.Info(ctx, "Transaction mined", "tx_hash", tx.Hash().Hex())
 
 	return receipt, nil
 }

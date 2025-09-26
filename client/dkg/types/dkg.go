@@ -25,7 +25,6 @@ const (
 	PhaseUnknown      DKGPhase = 0
 	PhaseInitializing DKGPhase = 1
 	PhaseRegistering  DKGPhase = 2
-	PhaseChallenging  DKGPhase = 3
 	PhaseDealing      DKGPhase = 4
 	PhaseFinalizing   DKGPhase = 5
 	PhaseCompleted    DKGPhase = 6
@@ -40,8 +39,6 @@ func (p DKGPhase) String() string {
 		return "Initializing"
 	case PhaseRegistering:
 		return "Registering"
-	case PhaseChallenging:
-		return "Challenging"
 	case PhaseDealing:
 		return "Dealing"
 	case PhaseFinalizing:

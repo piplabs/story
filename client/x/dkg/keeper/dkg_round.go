@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"github.com/piplabs/story/lib/cast"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -52,7 +53,7 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 			return types.DKGStageNetworkSet, true
 		}
 	// NOTE: DKGStageNetworkSet
-	case types.DKGStageNetworkSetCompleted:
+	case types.DKGStageNetworkSet:
 		if elapsed >= networkSetEnd {
 			return types.DKGStageDealing, true
 		}
@@ -112,4 +113,34 @@ func (k *Keeper) initiateDKGRound(ctx context.Context) error {
 	)
 
 	return k.emitBeginDKGInitialization(ctx, &dkgNetwork)
+}
+
+// getVerifiedDKGValidators returns the count of verified DKG validators (those who are participating and not invalidated).
+func (k *Keeper) getVerifiedDKGValidators(ctx context.Context, mrenclave []byte, round uint32) (uint32, error) {
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to cast to bytes32")
+	}
+
+	// Get registrations with status VERIFIED
+	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave32, round, types.DKGRegStatusVerified)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get verified registrations")
+	}
+
+	total := uint32(len(verifiedRegs))
+
+	return total, nil
+}
+
+func (k *Keeper) updateDKGNetworkTotalAndThreshold(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
+	verifiedCount, err := k.getVerifiedDKGValidators(ctx, dkgNetwork.Mrenclave, dkgNetwork.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get verified DKG validators count")
+	}
+
+	dkgNetwork.Total = verifiedCount
+	dkgNetwork.Threshold = k.calculateThreshold(verifiedCount)
+
+	return k.SetDKGNetwork(ctx, dkgNetwork)
 }

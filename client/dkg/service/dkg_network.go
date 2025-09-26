@@ -49,7 +49,7 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 			log.Error(ctx, "Failed to update session after TEE error", updateErr)
 		}
 
-		return errors.Wrap(err, "failed to create deals")
+		return errors.Wrap(err, "failed to setup dkg network")
 	}
 
 	session.ActiveValidators = event.ActiveValidators
@@ -57,7 +57,7 @@ func (s *Service) handleDKGNetworkSet(ctx context.Context, event *types.DKGEvent
 	session.Threshold = event.Threshold
 	// session.Signature = resp.GetSignature()
 
-	session.UpdatePhase(types.PhaseChallenging)
+	session.UpdatePhase(types.PhaseDealing)
 	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session")
 	}

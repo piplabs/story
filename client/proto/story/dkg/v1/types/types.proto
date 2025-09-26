@@ -9,9 +9,9 @@ enum DKGRegStatus {
   option (gogoproto.goproto_enum_prefix) = false;
 
   DKG_REG_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGRegStatusUnspecified"];
-  DKG_REG_STATUS_VERIFIED = 2 [(gogoproto.enumvalue_customname) = "DKGRegStatusVerified"];
-  DKG_REG_STATUS_NETWORK_SET = 3 [(gogoproto.enumvalue_customname) = "DKGRegStatusNetworkSet"];
-  DKG_REG_STATUS_FINALIZED = 4 [(gogoproto.enumvalue_customname) = "DKGRegStatusFinalized"];
+  DKG_REG_STATUS_VERIFIED = 1 [(gogoproto.enumvalue_customname) = "DKGRegStatusVerified"];
+  DKG_REG_STATUS_NETWORK_SET = 2 [(gogoproto.enumvalue_customname) = "DKGRegStatusNetworkSet"];
+  DKG_REG_STATUS_FINALIZED = 3 [(gogoproto.enumvalue_customname) = "DKGRegStatusFinalized"];
 }
 
 enum DKGStage {
@@ -20,10 +20,9 @@ enum DKGStage {
   DKG_STAGE_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGStageUnspecified"];
   DKG_STAGE_REGISTRATION = 1 [(gogoproto.enumvalue_customname) = "DKGStageRegistration"];
   DKG_STAGE_NETWORK_SET = 2 [(gogoproto.enumvalue_customname) = "DKGStageNetworkSet"];
-  DKG_STAGE_NETWORK_SET_COMPLETED = 3 [(gogoproto.enumvalue_customname) = "DKGStageNetworkSetCompleted"];
-  DKG_STAGE_DEALING = 4 [(gogoproto.enumvalue_customname) = "DKGStageDealing"];
-  DKG_STAGE_FINALIZATION = 5 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
-  DKG_STAGE_ACTIVE = 6 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
+  DKG_STAGE_DEALING = 3 [(gogoproto.enumvalue_customname) = "DKGStageDealing"];
+  DKG_STAGE_FINALIZATION = 4 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
+  DKG_STAGE_ACTIVE = 5 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
 }
 
 message DKGNetwork {
@@ -58,35 +57,31 @@ message DKGNetwork {
 }
 
 message DKGRegistration {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
-  ];
-
-  uint32 round = 2 [
+  uint32 round = 1 [
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string msg_sender = 3 [
+  string msg_sender = 2 [
     (gogoproto.moretags) = "yaml:\"msg_sender\""
   ];
 
-  uint32 index = 4 [
+  uint32 index = 3 [
     (gogoproto.moretags) = "yaml:\"index\""
   ];
 
-  bytes dkg_pub_key = 5 [
+  bytes dkg_pub_key = 4 [
     (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
   ];
 
-  bytes comm_pub_key = 6 [
+  bytes comm_pub_key = 5 [
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes raw_quote = 7 [
+  bytes raw_quote = 6 [
     (gogoproto.moretags) = "yaml:\"raw_quote\""
   ];
 
-  DKGRegStatus status = 8 [
+  DKGRegStatus status = 7 [
     (gogoproto.moretags) = "yaml:\"status\""
   ];
 }
