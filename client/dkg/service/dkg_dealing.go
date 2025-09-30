@@ -63,7 +63,7 @@ func (s *Service) handleDKGDealing(ctx context.Context, event *types.DKGEventDat
 
 // handleDKGProcessDeals handles the deals from other committee members.
 func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEventData) error {
-	log.Info(ctx, "Handling DKG deal verification phase event",
+	log.Info(ctx, "Handling DKG Process deals event",
 		"mrenclave", event.Mrenclave,
 		"round", event.Round,
 	)
@@ -89,7 +89,6 @@ func (s *Service) handleDKGProcessDeals(ctx context.Context, event *types.DKGEve
 	req := &dkgpb.ProcessDealRequest{
 		Mrenclave: session.Mrenclave,
 		Round:     session.Round,
-		Index:     session.Index,
 		Deals:     []*types.Deal{},
 	}
 
@@ -145,7 +144,7 @@ func (s *Service) handleDKGProcessResponses(ctx context.Context, event *types.DK
 	}
 
 	for _, resp := range event.Responses {
-		if resp.Index != s.index {
+		if resp.VssResponse.Index != s.index {
 			req.Responses = append(req.Responses, resp)
 		}
 	}

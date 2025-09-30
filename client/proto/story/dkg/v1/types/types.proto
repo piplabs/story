@@ -145,13 +145,29 @@ message Complaint {
 }
 
 message Response {
-  uint32 index = 1 [json_name = "index"];
-  VSSResponse vss_response = 2 [json_name = "vss_response"];
+  uint32 index = 1 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  VSSResponse vss_response = 2 [
+    (gogoproto.moretags) = "yaml:\"vss_response\""
+  ];
 }
 
 message VSSResponse {
-  bytes session_id = 1 [json_name = "session_id"];
-  uint32 index = 2 [json_name = "index"];
-  bool status = 3 [json_name = "status"];
-  bytes signature = 4 [json_name = "signature"];
+  bytes session_id = 1 [
+    (gogoproto.moretags) = "yaml:\"session_id\""
+  ];
+
+  uint32 index = 2 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  bool status = 3 [
+    (gogoproto.moretags) = "yaml:\"status\""
+  ];
+
+  bytes signature = 4 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
 }

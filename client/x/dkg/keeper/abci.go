@@ -32,7 +32,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 
 	if latestRound == nil {
 		// No active DKG round, start the first round
-		log.Info(ctx, "[DKG] No active DKG round, starting the first round")
+		log.Info(ctx, "No active DKG round, starting the first round")
 
 		return k.initiateDKGRound(ctx)
 	}
@@ -67,6 +67,10 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		case types.DKGStageFinalization:
 			return k.emitBeginDKGFinalization(ctx, latestRound)
 		case types.DKGStageActive:
+			if err := k.finalizeDKGRound(ctx, latestRound); err != nil {
+				return err
+			}
+
 			return k.emitDKGFinalized(ctx, latestRound)
 		case types.DKGStageUnspecified:
 			// This round should not happen since we always have a valid stage (1 to 5) and unspecified is stage 0

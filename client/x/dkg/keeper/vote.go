@@ -26,8 +26,6 @@ func (*Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.Res
 		return nil, errors.Wrap(err, "pop responses file")
 	}
 
-	log.Info(ctx, "[DKG] Extending vote with DKG deals", "num_deals", len(deals), "num_responses", len(responses))
-
 	bz, err := proto.Marshal(&types.Vote{
 		Deals:     deals,
 		Responses: responses,
@@ -100,11 +98,13 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 
 func aggregateVotes(votes []*types.Vote) *types.Vote {
 	dealMap := make([]*types.Deal, 0)
+	responseMap := make([]*types.Response, 0)
 	for _, vote := range votes {
 		dealMap = append(dealMap, vote.Deals...)
+		responseMap = append(responseMap, vote.Responses...)
 	}
 
-	return &types.Vote{Deals: dealMap}
+	return &types.Vote{Deals: dealMap, Responses: responseMap}
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.

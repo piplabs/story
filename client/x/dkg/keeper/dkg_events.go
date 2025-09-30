@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -27,7 +28,7 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 		return errors.Wrap(err, "failed to emit dkg_begin_initialization event")
 	}
 
-	log.Info(ctx, "[DKG] Emitted BeginInitialization event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginInitialization event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }
@@ -45,7 +46,7 @@ func (*Keeper) emitBeginDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKG
 		return errors.Wrap(err, "failed to emit dkg_begin_network_set event")
 	}
 
-	log.Info(ctx, "Emitted BeginDKGNetworkSet event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginDKGNetworkSet event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }
@@ -66,7 +67,7 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	return nil
 }
 
-func (*Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
+func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
@@ -75,10 +76,10 @@ func (*Keeper) emitBeginProcessDeal(ctx context.Context, dkgNetwork *types.DKGNe
 		Deals:     deals,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to emit dkg_begin_deal_verification event")
+		return errors.Wrap(err, "failed to emit dkg_begin_process_deals event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessDeal event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginProcessDeals event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave), "num_deals", len(deals))
 
 	return nil
 }
@@ -95,7 +96,7 @@ func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.
 		return errors.Wrap(err, "failed to emit dkg_begin_process_responses event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave), "num_responses", len(responses))
 
 	return nil
 }
@@ -111,7 +112,7 @@ func (*Keeper) emitBeginDKGFinalization(ctx context.Context, dkgNetwork *types.D
 		return errors.Wrap(err, "failed to emit dkg_begin_finalization event")
 	}
 
-	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }
@@ -127,7 +128,7 @@ func (*Keeper) emitDKGFinalized(ctx context.Context, dkgNetwork *types.DKGNetwor
 		return errors.Wrap(err, "failed to emit dkg_finalized_event")
 	}
 
-	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round)
+	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }

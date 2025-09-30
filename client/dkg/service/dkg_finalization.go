@@ -51,14 +51,8 @@ func (s *Service) handleDKGFinalization(ctx context.Context, event *types.DKGEve
 		return errors.Wrap(err, "failed to finalize DKG")
 	}
 
-	if !finalizeResp.GetFinalized() {
-		log.Warn(ctx, "DKG finalization failed, marking session as failed", nil)
-		session.UpdatePhase(types.PhaseFailed)
-
-		return s.stateManager.UpdateSession(ctx, session)
-	}
-
 	session.IsFinalized = true
+	session.GlobalPubKey = finalizeResp.GlobalPubKey
 	if err := s.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session")
 	}
@@ -70,7 +64,6 @@ func (s *Service) handleDKGFinalization(ctx context.Context, event *types.DKGEve
 	log.Info(ctx, "DKG finalization phase complete",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"finalized", finalizeResp.GetFinalized(),
 	)
 
 	return nil
@@ -81,7 +74,7 @@ func (s *Service) submitFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	log.Info(ctx, "Submitting FinalizeDKG transaction to contract",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"finalized", session.IsFinalized,
+		"global_pub_key", session.GlobalPubKey,
 	)
 
 	_, err := s.contractClient.FinalizeDKG(

@@ -183,11 +183,7 @@ message ProcessDealRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  uint32 index = 3 [
-    (gogoproto.moretags) = "yaml:\"index\""
-  ];
-
-  repeated types.Deal deals = 4 [
+  repeated types.Deal deals = 3 [
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"deals\""
   ];
@@ -203,13 +199,29 @@ message ProcessDealResponse {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  uint32 index = 3 [
-    (gogoproto.moretags) = "yaml:\"index\""
+  repeated types.Response responses = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"responses\""
+  ];
+}
+
+message ProcessResponsesRequest {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
   ];
 
-  repeated types.Response responses = 4 [
-    (gogoproto.nullable) = false,
-    (gogoproto.moretags) = "yaml:\"complaints\""
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  repeated types.Response responses = 3 [
+    (gogoproto.moretags) = "yaml:\"responses\""
+  ];
+}
+
+message ProcessResponsesResponse {
+  repeated Justification justifications = 1 [
+    (gogoproto.moretags) = "yaml:\"justifications\""
   ];
 }
 
@@ -234,96 +246,79 @@ message FinalizeDKGResponse {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  uint32 index = 3 [
-    (gogoproto.moretags) = "yaml:\"index\""
-  ];
-
-  bool finalized = 4 [
-    (gogoproto.moretags) = "yaml:\"finalized\""
-  ];
-
-  bytes signature = 5 [
-    (gogoproto.moretags) = "yaml:\"signature\""
-  ];
-}
-
-// GeneratePlainDealRequest is sent to TEE client to generate a plain text deal
-message GeneratePlainDealRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
-  ];
-
-  uint32 round = 2 [
-    (gogoproto.moretags) = "yaml:\"round\""
-  ];
-
-  uint32 index = 3 [
-    (gogoproto.moretags) = "yaml:\"index\""
-  ];
-}
-
-// GeneratePlainDealResponse is returned from TEE client with plain text deal
-message GeneratePlainDealResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
-  ];
-
-  uint32 round = 2 [
-    (gogoproto.moretags) = "yaml:\"round\""
-  ];
-
-  uint32 index = 3 [
-    (gogoproto.moretags) = "yaml:\"index\""
+  bytes global_pub_key = 3 [
+    (gogoproto.moretags) = "yaml:\"global_pub_key\""
   ];
 
   bytes signature = 4 [
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
-
-  types.Deal deal = 5 [
-    (gogoproto.nullable) = false,
-    (gogoproto.moretags) = "yaml:\"deal\""
-  ];
-}
-
-message ProcessResponsesRequest {
-  bytes mrenclave = 1 [json_name = "mrenclave"];
-  uint32 round = 2 [json_name = "round"];
-  repeated types.Response responses = 3 [json_name = "responses"];
-}
-
-message ProcessResponsesResponse {
-  repeated Justification justifications = 1 [json_name = "justifications"];
 }
 
 message Justification {
-  uint32 index = 1 [json_name = "index"];
-  VSSJustification vss_justification = 2 [json_name = "vss_justification"];
+  uint32 index = 1 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  VSSJustification vss_justification = 2 [
+    (gogoproto.moretags) = "yaml:\"vss_justification\""
+  ];
 }
 
 message VSSJustification {
-  bytes session_id = 1 [json_name = "session_id"];
-  uint32 index = 2 [json_name = "index"];
-  PlainDeal plain_deal = 3 [json_name = "plain_deal"];
-  bytes signature = 4 [json_name = "signature"];
+  bytes session_id = 1 [
+    (gogoproto.moretags) = "yaml:\"session_id\""
+  ];
+
+  uint32 index = 2 [
+    (gogoproto.moretags) = "yaml:\"index\""
+  ];
+
+  PlainDeal plain_deal = 3 [
+    (gogoproto.moretags) = "yaml:\"plain_deal\""
+  ];
+
+  bytes signature = 4 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
 }
 
 message PlainDeal {
-  bytes session_id = 1 [json_name = "session_id"];
-  SecShare sec_share = 2 [json_name = "sec_share"];
-  uint32 threshold = 3 [json_name = "threshold"];
-  repeated Point commitments = 4 [json_name = "commitments"];
+  bytes session_id = 1 [
+    (gogoproto.moretags) = "yaml:\"session_id\""
+  ];
+
+  SecShare sec_share = 2 [
+    (gogoproto.moretags) = "yaml:\"sec_share\""
+  ];
+
+  uint32 threshold = 3 [
+    (gogoproto.moretags) = "yaml:\"threshold\""
+  ];
+
+  repeated Point commitments = 4 [
+    (gogoproto.moretags) = "yaml:\"commitments\""
+  ];
 }
 
 message SecShare {
-  uint32 I = 1 [json_name = "i"];
-  Scalar V = 2 [json_name = "v"];
+  uint32 I = 1 [
+    (gogoproto.moretags) = "yaml:\"i\""
+  ];
+
+  Scalar V = 2 [
+    (gogoproto.moretags) = "yaml:\"v\""
+  ];
 }
 
 message Scalar {
-  bytes data = 1 [json_name = "scalar"];
+  bytes data = 1 [
+    (gogoproto.moretags) = "yaml:\"data\""
+  ];
 }
 
 message Point {
-  bytes data = 1 [json_name = "data"];
+  bytes data = 1 [
+    (gogoproto.moretags) = "yaml:\"data\""
+  ];
 }

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-
 	"github.com/piplabs/story/client/x/dkg/types"
 )
 
@@ -14,15 +13,7 @@ type proposalServer struct {
 // AddVotes verifies all aggregated votes included in a proposed block.
 func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
-	latestRound, err := s.Keeper.GetLatestDKGRound(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if latestRound != nil && latestRound.Stage == types.DKGStageDealing {
-		_ = s.Keeper.emitBeginProcessDeal(ctx, latestRound, msg.Vote.Deals)
-		_ = s.Keeper.emitBeginProcessResponses(ctx, latestRound, msg.Vote.Responses)
-	}
+	// TODO: add verification of deals and responses
 
 	return &types.AddDkgVoteResponse{}, nil
 }

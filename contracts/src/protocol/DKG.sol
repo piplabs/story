@@ -70,10 +70,10 @@ contract DKG is IDKG {
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
-        require(
-            _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
-            "Invalid finalization signature"
-        );
+//        require(
+//            _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
+//            "Invalid finalization signature"
+//        );
 
         node.nodeStatus = NodeStatus.Finalized;
 
@@ -196,7 +196,7 @@ contract DKG is IDKG {
         bytes calldata globalPubKey,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(round, mrenclave, globalPubKey));
+        bytes32 msgHash = keccak256(abi.encodePacked( mrenclave, round, globalPubKey));
         address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }

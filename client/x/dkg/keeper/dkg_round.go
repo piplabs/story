@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"github.com/piplabs/story/lib/cast"
 	"strings"
 
@@ -106,10 +107,9 @@ func (k *Keeper) initiateDKGRound(ctx context.Context) error {
 		return err
 	}
 
-	log.Info(ctx, "[DKG] Initiated new DKG round",
+	log.Info(ctx, "Initiated new DKG round",
 		"round", roundNum,
 		"start_block", currentHeight,
-		"threshold", dkgNetwork.Threshold,
 	)
 
 	return k.emitBeginDKGInitialization(ctx, &dkgNetwork)
@@ -141,6 +141,14 @@ func (k *Keeper) updateDKGNetworkTotalAndThreshold(ctx context.Context, dkgNetwo
 
 	dkgNetwork.Total = verifiedCount
 	dkgNetwork.Threshold = k.calculateThreshold(verifiedCount)
+
+	return k.SetDKGNetwork(ctx, dkgNetwork)
+}
+
+func (k *Keeper) finalizeDKGRound(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
+	dkgNetwork.Stage = types.DKGStageActive
+
+	log.Info(ctx, "DKG network setup completed. Now active.", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return k.SetDKGNetwork(ctx, dkgNetwork)
 }

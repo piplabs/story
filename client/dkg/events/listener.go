@@ -127,6 +127,23 @@ func (l *EventListener) processBlock(ctx context.Context, height int64) error {
 		}
 	}
 
+	for _, txResult := range blockResults.TxsResults {
+		for _, event := range txResult.Events {
+			if isDKGEvent(event.Type) {
+				dkgEvent := l.parseEvent(event, height)
+				if dkgEvent != nil {
+					if err := l.sendEventWithRetry(ctx, dkgEvent, height); err != nil {
+						return err
+					}
+				} else {
+					log.Warn(ctx, "Failed to parse DKG event", nil,
+						"event_type", event.Type,
+						"height", height)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

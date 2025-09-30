@@ -154,7 +154,7 @@ func (c *ContractClient) FinalizeDKG(
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
-		"mrenclave", string(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
 		"signature_len", len(signature),
