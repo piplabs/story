@@ -67,6 +67,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		case types.DKGStageFinalization:
 			return k.emitBeginDKGFinalization(ctx, latestRound)
 		case types.DKGStageActive:
+			// TODO: check if enough number of validators submit the finalizeDKG tx
 			if err := k.finalizeDKGRound(ctx, latestRound); err != nil {
 				return err
 			}
