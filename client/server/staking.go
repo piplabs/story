@@ -38,6 +38,8 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/unbonding_delegations", utils.AutoWrap(s.aminoCodec, s.GetUnbondingDelegationsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators", utils.AutoWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorsByDelegatorAddressValidatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/staked_token", utils.AutoWrap(s.aminoCodec, s.GetStakedTokenByDelegatorAddress))
+	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/total_staked_token", utils.SimpleWrap(s.aminoCodec, s.GetTotalStakedTokenByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/rewards_token", utils.AutoWrap(s.aminoCodec, s.GetRewardsTokenByDelegatorAddress))
 	s.httpMux.HandleFunc("/staking/delegators/{delegator_address}/total_rewards_token", utils.SimpleWrap(s.aminoCodec, s.GetTotalRewardsTokenByDelegatorAddress))
 }
@@ -623,6 +625,115 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 	}
 
 	return queryResp, nil
+}
+
+func (s *Server) GetStakedTokenByDelegatorAddress(req *getStakedTokenByDelegatorAddressRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorDelegations(queryContext, &stakingtypes.QueryDelegatorDelegationsRequest{
+		DelegatorAddr: bech32AccAddress.String(),
+		Pagination: &query.PageRequest{
+			Key:        []byte(req.Pagination.Key),
+			Offset:     req.Pagination.Offset,
+			Limit:      req.Pagination.Limit,
+			CountTotal: req.Pagination.CountTotal,
+			Reverse:    req.Pagination.Reverse,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var delStakedToken []DelegationStakedToken
+	for _, delResp := range queryResp.DelegationResponses {
+		valAddr, err := sdk.ValAddressFromBech32(delResp.Delegation.ValidatorAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		val, err := keeper.NewQuerier(s.store.GetStakingKeeper()).GetValidator(queryContext, valAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(val.OperatorAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		stakedToken := val.TokensFromShares(delResp.Delegation.Shares)
+		delStakedToken = append(delStakedToken, DelegationStakedToken{
+			ValidatorOperatorAddress: evmOperatorAddress,
+			StakedToken:              stakedToken,
+		})
+	}
+
+	return QueryStakedTokenByDelegatorAddressResponse{
+		DelegationStakedToken: delStakedToken,
+		Pagination:            queryResp.Pagination,
+	}, nil
+}
+
+func (s *Server) GetTotalStakedTokenByDelegatorAddress(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	bech32AccAddress, err := utils.EvmAddressToBech32AccAddress(mux.Vars(r)["delegator_address"])
+	if err != nil {
+		return nil, err
+	}
+
+	var nextKey []byte
+	totalStakedToken := math.LegacyZeroDec()
+
+	for {
+		queryResp, err := keeper.NewQuerier(s.store.GetStakingKeeper()).DelegatorDelegations(queryContext, &stakingtypes.QueryDelegatorDelegationsRequest{
+			DelegatorAddr: bech32AccAddress.String(),
+			Pagination: &query.PageRequest{
+				Key:        nextKey,
+				Limit:      100,
+				CountTotal: false,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, delResp := range queryResp.DelegationResponses {
+			valAddr, err := sdk.ValAddressFromBech32(delResp.Delegation.ValidatorAddress)
+			if err != nil {
+				return nil, err
+			}
+
+			val, err := keeper.NewQuerier(s.store.GetStakingKeeper()).GetValidator(queryContext, valAddr)
+			if err != nil {
+				return nil, err
+			}
+
+			stakedToken := val.TokensFromShares(delResp.Delegation.Shares)
+			totalStakedToken = totalStakedToken.Add(stakedToken)
+		}
+
+		if queryResp.Pagination == nil || len(queryResp.Pagination.NextKey) == 0 {
+			break
+		}
+
+		nextKey = queryResp.Pagination.NextKey
+	}
+
+	return QueryTotalStakedTokenByDelegatorAddressResponse{
+		StakedToken: totalStakedToken,
+	}, nil
 }
 
 func (s *Server) GetRewardsTokenByDelegatorAddress(req *getRewardsTokenByDelegatorAddressRequest, r *http.Request) (resp any, err error) {
