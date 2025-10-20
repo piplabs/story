@@ -221,12 +221,45 @@ contract DKG is IDKG {
         bytes memory dkgPubKey,
         bytes memory commPubKey
     ) internal pure returns (bool) {
-        // TODO: verify the report data and remote attestation
-        return
-            rawQuote.length > 0 &&
-            validator != address(0) &&
-            round > 0 &&
-            dkgPubKey.length > 0 &&
-            commPubKey.length > 0;
+        // TODO: on chain DCAP verification
+        require(rawQuote.length > 64, "Invalid raw quote, quote too short");
+        require(validator != address(0), "Invalid validator address");
+        require(round > 0, "Invalid round of DKG");
+        require(dkgPubKey.length > 0, "Invalid DKG public key");
+        require(commPubKey.length > 0, "Invalid communication public key");
+
+        bytes32 expectedReportData = _extractReportData(rawQuote);
+        return _validateReportData(validator, round, dkgPubKey, commPubKey, expectedReportData);
+    }
+
+    function _extractReportData(
+        bytes memory rawQuote
+    ) internal pure returns (bytes32) {
+        // According to Intel’s SGX quote structure:
+        // - The SGX quote header is 48 bytes in size
+        // - The enclave report body is 384 bytes long
+        // - The last 64 bytes of the enclave report body are reserved for report_data
+        // Therefore, the starting offset for report_data is: 48 (quote header) + 320 = 368
+        // https://github.com/intel/SGX-TDX-DCAP-QuoteVerificationLibrary/blob/16b7291a7a86e486fdfcf1dfb4be885c0cc00b4e/Src/AttestationLibrary/src/QuoteVerification/QuoteConstants.h
+        uint256 start = 368;
+        bytes32 first32;
+        assembly {
+            first32 := mload(add(add(rawQuote, 32), start))
+        }
+        return first32;
+    }
+
+    function _validateReportData(
+        address validator,
+        uint32 round,
+        bytes memory dkgPubKey,
+        bytes memory commPubKey,
+        bytes32 expectedReportData
+    ) internal pure returns (bool) {
+        bytes32 reportData = keccak256(abi.encodePacked(validator, round, dkgPubKey, commPubKey));
+        if (reportData != expectedReportData) {
+            return false;
+        }
+        return true;
     }
 }
