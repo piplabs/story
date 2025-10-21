@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/hex"
 
 	dkgpb "github.com/piplabs/story/client/dkg/pb/v1"
 	"github.com/piplabs/story/client/dkg/types"
@@ -74,7 +75,7 @@ func (s *Service) submitFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	log.Info(ctx, "Submitting FinalizeDKG transaction to contract",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"global_pub_key", session.GlobalPubKey,
+		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
 	)
 
 	_, err := s.contractClient.FinalizeDKG(

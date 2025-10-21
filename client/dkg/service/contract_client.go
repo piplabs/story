@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -20,6 +21,8 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
+
+const maxRetries = 3
 
 // ContractClient wraps the DKG contract interaction.
 type ContractClient struct {
@@ -120,29 +123,9 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
 	}
 
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for initialize dkg")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	tx, err := c.dkgContract.InitializeDKG(auth, round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call initialize dkg")
-	}
-
-	log.Info(ctx, "InitializeDKG transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for initialize dkg transaction")
-	}
-
-	return receipt, nil
+	return c.sendWithRetry(ctx, "InitializeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.dkgContract.InitializeDKG(auth, round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
+	})
 }
 
 // FinalizeDKG calls the finalizeDKG contract method.
@@ -170,29 +153,9 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
 
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for finalizeDKG")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	tx, err := c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call finalize dkg")
-	}
-
-	log.Info(ctx, "FinalizeDKG transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for finalize dkg transaction")
-	}
-
-	return receipt, nil
+	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
+	})
 }
 
 // SetNetwork calls the setNetwork contract method.
@@ -205,7 +168,7 @@ func (c *ContractClient) SetNetwork(
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling setNetwork contract method",
-		"mrenclave", string(mrenclave),
+		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
 		"total", total,
 		"threshold", threshold,
@@ -222,29 +185,9 @@ func (c *ContractClient) SetNetwork(
 		return nil, errors.Wrap(err, "failed to pack setNetwork call data")
 	}
 
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for setNetwork")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	tx, err := c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave32, signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call setNetwork")
-	}
-
-	log.Info(ctx, "SetNetwork transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for setNetwork transaction")
-	}
-
-	return receipt, nil
+	return c.sendWithRetry(ctx, "SetNetwork", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave32, signature)
+	})
 }
 
 // RequestRemoteAttestationOnChain calls the requestRemoteAttestationOnChain contract method.
@@ -453,23 +396,83 @@ func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, data []byte)
 
 // waitForTransaction waits for a transaction to be mined and returns the receipt.
 func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Transaction) (*types.Receipt, error) {
-	log.Info(ctx, "Waiting for transaction to be mined", "tx_hash", tx.Hash().Hex())
-
 	// 60 seconds timeout context
 	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
 
 	receipt, err := bind.WaitMined(timeoutCtx, c.ethClient, tx)
+	cancel()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to wait for transaction to be mined")
-	}
-
-	if receipt.Status == types.ReceiptStatusFailed {
-		log.Error(ctx, "Transaction failed with receipt", nil, "tx_hash", tx.Hash().Hex(), "receipt", receipt)
-		return nil, errors.New("transaction failed")
 	}
 
 	log.Info(ctx, "Transaction mined", "tx_hash", tx.Hash().Hex())
 
 	return receipt, nil
+}
+
+func (c *ContractClient) sendWithRetry(
+	ctx context.Context,
+	methodName string,
+	callData []byte,
+	sendTx func(auth *bind.TransactOpts) (*types.Transaction, error),
+) (*types.Receipt, error) {
+	var (
+		receipt  *types.Receipt
+		gasLimit uint64
+		err      error
+	)
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		gasLimit, err = c.estimateGasWithBuffer(ctx, callData)
+		if err != nil {
+			return nil, err
+		}
+
+		auth, err := c.createTransactOpts(ctx, gasLimit)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create transact opts", "method_name", methodName)
+		}
+
+		tx, err := sendTx(auth)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to send tx", "method_name", methodName)
+		}
+
+		log.Info(ctx, fmt.Sprintf("%s tx sent", methodName),
+			"tx_hash", tx.Hash().Hex(),
+			"attempt", attempt,
+			"gas_limit", gasLimit,
+		)
+
+		receipt, err = c.waitForTransaction(ctx, tx)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to wait for tx", "method_name", methodName)
+		}
+
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			log.Info(ctx, fmt.Sprintf("%s succeeded", methodName),
+				"tx_hash", tx.Hash().Hex(),
+				"gas_used", receipt.GasUsed,
+				"attempt", attempt)
+
+			return receipt, nil
+		}
+
+		usageRatio := float64(receipt.GasUsed) / float64(gasLimit)
+		if usageRatio > 0.95 && attempt < maxRetries {
+			log.Warn(ctx, fmt.Sprintf("%s likely out-of-gas, retrying", methodName),
+				nil,
+				"old_gas_limit", gasLimit,
+				"gas_used", receipt.GasUsed,
+				"usage_ratio", usageRatio,
+				"attempt", attempt+1,
+			)
+
+			continue
+		}
+
+		break
+	}
+
+	return nil, errors.New(fmt.Sprintf("[%s] transaction failed after %d attempts", methodName, maxRetries))
 }
