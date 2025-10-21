@@ -1,10 +1,10 @@
 syntax = "proto3";
-package story.dkg.v1.tee;
+package story.dkg.v1.types;
 
 import "gogoproto/gogo.proto";
 import "story/dkg/v1/types/types.proto";
 
-option go_package = "github.com/piplabs/story/client/dkg";
+option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
 service TEE {
   rpc GenerateAndSealKey(GenerateAndSealKeyRequest) returns (GenerateAndSealKeyResponse);
@@ -215,6 +215,7 @@ message ProcessResponsesRequest {
   ];
 
   repeated types.Response responses = 3 [
+    (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"responses\""
   ];
 }

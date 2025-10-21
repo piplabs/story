@@ -28,8 +28,6 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 		return errors.Wrap(err, "failed to emit dkg_begin_initialization event")
 	}
 
-	log.Info(ctx, "Emitted BeginInitialization event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
-
 	return nil
 }
 
@@ -45,8 +43,6 @@ func (*Keeper) emitBeginDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKG
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_network_set event")
 	}
-
-	log.Info(ctx, "Emitted BeginDKGNetworkSet event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }
@@ -67,7 +63,7 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	return nil
 }
 
-func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []*types.Deal) error {
+func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []types.Deal) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
@@ -84,7 +80,7 @@ func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGN
 	return nil
 }
 
-func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []*types.Response) error {
+func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{

@@ -1,10 +1,10 @@
-package service
+package keeper
 
 import (
+	"github.com/piplabs/story/client/x/dkg/types"
 	"os"
 	"testing"
 
-	"github.com/piplabs/story/client/dkg/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +12,7 @@ func TestAddAndPopDealsFile(t *testing.T) {
 	os.Remove(dealsFilePath)
 	os.Remove(dealsFilePath + ".lock")
 
-	deals := []*types.Deal{
+	deals := []types.Deal{
 		{
 			Index:          1,
 			RecipientIndex: 10,
@@ -40,7 +40,7 @@ func TestAddAndPopDealsFile(t *testing.T) {
 	err := AddDealsFile(deals)
 	require.NoError(t, err)
 
-	moreDeals := []*types.Deal{
+	moreDeals := []types.Deal{
 		{
 			Index:          3,
 			RecipientIndex: 30,
@@ -72,7 +72,7 @@ func TestAddAndPopResponsesFile(t *testing.T) {
 	os.Remove(responsesFilePath)
 	os.Remove(responsesFilePath + ".lock")
 
-	responses := []*types.Response{
+	responses := []types.Response{
 		{
 			Index: 1,
 			VssResponse: &types.VSSResponse{
@@ -96,7 +96,7 @@ func TestAddAndPopResponsesFile(t *testing.T) {
 	err := AddResponsesFile(responses)
 	require.NoError(t, err)
 
-	moreResponses := []*types.Response{
+	moreResponses := []types.Response{
 		{
 			Index: 3,
 			VssResponse: &types.VSSResponse{

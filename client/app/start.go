@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"github.com/piplabs/story/client/x/dkg/keeper"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"time"
 
 	"cosmossdk.io/store"
@@ -183,11 +185,30 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 		return nil, nil, errors.Wrap(err, "create engine client")
 	}
 
+	var (
+		dkgTEEClient      dkgtypes.TEEClient
+		dkgContractClient *keeper.ContractClient
+	)
+
+	if cfg.DKG.Enable {
+		dkgTEEClient, err = keeper.CreateTEEClient(cfg.DKG)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to create tee client for DKG")
+		}
+
+		dkgContractClient, err = keeper.NewContractClient(ctx, cfg.DKG.EngineRPCEndpoint, cfg.EngineChainID, privVal.Key.PrivKey.Bytes())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to create contract client for DKG")
+		}
+	}
+
 	//nolint:contextcheck // False positive
 	app, err := newApp(
 		newSDKLogger(ctx),
 		db,
 		engineCl,
+		dkgTEEClient,
+		dkgContractClient,
 		baseAppOpts...,
 	)
 	if err != nil {
@@ -201,6 +222,12 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 		return nil, nil, errors.Wrap(err, "convert validator pubkey to address")
 	}
 	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
+
+	if cfg.DKG.Enable {
+		if err := app.Keepers.DKGKeeper.InitDKGService(&cfg.Config, addr); err != nil {
+			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
+		}
+	}
 
 	return app, privVal, nil
 }

@@ -9,7 +9,6 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/gogoproto/proto"
 
-	dkgservice "github.com/piplabs/story/client/dkg/service"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -17,11 +16,11 @@ import (
 
 func (*Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
 	// TODO: add limits on the size of the deals&responses included in the vote extension
-	deals, err := dkgservice.PopDealsFile()
+	deals, err := PopDealsFile()
 	if err != nil {
 		return nil, errors.Wrap(err, "pop deals file")
 	}
-	responses, err := dkgservice.PopResponsesFile()
+	responses, err := PopResponsesFile()
 	if err != nil {
 		return nil, errors.Wrap(err, "pop responses file")
 	}
@@ -69,7 +68,7 @@ func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool,
 func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInfo, commitHeight uint64) (sdk.Msg, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	// The VEs in LastLocalCommit is expected to be valid
-	if err := baseapp.ValidateVoteExtensions(sdkCtx, k.skeeper, 0, "", commit); err != nil {
+	if err := baseapp.ValidateVoteExtensions(sdkCtx, k.valStore, 0, "", commit); err != nil {
 		return nil, errors.Wrap(err, "validate extensions [BUG]")
 	}
 
@@ -97,8 +96,8 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 }
 
 func aggregateVotes(votes []*types.Vote) *types.Vote {
-	dealMap := make([]*types.Deal, 0)
-	responseMap := make([]*types.Response, 0)
+	dealMap := make([]types.Deal, 0)
+	responseMap := make([]types.Response, 0)
 	for _, vote := range votes {
 		dealMap = append(dealMap, vote.Deals...)
 		responseMap = append(responseMap, vote.Responses...)

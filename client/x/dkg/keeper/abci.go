@@ -34,14 +34,14 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		// No active DKG round, start the first round
 		log.Info(ctx, "No active DKG round, starting the first round")
 
-		return k.initiateDKGRound(ctx)
+		return k.InitiateDKGRound(ctx)
 	}
 
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)
 	if shouldTransition {
 		// Update the stage of this round before emitting events
 		latestRound.Stage = nextStage
-		if err := k.SetDKGNetwork(ctx, latestRound); err != nil {
+		if err := k.setDKGNetwork(ctx, latestRound); err != nil {
 			return err
 		}
 
@@ -52,27 +52,15 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// round = DKGStageRegistration if either
 			// 1. it's the initial (first) round, OR
 			// 2. the active stage of the previous round has ended, so DKG needs to reshare deals
-			return k.initiateDKGRound(ctx)
+			return k.InitiateDKGRound(ctx)
 		case types.DKGStageNetworkSet:
-			// TODO: check if there's enough number of registrations to set the network (and start dealing).
-			// Use a DKG module parameter (minDKGMemberAmount). If the amount is less, we need to restart the round.
-
-			if err := k.updateDKGNetworkTotalAndThreshold(ctx, latestRound); err != nil {
-				return err
-			}
-
-			return k.emitBeginDKGNetworkSet(ctx, latestRound)
+			return k.SetDKGNetwork(ctx, latestRound)
 		case types.DKGStageDealing:
-			return k.emitBeginDKGDealing(ctx, latestRound)
+			return k.BeginDealing(ctx, latestRound)
 		case types.DKGStageFinalization:
-			return k.emitBeginDKGFinalization(ctx, latestRound)
+			return k.BeginFinalization(ctx, latestRound)
 		case types.DKGStageActive:
-			// TODO: check if enough number of validators submit the finalizeDKG tx
-			if err := k.finalizeDKGRound(ctx, latestRound); err != nil {
-				return err
-			}
-
-			return k.emitDKGFinalized(ctx, latestRound)
+			return k.FinalizeDKGRound(ctx, latestRound)
 		case types.DKGStageUnspecified:
 			// This round should not happen since we always have a valid stage (1 to 5) and unspecified is stage 0
 			return nil

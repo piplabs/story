@@ -12,6 +12,9 @@ network = "{{ .Network }}"
 ###                          Story Options                          ###
 #######################################################################
 
+# Story execution layer chain ID.
+engine-chain-id = {{ .EngineChainID }}
+
 # Story execution client Engine API http endpoint.
 engine-endpoint = "{{ .EngineEndpoint }}"
 
@@ -119,3 +122,17 @@ endpoint = "{{ .Tracer.Endpoint }}"
 
 # Open Telemetry OTLP headers. See https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/setup/quickstart/go/.
 headers = "{{ .Tracer.Headers }}"
+
+#######################################################################
+###                           DKG Options                           ###
+#######################################################################
+
+[dkg]
+# Enable defines if the DKG client is enabled or not.
+enable = {{ .DKG.Enable }}
+
+# The endpoint of TEE client.
+tee-endpoint = "{{ .DKG.TEEEndpoint }}"
+
+# The RPC endpoint of execution layer
+engine-rpc-endpoint = "{{ .DKG.EngineRPCEndpoint }}"

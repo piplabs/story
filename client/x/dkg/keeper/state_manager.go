@@ -1,14 +1,14 @@
-package state
+package keeper
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/piplabs/story/client/x/dkg/types"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/piplabs/story/client/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )

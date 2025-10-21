@@ -37,8 +37,10 @@ func bindRunFlags(cmd *cobra.Command, cfg *config.Config) {
 	tracer.BindFlags(flags, &cfg.Tracer)
 	netconf.BindFlag(flags, &cfg.Network)
 	apisvr.BindFlags(flags, &cfg.API)
+	config.BindDKGFlags(flags, &cfg.DKG)
 	flags.StringVar(&cfg.EngineEndpoint, "engine-endpoint", cfg.EngineEndpoint, "An EVM execution client Engine API http endpoint")
 	flags.StringVar(&cfg.EngineJWTFile, "engine-jwt-file", cfg.EngineJWTFile, "The path to the Engine API JWT file")
+	flags.Int64Var(&cfg.EngineChainID, "engine-chain-id", cfg.EngineChainID, "The chain ID of Story execution layer")
 	flags.Uint64Var(&cfg.SnapshotInterval, "state-sync.snapshot-interval", cfg.SnapshotInterval, "State sync snapshot interval")
 	flags.Uint64Var(&cfg.SnapshotKeepRecent, "state-sync.snapshot-keep-recent", cfg.SnapshotKeepRecent, "State sync snapshot to keep")
 	flags.Uint64Var(&cfg.MinRetainBlocks, "min-retain-blocks", cfg.MinRetainBlocks, "Minimum block height offset during ABCI commit to prune CometBFT blocks")
@@ -67,6 +69,7 @@ func bindInitFlags(flags *pflag.FlagSet, cfg *InitConfig) {
 	flags.StringVar(&cfg.PersistentPeers, "persistent-peers", "", "Override the persistent peers (comma-separated)")
 	flags.StringVar(&cfg.Moniker, "moniker", "", "Declare a custom moniker for your node")
 	flags.BoolVar(&cfg.EncryptPrivKey, "encrypt-priv-key", false, "Encrypt the validator's private key")
+	flags.Int64Var(&cfg.EngineChainID, "engine-chain-id", 0, "Chain ID of execution layer")
 }
 
 func bindValidatorBaseFlags(cmd *cobra.Command, cfg *baseConfig) {

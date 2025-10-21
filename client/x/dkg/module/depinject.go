@@ -4,16 +4,13 @@ import (
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/depinject"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	skeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-
 	"github.com/piplabs/story/client/api/story/dkg/v1/module"
 	"github.com/piplabs/story/client/x/dkg/keeper"
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/ethclient"
 )
 
 //nolint:gochecknoinits // depinject
@@ -30,13 +27,16 @@ type ModuleInputs struct {
 	depinject.In
 
 	Config       *module.Module
-	EthClient    ethclient.Client
 	Cdc          codec.Codec
 	StoreService store.KVStoreService
 
 	AccountKeeper types.AccountKeeper
 	StakingKeeper types.StakingKeeper
-	SKeeper       *skeeper.Keeper
+	ValStore      *skeeper.Keeper
+
+	// These two clients can be nil depending on whether the DKG service is enabled.
+	DKGTEEClient      types.TEEClient        `optional:"true"`
+	DKGContractClient *keeper.ContractClient `optional:"true"`
 }
 
 type ModuleOutputs struct {
@@ -58,9 +58,10 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.StoreService,
 		in.AccountKeeper,
 		in.StakingKeeper,
-		in.SKeeper,
+		in.ValStore,
+		in.DKGTEEClient,
+		in.DKGContractClient,
 		authority.String(),
-		in.EthClient,
 	)
 
 	m := NewAppModule(in.Cdc, &k)

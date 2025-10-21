@@ -1,17 +1,18 @@
-package service
+package keeper
 
 import (
 	"context"
+	"encoding/hex"
+	"github.com/piplabs/story/client/x/dkg/types"
 
-	"github.com/piplabs/story/client/dkg/types"
 	"github.com/piplabs/story/lib/log"
 )
 
 // handleTEEUpgrade handles TEE client upgrade events.
-func (s *Service) handleTEEUpgrade(ctx context.Context, event *types.DKGEventData) error {
+func (k *Keeper) handleTEEUpgrade(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	log.Info(ctx, "Handling TEE upgrade event",
-		"mrenclave", event.Mrenclave,
-		"activation_height", event.BlockHeight,
+		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		//"activation_height", dkgNetwork.BlockHeight,
 	)
 
 	// For TEE upgrades, we typically need to:
@@ -22,9 +23,9 @@ func (s *Service) handleTEEUpgrade(ctx context.Context, event *types.DKGEventDat
 	// For now, we'll log the upgrade event
 	// In a full implementation, this would handle the binary upgrade process
 	log.Info(ctx, "TEE upgrade scheduled",
-		"tee_binary_id", event.Mrenclave,
-		"activation_height", event.BlockHeight,
-		"validator", s.validatorAddress.Hex(),
+		"tee_binary_id", dkgNetwork.Mrenclave,
+		//"activation_height", event.BlockHeight,
+		"validator", k.validatorAddress.Hex(),
 	)
 
 	// TODO: Implement actual TEE binary upgrade logic

@@ -1,10 +1,11 @@
-package service
+package keeper
 
 import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"math/big"
 	"time"
 
@@ -44,13 +45,13 @@ type ContractConfig struct {
 }
 
 // NewContractClient creates a new contract client.
-func NewContractClient(ctx context.Context, cfg *ContractConfig) (*ContractClient, error) {
-	ethClient, err := ethclient.Dial(cfg.EthRPCEndpoint)
+func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID int64, privKey []byte) (*ContractClient, error) {
+	ethClient, err := ethclient.Dial(engineEndpoint)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to Ethereum client")
 	}
 
-	contractAddr := common.HexToAddress(cfg.DKGContractAddr)
+	contractAddr := common.HexToAddress(predeploys.DKG)
 	dkgContract, err := bindings.NewDKG(contractAddr, ethClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create DKG contract instance")
@@ -61,8 +62,7 @@ func NewContractClient(ctx context.Context, cfg *ContractConfig) (*ContractClien
 		return nil, errors.Wrap(err, "failed to get DKG contract ABI")
 	}
 
-	// TODO: read from validator node
-	privateKey, err := crypto.HexToECDSA(cfg.PrivateKey)
+	privateKey, err := crypto.ToECDSA(privKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse private key")
 	}
@@ -73,7 +73,7 @@ func NewContractClient(ctx context.Context, cfg *ContractConfig) (*ContractClien
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	chainID := big.NewInt(cfg.ChainID)
+	chainID := big.NewInt(engineChainID)
 
 	client := &ContractClient{
 		ethClient:       ethClient,
@@ -92,13 +92,6 @@ func NewContractClient(ctx context.Context, cfg *ContractConfig) (*ContractClien
 	)
 
 	return client, nil
-}
-
-// Close closes the contract client connections.
-func (c *ContractClient) Close() {
-	if c.ethClient != nil {
-		c.ethClient.Close()
-	}
 }
 
 // InitializeDKG calls the initializeDKG contract method.

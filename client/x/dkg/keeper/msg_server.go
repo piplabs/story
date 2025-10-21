@@ -22,13 +22,17 @@ func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 
 	if latestRound != nil && latestRound.Stage == types.DKGStageDealing {
 		if len(msg.Vote.Deals) > 0 {
-			log.Info(ctx, "there are deals to process", "len_deals", len(msg.Vote.Deals))
-			_ = s.Keeper.emitBeginProcessDeals(ctx, latestRound, msg.Vote.Deals)
+			if err := s.Keeper.ProcessDeals(ctx, latestRound, msg.Vote.Deals); err != nil {
+				// Note: no need to return error since no state changes in processing deals
+				log.Error(ctx, "Error occurred while processing deals", err)
+			}
 		}
 
 		if len(msg.Vote.Responses) > 0 {
-			log.Info(ctx, "there are responses to process", "len_responses", len(msg.Vote.Responses))
-			_ = s.Keeper.emitBeginProcessResponses(ctx, latestRound, msg.Vote.Responses)
+			if err := s.Keeper.ProcessResponses(ctx, latestRound, msg.Vote.Responses); err != nil {
+				// Note: no need to return error since no state changes in processing responses
+				log.Error(ctx, "Error occurred while processing responses", err)
+			}
 		}
 	}
 

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package story.dkg.v1.types;
 
+import "gogoproto/gogo.proto";
 import "story/dkg/v1/types/types.proto";
 
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
@@ -38,13 +39,17 @@ message EventBeginDealing {
 message EventBeginProcessDeals {
   bytes mrenclave = 1;
   uint32 round = 2;
-  repeated types.Deal deals = 3;
+  repeated types.Deal deals = 3 [
+    (gogoproto.nullable) = false
+  ];
 }
 
 message EventBeginProcessResponses {
   bytes mrenclave = 1;
   uint32 round = 2;
-  repeated types.Response responses = 3;
+  repeated types.Response responses = 3 [
+    (gogoproto.nullable) = false
+  ];
 }
 
 message EventBeginFinalization {

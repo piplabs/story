@@ -28,9 +28,9 @@ import (
 const (
 	configFile            = "story.toml"
 	dataDir               = "data"
+	dkgDir                = "dkg"
 	configDir             = "config"
 	snapshotDataDir       = "snapshots"
-	networkFile           = "network.json"
 	DefaultEncPrivKeyName = "priv_validator_key.enc"
 
 	DefaultEngineEndpoint     = "http://localhost:8551" // Default host endpoint for the Engine API
@@ -53,6 +53,7 @@ var (
 		Network:            "iliad",
 		EngineEndpoint:     DefaultEngineEndpoint,
 		EngineJWTFile:      DefaultJWTFile("iliad"),
+		EngineChainID:      1513,
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -64,17 +65,15 @@ var (
 		EVMBuildOptimistic: false,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 	OdysseyConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "odyssey",
 		EngineEndpoint:     DefaultEngineEndpoint,
 		EngineJWTFile:      DefaultJWTFile("odyssey"),
+		EngineChainID:      1516,
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -86,17 +85,15 @@ var (
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 	AeneidConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "aeneid",
 		EngineEndpoint:     DefaultEngineEndpoint,
 		EngineJWTFile:      DefaultJWTFile("aeneid"),
+		EngineChainID:      1315,
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -108,17 +105,15 @@ var (
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 	StoryConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "story",
 		EngineEndpoint:     DefaultEngineEndpoint,
 		EngineJWTFile:      DefaultJWTFile("story"),
+		EngineChainID:      1514,
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -130,17 +125,15 @@ var (
 		EVMBuildOptimistic: true,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 	LocalConfig = Config{
 		HomeDir:            DefaultHomeDir(),
 		Network:            "local",
 		EngineEndpoint:     DefaultEngineEndpoint,
 		EngineJWTFile:      DefaultJWTFile("local"),
+		EngineChainID:      1511,
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -152,11 +145,8 @@ var (
 		EVMBuildOptimistic: false,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 )
 
@@ -167,6 +157,7 @@ func DefaultConfig() Config {
 		Network:            "",                      // No default
 		EngineEndpoint:     "http://localhost:8551", // No default
 		EngineJWTFile:      "",                      // No default
+		EngineChainID:      0,                       // No default
 		SnapshotInterval:   defaultSnapshotInterval,
 		SnapshotKeepRecent: defaultSnapshotKeepRecent,
 		BackendType:        string(defaultDBBackend),
@@ -178,11 +169,8 @@ func DefaultConfig() Config {
 		EVMBuildOptimistic: defaultEVMBuildOptimistic,
 		API:                apisvr.DefaultConfig(),
 		Tracer:             tracer.DefaultConfig(),
-		RPCLaddr:           "tcp://127.0.0.1:26657",
-		ExternalAddress:    "",
-		Seeds:              "",
-		SeedMode:           false,
 		WithComet:          true,
+		DKG:                DefaultDKGConfig(),
 	}
 }
 
@@ -220,6 +208,7 @@ type Config struct {
 	EthKeyPassword     string
 	EngineJWTFile      string
 	EngineEndpoint     string
+	EngineChainID      int64
 	SnapshotInterval   uint64 // See cosmossdk.io/store/snapshots/types/options.go
 	SnapshotKeepRecent uint64 // See cosmossdk.io/store/snapshots/types/options.go
 	BackendType        string // See cosmos-db/db.go
@@ -231,13 +220,10 @@ type Config struct {
 	EVMBuildOptimistic bool
 	API                apisvr.Config
 	Tracer             tracer.Config
-	RPCLaddr           string
-	ExternalAddress    string
-	Seeds              string
-	SeedMode           bool
 	WithComet          bool   // See cosmos-sdk/server/start.go
 	Address            string // See cosmos-sdk/server/start.go
 	Transport          string // See cosmos-sdk/server/start.go
+	DKG                DKGConfig
 }
 
 // ConfigFile returns the default path to the toml story config file.
@@ -257,6 +243,10 @@ func (c Config) SnapshotDir() string {
 	return filepath.Join(c.DataDir(), snapshotDataDir)
 }
 
+func (c Config) DKGStateDir() string {
+	return filepath.Join(c.HomeDir, dataDir, dkgDir)
+}
+
 func (c Config) EncPrivKeyFile() string {
 	return filepath.Join(c.HomeDir, DefaultEncPrivKeyPath)
 }
@@ -270,6 +260,12 @@ func (c Config) Verify() error {
 		return errors.New("flag --network is empty")
 	} else if err := c.Network.Verify(); err != nil {
 		return err
+	}
+
+	if c.DKG.Enable {
+		if err := c.DKG.Validate(); err != nil {
+			return errors.Wrap(err, "failed to validate dkg config")
+		}
 	}
 
 	return nil

@@ -4,7 +4,6 @@ import (
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
-
 	abci "github.com/cometbft/cometbft/abci/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -20,6 +19,8 @@ import (
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
@@ -73,12 +74,24 @@ func newApp(
 	logger log.Logger,
 	db dbm.DB,
 	engineCl ethclient.EngineClient,
+	dkgTEEClient dkgtypes.TEEClient,
+	dkgContractClient *dkgkeeper.ContractClient,
 	baseAppOpts ...func(*baseapp.BaseApp),
 ) (*App, error) {
+	supplies := []interface{}{logger, engineCl}
+
+	if dkgTEEClient != nil {
+		supplies = append(supplies, dkgTEEClient)
+	}
+
+	if dkgContractClient != nil {
+		supplies = append(supplies, dkgContractClient)
+	}
+
 	depCfg := depinject.Configs(
 		DepConfig(),
 		depinject.Supply(
-			logger, engineCl,
+			supplies...,
 		),
 	)
 

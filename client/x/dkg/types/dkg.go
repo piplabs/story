@@ -4,31 +4,24 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"time"
 
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
 
 // DKGPhase represents the current phase of the DKG process.
 type DKGPhase int32
 
-// re-export types from x/dkg/types.
-type Deal = dkgtypes.Deal
-type Response = dkgtypes.Response
-type VSSResponse = dkgtypes.VSSResponse
-type EncryptedDeal = dkgtypes.EncryptedDeal
-type Complaint = dkgtypes.Complaint
-type Commitments = []byte
-
 const (
-	PhaseUnknown      DKGPhase = 0
-	PhaseInitializing DKGPhase = 1
-	PhaseRegistering  DKGPhase = 2
-	PhaseDealing      DKGPhase = 4
-	PhaseFinalizing   DKGPhase = 5
-	PhaseCompleted    DKGPhase = 6
-	PhaseFailed       DKGPhase = 7
+	PhaseUnknown        DKGPhase = 0
+	PhaseInitializing   DKGPhase = 1
+	PhaseRegistering    DKGPhase = 2
+	PhaseNetworkSetting DKGPhase = 3
+	PhaseDealing        DKGPhase = 4
+	PhaseFinalizing     DKGPhase = 5
+	PhaseCompleted      DKGPhase = 6
+	PhaseFailed         DKGPhase = 7
 )
 
 func (p DKGPhase) String() string {
@@ -39,6 +32,8 @@ func (p DKGPhase) String() string {
 		return "Initializing"
 	case PhaseRegistering:
 		return "Registering"
+	case PhaseNetworkSetting:
+		return "NetworkSetting"
 	case PhaseDealing:
 		return "Dealing"
 	case PhaseFinalizing:
@@ -54,6 +49,8 @@ func (p DKGPhase) String() string {
 
 // DKGSession represents a local DKG session managed by the service.
 type DKGSession struct {
+	mu sync.RWMutex
+
 	Mrenclave     []byte    `json:"mrenclave"`
 	Round         uint32    `json:"round"`
 	GlobalPubKey  []byte    `json:"global_pub_key"` // TODO: update global pubkey in future stages
@@ -70,11 +67,11 @@ type DKGSession struct {
 	Threshold        uint32   `json:"threshold"`
 
 	// DKG state
-	Registrations []dkgtypes.DKGRegistration `json:"registrations,omitempty"`
-	Commitments   []byte                     `json:"commitments,omitempty"`
-	Deals         map[uint32]dkgtypes.Deal   `json:"deals,omitempty"` // deals by dealer index
-	Complaints    []dkgtypes.Complaint       `json:"complaints,omitempty"`
-	IsFinalized   bool                       `json:"is_finalized"`
+	Registrations []DKGRegistration `json:"registrations,omitempty"`
+	Commitments   []byte            `json:"commitments,omitempty"`
+	Deals         map[uint32]Deal   `json:"deals,omitempty"` // deals by dealer index
+	Complaints    []Complaint       `json:"complaints,omitempty"`
+	IsFinalized   bool              `json:"is_finalized"`
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
@@ -92,23 +89,32 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *D
 		ActiveValidators: activeValidators,
 		Total:            0,
 		Threshold:        0,
-		Deals:            make(map[uint32]dkgtypes.Deal),
+		Deals:            make(map[uint32]Deal),
 		IsFinalized:      false,
 	}
 }
 
 // GetMrenclaveString returns the string representation of the mrenclave.
 func (s *DKGSession) GetMrenclaveString() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return hex.EncodeToString(s.Mrenclave)
 }
 
 // GetSessionKey returns a unique key (mrenclave_round) for this DKG session.
 func (s *DKGSession) GetSessionKey() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return fmt.Sprintf("%s_%d", s.GetMrenclaveString(), s.Round)
 }
 
 // UpdatePhase updates the session phase and timestamp.
 func (s *DKGSession) UpdatePhase(phase DKGPhase) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.Phase = phase
 	s.LastUpdate = time.Now()
 }

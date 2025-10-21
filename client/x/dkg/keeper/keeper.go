@@ -2,6 +2,9 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/piplabs/story/client/config"
+	"github.com/piplabs/story/lib/errors"
 
 	"cosmossdk.io/collections"
 	storetypes "cosmossdk.io/core/store"
@@ -11,16 +14,20 @@ import (
 	"github.com/cosmos/gogoproto/grpc"
 
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/ethclient"
 )
 
 // Keeper of the dkg store.
 type Keeper struct {
-	cdc           codec.BinaryCodec
-	storeService  storetypes.KVStoreService
-	ethClient     ethclient.Client
-	stakingKeeper types.StakingKeeper
-	skeeper       baseapp.ValidatorStore
+	cdc            codec.BinaryCodec
+	storeService   storetypes.KVStoreService
+	stakingKeeper  types.StakingKeeper
+	valStore       baseapp.ValidatorStore
+	teeClient      types.TEEClient
+	contractClient *ContractClient
+	stateManager   *StateManager
+
+	isDKGSvcEnabled  bool
+	validatorAddress common.Address
 
 	Schema           collections.Schema
 	ParamsStore      collections.Item[types.Params]
@@ -36,9 +43,10 @@ func NewKeeper(
 	storeService storetypes.KVStoreService,
 	ak types.AccountKeeper,
 	sk types.StakingKeeper,
-	skeeper baseapp.ValidatorStore,
+	valStore baseapp.ValidatorStore,
+	teeClient types.TEEClient,
+	contractClient *ContractClient,
 	authority string,
-	ethClient ethclient.Client,
 ) Keeper {
 	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
 		panic("authority is not a valid acc address")
@@ -52,9 +60,10 @@ func NewKeeper(
 	k := Keeper{
 		cdc:              cdc,
 		storeService:     storeService,
-		ethClient:        ethClient,
 		stakingKeeper:    sk,
-		skeeper:          skeeper,
+		valStore:         valStore,
+		teeClient:        teeClient,
+		contractClient:   contractClient,
 		ParamsStore:      collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:      collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork: collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
@@ -73,4 +82,26 @@ func NewKeeper(
 
 func (k *Keeper) RegisterProposalService(server grpc.Server) {
 	types.RegisterMsgServiceServer(server, NewProposalServer(k))
+}
+
+func (k *Keeper) InitDKGService(cfg *config.Config, addr common.Address) error {
+	k.setIsDKGSvcEnabled()
+	k.setValidatorAddress(addr)
+
+	stateManager, err := NewStateManager(cfg.DKGStateDir())
+	if err != nil {
+		return errors.Wrap(err, "failed to create state manager")
+	}
+
+	k.stateManager = stateManager
+
+	return nil
+}
+
+func (k *Keeper) setIsDKGSvcEnabled() {
+	k.isDKGSvcEnabled = true
+}
+
+func (k *Keeper) setValidatorAddress(addr common.Address) {
+	k.validatorAddress = addr
 }

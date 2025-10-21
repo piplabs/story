@@ -51,13 +51,9 @@ bufgen: ## Generates protobufs using buf generate.
 mockgen: ## Generates mock files using mockgen.
 	@./scripts/mockgen.sh
 
-.PHONY: dkg-protocgen
-dkg-protocgen: ## Generates dkg protobufs using buf generate.
-	@./scripts/dkg-protocgen.sh
-
-.PHONY: dkg-mockgen
+.PHONY: dkg-tee-client-mockgen
 dkg-mockgen: ## Generates dkg mock files using mockgen.
-	@mockgen -source=client/dkg/pb/v1/tee_grpc.pb.go -destination=client/dkg/mock/v1/tee_grpc.go TEEClient
+	@mockgen -source=client/x/dkg/types/tee.pb.go -package testutil -destination=client/x/dkg/testutil/tee_client_mock.go TEEClient
 
 .PHONY:
 secrets-baseline: ensure-detect-secrets ## Update secrets baseline.

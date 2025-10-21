@@ -15,10 +15,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	testutil2 "github.com/piplabs/story/client/x/dkg/testutil"
+	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/ethclient/mock"
-
 	"go.uber.org/mock/gomock"
 )
 
@@ -41,7 +39,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		Threshold:    3,
 		Stage:        types.DKGStageRegistration,
 	}
-	require.NoError(t, k.SetDKGNetwork(ctx, validDKGNetwork))
+	require.NoError(t, k.setDKGNetwork(ctx, validDKGNetwork))
 
 	tcs := []struct {
 		name            string
@@ -104,7 +102,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					Threshold:    3,
 					Stage:        types.DKGStageNetworkSet,
 				}
-				require.NoError(t, k.SetDKGNetwork(ctx, networkWithDifferentStage))
+				require.NoError(t, k.setDKGNetwork(ctx, networkWithDifferentStage))
 			},
 			expectedErr: "round is not in registration stage",
 		},
@@ -126,7 +124,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					Threshold:    3,
 					Stage:        types.DKGStageRegistration,
 				}
-				require.NoError(t, k.SetDKGNetwork(ctx, networkInRegistrationStage))
+				require.NoError(t, k.setDKGNetwork(ctx, networkInRegistrationStage))
 			},
 			expectedErr: "msg sender is not in the active validator set",
 		},
@@ -149,7 +147,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					Threshold:    3,
 					Stage:        types.DKGStageRegistration,
 				}
-				require.NoError(t, k.SetDKGNetwork(ctx, networkWithMultipleValidators))
+				require.NoError(t, k.setDKGNetwork(ctx, networkWithMultipleValidators))
 
 				firstReg := &types.DKGRegistration{
 					Round:      testRound,
@@ -554,24 +552,25 @@ func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
-	ak := testutil2.NewMockAccountKeeper(ctrl)
-	sk := testutil2.NewMockStakingKeeper(ctrl)
+	ak := dkgtestutil.NewMockAccountKeeper(ctrl)
+	sk := dkgtestutil.NewMockStakingKeeper(ctrl)
 
 	ak.EXPECT().AddressCodec().Return(authcodec.NewBech32Codec("story")).AnyTimes()
 	ak.EXPECT().GetModuleAddress(types.ModuleName).Return(sdk.AccAddress{}).AnyTimes()
 
-	ethClient := mock.NewMockClient(ctrl)
+	var valStore baseapp.ValidatorStore = nil
 
-	var skeeper baseapp.ValidatorStore = nil
+	mockTEEClient := dkgtestutil.NewMockTEEClient(ctrl)
 
 	k := NewKeeper(
 		encCfg.Codec,
 		storeService,
 		ak,
 		sk,
-		skeeper,
+		valStore,
+		mockTEEClient,
+		nil, // TODO: mock contract client for integration test
 		"story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
-		ethClient,
 	)
 
 	require.NoError(t, k.SetParams(testCtx.Ctx, types.DefaultParams()))

@@ -42,6 +42,7 @@ type InitConfig struct {
 	Moniker         string
 	PersistentPeers string
 	EncryptPrivKey  bool
+	EngineChainID   int64
 }
 
 func (cfg InitConfig) EncPrivKeyFile() string {
@@ -197,6 +198,11 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	} else {
 		WriteConfigFile(cmtConfigFile, &comet) // This panics on any error :(
 		log.Info(ctx, "Generated default comet config file", "path", cmtConfigFile)
+	}
+
+	// Setup Engine chain ID
+	if initCfg.EngineChainID != 0 {
+		cfg.EngineChainID = initCfg.EngineChainID
 	}
 
 	// Setup story config

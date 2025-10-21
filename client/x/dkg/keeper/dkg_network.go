@@ -10,9 +10,9 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// SetDKGNetwork stores a DKG network in the store using the mrenclave as the key
+// setDKGNetwork stores a DKG network in the store using the mrenclave as the key
 // If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
-func (k *Keeper) SetDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
+func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	key := fmt.Sprintf("%s_%d", string(dkgNetwork.Mrenclave), dkgNetwork.Round)
 	if err := k.DKGNetworks.Set(ctx, key, *dkgNetwork); err != nil {
 		return err

@@ -20,9 +20,13 @@ service MsgService {
 // Vote represents a validator's vote on DKG deals and its verification responses.
 message Vote {
   // The deals.
-  repeated types.Deal deals = 1;
+  repeated types.Deal deals = 1 [
+    (gogoproto.nullable) = false
+  ];
   // The responses of process_deals from other peers.
-  repeated Response responses =2;
+  repeated Response responses =2 [
+    (gogoproto.nullable) = false
+  ];
 }
 
 // MsgAddDkgVote is the request type for submitting a dkg vote.
