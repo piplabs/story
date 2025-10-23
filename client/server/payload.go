@@ -91,6 +91,10 @@ type QueryTotalDelegationsCountResponse struct {
 	Total int `json:"total"`
 }
 
+type QueryTotalStakedTokenResponse struct {
+	TotalStakedToken math.Int `json:"total_staked_token"`
+}
+
 type DelegationStakedToken struct {
 	ValidatorOperatorAddress string         `json:"validator_operator_address"`
 	StakedToken              math.LegacyDec `json:"staked_token"`
