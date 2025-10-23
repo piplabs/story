@@ -2,15 +2,13 @@ package keeper
 
 import (
 	"github.com/piplabs/story/client/x/dkg/types"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddAndPopDealsFile(t *testing.T) {
-	os.Remove(dealsFilePath)
-	os.Remove(dealsFilePath + ".lock")
+func TestEnqueueAndDequeueDeals(t *testing.T) {
+	k, _ := setupDKGKeeper(t)
 
 	deals := []types.Deal{
 		{
@@ -37,8 +35,7 @@ func TestAddAndPopDealsFile(t *testing.T) {
 		},
 	}
 
-	err := AddDealsFile(deals)
-	require.NoError(t, err)
+	k.EnqueueDeals(deals)
 
 	moreDeals := []types.Deal{
 		{
@@ -53,24 +50,20 @@ func TestAddAndPopDealsFile(t *testing.T) {
 			},
 		},
 	}
-	err = AddDealsFile(moreDeals)
-	require.NoError(t, err)
+	k.EnqueueDeals(moreDeals)
 
-	got, err := PopDealsFile()
-	require.NoError(t, err)
+	got := k.DequeueDeals(3)
 	require.Len(t, got, 3)
 	require.Equal(t, uint32(1), got[0].Index)
 	require.Equal(t, uint32(2), got[1].Index)
 	require.Equal(t, uint32(3), got[2].Index)
 
-	got, err = PopDealsFile()
-	require.NoError(t, err)
+	got = k.DequeueDeals(3)
 	require.Len(t, got, 0)
 }
 
-func TestAddAndPopResponsesFile(t *testing.T) {
-	os.Remove(responsesFilePath)
-	os.Remove(responsesFilePath + ".lock")
+func TestEnqueueAndDequeueResponses(t *testing.T) {
+	k, _ := setupDKGKeeper(t)
 
 	responses := []types.Response{
 		{
@@ -93,8 +86,7 @@ func TestAddAndPopResponsesFile(t *testing.T) {
 		},
 	}
 
-	err := AddResponsesFile(responses)
-	require.NoError(t, err)
+	k.EnqueueResponses(responses)
 
 	moreResponses := []types.Response{
 		{
@@ -107,17 +99,14 @@ func TestAddAndPopResponsesFile(t *testing.T) {
 			},
 		},
 	}
-	err = AddResponsesFile(moreResponses)
-	require.NoError(t, err)
+	k.EnqueueResponses(moreResponses)
 
-	got, err := PopResponsesFile()
-	require.NoError(t, err)
+	got := k.DequeueResponses(3)
 	require.Len(t, got, 3)
 	require.Equal(t, uint32(1), got[0].Index)
 	require.Equal(t, uint32(2), got[1].Index)
 	require.Equal(t, uint32(3), got[2].Index)
 
-	got, err = PopResponsesFile()
-	require.NoError(t, err)
+	got = k.DequeueResponses(3)
 	require.Len(t, got, 0)
 }

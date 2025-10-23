@@ -575,5 +575,5 @@ func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 
 	require.NoError(t, k.SetParams(testCtx.Ctx, types.DefaultParams()))
 
-	return &k, testCtx.Ctx
+	return k, testCtx.Ctx
 }

@@ -1,19 +1,30 @@
 package keeper
 
 import (
+	"cosmossdk.io/collections"
+	storetypes "cosmossdk.io/core/store"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/lib/errors"
-
-	"cosmossdk.io/collections"
-	storetypes "cosmossdk.io/core/store"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/grpc"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+)
+
+var (
+	// deals and responses store TEE-generated DKG deals and responses that will be broadcast to other validators
+	// through the Vote Extension. This queue acts as a temporary buffer between the TEE client and the consensus layer,
+	// ensuring that generated deals and responses can be safely enqueued and later dequeued in a thread-safe manner for
+	// propagation.
+	dealsMu     sync.Mutex
+	deals       []types.Deal
+	responsesMu sync.Mutex
+	responses   []types.Response
 )
 
 // Keeper of the dkg store.
@@ -47,7 +58,7 @@ func NewKeeper(
 	teeClient types.TEEClient,
 	contractClient *ContractClient,
 	authority string,
-) Keeper {
+) *Keeper {
 	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
 		panic("authority is not a valid acc address")
 	}
@@ -77,7 +88,7 @@ func NewKeeper(
 	}
 	k.Schema = schema
 
-	return k
+	return &k
 }
 
 func (k *Keeper) RegisterProposalService(server grpc.Server) {

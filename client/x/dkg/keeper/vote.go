@@ -14,20 +14,14 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-func (*Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// TODO: add limits on the size of the deals&responses included in the vote extension
-	deals, err := PopDealsFile()
-	if err != nil {
-		return nil, errors.Wrap(err, "pop deals file")
-	}
-	responses, err := PopResponsesFile()
-	if err != nil {
-		return nil, errors.Wrap(err, "pop responses file")
-	}
+func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
+	// TODO: determine the number of deals and responses for vote extension considering the size of deals and responses and the number of validators
+	dequeuedDeals := k.DequeueDeals(10)
+	dequeuedResponses := k.DequeueResponses(10)
 
 	bz, err := proto.Marshal(&types.Vote{
-		Deals:     deals,
-		Responses: responses,
+		Deals:     dequeuedDeals,
+		Responses: dequeuedResponses,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal vote")

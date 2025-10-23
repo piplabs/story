@@ -67,13 +67,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	// TODO: use global var
-	err = AddDealsFile(resp.GetDeals())
-	if err != nil {
-		log.Error(ctx, "Failed to add deals to file", err)
-
-		return
-	}
+	k.EnqueueDeals(resp.GetDeals())
 
 	log.Info(ctx, "DKG deals are generated successfully",
 		"mrenclave", session.GetMrenclaveString(),
@@ -126,6 +120,12 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 			}
 		}
 
+		if len(req.Deals) == 0 {
+			log.Info(ctx, "No deals to process. Skip to request")
+
+			return nil
+		}
+
 		resp, err = k.teeClient.ProcessDeals(ctx, req)
 		if err != nil {
 			return err
@@ -143,11 +143,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if err := AddResponsesFile(resp.GetResponses()); err != nil {
-		log.Error(ctx, "failed to add responses to file", err)
-
-		return
-	}
+	k.EnqueueResponses(resp.GetResponses())
 
 	log.Info(ctx, "Process deals complete",
 		"mrenclave", session.GetMrenclaveString(),
@@ -197,6 +193,12 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 			if resp.VssResponse.Index != session.Index {
 				req.Responses = append(req.Responses, resp)
 			}
+		}
+
+		if len(req.Responses) == 0 {
+			log.Info(ctx, "No responses to process. Skip to request")
+
+			return nil
 		}
 
 		if _, err := k.teeClient.ProcessResponses(ctx, req); err != nil {
