@@ -17,7 +17,7 @@ func CreateUpgradeHandler(
 	_ *keepers.Keepers,
 ) upgradetypes.UpgradeHandler {
 	return func(ctx context.Context, _ upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
-		log.Info(ctx, "The upgrade to Terence")
+		log.Info(ctx, "The Terence upgrade has been completed")
 
 		return vm, nil
 	}
