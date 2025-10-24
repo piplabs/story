@@ -11,8 +11,7 @@ const (
 
 	V121 = "v1.2.1"
 
-	// TODO: temporal upgrade name for signaling upgrade in evmengine module.
-	V140 = "v140"
+	Terence = "terence"
 )
 
 var (
@@ -25,26 +24,26 @@ type UpgradeMap map[string]int64
 // UpgradeHistories are the map of histories for each network.
 var UpgradeHistories = map[string]UpgradeMap{
 	TestChainID: {
-		V121: 10,
-		V140: 50,
+		V121:    10,
+		Terence: 50,
 	},
 	LocalChainID: {
-		V121: 0,
-		V140: 50,
+		V121:    0,
+		Terence: 50,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
 		Ovid:     4362990,
 		V121:     5238000,
 		Polybius: 6008000,
-		V140:     100000000,
+		Terence:  100000000,
 	},
 	StoryChainID: {
 		Virgil:   809988,
 		Ovid:     4477880,
 		V121:     5084300,
 		Polybius: 8270000,
-		V140:     100000000,
+		Terence:  100000000,
 	},
 }
 
@@ -89,11 +88,11 @@ func IsV121(chainID string, blockNumber int64) (bool, error) {
 	return blockNumber >= v121Block, nil
 }
 
-func IsV140(chainID string, blockNumber int64) (bool, error) {
-	v140Block, err := GetUpgradeHeight(chainID, V140)
+func IsTerence(chainID string, blockNumber int64) (bool, error) {
+	terenceBlock, err := GetUpgradeHeight(chainID, Terence)
 	if err != nil {
 		return false, err
 	}
 
-	return blockNumber >= v140Block, nil
+	return blockNumber >= terenceBlock, nil
 }
