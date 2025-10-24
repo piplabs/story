@@ -119,6 +119,14 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 			upgradeHeight = polybiusUpgradeHeight
 		}
 
+		if fork.UpgradeName == netconf.Terence {
+			terenceUpgradeHeight, ok := terence.GetUpgradeHeight(ctx)
+			if !ok {
+				continue
+			}
+			upgradeHeight = terenceUpgradeHeight
+		}
+
 		if currentBlockHeight == upgradeHeight {
 			upgradePlan := upgradetypes.Plan{
 				Height: currentBlockHeight,
