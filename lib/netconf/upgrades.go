@@ -31,6 +31,10 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V121:    0,
 		Terence: 50,
 	},
+	StoryLocalnetID: {
+		V121:    0,
+		Terence: 0,
+	},
 	AeneidChainID: {
 		Virgil:   345158,
 		Ovid:     4362990,
