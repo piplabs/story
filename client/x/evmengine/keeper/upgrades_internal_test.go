@@ -44,7 +44,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		expectedResult *upgradetypes.Plan
 	}{
 		{
-			name: "pass: valid software upgrade event - before v1.4.0",
+			name: "pass: valid software upgrade event - before Terence upgrade",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -58,7 +58,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			},
 		},
 		{
-			name: "pass: valid software upgrade event - after v1.4.0",
+			name: "pass: valid software upgrade event - after Terence upgrade",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -85,7 +85,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 		// Since a mocked upgrade keeper is used, not all error cases can be tested here.
 		// Comprehensive error testing would require the real upgrade keeper, which is beyond the scope of this unit test.
 		{
-			name: "fail: check if v1.4.0 upgrade is activated or not",
+			name: "fail: check if Terence upgrade is activated or not",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -99,10 +99,10 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 
 				return sdkCtx
 			},
-			expectedErr: "failed to check v1.4.0 upgrade height",
+			expectedErr: "failed to check Terence upgrade height",
 		},
 		{
-			name: "fail: invalid upgrade event before v1.4.0 - height is 0",
+			name: "fail: invalid upgrade event before Terence upgrade - height is 0",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -116,7 +116,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			expectedErr: "height must be greater than 0",
 		},
 		{
-			name: "fail: invalid upgrade event before v1.4.0 - name is empty",
+			name: "fail: invalid upgrade event before Terence upgrade - name is empty",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "",
@@ -130,7 +130,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			expectedErr: "name cannot be empty",
 		},
 		{
-			name: "fail: invalid upgrade event after v1.4.0 - height is 0",
+			name: "fail: invalid upgrade event after Terence upgrade - height is 0",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -147,7 +147,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			expectedErr: "height must be greater than 0",
 		},
 		{
-			name: "fail: invalid upgrade event after v1.4.0 - prior to the current block",
+			name: "fail: invalid upgrade event after Terence upgrade - prior to the current block",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "test-upgrade",
@@ -164,7 +164,7 @@ func TestKeeper_ProcessSoftwareUpgrade(t *testing.T) {
 			expectedErr: "failed to set pending upgrade",
 		},
 		{
-			name: "fail: invalid upgrade event after v1.4.0 - name is empty",
+			name: "fail: invalid upgrade event after Terence upgrade - name is empty",
 			ev: func() *bindings.UpgradeEntrypointSoftwareUpgrade {
 				return &bindings.UpgradeEntrypointSoftwareUpgrade{
 					Name:   "",
@@ -246,13 +246,13 @@ func TestKeeper_ProcessCancelUpgrade(t *testing.T) {
 		postCheck   func(ctx sdk.Context, keeper *Keeper)
 	}{
 		{
-			name: "pass: valid cancel upgrade - before v1.4.0",
+			name: "pass: valid cancel upgrade - before Terence upgrade",
 			setupMock: func(uk *moduletestutil.MockUpgradeKeeper) {
 				uk.EXPECT().ClearUpgradePlan(gomock.Any()).Return(nil)
 			},
 		},
 		{
-			name: "pass: valid cancel upgrade - after v1.4.0",
+			name: "pass: valid cancel upgrade - after Terence upgrade",
 			setup: func(ctx context.Context, keeper *Keeper) sdk.Context {
 				sdkCtx := sdk.UnwrapSDKContext(ctx)
 				sdkCtx = sdkCtx.WithBlockHeight(51)
@@ -265,14 +265,14 @@ func TestKeeper_ProcessCancelUpgrade(t *testing.T) {
 			},
 		},
 		{
-			name: "fail: check if v1.4.0 upgrade is activated or not - unknown chain ID",
+			name: "fail: check if Terence upgrade is activated or not - unknown chain ID",
 			setup: func(ctx context.Context, keeper *Keeper) sdk.Context {
 				sdkCtx := sdk.UnwrapSDKContext(ctx)
 				sdkCtx = sdkCtx.WithChainID("unknown-chain-id")
 
 				return sdkCtx
 			},
-			expectedErr: "failed to check v1.4.0 upgrade height",
+			expectedErr: "failed to check Terence upgrade height",
 		},
 		{
 			name: "fail: clear upgrade plan of upgrade keeper - invalid request",

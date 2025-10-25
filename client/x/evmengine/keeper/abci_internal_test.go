@@ -130,7 +130,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: false,
 			},
 			{
-				name: "pass: success of prepare proposal after v1.4.0",
+				name: "pass: success of prepare proposal after Terence upgrade",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
 						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {
@@ -467,7 +467,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name: "fail: unknown chain ID for v1.4.0 upgrade",
+				name: "fail: unknown chain ID for Terence upgrade",
 				mockEngine: mockEngineAPI{
 					forkchoiceUpdatedV3Func: func(ctx context.Context, update eengine.ForkchoiceStateV1,
 						payloadAttributes *eengine.PayloadAttributes) (eengine.ForkChoiceResponse, error) {

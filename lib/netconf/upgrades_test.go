@@ -19,7 +19,7 @@ func TestGetUpgradeHeight(t *testing.T) {
 		{
 			name:        "unknown chain ID",
 			chainID:     "unknown-chain-id",
-			upgradeName: netconf.V140,
+			upgradeName: netconf.Terence,
 			expectedErr: netconf.ErrUnknownChainID.Error(),
 		},
 		{
@@ -31,7 +31,7 @@ func TestGetUpgradeHeight(t *testing.T) {
 		{
 			name:           "known chain ID and upgrade name",
 			chainID:        netconf.TestChainID,
-			upgradeName:    netconf.V140,
+			upgradeName:    netconf.Terence,
 			expectedResult: 50,
 		},
 	}
