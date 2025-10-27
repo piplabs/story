@@ -11,5 +11,5 @@ const (
 	LocalChainID = "story-1001511"
 
 	// TestChainID is the chain ID that is used for test code.
-	TestChainID = "test-1"
+	TestChainID = "internal-devnet-1"
 )
