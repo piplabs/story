@@ -11,7 +11,7 @@ const (
 	LocalChainID = "story-1001511"
 
 	// TestChainID is the chain ID that is used for test code.
-	TestChainID = "test-1"
+	TestChainID = "internal-devnet-1"
 
 	// StoryLocalnetID is the chain ID of Story Localnet (https://github.com/piplabs/story-localnet).
 	StoryLocalnetID = "story-localnet"
