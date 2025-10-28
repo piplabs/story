@@ -13,6 +13,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/polybius"
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
+	"github.com/piplabs/story/client/app/upgrades/test_v1_4"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
@@ -26,6 +27,7 @@ var (
 		v_1_2_0.Upgrade,
 		polybius.Upgrade,
 		terence.Upgrade,
+		test_v1_4.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
