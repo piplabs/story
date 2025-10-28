@@ -32,7 +32,7 @@ func TestGetUpgradeHeight(t *testing.T) {
 			name:           "known chain ID and upgrade name",
 			chainID:        netconf.TestChainID,
 			upgradeName:    netconf.Terence,
-			expectedResult: 50,
+			expectedResult: 7200,
 		},
 	}
 
