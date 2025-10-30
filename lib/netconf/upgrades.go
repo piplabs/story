@@ -25,7 +25,7 @@ type UpgradeMap map[string]int64
 var UpgradeHistories = map[string]UpgradeMap{
 	TestChainID: {
 		V121:    0,
-		Terence: 50, // internal-devnet test
+		Terence: 3400, // internal-devnet test
 	},
 	LocalChainID: {
 		V121:    0,
