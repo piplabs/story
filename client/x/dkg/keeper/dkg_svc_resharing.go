@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"slices"
+	"strings"
 
 	"github.com/piplabs/story/lib/log"
 )
@@ -15,67 +17,45 @@ func (k *Keeper) handleDKGResharing(ctx context.Context, dkgNetwork *types.DKGNe
 		"round", dkgNetwork.Round,
 	)
 
-	valAddr := k.validatorAddress.Hex()
-	isParticipant := false
-	for _, addr := range dkgNetwork.ActiveValSet {
-		if addr == valAddr {
-			isParticipant = true
-			break
-		}
+	if dkgNetwork.Stage != types.DKGStageRegistration {
+		log.Info(ctx, "DKG resharing is skipped because the current network stage is not in the registration stage")
 	}
 
+	valAddr := k.validatorAddress.Hex()
+	isParticipant := slices.Contains(dkgNetwork.ActiveValSet, strings.ToLower(valAddr))
 	if !isParticipant {
-		log.Debug(ctx, "Validator not part of resharing committee")
+		log.Info(ctx, "Validator is not part of current active validator set", "validator", valAddr)
 
 		return
 	}
 
 	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet)
 	if err := k.stateManager.CreateSession(ctx, session); err != nil {
-		log.Error(ctx, "Failed to create resharing session", err)
+		log.Error(ctx, "Failed to create resharing DKG session", err)
 
 		return
 	}
 
-	session.UpdatePhase(types.PhaseRegistering)
-
-	if err := retry(ctx, func(ctx context.Context) error {
-		log.Info(ctx, "GenerateAndSealKey call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
-			"round", session.Round,
-			"validator", k.validatorAddress.Hex(),
-		)
-
-		req := &types.GenerateAndSealKeyRequest{
-			Address:   k.validatorAddress.Hex(),
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
-		}
-
-		if _, err := k.teeClient.GenerateAndSealKey(ctx, req); err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		log.Error(ctx, "Failed to do DKG registration for resharing", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE error", updateErr)
-		}
+	if err := k.callTEEGenerateAndSealKey(ctx, session); err != nil {
+		log.Error(ctx, "Failed to generate the sealed key", err)
 
 		return
 	}
 
-	session.UpdatePhase(types.PhaseNetworkSetting)
+	if err := k.callContractInitializeDKG(ctx, session); err != nil {
+		log.Error(ctx, "Failed to call initializeDKG method", err)
+
+		return
+	}
+
+	session.UpdatePhase(types.PhaseInitialized)
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		log.Error(ctx, "Failed to update session after registration", err)
+		log.Error(ctx, "Failed to update session after calling initializeDKG method", err)
 
 		return
 	}
 
-	log.Info(ctx, "DKG resharing initiated successfully",
+	log.Info(ctx, "DKG resharing initialization complete",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
 	)

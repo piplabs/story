@@ -23,7 +23,15 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-const maxRetries = 3
+const (
+	maxRetries = 3
+
+	// Node status in DKG contract
+	NodeStatusUnregistered   uint8 = 0
+	NodeStatusRegistered     uint8 = 1
+	NodeStatusNetworkSetDone uint8 = 2
+	NodeStatusFinalized      uint8 = 3
+)
 
 // ContractClient wraps the DKG contract interaction.
 type ContractClient struct {
@@ -95,8 +103,6 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 }
 
 // InitializeDKG calls the initializeDKG contract method.
-//
-// TODO: fix the contract and use both dkgPubKey and commPubKey.
 func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
 		"round", round,
@@ -342,6 +348,33 @@ func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, roun
 	}
 
 	return &nodeInfo, nil
+}
+
+func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
+	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
+	if err != nil {
+		return false, err
+	}
+
+	return nodeInfo.NodeStatus == NodeStatusRegistered, nil
+}
+
+func (c *ContractClient) IsNetworkSet(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
+	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
+	if err != nil {
+		return false, err
+	}
+
+	return nodeInfo.NodeStatus == NodeStatusNetworkSetDone, nil
+}
+
+func (c *ContractClient) IsFinalized(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
+	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
+	if err != nil {
+		return false, err
+	}
+
+	return nodeInfo.NodeStatus == NodeStatusFinalized, nil
 }
 
 // createTransactOpts creates transaction options for contract calls.

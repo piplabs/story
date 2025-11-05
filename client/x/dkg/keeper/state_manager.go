@@ -24,8 +24,12 @@ type StateManager struct {
 
 // NewStateManager creates a new state manager.
 func NewStateManager(dataDir string) (*StateManager, error) {
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return nil, errors.Wrap(err, "failed to create data directory")
+	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dataDir, 0755); err != nil {
+			return nil, errors.Wrap(err, "failed to create data directory")
+		}
+	} else if err != nil {
+		return nil, errors.Wrap(err, "failed to check data directory")
 	}
 
 	sm := &StateManager{
@@ -49,22 +53,24 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	sessionKey := session.GetSessionKey()
 
 	if _, exists := sm.sessions[sessionKey]; exists {
-		return errors.New("session already exists", "session_key", sessionKey)
+		log.Info(ctx, "session already exists with the mrenclave and round. skip creating a new session", "mrenclave", session.GetMrenclaveString(), "round", session.Round)
+
+		return nil
+	} else {
+		sm.sessions[sessionKey] = session
+
+		if err := sm.saveSession(session); err != nil {
+			return errors.Wrap(err, "failed to save session to disk")
+		}
+
+		log.Info(ctx, "Created DKG session",
+			"mrenclave", session.GetMrenclaveString(),
+			"round", session.Round,
+			"phase", session.Phase.String(),
+		)
+
+		return nil
 	}
-
-	sm.sessions[sessionKey] = session
-
-	if err := sm.saveSession(session); err != nil {
-		return errors.Wrap(err, "failed to save session to disk")
-	}
-
-	log.Info(ctx, "Created DKG session",
-		"mrenclave", session.GetMrenclaveString(),
-		"round", session.Round,
-		"phase", session.Phase.String(),
-	)
-
-	return nil
 }
 
 // GetSession retrieves a DKG session by its mrenclave and round.
@@ -105,6 +111,13 @@ func (sm *StateManager) UpdateSession(ctx context.Context, session *types.DKGSes
 	)
 
 	return nil
+}
+
+func (sm *StateManager) MarkFailed(ctx context.Context, session *types.DKGSession) {
+	session.UpdatePhase(types.PhaseFailed)
+	if err := sm.UpdateSession(ctx, session); err != nil {
+		log.Error(ctx, "Failed to mark session as failed", err)
+	}
 }
 
 // ListSessions returns all active DKG sessions.
@@ -154,8 +167,7 @@ func (sm *StateManager) GetActiveSession(validatorAddr string) *types.DKGSession
 	defer sm.mu.RUnlock()
 
 	for _, session := range sm.sessions {
-		if session.ValidatorAddr == validatorAddr &&
-			(session.Phase >= types.PhaseRegistering && session.Phase <= types.PhaseFinalizing) {
+		if session.Phase == types.PhaseCompleted {
 			return session
 		}
 	}

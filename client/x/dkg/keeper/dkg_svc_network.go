@@ -19,16 +19,31 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 		"threshold", dkgNetwork.Threshold,
 	)
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
-	if err != nil {
-		log.Error(ctx, "Failed to get DKG session", err)
+	if !dkgSvcRunning.CompareAndSwap(false, true) {
+		log.Info(ctx, "DKG service already running; skipping network setting")
+
+		return
+	}
+	defer dkgSvcRunning.Store(false)
+
+	if dkgNetwork.Stage != types.DKGStageNetworkSet {
+		log.Info(ctx, "DKG NetworkSet is skipped because the current network stage is not in network set stage")
 
 		return
 	}
 
-	if session.Phase != types.PhaseNetworkSetting {
-		log.Warn(ctx, "Session not in DKG network setting phase, skipping network set", nil,
+	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	if err != nil {
+		log.Error(ctx, "Failed to get DKG session", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	if session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in initialized phase, skipping network set", nil,
 			"current_phase", session.Phase.String())
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
@@ -37,8 +52,55 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 	session.Threshold = dkgNetwork.Threshold
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session total and threshold", err)
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
+	}
+
+	if err := k.callTEESetupDKGNetwork(ctx, session); err != nil {
+		log.Error(ctx, "Failed to setup DKG network", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	if err := k.callContractSetNetwork(ctx, session); err != nil {
+		log.Error(ctx, "Failed to call setNetwork method", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	session.UpdatePhase(types.PhaseDealing)
+	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+		log.Error(ctx, "Failed to update session after calling setNetwork method", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	log.Info(ctx, "DKG Network set complete",
+		"mrenclave", session.GetMrenclaveString(),
+		"round", session.Round,
+		"total", session.Total,
+		"threshold", session.Threshold,
+	)
+
+	return
+}
+
+func (k *Keeper) callTEESetupDKGNetwork(ctx context.Context, session *types.DKGSession) error {
+	log.Info(ctx, "SetupDKGNetwork call to TEE client",
+		"mrenclave", session.GetMrenclaveString(),
+		"round", session.Round,
+		"total", session.Total,
+		"threshold", session.Threshold,
+	)
+
+	if len(session.SigSetupNetwork) > 0 {
+		log.Info(ctx, "DKG network already set in TEE client, skipping call SetupDKGNetwork request")
+
+		return nil
 	}
 
 	var resp *types.SetupDKGNetworkResponse
@@ -51,14 +113,6 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 			return errors.Wrap(err, "failed to get verified dkg registrations from x/dkg module")
 		}
 
-		log.Info(ctx, "SetupDKGNetwork call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
-			"round", session.Round,
-			"total", session.Total,
-			"threshold", session.Threshold,
-			"num_registrations", len(rpcResp.Registrations),
-		)
-
 		req := &types.SetupDKGNetworkRequest{
 			Mrenclave:     session.Mrenclave,
 			Round:         session.Round,
@@ -66,6 +120,7 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 			Threshold:     session.Threshold,
 			Registrations: rpcResp.Registrations,
 		}
+
 		resp, err = k.teeClient.SetupDKGNetwork(ctx, req)
 		if err != nil {
 			return err
@@ -73,51 +128,47 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 
 		return nil
 	}); err != nil {
-		log.Error(ctx, "Failed to set DKG network", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE error", updateErr)
-		}
-
-		return
+		return errors.Wrap(err, "TEE client SetupDKGNetwork request failed")
 	}
 
-	session.UpdatePhase(types.PhaseDealing)
+	session.SigSetupNetwork = resp.GetSignature()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		log.Error(ctx, "Failed to update session after network set", err)
-
-		return
+		return errors.Wrap(err, "failed to update session after calling SetupDKGNetwork on the TEE client")
 	}
 
+	return nil
+}
+
+func (k *Keeper) callContractSetNetwork(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "SetNetwork contract call",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
 		"total", session.Total,
 		"threshold", session.Threshold,
-		"signature_len", len(resp.GetSignature()),
+		"signature_len", len(session.SigSetupNetwork),
 	)
 
-	_, err = k.contractClient.SetNetwork(
+	isNetworkSet, err := k.contractClient.IsNetworkSet(ctx, session.Round, session.Mrenclave, k.validatorAddress)
+	if err != nil {
+		return err
+	}
+
+	if isNetworkSet {
+		log.Info(ctx, "Already DKG network set on chain, skipping call setNetwork method")
+
+		return nil
+	}
+
+	if _, err := k.contractClient.SetNetwork(
 		ctx,
 		session.Round,
 		session.Total,
 		session.Threshold,
 		session.Mrenclave,
-		resp.GetSignature(),
-	)
-	if err != nil {
-		log.Error(ctx, "Failed to call SetNetwork contract method", err)
-
-		return
+		session.SigSetupNetwork,
+	); err != nil {
+		return err
 	}
 
-	log.Info(ctx, "DKG network set complete",
-		"mrenclave", session.GetMrenclaveString(),
-		"round", session.Round,
-		"total", session.Total,
-		"threshold", session.Threshold,
-	)
-
-	return
+	return nil
 }

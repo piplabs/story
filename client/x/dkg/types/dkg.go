@@ -1,27 +1,23 @@
 package types
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/piplabs/story/lib/errors"
 )
 
 // DKGPhase represents the current phase of the DKG process.
 type DKGPhase int32
 
 const (
-	PhaseUnknown        DKGPhase = 0
-	PhaseInitializing   DKGPhase = 1
-	PhaseRegistering    DKGPhase = 2
-	PhaseNetworkSetting DKGPhase = 3
-	PhaseDealing        DKGPhase = 4
-	PhaseFinalizing     DKGPhase = 5
-	PhaseCompleted      DKGPhase = 6
-	PhaseFailed         DKGPhase = 7
+	PhaseUnknown      DKGPhase = 0
+	PhaseInitializing DKGPhase = 1
+	PhaseInitialized  DKGPhase = 2
+	PhaseDealing      DKGPhase = 3
+	PhaseFinalized    DKGPhase = 4
+	PhaseCompleted    DKGPhase = 5
+	PhaseFailed       DKGPhase = 6
 )
 
 func (p DKGPhase) String() string {
@@ -30,14 +26,12 @@ func (p DKGPhase) String() string {
 		return "Unknown"
 	case PhaseInitializing:
 		return "Initializing"
-	case PhaseRegistering:
-		return "Registering"
-	case PhaseNetworkSetting:
-		return "NetworkSetting"
+	case PhaseInitialized:
+		return "Initialized"
 	case PhaseDealing:
 		return "Dealing"
-	case PhaseFinalizing:
-		return "Finalizing"
+	case PhaseFinalized:
+		return "Finalized"
 	case PhaseCompleted:
 		return "Completed"
 	case PhaseFailed:
@@ -51,15 +45,18 @@ func (p DKGPhase) String() string {
 type DKGSession struct {
 	mu sync.RWMutex
 
-	Mrenclave     []byte    `json:"mrenclave"`
-	Round         uint32    `json:"round"`
-	GlobalPubKey  []byte    `json:"global_pub_key"` // TODO: update global pubkey in future stages
-	CommPubKey    []byte    `json:"comm_pub_key"`   // TODO: update comm pubkey in future stages
-	Phase         DKGPhase  `json:"phase"`
-	StartTime     time.Time `json:"start_time"`
-	LastUpdate    time.Time `json:"last_update"`
-	ValidatorAddr string    `json:"validator_address"`
-	Index         uint32    `json:"index"`
+	Mrenclave          []byte    `json:"mrenclave"`
+	Round              uint32    `json:"round"`
+	GlobalPubKey       []byte    `json:"global_pub_key"`
+	DKGPubKey          []byte    `json:"dkg_pub_key"`
+	CommPubKey         []byte    `json:"comm_pub_key"`
+	RawQuote           []byte    `json:"raw_quote"`
+	Phase              DKGPhase  `json:"phase"`
+	StartTime          time.Time `json:"start_time"`
+	LastUpdate         time.Time `json:"last_update"`
+	Index              uint32    `json:"index"`
+	SigSetupNetwork    []byte    `json:"sig_setup_network"`
+	SigFinalizeNetwork []byte    `json:"sig_finalize_network"`
 
 	// Network information
 	ActiveValidators []string `json:"active_validators"`
@@ -117,39 +114,4 @@ func (s *DKGSession) UpdatePhase(phase DKGPhase) {
 
 	s.Phase = phase
 	s.LastUpdate = time.Now()
-}
-
-// DKGEventData represents data from a DKG-related blockchain event emitted in Cosmos CL (not EL predeploy contract).
-type DKGEventData struct {
-	EventType        string            `json:"event_type"`
-	Mrenclave        string            `json:"mrenclave"`
-	Round            uint32            `json:"round"`
-	BlockHeight      int64             `json:"block_height"`
-	ActiveValidators []string          `json:"active_validators,omitempty"`
-	Total            uint32            `json:"total,omitempty"`
-	Threshold        uint32            `json:"threshold,omitempty"`
-	ValidatorAddr    string            `json:"validator_address,omitempty"`
-	Index            uint32            `json:"index,omitempty"`
-	Deals            []*Deal           `json:"deals,omitempty"`
-	Responses        []*Response       `json:"responses,omitempty"`
-	Attributes       map[string]string `json:"attributes,omitempty"`
-	// registration-specific
-	Signature  []byte `json:"signature,omitempty"`
-	DkgPubKey  []byte `json:"dkg_pub_key,omitempty"`
-	CommPubKey []byte `json:"comm_pub_key,omitempty"`
-	RawQuote   []byte `json:"raw_quote,omitempty"`
-}
-
-// ParseMrenclave converts the hex-encoded mrenclave string to bytes.
-func (e *DKGEventData) ParseMrenclave() ([]byte, error) {
-	b, err := base64.StdEncoding.DecodeString(e.Mrenclave)
-	if err != nil {
-		return nil, errors.New("failed to decode mrenclave", err)
-	}
-
-	if len(b) != 32 { // expect 256-bit digest (32 bytes)
-		return nil, errors.New("mrenclave is not a 256-bit digest", "expected_size", 32, "actual_size", len(b))
-	}
-
-	return b, nil
 }

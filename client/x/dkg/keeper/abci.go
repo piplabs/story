@@ -16,6 +16,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
 
+	// TODO: temporal code for delaying the DKG setup
 	if currentHeight < dkgStartBlock {
 		return nil
 	}
@@ -65,6 +66,10 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// This round should not happen since we always have a valid stage (1 to 5) and unspecified is stage 0
 			return nil
 		}
+	}
+
+	if k.isDKGSvcEnabled {
+		k.ResumeDKGService(ctx, latestRound)
 	}
 
 	return nil

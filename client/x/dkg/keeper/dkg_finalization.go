@@ -30,13 +30,7 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, dkgNetwork *types.DKGNetw
 		go k.handleDKGComplete(ctx, dkgNetwork)
 	}
 
-	dkgNetwork.Stage = types.DKGStageActive
-
-	log.Info(ctx, "DKG network is finalized", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
-
-	if err := k.setDKGNetwork(ctx, dkgNetwork); err != nil {
-		return errors.Wrap(err, "failed to store the finalized DKG network")
-	}
+	log.Info(ctx, "DKG network setup completed", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
 
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 
 	"github.com/piplabs/story/lib/log"
 )
@@ -15,30 +16,82 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 		"round", dkgNetwork.Round,
 	)
 
+	if !dkgSvcRunning.CompareAndSwap(false, true) {
+		log.Info(ctx, "DKG service already running; skipping finalization")
+
+		return
+	}
+	defer dkgSvcRunning.Store(false)
+
+	if dkgNetwork.Stage != types.DKGStageFinalization {
+		log.Info(ctx, "DKG Finalization is skipped because the current network stage is not in the finalization stage")
+
+		return
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
 
 	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping finalization", nil,
-			"current_phase", session.Phase.String(),
-		)
+		log.Warn(ctx, "Session not in dealing phase, skipping finalize DKG", nil,
+			"current_phase", session.Phase.String())
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
 
-	session.UpdatePhase(types.PhaseFinalizing)
+	if err := k.callTEEFinalizeDKG(ctx, session); err != nil {
+		log.Error(ctx, "Failed to finalize DKG network", err)
+		k.stateManager.MarkFailed(ctx, session)
 
-	var resp *types.FinalizeDKGResponse
+		return
+	}
+
+	if err := k.callContractFinalizeDKG(ctx, session); err != nil {
+		log.Error(ctx, "Failed to call finalizeDKG method", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	session.UpdatePhase(types.PhaseFinalized)
+	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+		log.Error(ctx, "Failed to update session after calling finalizeDKG method", err)
+		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	log.Info(ctx, "DKG finalization phase complete",
+		"mrenclave", session.GetMrenclaveString(),
+		"round", session.Round,
+	)
+
+	return
+}
+
+func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
+	log.Info(ctx, "FinalizeDKG call to TEE client",
+		"mrenclave", session.GetMrenclaveString(),
+		"round", session.Round,
+	)
+
+	if len(session.GlobalPubKey) > 0 && len(session.SigFinalizeNetwork) > 0 {
+		log.Info(ctx, "DKG network already finalized in TEE client, skipping call FinalizeDKG request")
+
+		return nil
+	}
+
+	var (
+		resp *types.FinalizeDKGResponse
+		err  error
+	)
 	if err := retry(ctx, func(ctx context.Context) error {
-		log.Info(ctx, "FinalizeDKG call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
-			"round", session.Round,
-		)
-
 		req := &types.FinalizeDKGRequest{
 			Mrenclave: session.Mrenclave,
 			Round:     session.Round,
@@ -51,47 +104,46 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 
 		return nil
 	}); err != nil {
-		log.Error(ctx, "Failed to finalize DKG", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE finalization error", updateErr)
-		}
-
-		return
+		return errors.Wrap(err, "TEE client FinalizeDKG request failed")
 	}
 
-	session.GlobalPubKey = resp.GlobalPubKey
+	session.GlobalPubKey = resp.GetGlobalPubKey()
+	session.SigFinalizeNetwork = resp.GetSignature()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		log.Error(ctx, "failed to update session", err)
-
-		return
+		return errors.Wrap(err, "failed to update session after calling FinalizeDKG on the TEE client")
 	}
 
+	return nil
+}
+
+func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "FinalizeDKG contract call",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
 		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
-		"signature_len", len(resp.GetSignature()),
+		"signature_len", len(session.SigFinalizeNetwork),
 	)
 
-	_, err = k.contractClient.FinalizeDKG(
+	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.Mrenclave, k.validatorAddress)
+	if err != nil {
+		return err
+	}
+
+	if isFinalized {
+		log.Info(ctx, "Already finalized DKG on chain, skipping call finalizeDKG method")
+
+		return nil
+	}
+
+	if _, err := k.contractClient.FinalizeDKG(
 		ctx,
 		session.Round,
 		session.Mrenclave,
 		session.GlobalPubKey,
-		resp.GetSignature(),
-	)
-	if err != nil {
-		log.Error(ctx, "failed to call FinalizeDKG contract method", err)
-
-		return
+		session.SigFinalizeNetwork,
+	); err != nil {
+		return err
 	}
 
-	log.Info(ctx, "DKG finalization phase complete",
-		"mrenclave", session.GetMrenclaveString(),
-		"round", session.Round,
-	)
-
-	return
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/piplabs/story/client/x/dkg/types"
-
 	"github.com/piplabs/story/lib/log"
 )
 
@@ -15,16 +14,31 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		"round", dkgNetwork.Round,
 	)
 
+	if !dkgSvcRunning.CompareAndSwap(false, true) {
+		log.Info(ctx, "DKG service already running; skipping dealing")
+
+		return
+	}
+	defer dkgSvcRunning.Store(false)
+
+	if dkgNetwork.Stage != types.DKGStageDealing {
+		log.Info(ctx, "DKG Dealing is skipped because the current network stage is not dealing stage")
+
+		return
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
 
 	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping generating deals", nil,
+		log.Warn(ctx, "Session not in dealing phase, skipping generate deals", nil,
 			"current_phase", session.Phase.String())
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
@@ -48,11 +62,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		return nil
 	}); err != nil {
 		log.Error(ctx, "Failed to generate deals", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE error", updateErr)
-		}
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
@@ -61,8 +71,10 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		session.Deals[deal.Index] = deal
 		session.Index = deal.Index // same for all deals
 	}
+
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session after generating deals", err)
+		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
@@ -93,7 +105,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping processing deals", nil,
+		log.Warn(ctx, "Session not in dealing phase, skipping process deals", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -134,11 +146,6 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return nil
 	}); err != nil {
 		log.Error(ctx, "Failed to process deals", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE err", updateErr)
-		}
 
 		return
 	}
@@ -208,11 +215,6 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return nil
 	}); err != nil {
 		log.Error(ctx, "Failed to process responses", err)
-
-		session.UpdatePhase(types.PhaseFailed)
-		if updateErr := k.stateManager.UpdateSession(ctx, session); updateErr != nil {
-			log.Error(ctx, "Failed to update session after TEE err", updateErr)
-		}
 
 		return
 	}

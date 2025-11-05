@@ -78,6 +78,8 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 			continue
 		}
 
+		// TODO: discard duplicated votes (deals or responses)
+
 		allVotes = append(allVotes, selected...)
 	}
 
