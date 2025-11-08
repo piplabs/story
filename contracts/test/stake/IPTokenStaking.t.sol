@@ -73,6 +73,7 @@ contract IPTokenStakingTest is Test {
         address impl;
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
             owner: admin,
+            minCreateValidatorAmount: 1 ether,
             minStakeAmount: 0,
             minUnstakeAmount: 1 ether,
             minCommissionRate: 500,
@@ -754,6 +755,50 @@ contract IPTokenStakingTest is Test {
         vm.prank(delegatorAddr);
         vm.expectRevert("IPTokenStaking: Invalid fee amount");
         ipTokenStaking.unsetOperator{ value: feeAmount - 1 }();
+    }
+
+    function testIPTokenStaking_setMinCreateValidatorAmount() public {
+        // Set amount that will be rounded down to 1 ether
+        performTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinCreateValidatorAmount.selector, 1 ether + 5 wei)
+        );
+        assertEq(ipTokenStaking.minCreateValidatorAmount(), 1 ether);
+
+        // Set amount that will not be rounded
+        schedule(address(ipTokenStaking), abi.encodeWithSelector(IPTokenStaking.setMinCreateValidatorAmount.selector, 1 ether));
+        waitForTimelock();
+        vm.expectEmit(address(ipTokenStaking));
+        emit IIPTokenStaking.MinCreateValidatorAmountSet(1 ether);
+        executeTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinCreateValidatorAmount.selector, 1 ether)
+        );
+        assertEq(ipTokenStaking.minCreateValidatorAmount(), 1 ether);
+
+        // Set 0
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinCreateValidatorAmount.selector, 0 ether),
+            "IPTokenStaking: Zero min create validator amount"
+        );
+
+        // Set amount that will be rounded down to 0
+        expectRevertTimelocked(
+            address(ipTokenStaking),
+            abi.encodeWithSelector(IPTokenStaking.setMinCreateValidatorAmount.selector, 5 wei),
+            "IPTokenStaking: Zero min create validator amount"
+        );
+
+        // Set using a non-owner address
+        vm.prank(delegatorAddr);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                address(0xf398C12A45Bc409b6C652E25bb0a3e702492A4ab)
+            )
+        );
+        ipTokenStaking.setMinCreateValidatorAmount(1 ether);
     }
 
     function testIPTokenStaking_setMinStakeAmount() public {

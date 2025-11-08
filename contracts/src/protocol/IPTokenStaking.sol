@@ -55,6 +55,9 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
     uint256 public fee;
 
+    /// @notice Minimum amount required to create validator.
+    uint256 public minCreateValidatorAmount;
+
     modifier chargesFee() {
         require(msg.value == fee, "IPTokenStaking: Invalid fee amount");
         payable(address(0x0)).transfer(msg.value);
@@ -74,6 +77,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     function initialize(IIPTokenStaking.InitializerArgs calldata args) public initializer {
         __ReentrancyGuard_init();
         __Ownable_init(args.owner);
+        _setMinCreateValidatorAmount(args.minCreateValidatorAmount);
         _setMinStakeAmount(args.minStakeAmount);
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setMinCommissionRate(args.minCommissionRate);
@@ -83,6 +87,12 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
     /*//////////////////////////////////////////////////////////////////////////
     //                       Admin Setters/Getters                            //
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Sets the minimum amount required to create validator.
+    /// @param newMinCreateValidatorAmount The minimum amount required to create validator.
+    function setMinCreateValidatorAmount(uint256 newMinCreateValidatorAmount) external onlyOwner {
+        _setMinCreateValidatorAmount(newMinCreateValidatorAmount);
+    }
 
     /// @dev Sets the minimum amount required to stake.
     /// @param newMinStakeAmount The minimum amount required to stake.
@@ -117,6 +127,14 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         require(newFee >= DEFAULT_MIN_FEE, "IPTokenStaking: Invalid min fee");
         fee = newFee;
         emit FeeSet(newFee);
+    }
+
+    /// @dev Sets the minimum amount required to create validator.
+    /// @param newMinCreateValidatorAmount The minimum amount required to create validator.
+    function _setMinCreateValidatorAmount(uint256 newMinCreateValidatorAmount) private {
+        minCreateValidatorAmount = newMinCreateValidatorAmount - (newMinCreateValidatorAmount % STAKE_ROUNDING);
+        require(minCreateValidatorAmount > 0, "IPTokenStaking: Zero min create validator amount");
+        emit MinCreateValidatorAmountSet(minCreateValidatorAmount);
     }
 
     /// @dev Sets the minimum amount required to stake.
@@ -238,7 +256,7 @@ contract IPTokenStaking is IIPTokenStaking, Ownable2StepUpgradeable, ReentrancyG
         bytes calldata data
     ) internal {
         (uint256 stakeAmount, uint256 remainder) = roundedStakeAmount(msg.value);
-        require(stakeAmount >= minStakeAmount, "IPTokenStaking: Stake amount under min");
+        require(stakeAmount >= minCreateValidatorAmount, "IPTokenStaking: Stake amount under min");
         require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         require(commissionRate <= maxCommissionRate, "IPTokenStaking: Commission rate over max");
         require(bytes(moniker).length <= MAX_MONIKER_LENGTH, "IPTokenStaking: Moniker length over max");

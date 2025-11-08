@@ -17,12 +17,14 @@ interface IIPTokenStaking {
     /// @notice Struct for initialize method args
     /// @dev Contains various parameters for the contract's functionality
     /// @param owner The address of the admin addres
+    /// @param minCreateValidatorAmount Global minimum amount required to create validator
     /// @param minStakeAmount Global minimum amount required to stake
     /// @param minUnstakeAmount Global minimum amount required to unstake
     /// @param minCommissionRate Global minimum commission rate for validators
     /// @param fee The fee charged for adding to CL storage
     struct InitializerArgs {
         address owner;
+        uint256 minCreateValidatorAmount;
         uint256 minStakeAmount;
         uint256 minUnstakeAmount;
         uint256 minCommissionRate;
@@ -128,6 +130,10 @@ interface IIPTokenStaking {
     /// @notice Emitted to request removing the operator address to a delegator
     /// @param delegator The delegator's address
     event UnsetOperator(address delegator);
+
+    /// @notice Emitted when the minimum create validator amount is set.
+    /// @param minCreateValidatorAmount The new minimum create validator amount.
+    event MinCreateValidatorAmountSet(uint256 minCreateValidatorAmount);
 
     /// @notice Emitted when the minimum stake amount is set.
     /// @param minStakeAmount The new minimum stake amount.
