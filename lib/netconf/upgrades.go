@@ -47,7 +47,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Ovid:     4477880,
 		V121:     5084300,
 		Polybius: 8270000,
-		Terence:  100000000, // TODO: need to set actual upgrade height for story mainnet
+		Terence:  11538000,
 	},
 }
 
