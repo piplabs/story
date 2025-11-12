@@ -206,10 +206,10 @@ func TestValidateTx(t *testing.T) {
 		expectedErr    string
 	}{
 		{
-			name:           "invalid signing tx",
+			name:           "invalid proto tx",
 			isNotSigningTx: true,
 			msgs:           []types.Msg{&etypes.MsgExecutionPayload{Authority: authority}},
-			expectedErr:    "invalid standard tx message",
+			expectedErr:    "invalid proto tx",
 		},
 		{
 			name: "valid payload message",
@@ -224,12 +224,28 @@ func TestValidateTx(t *testing.T) {
 			expectedErr: "disallowed memo in tx",
 		},
 		{
+			name: "nil fee",
+			msgs: []types.Msg{&etypes.MsgExecutionPayload{Authority: authority}},
+			callback: func(b client.TxBuilder) {
+				wrappedTx := b.GetTx()
+
+				wrappedTxField := reflect.ValueOf(wrappedTx).Elem()
+				txField := wrappedTxField.FieldByName("tx").Elem()
+				authInfoField := txField.FieldByName("AuthInfo").Elem()
+				feeField := authInfoField.FieldByName("Fee")
+				fieldPtr := unsafe.Pointer(feeField.UnsafeAddr())
+				fieldVal := reflect.NewAt(feeField.Type(), fieldPtr).Elem()
+				fieldVal.Set(reflect.Zero(feeField.Type()))
+			},
+			expectedErr: "invalid fee in tx",
+		},
+		{
 			name: "fee not empty",
 			msgs: []types.Msg{&etypes.MsgExecutionPayload{Authority: authority}},
 			callback: func(b client.TxBuilder) {
 				b.SetFeeAmount(types.Coins{types.NewCoin(types.DefaultBondDenom, math.NewInt(1))})
 			},
-			expectedErr: "disallowed fee in tx",
+			expectedErr: "invalid fee in tx",
 		},
 		{
 			name: "signatures v2 not empty",

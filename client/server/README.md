@@ -200,6 +200,21 @@ URL: [GET] /staking/total_delegators_count
 }
 ```
 
+## GetTotalStakedToken
+
+URL: [GET] /staking/total_staked_token
+
+### Response Example
+```json
+{
+    "code": 200,
+    "msg": {
+        "total_staked_token": "10000000000000000"
+    },
+    "error": ""
+}
+```
+
 ## GetValidators
 
 URL: [GET] /staking/validators

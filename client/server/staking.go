@@ -21,6 +21,7 @@ func (s *Server) initStakingRoute() {
 	s.httpMux.HandleFunc("/staking/pool", utils.SimpleWrap(s.aminoCodec, s.GetStakingPool))
 	s.httpMux.HandleFunc("/staking/historical_info/{height}", utils.SimpleWrap(s.aminoCodec, s.GetHistoricalInfoByHeight))
 	s.httpMux.HandleFunc("/staking/total_delegators_count", utils.SimpleWrap(s.aminoCodec, s.GetTotalDelegatorsCount))
+	s.httpMux.HandleFunc("/staking/total_staked_token", utils.SimpleWrap(s.aminoCodec, s.GetTotalStakedToken))
 
 	s.httpMux.HandleFunc("/staking/validators", utils.AutoWrap(s.aminoCodec, s.GetValidators))
 	s.httpMux.HandleFunc("/staking/validators/{validator_address}", utils.SimpleWrap(s.aminoCodec, s.GetValidatorByValidatorAddress))
@@ -432,6 +433,28 @@ func (s *Server) GetTotalDelegatorsCount(r *http.Request) (resp any, err error) 
 
 	return &QueryTotalDelegationsCountResponse{
 		Total: len(delegators),
+	}, nil
+}
+
+func (s *Server) GetTotalStakedToken(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	validators, err := s.store.GetStakingKeeper().GetAllValidators(queryContext)
+	if err != nil {
+		return nil, err
+	}
+
+	totalStakedToken := math.ZeroInt()
+
+	for _, val := range validators {
+		totalStakedToken = totalStakedToken.Add(val.GetTokens())
+	}
+
+	return &QueryTotalStakedTokenResponse{
+		TotalStakedToken: totalStakedToken,
 	}, nil
 }
 
