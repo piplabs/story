@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.23;
 
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Secp256k1Verifier } from "../protocol/Secp256k1Verifier.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /**
  * @title IPTokenStakingV2
@@ -27,10 +27,10 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
  */
 contract IPTokenStakingV2 is
     IIPTokenStaking,
-    Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable,
     Secp256k1Verifier,
-    PausableUpgradeable
+    PausableUpgradeable,
+    AccessControlUpgradeable
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -39,6 +39,9 @@ contract IPTokenStakingV2 is
 
     /// @notice Stake amount increments. Consensus Layer requires staking in increments of 1 gwei.
     uint256 public constant STAKE_ROUNDING = 1 gwei;
+
+    /// @notice The address that can pause the contract.
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @notice Default minimum fee charged for adding to CL storage
     uint256 public immutable DEFAULT_MIN_FEE;
@@ -62,9 +65,6 @@ contract IPTokenStakingV2 is
     /// @notice The fee paid to update a validator (unjail, commission update, etc.)
     uint256 public fee;
 
-    /// @notice The address that can pause the contract.
-    address public pauser;
-
     modifier chargesFee() {
         require(msg.value == fee, "IPTokenStaking: Invalid fee amount");
         payable(address(0x0)).transfer(msg.value);
@@ -83,27 +83,40 @@ contract IPTokenStakingV2 is
     /// @param args The initializer arguments.
     function initialize(IIPTokenStaking.InitializerArgs calldata args) public initializer {
         __ReentrancyGuard_init();
-        __Ownable_init(args.owner);
+        // __Ownable_init(args.owner); deprecated
         _setMinStakeAmount(args.minStakeAmount);
         _setMinUnstakeAmount(args.minUnstakeAmount);
         _setMinCommissionRate(args.minCommissionRate);
         _setFee(args.fee);
     }
 
+    /// @notice Initializes the V2 contract.
+    /// @dev Only callable once at proxy deployment.
+    /// @param admin The address of the admin.
+    /// @param pauser1 The address of the first pauser.
+    /// @param pauser2 The address of the second pauser.
+    function initializeV2(address admin, address pauser1, address pauser2) external reinitializer(2) {
+        require(admin != address(0), "IPTokenStaking: Invalid admin");
+        require(pauser1 != address(0), "IPTokenStaking: Invalid pauser1");
+        require(pauser2 != address(0), "IPTokenStaking: Invalid pauser2");
+        __AccessControl_init();
+        __Pausable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAUSER_ROLE, pauser1);
+        _grantRole(PAUSER_ROLE, pauser2);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                             Pause & Unpause                            //
     //////////////////////////////////////////////////////////////////////////*/
 
-    // TODO: The timelock contract which is the owner of the staking contract has a minDelay - so the timelock cannot pause instantaneously.
-    // TODO: Who will be pauser: both Safe Gov and Safe Sec Multisigs. Hardcode as constant or change owner to access control?
-
     /// @notice Pauses the contract.
-    function pause() external onlyOwner {
+    function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /// @notice Unpauses the contract.
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -113,25 +126,25 @@ contract IPTokenStakingV2 is
 
     /// @dev Sets the minimum amount required to stake.
     /// @param newMinStakeAmount The minimum amount required to stake.
-    function setMinStakeAmount(uint256 newMinStakeAmount) external onlyOwner {
+    function setMinStakeAmount(uint256 newMinStakeAmount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setMinStakeAmount(newMinStakeAmount);
     }
 
     /// @dev Sets the minimum amount required to withdraw.
     /// @param newMinUnstakeAmount The minimum amount required to stake.
-    function setMinUnstakeAmount(uint256 newMinUnstakeAmount) external onlyOwner {
+    function setMinUnstakeAmount(uint256 newMinUnstakeAmount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setMinUnstakeAmount(newMinUnstakeAmount);
     }
 
     /// @notice Sets the fee charged for adding to CL storage.
     /// @param newFee The new fee
-    function setFee(uint256 newFee) external onlyOwner {
+    function setFee(uint256 newFee) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setFee(newFee);
     }
 
     /// @notice Sets the global minimum commission rate for validators.
     /// @param newValue The new minimum commission rate.
-    function setMinCommissionRate(uint256 newValue) external onlyOwner {
+    function setMinCommissionRate(uint256 newValue) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setMinCommissionRate(newValue);
     }
 
