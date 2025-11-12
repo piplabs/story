@@ -6,3 +6,4 @@ out
 cache
 
 .env
+/script/admin-actions/output/31337/*
