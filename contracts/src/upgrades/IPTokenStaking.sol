@@ -9,7 +9,7 @@ import { IIPTokenStaking } from "../interfaces/IIPTokenStaking.sol";
 import { Secp256k1Verifier } from "../protocol/Secp256k1Verifier.sol";
 
 /**
- * @title IPTokenStakingV2
+ * @title IPTokenStaking
  * @notice The deposit contract for IP token staked validators.
  * @dev This contract is a sort of "bridge" to request validator related actions on the consensus chain.
  * The response will happen on the consensus chain.
@@ -25,7 +25,7 @@ import { Secp256k1Verifier } from "../protocol/Secp256k1Verifier.sol";
  * not be refunded to the user. Remember that the EL transaction of step 2 would not have reverted. So please be
  * cautious when making transactions with this contract.
  */
-contract IPTokenStakingV2 is
+contract IPTokenStaking is
     IIPTokenStaking,
     ReentrancyGuardUpgradeable,
     Secp256k1Verifier,

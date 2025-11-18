@@ -10,19 +10,19 @@ import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.so
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { ITransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { IPTokenStakingV2 } from "../../src/upgrades/IPTokenStakingV2.sol";
+import { IPTokenStaking } from "../../src/upgrades/IPTokenStaking.sol";
 import { IIPTokenStaking } from "../../src/interfaces/IIPTokenStaking.sol";
 import { EIP1967Helper } from "../../script/utils/EIP1967Helper.sol";
 
 import { console2 } from "forge-std/console2.sol";
 
 /**
- * @title IPTokenStakingV2Test
- * @dev A test for the IPTokenStakingV2 contract
+ * @title IPTokenStakingTest
+ * @dev A test for the IPTokenStaking contract
  */
-contract IPTokenStakingV2Test is Test {
+contract IPTokenStakingTest is Test {
 
-    IPTokenStakingV2 ipTokenStakingProxy;
+    IPTokenStaking ipTokenStakingProxy;
     address safeGovernanceMultisig;
     address securityCouncilMultisig;
     address oldOwner;
@@ -43,7 +43,7 @@ contract IPTokenStakingV2Test is Test {
         vm.selectFork(forkId);
 
         // Mainnet related addresses
-        ipTokenStakingProxy = IPTokenStakingV2(0xCCcCcC0000000000000000000000000000000001);
+        ipTokenStakingProxy = IPTokenStaking(0xCCcCcC0000000000000000000000000000000001);
         safeGovernanceMultisig = 0xF07cA4b61022F0399C1511E7E668A57567f2138B;
         securityCouncilMultisig = 0x25D2605b2C768082A14E79713114389d0eC297D8;
         timelock = TimelockController(payable(0x6c7FA8DF1B8Dc29a7481Bb65ad590D2D16787a82));
@@ -59,7 +59,7 @@ contract IPTokenStakingV2Test is Test {
         feeBefore = ipTokenStakingProxy.fee();
 
         // deploy new implementation
-        IPTokenStakingV2 newImpl = new IPTokenStakingV2(1000000000000000000, 256);
+        IPTokenStaking newImpl = new IPTokenStaking(1000000000000000000, 256);
 
         // upgrade the proxy to the new implementation
         ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(address(ipTokenStakingProxy)));
@@ -72,7 +72,7 @@ contract IPTokenStakingV2Test is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStakingV2.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
             ),
             bytes32(0),
             bytes32(0),
@@ -88,7 +88,7 @@ contract IPTokenStakingV2Test is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStakingV2.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
             ),
             bytes32(0),
             bytes32(0)
