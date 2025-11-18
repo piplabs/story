@@ -92,16 +92,14 @@ contract IPTokenStaking is
 
     /// @notice Initializes the V2 contract.
     /// @dev Only callable once at proxy deployment.
-    /// @param admin The address of the admin.
     /// @param pauser1 The address of the first pauser.
     /// @param pauser2 The address of the second pauser.
-    function initializeV2(address admin, address pauser1, address pauser2) external reinitializer(2) {
-        require(admin != address(0), "IPTokenStaking: Invalid admin");
+    function initializeV2(address pauser1, address pauser2) external reinitializer(2) {
         require(pauser1 != address(0), "IPTokenStaking: Invalid pauser1");
         require(pauser2 != address(0), "IPTokenStaking: Invalid pauser2");
         __AccessControl_init();
         __Pausable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, 0x6c7FA8DF1B8Dc29a7481Bb65ad590D2D16787a82);
         _grantRole(PAUSER_ROLE, pauser1);
         _grantRole(PAUSER_ROLE, pauser2);
     }

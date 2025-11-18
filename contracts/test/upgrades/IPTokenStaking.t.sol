@@ -72,7 +72,7 @@ contract IPTokenStakingTest is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, safeGovernanceMultisig, securityCouncilMultisig)
             ),
             bytes32(0),
             bytes32(0),
@@ -88,7 +88,7 @@ contract IPTokenStakingTest is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, timelock, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, safeGovernanceMultisig, securityCouncilMultisig)
             ),
             bytes32(0),
             bytes32(0)
@@ -115,7 +115,7 @@ contract IPTokenStakingTest is Test {
 
     function testInitializeV2RevertWhenCalledTwice() public {
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        ipTokenStakingProxy.initializeV2(address(1), address(1), address(1));
+        ipTokenStakingProxy.initializeV2(address(1), address(1));
     }
 
     function testPauseUnpauseSafeGovernanceMultisig() public {
