@@ -19,8 +19,8 @@ gen_binding() {
   name_lower=$(echo ${name} | tr '[:upper:]' '[:lower:]')
 
   temp=$(mktemp -d)
-  forge inspect ${contract} abi > ${temp}/${name}.abi
-  forge inspect ${contract} bytecode > ${temp}/${name}.bin
+  forge inspect --json ${contract} abi > ${temp}/${name}.abi
+  forge inspect --json ${contract} bytecode > ${temp}/${name}.bin
 
   abigen \
     --abi ${temp}/${name}.abi \
