@@ -14,6 +14,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	testv142 "github.com/piplabs/story/client/app/upgrades/test_v1_4_2"
+	testv143 "github.com/piplabs/story/client/app/upgrades/test_v1_4_3"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
@@ -28,6 +29,7 @@ var (
 		polybius.Upgrade,
 		terence.Upgrade,
 		testv142.Upgrade,
+		testv143.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -36,6 +38,7 @@ var (
 		polybius.Fork,
 		terence.Fork,
 		testv142.Fork,
+		testv143.Fork,
 	}
 )
 
@@ -136,6 +139,14 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				continue
 			}
 			upgradeHeight = testV142UpgradeHeight
+		}
+
+		if fork.UpgradeName == netconf.TestV143 {
+			testV143UpgradeHeight, ok := testv143.GetUpgradeHeight(ctx)
+			if !ok {
+				continue
+			}
+			upgradeHeight = testV143UpgradeHeight
 		}
 
 		if currentBlockHeight == upgradeHeight {

@@ -14,6 +14,7 @@ const (
 	Terence = "terence"
 
 	TestV142 = "test-v1.4.2"
+	TestV143 = "test-v1.4.3"
 )
 
 var (
@@ -28,17 +29,20 @@ var UpgradeHistories = map[string]UpgradeMap{
 	TestChainID: {
 		V121:     10,
 		Terence:  50,     // internal-devnet test
-		TestV142: 111900, // TODO: set actual upgrade height for test chain
+		TestV142: 111900, // internal-devnet v1.4.2
+		TestV143: 112600, // TODO: set actual upgrade height for next test upgrade
 	},
 	LocalChainID: {
 		V121:     0,
 		Terence:  50,
 		TestV142: 100, // TODO: set actual upgrade height for local chain
+		TestV143: 0,
 	},
 	StoryLocalnetID: {
 		V121:     0,
 		Terence:  0,
 		TestV142: 0,
+		TestV143: 0,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
@@ -47,6 +51,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 6008000,
 		Terence:  10886688,
 		TestV142: 0, // Not applicable for Aeneid
+		TestV143: 0,
 	},
 	StoryChainID: {
 		Virgil:   809988,
@@ -55,6 +60,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 8270000,
 		Terence:  100000000, // TODO: need to set actual upgrade height for story mainnet
 		TestV142: 0,         // Not applicable for mainnet
+		TestV143: 0,
 	},
 }
 
@@ -115,4 +121,13 @@ func IsTestV142(chainID string, blockNumber int64) (bool, error) {
 	}
 
 	return blockNumber >= testV142Block, nil
+}
+
+func IsTestV143(chainID string, blockNumber int64) (bool, error) {
+	testV143Block, err := GetUpgradeHeight(chainID, TestV143)
+	if err != nil {
+		return false, err
+	}
+
+	return blockNumber >= testV143Block, nil
 }
