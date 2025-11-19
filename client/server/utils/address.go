@@ -3,6 +3,7 @@ package utils
 import (
 	cosmosk1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/piplabs/story/lib/errors"
@@ -30,6 +31,10 @@ func CmpPubKeyToBech32ConsAddress(hexCmpPubKey string) (sdk.ConsAddress, error) 
 	cmpPubKeyBytes, err := hexutil.Decode(hexCmpPubKey)
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err := secp256k1.ParsePubKey(cmpPubKeyBytes); err != nil {
+		return nil, errors.Wrap(err, "invalid secp256k1 compressed public key")
 	}
 
 	cmpPubKey := &cosmosk1.PubKey{Key: cmpPubKeyBytes}
