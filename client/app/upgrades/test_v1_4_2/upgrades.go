@@ -16,7 +16,7 @@ import (
 
 const (
 	// NewMinDelegation is the new minimum delegation amount (1 ether = 1e18 wei)
-	NewMinDelegation = "1000000000000000000" // 1 ether
+	NewMinDelegation = "1024000000000" // 1024 ether
 )
 
 func CreateUpgradeHandler(

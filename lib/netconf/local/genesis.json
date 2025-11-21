@@ -89,7 +89,7 @@
     },
     "evmengine": {
       "params": {
-        "execution_block_hash": "VDMLFaazlebPC21Nd2j5D41GVmasu0+AZBadHi1DjLs="
+        "execution_block_hash": "gurvaiyYkNlLdee+7GiuC2p9trFSNnU3esw+6RusvYw="
       }
     },
     "genutil": {
@@ -163,7 +163,7 @@
         "historical_entries": 10000,
         "bond_denom": "stake",
         "min_commission_rate": "0.000000000000000000",
-        "min_delegation": "1000000000",
+        "min_delegation": "1024000000000",
         "flexible_period_type": 0,
         "singularity_height": "30",
         "periods": [
