@@ -380,7 +380,14 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, expectedUnstakeAmount, delegationId, delegatorAddr, "");
+        emit IIPTokenStaking.Withdraw(
+            delegatorAddr,
+            validatorCmpPubkey,
+            expectedUnstakeAmount,
+            delegationId,
+            delegatorAddr,
+            ""
+        );
         ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount, "");
 
         unroundedAmount = 1024000000000999999999 wei;
@@ -388,7 +395,14 @@ contract IPTokenStakingTest is Test {
         vm.deal(delegatorAddr, feeAmount);
         vm.prank(delegatorAddr);
         vm.expectEmit(address(ipTokenStaking));
-        emit IIPTokenStaking.Withdraw(delegatorAddr, validatorCmpPubkey, expectedUnstakeAmount, delegationId, delegatorAddr, "");
+        emit IIPTokenStaking.Withdraw(
+            delegatorAddr,
+            validatorCmpPubkey,
+            expectedUnstakeAmount,
+            delegationId,
+            delegatorAddr,
+            ""
+        );
         ipTokenStaking.unstake{ value: feeAmount }(validatorCmpPubkey, delegationId, unroundedAmount, "");
 
         // Revert if validatorCmpPubkey is invalid

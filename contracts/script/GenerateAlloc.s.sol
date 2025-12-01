@@ -134,7 +134,7 @@ contract GenerateAlloc is Script {
         }
 
         if (timelockGuardian == address(0)) {
-            timelockGuardian = vm.envAddress("TIMELOCK_GUARDIAN_ADDRESS");
+            timelockGuardian = vm.envAddress("TIMELOCK_CANCELLER_ADDRESS");
         }
         require(timelockGuardian != address(0), "canceller not set");
 

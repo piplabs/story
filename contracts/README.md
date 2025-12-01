@@ -51,11 +51,11 @@ To generate this first state:
 ```
 ADMIN_ADDRESS=0x...
 TIMELOCK_EXECUTOR_ADDRESS=0x...
-TIMELOCK_GUARDIAN_ADDRESS=0x...
+TIMELOCK_CANCELLER_ADDRESS=0x...
 ```
 - `ADMIN_ADDRESS` will be the owner of the `TimelockController` contract. Will be able to propose transactions to the timelock, and cancel them.
 - `TIMELOCK_EXECUTOR_ADDRESS` address allowed to execute the scheduled actions once the timelock matures.
-- `TIMELOCK_GUARDIAN_ADDRESS` address allowed to cancel proposals
+- `TIMELOCK_CANCELLER_ADDRESS` address allowed to cancel proposals
 
 1. Run
 ```
