@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"cosmossdk.io/collections"
@@ -13,7 +14,7 @@ import (
 // setDKGNetwork stores a DKG network in the store using the mrenclave as the key
 // If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
 func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	key := fmt.Sprintf("%s_%d", string(dkgNetwork.Mrenclave), dkgNetwork.Round)
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.Mrenclave), dkgNetwork.Round)
 	if err := k.DKGNetworks.Set(ctx, key, *dkgNetwork); err != nil {
 		return err
 	}
@@ -33,7 +34,7 @@ func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 
 // GetDKGNetworkByKey retrieves a DKG network by mrenclave.
 func (k *Keeper) getDKGNetwork(ctx context.Context, mrenclave [32]byte, round uint32) (*types.DKGNetwork, error) {
-	key := fmt.Sprintf("%s_%d", string(mrenclave[:]), round)
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(mrenclave[:]), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -132,7 +133,7 @@ func (k *Keeper) getAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, err
 
 // DeleteDKGNetwork removes a DKG network from the store.
 func (k *Keeper) DeleteDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) error {
-	key := fmt.Sprintf("%s_%d", string(mrenclave), round)
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(mrenclave), round)
 	return k.DKGNetworks.Remove(ctx, key)
 }
 

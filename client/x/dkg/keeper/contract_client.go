@@ -287,54 +287,6 @@ func (c *ContractClient) ComplainDeals(
 	return receipt, nil
 }
 
-// SubmitActiveValSet calls the submitActiveValSet contract method.
-func (c *ContractClient) SubmitActiveValSet(
-	ctx context.Context,
-	round uint32,
-	mrenclave []byte,
-	valSet []common.Address,
-) (*types.Receipt, error) {
-	log.Info(ctx, "Calling submitActiveValSet contract method",
-		"mrenclave", string(mrenclave),
-		"round", round,
-		"val_set", valSet,
-	)
-
-	callData, err := c.dkgContractAbi.Pack("submitActiveValSet", round, mrenclave, valSet)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack submit active val set call data")
-	}
-
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for submit active val set")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	mrenclave32, err := cast.ToBytes32(mrenclave)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	tx, err := c.dkgContract.SubmitActiveValSet(auth, round, mrenclave32, valSet)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call submit active val set")
-	}
-
-	log.Info(ctx, "SubmitActiveValSet transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for submit active val set transaction")
-	}
-
-	return receipt, nil
-}
-
 // GetNodeInfo queries node information from the contract.
 func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
 	mrenclave32, err := cast.ToBytes32(mrenclave)

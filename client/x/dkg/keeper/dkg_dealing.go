@@ -4,9 +4,21 @@ import (
 	"context"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork) error {
+	networkSetCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusNetworkSet)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch DKG registrations in NetworkSet status")
+	}
+
+	if networkSetCount < latestRound.Threshold {
+		log.Info(ctx, "The number of DKG registrations in NetworkSet status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+
+		return k.SkipToNextRound(ctx, latestRound)
+	}
+
 	if err := k.emitBeginDKGDealing(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit begin DKG dealing event")
 	}

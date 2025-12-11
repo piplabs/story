@@ -15,12 +15,6 @@ contract IDKG {
         Finalized
     }
 
-    struct RoundInfo {
-        uint32 total;
-        uint32 threshold;
-        bytes globalPubKey;
-    }
-
     struct NodeInfo {
         bytes dkgPubKey;
         bytes commPubKey;

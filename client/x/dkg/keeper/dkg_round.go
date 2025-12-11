@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"context"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGNetwork, params types.Params) (types.DKGStage, bool) {
@@ -44,4 +46,14 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	}
 
 	return currentStage, false
+}
+
+func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNetwork) error {
+	// Mark the current round as failed
+	currentRound.Stage = types.DKGStageFailed
+	if err := k.setDKGNetwork(ctx, currentRound); err != nil {
+		return errors.Wrap(err, "failed to mark the current round as failed")
+	}
+
+	return k.InitiateDKGRound(ctx)
 }

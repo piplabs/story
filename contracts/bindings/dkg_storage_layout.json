@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 1973,
+      "astId": 1966,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "curMrenclave",
       "offset": 0,
@@ -9,44 +9,20 @@
       "type": "t_bytes32"
     },
     {
-      "astId": 1982,
+      "astId": 1975,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dkgNodeInfos",
       "offset": 0,
       "slot": "1",
-      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1866_storage)))"
+      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1859_storage)))"
     },
     {
-      "astId": 1990,
-      "contract": "src/protocol/DKG.sol:DKG",
-      "label": "valSets",
-      "offset": 0,
-      "slot": "2",
-      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))"
-    },
-    {
-      "astId": 2000,
+      "astId": 1985,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dealComplaints",
       "offset": 0,
-      "slot": "3",
+      "slot": "2",
       "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool))))"
-    },
-    {
-      "astId": 2008,
-      "contract": "src/protocol/DKG.sol:DKG",
-      "label": "votes",
-      "offset": 0,
-      "slot": "4",
-      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes_memory_ptr,t_uint32)))"
-    },
-    {
-      "astId": 2015,
-      "contract": "src/protocol/DKG.sol:DKG",
-      "label": "roundInfo",
-      "offset": 0,
-      "slot": "5",
-      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(RoundInfo)1853_storage))"
     }
   ],
   "types": {
@@ -63,11 +39,6 @@
     "t_bytes32": {
       "encoding": "inplace",
       "label": "bytes32",
-      "numberOfBytes": "32"
-    },
-    "t_bytes_memory_ptr": {
-      "encoding": "bytes",
-      "label": "bytes",
       "numberOfBytes": "32"
     },
     "t_bytes_storage": {
@@ -92,33 +63,19 @@
       "numberOfBytes": "32",
       "value": "t_bool"
     },
-    "t_mapping(t_address,t_struct(NodeInfo)1866_storage)": {
+    "t_mapping(t_address,t_struct(NodeInfo)1859_storage)": {
       "encoding": "mapping",
       "key": "t_address",
       "label": "mapping(address => struct IDKG.NodeInfo)",
       "numberOfBytes": "32",
-      "value": "t_struct(NodeInfo)1866_storage"
+      "value": "t_struct(NodeInfo)1859_storage"
     },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))": {
-      "encoding": "mapping",
-      "key": "t_bytes32",
-      "label": "mapping(bytes32 => mapping(uint32 => mapping(address => bool)))",
-      "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_mapping(t_address,t_bool))"
-    },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1866_storage)))": {
+    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1859_storage)))": {
       "encoding": "mapping",
       "key": "t_bytes32",
       "label": "mapping(bytes32 => mapping(uint32 => mapping(address => struct IDKG.NodeInfo)))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1866_storage))"
-    },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes_memory_ptr,t_uint32)))": {
-      "encoding": "mapping",
-      "key": "t_bytes32",
-      "label": "mapping(bytes32 => mapping(uint32 => mapping(bytes => uint32)))",
-      "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_mapping(t_bytes_memory_ptr,t_uint32))"
+      "value": "t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1859_storage))"
     },
     "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool))))": {
       "encoding": "mapping",
@@ -127,20 +84,6 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))"
     },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(RoundInfo)1853_storage))": {
-      "encoding": "mapping",
-      "key": "t_bytes32",
-      "label": "mapping(bytes32 => mapping(uint32 => struct IDKG.RoundInfo))",
-      "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_struct(RoundInfo)1853_storage)"
-    },
-    "t_mapping(t_bytes_memory_ptr,t_uint32)": {
-      "encoding": "mapping",
-      "key": "t_bytes_memory_ptr",
-      "label": "mapping(bytes => uint32)",
-      "numberOfBytes": "32",
-      "value": "t_uint32"
-    },
     "t_mapping(t_uint32,t_mapping(t_address,t_bool))": {
       "encoding": "mapping",
       "key": "t_uint32",
@@ -148,19 +91,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_address,t_bool)"
     },
-    "t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1866_storage))": {
+    "t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1859_storage))": {
       "encoding": "mapping",
       "key": "t_uint32",
       "label": "mapping(uint32 => mapping(address => struct IDKG.NodeInfo))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_address,t_struct(NodeInfo)1866_storage)"
-    },
-    "t_mapping(t_uint32,t_mapping(t_bytes_memory_ptr,t_uint32))": {
-      "encoding": "mapping",
-      "key": "t_uint32",
-      "label": "mapping(uint32 => mapping(bytes => uint32))",
-      "numberOfBytes": "32",
-      "value": "t_mapping(t_bytes_memory_ptr,t_uint32)"
+      "value": "t_mapping(t_address,t_struct(NodeInfo)1859_storage)"
     },
     "t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))": {
       "encoding": "mapping",
@@ -169,20 +105,13 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_address,t_bool))"
     },
-    "t_mapping(t_uint32,t_struct(RoundInfo)1853_storage)": {
-      "encoding": "mapping",
-      "key": "t_uint32",
-      "label": "mapping(uint32 => struct IDKG.RoundInfo)",
-      "numberOfBytes": "32",
-      "value": "t_struct(RoundInfo)1853_storage"
-    },
-    "t_struct(NodeInfo)1866_storage": {
+    "t_struct(NodeInfo)1859_storage": {
       "encoding": "inplace",
       "label": "struct IDKG.NodeInfo",
       "numberOfBytes": "128",
       "members": [
         {
-          "astId": 1855,
+          "astId": 1848,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "dkgPubKey",
           "offset": 0,
@@ -190,7 +119,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1857,
+          "astId": 1850,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "commPubKey",
           "offset": 0,
@@ -198,7 +127,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1859,
+          "astId": 1852,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "rawQuote",
           "offset": 0,
@@ -206,7 +135,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1862,
+          "astId": 1855,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "chalStatus",
           "offset": 0,
@@ -214,43 +143,12 @@
           "type": "t_enum(ChallengeStatus)1841"
         },
         {
-          "astId": 1865,
+          "astId": 1858,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "nodeStatus",
           "offset": 1,
           "slot": "3",
           "type": "t_enum(NodeStatus)1846"
-        }
-      ]
-    },
-    "t_struct(RoundInfo)1853_storage": {
-      "encoding": "inplace",
-      "label": "struct IDKG.RoundInfo",
-      "numberOfBytes": "64",
-      "members": [
-        {
-          "astId": 1848,
-          "contract": "src/protocol/DKG.sol:DKG",
-          "label": "total",
-          "offset": 0,
-          "slot": "0",
-          "type": "t_uint32"
-        },
-        {
-          "astId": 1850,
-          "contract": "src/protocol/DKG.sol:DKG",
-          "label": "threshold",
-          "offset": 4,
-          "slot": "0",
-          "type": "t_uint32"
-        },
-        {
-          "astId": 1852,
-          "contract": "src/protocol/DKG.sol:DKG",
-          "label": "globalPubKey",
-          "offset": 0,
-          "slot": "1",
-          "type": "t_bytes_storage"
         }
       ]
     },

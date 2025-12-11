@@ -40,12 +40,13 @@ type Keeper struct {
 	isDKGSvcEnabled  bool
 	validatorAddress common.Address
 
-	Schema           collections.Schema
-	ParamsStore      collections.Item[types.Params]
-	DKGNetworks      collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
-	LatestDKGNetwork collections.Item[string]                       // stores mrenclave key of latest DKG network
-	DKGRegistrations collections.Map[string, types.DKGRegistration] // key: mrenclave_round_index
-	TEEUpgradeInfos  collections.Map[string, types.TEEUpgradeInfo]  // key: mrenclave
+	Schema            collections.Schema
+	ParamsStore       collections.Item[types.Params]
+	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
+	LatestDKGNetwork  collections.Item[string]                       // stores mrenclave key of latest DKG network
+	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: mrenclave_round_address
+	GlobalPubKeyVotes collections.Map[string, uint32]                // key: mrenclave_round_globalPubKey
+	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: mrenclave
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -69,17 +70,18 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:              cdc,
-		storeService:     storeService,
-		stakingKeeper:    sk,
-		valStore:         valStore,
-		teeClient:        teeClient,
-		contractClient:   contractClient,
-		ParamsStore:      collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
-		DKGNetworks:      collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
-		LatestDKGNetwork: collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
-		DKGRegistrations: collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
-		TEEUpgradeInfos:  collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
+		cdc:               cdc,
+		storeService:      storeService,
+		stakingKeeper:     sk,
+		valStore:          valStore,
+		teeClient:         teeClient,
+		contractClient:    contractClient,
+		ParamsStore:       collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		DKGNetworks:       collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
+		LatestDKGNetwork:  collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
+		DKGRegistrations:  collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
+		GlobalPubKeyVotes: collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
+		TEEUpgradeInfos:   collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
 	}
 
 	schema, err := sb.Build()

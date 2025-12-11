@@ -79,8 +79,6 @@ contract DKGTest is Test {
         assertEq(info.rawQuote, rawQuote);
         assertEq(uint8(info.nodeStatus), 1); // Registered
 
-        assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
-
         // 2. set DKG network
         vm.prank(validator1);
         dkg.setNetwork(round, total, threshold, mrenclave, invalid_signature);
@@ -90,19 +88,16 @@ contract DKGTest is Test {
         dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature1);
         info = dkg.getNodeInfo(mrenclave, round, validator1);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
-        assertTrue(keccak256(dkg.getGlobalPubKey(mrenclave, round)) != keccak256(globalPubKey));
 
         vm.prank(validator2);
         dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature2);
         info = dkg.getNodeInfo(mrenclave, round, validator2);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
-        assertEq(dkg.getGlobalPubKey(mrenclave, round), globalPubKey);
 
         vm.prank(validator3);
         dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature3);
         info = dkg.getNodeInfo(mrenclave, round, validator3);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
-        assertEq(dkg.getGlobalPubKey(mrenclave, round), globalPubKey);
     }
 
     function testFinalizeDKG_RevertIfInvalidSignature() public {

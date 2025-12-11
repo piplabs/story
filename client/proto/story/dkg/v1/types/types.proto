@@ -23,6 +23,7 @@ enum DKGStage {
   DKG_STAGE_DEALING = 3 [(gogoproto.enumvalue_customname) = "DKGStageDealing"];
   DKG_STAGE_FINALIZATION = 4 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
   DKG_STAGE_ACTIVE = 5 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
+  DKG_STAGE_FAILED = 6 [(gogoproto.enumvalue_customname) = "DKGStageFailed"];
 }
 
 message DKGNetwork {
@@ -53,6 +54,10 @@ message DKGNetwork {
 
   DKGStage stage = 7 [
     (gogoproto.moretags) = "yaml:\"stage\""
+  ];
+
+  bytes global_public_key = 8 [
+    (gogoproto.moretags) = "yaml:\"global_public_key\""
   ];
 }
 

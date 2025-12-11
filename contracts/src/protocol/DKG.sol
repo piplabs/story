@@ -15,13 +15,8 @@ contract DKG is IDKG {
     bytes32 public curMrenclave;
 
     mapping(bytes32 mrenclave => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(address validator => bool))) public valSets;
     mapping(bytes32 mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
-
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes globalPubKeyCandidates => uint32 votes)))
-        public votes;
-    mapping(bytes32 mrenclave => mapping(uint32 round => RoundInfo roundInfo)) public roundInfo;
 
     constructor(bytes32 mrenclave) {
         curMrenclave = mrenclave;
@@ -39,13 +34,6 @@ contract DKG is IDKG {
         bytes calldata commPubKey,
         bytes calldata rawQuote
     ) external onlyValidMrenclave(mrenclave) {
-        // TODO: round check if it is current active round or not
-
-        require(
-            valSets[mrenclave][round][msg.sender] || !_isActiveValSetSubmitted(mrenclave, round),
-            "Validator not in active set"
-        );
-
         require(
             _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey),
             "Invalid remote attestation"
@@ -62,6 +50,25 @@ contract DKG is IDKG {
         emit DKGInitialized(msg.sender, mrenclave, round, dkgPubKey, commPubKey, rawQuote);
     }
 
+    function setNetwork(
+        uint32 round,
+        uint32 total,
+        uint32 threshold,
+        bytes32 mrenclave,
+        bytes calldata signature
+    ) external onlyValidMrenclave(mrenclave) {
+        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
+        
+        require(
+            _verifySetNetworkSignature(node.commPubKey, round, total, threshold, mrenclave, signature),
+            "Invalid set network signature"
+        );
+
+        node.nodeStatus = NodeStatus.NetworkSetDone;
+
+        emit DKGNetworkSet(msg.sender, round, total, threshold, mrenclave, signature);
+    }
+
     function finalizeDKG(
         uint32 round,
         bytes32 mrenclave,
@@ -69,6 +76,7 @@ contract DKG is IDKG {
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
+
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
             _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
@@ -77,30 +85,7 @@ contract DKG is IDKG {
 
         node.nodeStatus = NodeStatus.Finalized;
 
-        votes[mrenclave][round][globalPubKey]++;
-        if (votes[mrenclave][round][globalPubKey] >= roundInfo[mrenclave][round].threshold) {
-            roundInfo[mrenclave][round].globalPubKey = globalPubKey;
-        }
-
         emit DKGFinalized(msg.sender, round, mrenclave, globalPubKey, signature);
-    }
-
-    function getGlobalPubKey(bytes32 mrenclave, uint32 round) external view returns (bytes memory) {
-        return roundInfo[mrenclave][round].globalPubKey;
-    }
-
-    function submitActiveValSet(
-        uint32 round,
-        bytes32 mrenclave,
-        address[] calldata valSet
-    ) external onlyValidMrenclave(mrenclave) {
-        for (uint256 i = 0; i < valSet.length; i++) {
-            // add if validator is not challenged (invalidated)
-            // TODO: exclude validators that aren't participating in the DKG system
-            if (dkgNodeInfos[mrenclave][round][valSet[i]].chalStatus != ChallengeStatus.Invalidated) {
-                valSets[mrenclave][round][valSet[i]] = true;
-            }
-        }
     }
 
     function requestRemoteAttestationOnChain(
@@ -143,27 +128,6 @@ contract DKG is IDKG {
         emit DealComplaintsSubmitted(index, complainIndexes, round, mrenclave);
     }
 
-    function setNetwork(
-        uint32 round,
-        uint32 total,
-        uint32 threshold,
-        bytes32 mrenclave,
-        bytes calldata signature
-    ) external onlyValidMrenclave(mrenclave) {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
-
-        require(
-            _verifySetNetworkSignature(node.commPubKey, round, total, threshold, mrenclave, signature),
-            "Invalid set network signature"
-        );
-
-        node.nodeStatus = NodeStatus.NetworkSetDone;
-        roundInfo[mrenclave][round].total = total;
-        roundInfo[mrenclave][round].threshold = threshold;
-
-        emit DKGNetworkSet(msg.sender, round, total, threshold, mrenclave, signature);
-    }
-
     //////////////////////////////////////////////////////////////
     //                      Getter Functions                    //
     //////////////////////////////////////////////////////////////
@@ -176,18 +140,9 @@ contract DKG is IDKG {
         return dkgNodeInfos[mrenclave][round][validator];
     }
 
-    function isActiveValidator(bytes32 mrenclave, uint32 round, address validator) external view returns (bool) {
-        return valSets[mrenclave][round][validator];
-    }
-
     //////////////////////////////////////////////////////////////
     //                      Internal Functions                  //
     //////////////////////////////////////////////////////////////
-
-    function _isActiveValSetSubmitted(bytes32 /*mrenclave*/, uint32 /*round*/) internal pure returns (bool) {
-        // TODO: Implementation
-        return false;
-    }
 
     function _verifyFinalizationSignature(
         bytes memory commPubKey,

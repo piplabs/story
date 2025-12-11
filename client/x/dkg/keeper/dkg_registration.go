@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"github.com/piplabs/story/lib/cast"
 
 	"cosmossdk.io/collections"
 
@@ -14,7 +16,7 @@ import (
 
 // setDKGRegistration stores a DKG registration in the store using mrenclave_round_index as the key.
 func (k *Keeper) setDKGRegistration(ctx context.Context, mrenclave [32]byte, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
-	key := fmt.Sprintf("%s_%d_%s", string(mrenclave[:]), dkgReg.Round, validatorAddr.Hex())
+	key := fmt.Sprintf("%s_%d_%s", hex.EncodeToString(mrenclave[:]), dkgReg.Round, validatorAddr.Hex())
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
 		return errors.Wrap(err, "failed to set dkg registration")
 	}
@@ -24,7 +26,7 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, mrenclave [32]byte, val
 
 // getDKGRegistration retrieves a DKG registration by mrenclave, round, and index.
 func (k *Keeper) getDKGRegistration(ctx context.Context, mrenclave [32]byte, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
-	key := fmt.Sprintf("%s_%d_%s", string(mrenclave[:]), round, validatorAddr.Hex())
+	key := fmt.Sprintf("%s_%d_%s", hex.EncodeToString(mrenclave[:]), round, validatorAddr.Hex())
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -56,28 +58,19 @@ func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte
 }
 
 // getNextDKGRegistrationIndex gets the next DKG registration index for a specific mrenclave and round.
-//
-// TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
-func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte, round uint32) (uint32, error) {
+func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte, round uint32) (int, error) {
 	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, round)
 	if err != nil {
 		return 0, err
 	}
 
-	index := uint32(0)
-	for _, registration := range registrations {
-		if registration.Index > index {
-			index = registration.Index
-		}
-	}
-
-	return index + 1, nil
+	return len(registrations) + 1, nil
 }
 
 // getDKGRegistrationsByRound retrieves all DKG registrations for a specific mrenclave and round.
 func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, mrenclave [32]byte, round uint32) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
-	prefix := fmt.Sprintf("%s_%d_", string(mrenclave[:]), round)
+	prefix := fmt.Sprintf("%s_%d_", hex.EncodeToString(mrenclave[:]), round)
 
 	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
 		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
@@ -121,4 +114,20 @@ func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, mrenclave [32]
 	}
 
 	return filteredRegs, nil
+}
+
+// countDKGRegistrationsByStatus returns the count of DKG registrations in the status
+func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, mrenclave []byte, round uint32, status types.DKGRegStatus) (uint32, error) {
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to cast to bytes32")
+	}
+
+	// Get registrations with status VERIFIED
+	regs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave32, round, status)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get verified registrations")
+	}
+
+	return uint32(len(regs)), nil
 }

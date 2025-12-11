@@ -292,12 +292,13 @@ func TestKeeper_Finalized(t *testing.T) {
 	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
 
 	tcs := []struct {
-		name        string
-		round       uint32
-		msgSender   common.Address
-		mrenclave   [32]byte
-		signature   []byte
-		expectedErr string
+		name         string
+		round        uint32
+		msgSender    common.Address
+		mrenclave    [32]byte
+		globalPubKey []byte
+		signature    []byte
+		expectedErr  string
 	}{
 		{
 			name:      "pass: successful finalization",
@@ -314,11 +315,12 @@ func TestKeeper_Finalized(t *testing.T) {
 			signature:   testSignature,
 			expectedErr: "dkg registration not found",
 		},
+		// TODO: add tc for setting global pub key
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.signature)
+			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.signature, tc.globalPubKey)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)

@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -16,16 +18,24 @@ import (
 // RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
 func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
-	dkgNetwork, err := k.getDKGNetwork(ctx, mrenclave, round)
+	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get dkg network")
+		return errors.Wrap(err, "failed to get the latest dkg network")
 	}
 
-	if dkgNetwork.Stage != types.DKGStageRegistration {
+	if latest.Round != round {
+		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
+	}
+
+	if !bytes.Equal(latest.Mrenclave, mrenclave[:]) {
+		return errors.New(fmt.Sprintf("mrenclave mismatch: expected %s, got %s)", hex.EncodeToString(latest.Mrenclave), hex.EncodeToString(mrenclave[:])))
+	}
+
+	if latest.Stage != types.DKGStageRegistration {
 		return errors.New("round is not in registration stage")
 	}
 
-	if !slices.Contains(dkgNetwork.ActiveValSet, strings.ToLower(msgSender.Hex())) {
+	if !slices.Contains(latest.ActiveValSet, strings.ToLower(msgSender.Hex())) {
 		return errors.New("msg sender is not in the active validator set")
 	}
 
@@ -37,7 +47,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	dkgReg := &types.DKGRegistration{
 		Round:      round,
 		MsgSender:  msgSender.Hex(),
-		Index:      index,
+		Index:      uint32(index),
 		DkgPubKey:  dkgPubKey,
 		CommPubKey: commPubKey,
 		RawQuote:   rawQuote,
@@ -58,11 +68,11 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 	log.Info(ctx, "DKG registration stored successfully",
 		"mrenclave", hex.EncodeToString(mrenclave[:]),
 		"round", round,
-		"status", "verified",
 		"validator_address", msgSender.Hex(),
-		"next_index", index,
-		"dkg_pubkey_len", len(dkgPubKey),
-		"comm_pubkey_len", len(commPubKey),
+		"index", index,
+		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusVerified)],
+		"dkg_pubkey", hex.EncodeToString(dkgPubKey),
+		"comm_pubkey", hex.EncodeToString(commPubKey),
 		"raw_quote_len", len(rawQuote),
 	)
 
@@ -71,46 +81,90 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.A
 
 // NetworkSet handles DKG network set event.
 func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, total uint32, threshold uint32, signature []byte) error {
-	log.Info(ctx, "DKG NetworkSet event received",
-		"round", round,
-		"msg_sender", msgSender.Hex(),
+	latest, err := k.getLatestDKGNetwork(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get the latest dkg network")
+	}
+
+	if latest.Round != round {
+		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
+	}
+
+	if !bytes.Equal(latest.Mrenclave, mrenclave[:]) {
+		return errors.New(fmt.Sprintf("mrenclave mismatch: expected %s, got %s)", hex.EncodeToString(latest.Mrenclave), hex.EncodeToString(mrenclave[:])))
+	}
+
+	if latest.Total != total {
+		return errors.New(fmt.Sprintf("total mismatch: expected %d, got %d)", latest.Total, total))
+	}
+
+	if latest.Threshold != threshold {
+		return errors.New(fmt.Sprintf("threshold mismatch: expected %d, got %d)", latest.Threshold, threshold))
+	}
+
+	if latest.Stage != types.DKGStageNetworkSet {
+		return errors.New("round is not in network set stage")
+	}
+
+	if err := k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusNetworkSet); err != nil {
+		return errors.Wrap(err, "failed to update dkg registration status")
+	}
+
+	log.Info(ctx, "DKG network set successfully",
 		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"round", round,
+		"validator_address", msgSender.Hex(),
+		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusNetworkSet)],
 		"total", total,
 		"threshold", threshold,
 		"signature_len", len(signature),
 	)
 
-	err := k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusNetworkSet)
-	if err != nil {
-		return errors.Wrap(err, "failed to update dkg registration status")
-	}
-
-	// TODO: Implement remaining network set logic
-
 	return nil
 }
 
 // Finalized handles DKG finalization event.
-func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature []byte) error {
-	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, msgSender)
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature, globalPubKey []byte) error {
+	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get dkg registration index")
+		return errors.Wrap(err, "failed to get the latest dkg network")
 	}
 
-	log.Info(ctx, "DKG Finalized event received",
-		"round", round,
-		"msg_sender", msgSender.Hex(),
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
-		"signature_len", len(signature),
-		"index", index,
-	)
+	if latest.Round != round {
+		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
+	}
 
-	err = k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized)
+	if !bytes.Equal(latest.Mrenclave, mrenclave[:]) {
+		return errors.New(fmt.Sprintf("mrenclave mismatch: expected %s, got %s)", hex.EncodeToString(latest.Mrenclave), hex.EncodeToString(mrenclave[:])))
+	}
+
+	if latest.Stage != types.DKGStageFinalization {
+		return errors.New("round is not in network set stage")
+	}
+
+	voteCount, err := k.AddGlobalPubKeyVote(ctx, mrenclave, round, globalPubKey)
 	if err != nil {
+		return errors.Wrap(err, "failed to add vote for global public key")
+	}
+
+	if voteCount >= latest.Threshold && len(latest.GlobalPublicKey) == 0 {
+		latest.GlobalPublicKey = globalPubKey
+		if err := k.setDKGNetwork(ctx, latest); err != nil {
+			return errors.Wrap(err, "failed to set dkg network")
+		}
+	}
+
+	if err := k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized); err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}
 
-	// TODO: Implement remaining finalization logic
+	log.Info(ctx, "DKG successfully finalized",
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"round", round,
+		"validator_address", msgSender.Hex(),
+		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusFinalized)],
+		"signature_len", len(signature),
+	)
 
 	return nil
 }

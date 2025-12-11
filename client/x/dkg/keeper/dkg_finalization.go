@@ -20,17 +20,27 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 	return nil
 }
 
-func (k *Keeper) FinalizeDKGRound(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	// TODO: check if enough number of validators submit the finalizeDKG tx
-	if err := k.emitDKGFinalized(ctx, dkgNetwork); err != nil {
+func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
+	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
+	}
+
+	if finalizedCount < latestRound.Threshold {
+		log.Info(ctx, "The number of DKG registrations in Finalized status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+
+		return k.SkipToNextRound(ctx, latestRound)
+	}
+
+	if err := k.emitDKGFinalized(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit DKG finalized event")
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGComplete(ctx, dkgNetwork)
+		go k.handleDKGComplete(ctx, latestRound)
 	}
 
-	log.Info(ctx, "DKG network setup completed", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
+	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "mrenclave", hex.EncodeToString(latestRound.Mrenclave))
 
 	return nil
 }

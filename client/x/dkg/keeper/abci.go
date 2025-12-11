@@ -68,9 +68,5 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		}
 	}
 
-	if k.isDKGSvcEnabled {
-		k.ResumeDKGService(ctx, latestRound)
-	}
-
 	return nil
 }
