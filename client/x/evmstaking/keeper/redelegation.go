@@ -19,6 +19,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) (err error) {
@@ -147,6 +148,13 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		depositorAddr.String(), validatorSrcAddr.String(), validatorDstAddr.String(),
 		delID, amountCoin,
 	)
+
+	isV142, err := netconf.IsV142(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	if err != nil {
+		return errors.Wrap(err, "failed to check if v1.4.2 is applied or not", "chain_id", sdkCtx.ChainID(), "block_height", sdkCtx.BlockHeight())
+	}
+
+	msg.ApplyRewardsSharesFix = isV142
 
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
 	switch {
