@@ -20,3 +20,4 @@ jobs:
           version: v1.64.2
           # Verbose with color. Just fail, don't fix issues. Use both annotations and normal output.
           args: -v --color=always --fix=false --timeout=10m --out-format=colored-line-number,github-actions
+          verify: 'false'
