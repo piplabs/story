@@ -92,10 +92,11 @@ type Client interface {
 
 	// addImport indicates which types need hardcoded imports.
 	addImport = map[string]string{
-		"CallMsg":       "ethereum",
-		"FilterQuery":   "ethereum",
-		"*SyncProgress": "ethereum",
-		"Subscription":  "ethereum",
+		"CallMsg":                  "ethereum",
+		"FilterQuery":              "ethereum",
+		"SyncProgress":             "ethereum",
+		"Subscription":             "ethereum",
+		"TransactionReceiptsQuery": "ethereum",
 	}
 
 	// successFuncs indicates which endpoints have custom success functions.
@@ -325,8 +326,16 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 						}
 
 						typ := b.String()
-						if imprt, ok := addImport[typ]; ok {
-							typ = imprt + "." + typ
+
+						prefix := ""
+						base := typ
+						if strings.HasPrefix(base, "*") {
+							prefix = "*"
+							base = strings.TrimPrefix(base, "*")
+						}
+
+						if imprt, ok := addImport[base]; ok {
+							typ = prefix + imprt + "." + base
 						}
 
 						field := Field{
@@ -346,13 +355,15 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 						}
 
 						typ := b.String()
-						if imprt, ok := addImport[typ]; ok {
-							prefix := ""
-							if strings.HasPrefix(typ, "*") {
-								prefix = "*"
-								typ = strings.TrimPrefix(typ, "*")
-							}
-							typ = prefix + imprt + "." + typ
+						prefix := ""
+						base := typ
+						if strings.HasPrefix(base, "*") {
+							prefix = "*"
+							base = strings.TrimPrefix(base, "*")
+						}
+
+						if imprt, ok := addImport[base]; ok {
+							typ = prefix + imprt + "." + base
 						}
 
 						name := fmt.Sprintf("res%d", i)
