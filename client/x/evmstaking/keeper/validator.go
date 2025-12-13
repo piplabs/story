@@ -32,8 +32,10 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeCreateValidatorSuccess,
 			)
@@ -101,6 +103,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 	if !ok {
 		return errors.New("type assertion failed")
 	}
+
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
 
 	moniker := ev.Moniker
@@ -142,6 +145,7 @@ func (k Keeper) ProcessCreateValidator(ctx context.Context, ev *bindings.IPToken
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
+
 	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, delegatorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {

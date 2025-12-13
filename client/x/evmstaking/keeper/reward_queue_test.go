@@ -151,6 +151,7 @@ func TestPeekEligibleRewardWithdrawals(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			initRewardWithdrawalQueue(t, ctx, esk)
+
 			if !strings.Contains(tc.name, "Peek with empty queue") {
 				addRewardWithdrawals(t, ctx, esk, rewardWithdrawals)
 			}

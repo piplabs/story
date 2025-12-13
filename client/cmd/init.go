@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,6 +79,7 @@ The home directory should only contain subdirectories, no files, use --force to 
 `,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
+
 			if err := libcmd.LogFlags(ctx, cmd.Flags()); err != nil {
 				return err
 			}
@@ -94,13 +96,14 @@ The home directory should only contain subdirectories, no files, use --force to 
 // InitFiles initializes the files and folders required by story.
 // It ensures a network and genesis file is generated/downloaded for the provided network.
 //
-//nolint:gocognit,nestif,gocyclo // This is just many sequential steps.
+//nolint:gocognit,nestif,gocyclo,maintidx,nolintlint // This is just many sequential steps.
 func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	if initCfg.Network == "" {
 		return errors.New("required flag --network empty")
 	}
 
 	log.Info(ctx, "Initializing story files and directories")
+
 	homeDir := initCfg.HomeDir
 	network := initCfg.Network
 
@@ -113,21 +116,22 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 
 	var cfg storycfg.Config
 
-	switch {
-	case network == netconf.Iliad:
+	switch network {
+	case netconf.Iliad:
 		cfg = storycfg.IliadConfig
-	case network == netconf.Odyssey:
+	case netconf.Odyssey:
 		cfg = storycfg.OdysseyConfig
-	case network == netconf.Aeneid:
+	case netconf.Aeneid:
 		cfg = storycfg.AeneidConfig
-	case network == netconf.Story:
+	case netconf.Story:
 		cfg = storycfg.StoryConfig
-	case network == netconf.Local:
+	case netconf.Local:
 		cfg = storycfg.LocalConfig
 	default:
 		cfg = storycfg.DefaultConfig()
 		cfg.Network = network
 	}
+
 	cfg.HomeDir = homeDir
 
 	// Folders
@@ -146,9 +150,12 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 		if cmtos.FileExists(folder.Path) {
 			// Dir exists, just skip
 			continue
-		} else if err := cmtos.EnsureDir(folder.Path, 0o755); err != nil {
+		}
+
+		if err := cmtos.EnsureDir(folder.Path, 0o755); err != nil {
 			return errors.Wrap(err, "create folder")
 		}
+
 		log.Info(ctx, "Generated folder", "reason", folder.Name, "path", folder.Path)
 	}
 
@@ -187,6 +194,7 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 
 	if initCfg.SeedMode {
 		comet.P2P.SeedMode = true
+
 		log.Info(ctx, "Seed mode enabled")
 	}
 
@@ -203,9 +211,11 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	storyConfigFile := cfg.ConfigFile()
 	if cmtos.FileExists(storyConfigFile) {
 		log.Info(ctx, "Found story config file", "path", storyConfigFile)
-	} else if err := storycfg.WriteConfigTOML(cfg, log.DefaultConfig()); err != nil {
-		return err
 	} else {
+		if err := storycfg.WriteConfigTOML(cfg, log.DefaultConfig()); err != nil {
+			return err
+		}
+
 		log.Info(ctx, "Generated default story config file", "path", storyConfigFile)
 	}
 
@@ -216,8 +226,10 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	)
 
 	privValStateFile := comet.PrivValidatorStateFile()
+
 	if initCfg.EncryptPrivKey {
 		encPrivKeyFile := initCfg.EncPrivKeyFile()
+
 		pv, err = loadOrCreateEncryptedPrivKey(ctx, encPrivKeyFile, privValStateFile)
 		if err != nil {
 			return err
@@ -231,9 +243,11 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	nodeKeyFile := comet.NodeKeyFile()
 	if cmtos.FileExists(nodeKeyFile) {
 		log.Info(ctx, "Found node key", "path", nodeKeyFile)
-	} else if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
-		return errors.Wrap(err, "load or generate node key")
 	} else {
+		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
+			return errors.Wrap(err, "load or generate node key")
+		}
+
 		log.Info(ctx, "Generated node key", "path", nodeKeyFile)
 	}
 
@@ -241,39 +255,45 @@ func InitFiles(ctx context.Context, initCfg InitConfig) error {
 	genFile := comet.GenesisFile()
 	if cmtos.FileExists(genFile) {
 		log.Info(ctx, "Found genesis file", "path", genFile)
-	} else if len(network.Static().ConsensusGenesisJSON) > 0 {
-		if err := os.WriteFile(genFile, network.Static().ConsensusGenesisJSON, 0o644); err != nil {
-			return errors.Wrap(err, "failed to write genesis file")
-		}
-		pubKey, err := pv.GetPubKey()
-		if err != nil {
-			return errors.Wrap(err, "failed to get public key")
-		}
 
-		// Derive the various addresses from the public key
-		evmAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey.Bytes())
-		if err != nil {
-			return errors.Wrap(err, "failed to convert to evm addr")
-		}
-		accAddr := sdk.AccAddress(evmAddr.Bytes()).String()
-		valAddr := sdk.ValAddress(evmAddr.Bytes()).String()
-		pubKeyBase64 := base64.StdEncoding.EncodeToString(pubKey.Bytes())
-		fmt.Println("Base64 Encoded Public Key:", pubKeyBase64)
+		return nil
+	}
 
-		genesisJSON := string(network.Static().ConsensusGenesisJSON)
-		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_ACCOUNT_ADDRESS}}", accAddr)
-		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_ADDRESS}}", valAddr)
-		genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_KEY}}", pubKeyBase64)
-
-		err = os.WriteFile(genFile, []byte(genesisJSON), 0o644)
-
-		if err != nil {
-			return errors.Wrap(err, "save genesis file")
-		}
-		log.Info(ctx, "Generated well-known network genesis file", "path", genFile)
-	} else {
+	if len(network.Static().ConsensusGenesisJSON) == 0 {
 		return errors.New("network genesis file not supported yet", "network", network)
 	}
+
+	if err := os.WriteFile(genFile, network.Static().ConsensusGenesisJSON, 0o644); err != nil {
+		return errors.Wrap(err, "failed to write genesis file")
+	}
+
+	pubKey, err := pv.GetPubKey()
+	if err != nil {
+		return errors.Wrap(err, "failed to get public key")
+	}
+
+	// Derive the various addresses from the public key
+	evmAddr, err := k1util.CosmosPubkeyToEVMAddress(pubKey.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "failed to convert to evm addr")
+	}
+
+	accAddr := sdk.AccAddress(evmAddr.Bytes()).String()
+	valAddr := sdk.ValAddress(evmAddr.Bytes()).String()
+	pubKeyBase64 := base64.StdEncoding.EncodeToString(pubKey.Bytes())
+	fmt.Println("Base64 Encoded Public Key:", pubKeyBase64)
+	fmt.Println("Hex Encoded Public Key:", hex.EncodeToString(pubKey.Bytes()))
+
+	genesisJSON := string(network.Static().ConsensusGenesisJSON)
+	genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_ACCOUNT_ADDRESS}}", accAddr)
+	genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_ADDRESS}}", valAddr)
+	genesisJSON = strings.ReplaceAll(genesisJSON, "{{LOCAL_VALIDATOR_KEY}}", pubKeyBase64)
+
+	if err := os.WriteFile(genFile, []byte(genesisJSON), 0o644); err != nil {
+		return errors.Wrap(err, "save genesis file")
+	}
+
+	log.Info(ctx, "Generated well-known network genesis file", "path", genFile)
 
 	return nil
 }
@@ -295,14 +315,18 @@ func checkHomeDir(homeDir string) error {
 func prepareHomeDirectory(ctx context.Context, initCfg InitConfig, homeDir string) error {
 	if !initCfg.Force {
 		log.Info(ctx, "Ensuring provided home folder does not contain files, since --force=true")
-		if err := checkHomeDir(homeDir); err != nil {
+
+		err := checkHomeDir(homeDir)
+		if err != nil {
 			return err
 		}
 	}
 
 	if initCfg.Clean {
 		log.Info(ctx, "Deleting home directory, since --clean=true")
-		if err := os.RemoveAll(homeDir); err != nil {
+
+		err := os.RemoveAll(homeDir)
+		if err != nil {
 			return errors.Wrap(err, "remove home dir")
 		}
 	}
@@ -312,7 +336,9 @@ func prepareHomeDirectory(ctx context.Context, initCfg InitConfig, homeDir strin
 
 func SplitAndTrim(input string) []string {
 	l := strings.Split(input, ",")
+
 	var ret []string
+
 	for _, r := range l {
 		if r = strings.TrimSpace(r); r != "" {
 			ret = append(ret, r)
@@ -356,9 +382,12 @@ func loadOrCreateEncryptedPrivKey(ctx context.Context, encPrivKeyFile, privValSt
 		}
 
 		pv = privval.NewFilePV(k1.GenPrivKey(), "", privValStateFile)
-		if err := app.EncryptAndStoreKey(pv.Key, password, encPrivKeyFile); err != nil {
+
+		err = app.EncryptAndStoreKey(pv.Key, password, encPrivKeyFile)
+		if err != nil {
 			return nil, err
 		}
+
 		pv.LastSignState.Save()
 
 		log.Info(ctx, "Generated encrypted validator private key",

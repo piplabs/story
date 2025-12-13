@@ -31,7 +31,9 @@ func Init(ctx context.Context, cfg Config) (context.Context, error) {
 	}
 
 	globalMu.Lock()
+
 	global = l
+
 	globalMu.Unlock()
 
 	zeroLogMetrics()
@@ -90,6 +92,7 @@ func newJSONLogger(opts ...func(*options)) *slog.Logger {
 // newCLILogger returns a new cli logger which doesn't print timestamps, level, source or stacktraces.
 func newCLILogger(opts ...func(*options)) *slog.Logger {
 	o := defaultOptions()
+
 	o.Level = slog.LevelInfo // Only show info and above
 	for _, opt := range opts {
 		opt(&o)
@@ -103,7 +106,9 @@ func newCLILogger(opts ...func(*options)) *slog.Logger {
 	})
 
 	styles := charm.DefaultStyles()
+
 	const padWidth = 90
+
 	styles.Message = styles.Message.Width(padWidth)
 	styles.Levels = nil
 	logger.SetStyles(styles)
@@ -143,7 +148,9 @@ func newConsoleLogger(opts ...func(*options)) *slog.Logger {
 
 	styles := charm.DefaultStyles()
 	styles.Timestamp = styles.Timestamp.Faint(true)
+
 	const padWidth = 40
+
 	styles.Message = styles.Message.Width(padWidth).Inline(true)
 	logger.SetStyles(styles)
 	logger.SetColorProfile(o.Color)
@@ -187,6 +194,7 @@ func WithCLILogger(ctx context.Context) context.Context {
 // stubHandler is a handler that replaces the stacktrace and source attributes with stubs.
 type stubHandler struct {
 	slog.Handler
+
 	skip bool // Skip instead of stubbing.
 }
 
@@ -198,6 +206,7 @@ func (t stubHandler) Handle(ctx context.Context, r slog.Record) error {
 			if t.skip {
 				return true
 			}
+
 			resp.AddAttrs(slog.String("stacktrace", "<stacktrace>"))
 		} else {
 			resp.AddAttrs(a)
@@ -223,9 +232,11 @@ func slogReplaceAtts(o options) func(groups []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.TimeKey && len(groups) == 0 {
 			return slog.String(slog.TimeKey, "00-00-00 00:00:00")
 		}
+
 		if a.Key == slog.SourceKey && len(groups) == 0 {
 			return slog.String(slog.SourceKey, "<source>")
 		}
+
 		if a.Key == "stacktrace" && len(groups) == 0 {
 			return slog.String(slog.SourceKey, "<stacktrace>")
 		}

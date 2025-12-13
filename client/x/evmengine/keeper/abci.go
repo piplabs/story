@@ -38,17 +38,20 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	// Only allow 10s to prepare a proposal. Propose empty block otherwise.
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), prepareTimeout)
 	defer timeoutCancel()
+
 	ctx = ctx.WithContext(timeoutCtx)
 
 	if len(req.Txs) > 0 {
 		return nil, errors.New("unexpected transactions in proposal")
 	}
+
 	var maxBytes int64
 	if ctx.ConsensusParams().Block.MaxBytes == -1 {
 		maxBytes = cmttypes.MaxBlockSizeBytes
 	} else {
 		maxBytes = ctx.ConsensusParams().Block.MaxBytes
 	}
+
 	if req.MaxTxBytes < maxBytes*9/10 {
 		// req.MaxTxBytes should be close to ConsensusParams().Block.MaxBytes.
 		return nil, errors.New("invalid max tx bytes [BUG]", "max_tx_bytes", req.MaxTxBytes)
@@ -59,7 +62,6 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		// So if the first block contains any transactions, we get a app_hash_mismatch
 		// Since the proposal calculates the incorrect gas for the first block after InitChain.
 		// The gas meter is reset at the end of the 1st block, so we can then start including txs.
-
 		log.Warn(ctx, "Creating empty initial block due to gas issue", nil)
 		return &abci.ResponsePrepareProposal{}, nil
 	}
@@ -70,15 +72,19 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 	if err != nil {
 		return nil, errors.Wrap(err, "get max withdrawal per block")
 	}
+
 	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on withdrawals dequeue")
 	}
+
 	maxRewardWithdrawals := maxWithdrawals - uint32(len(withdrawals))
+
 	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
 	}
+
 	withdrawals = append(withdrawals, rewardWithdrawals...)
 
 	// Either use the optimistic payload or create a new one.
@@ -105,7 +111,9 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		if err != nil {
 			return nil, err
 		}
+
 		triggeredAt = time.Now()
+
 		log.Debug(ctx, "Started non-optimistic payload", "height", req.Height, "payload", payloadID.String())
 	} else {
 		log.Info(ctx, "Using optimistic payload", "height", height, "payload", payloadID.String())
@@ -121,8 +129,10 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	// Fetch the payload (retrying on network errors).
 	var payloadResp *engine.ExecutionPayloadEnvelope
+
 	err = retryForever(ctx, func(ctx context.Context) (bool, error) {
 		var err error
+
 		payloadResp, err = k.engineCl.GetPayloadV3(ctx, payloadID)
 		if isUnknownPayload(err) {
 			return false, err
@@ -182,6 +192,7 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 
 	// Combine all the votes messages and the payload message into a single transaction.
 	b := k.txConfig.NewTxBuilder()
+
 	if err := b.SetMsgs(payloadMsg); err != nil { // b.SetMsgs(append(voteMsgs, payloadMsg)...)
 		return nil, errors.Wrap(err, "set tx builder msgs")
 	}
@@ -251,17 +262,21 @@ func (k *Keeper) PostFinalize(ctx sdk.Context) error {
 		log.Error(ctx, "Starting optimistic build failed; get max withdrawal", err, logAttr)
 		return nil
 	}
+
 	withdrawals, err := k.evmstakingKeeper.PeekEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; withdrawals peek", err, logAttr)
 		return nil
 	}
+
 	maxRewardWithdrawals := maxWithdrawals - uint32(len(withdrawals))
+
 	rewardWithdrawals, err := k.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		log.Error(ctx, "Starting optimistic build failed; reward withdrawals peek", err, logAttr)
 		return nil
 	}
+
 	withdrawals = append(withdrawals, rewardWithdrawals...)
 
 	fcr, err := k.startBuild(ctx, k.validatorAddr, withdrawals, appHash, timestamp)

@@ -19,6 +19,7 @@ func TestComparable(t *testing.T) {
 
 func TestIs(t *testing.T) {
 	t.Parallel()
+
 	errX := errors.New("x")
 
 	err1 := errors.New("1", "1", "1")

@@ -8,19 +8,19 @@ import (
 type Token string
 
 const (
-	// Story Mainnet.
+	// IDStory represents the execution layer (EL) chain ID of Story Mainnet.
 	IDStory uint64 = 1514
 
-	// Local Devnet.
+	// IDLocal represents the execution layer (EL) chain ID of Story Local network.
 	IDLocal uint64 = 1511
 
-	// Iliad Testnets.
+	// IDIliad represents the execution layer (EL) chain ID of Story Iliad.
 	IDIliad uint64 = 1513
 
-	// Odyssey Testnet.
+	// IDOdyssey represents the execution layer (EL) chain ID of Story Odyssey.
 	IDOdyssey uint64 = 1516
 
-	// Aeneid Testnet.
+	// IDAeneid represents the execution layer (EL) chain ID of Story Aeneid.
 	IDAeneid uint64 = 1315
 
 	storyEVMName        = "story_evm"

@@ -16,6 +16,7 @@ import (
 // evmEvents returns selected EVM log events from the provided block hash.
 func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types.EVMEvent, error) {
 	var logs []ethtypes.Log
+
 	err := retryForever(ctx, func(ctx context.Context) (fetched bool, err error) {
 		logs, err = k.engineCl.FilterLogs(ctx, ethereum.FilterQuery{
 			BlockHash: &blockHash,
@@ -43,6 +44,7 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 		for _, t := range l.Topics {
 			topics = append(topics, t.Bytes())
 		}
+
 		events = append(events, &types.EVMEvent{
 			Address: l.Address.Bytes(),
 			Topics:  topics,

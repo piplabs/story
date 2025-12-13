@@ -3,13 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	libcmd "github.com/piplabs/story/lib/cmd"
 
 	"github.com/cometbft/cometbft/privval"
 	"github.com/spf13/cobra"
 
 	"github.com/piplabs/story/client/app"
 	cfg "github.com/piplabs/story/client/config"
-	libcmd "github.com/piplabs/story/lib/cmd"
 	"github.com/piplabs/story/lib/log"
 )
 
@@ -34,6 +34,7 @@ CometBFT the transactions in blocks [n - X + 1, n] will be re-executed against t
 			if err != nil {
 				return err
 			}
+
 			if err := libcmd.LogFlags(ctx, cmd.Flags()); err != nil {
 				return err
 			}
@@ -47,10 +48,12 @@ CometBFT the transactions in blocks [n - X + 1, n] will be re-executed against t
 				Config: storyCfg,
 				Comet:  cometCfg,
 			}
+
 			a, _, err := appCreateFunc(ctx, appCfg)
 			if err != nil {
 				return err
 			}
+
 			lastHeight, lastHash, err := app.RollbackCometAndAppState(a, cometCfg, rollbackCfg)
 			if err != nil {
 				return err

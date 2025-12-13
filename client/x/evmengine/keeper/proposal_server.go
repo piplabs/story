@@ -114,6 +114,7 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 	}
 
 	maxRewardWithdrawals := maxWithdrawals - uint32(len(expectedWithdrawals))
+
 	expectedRewardWithdrawals, err := s.evmstakingKeeper.PeekEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return errors.Wrap(err, "peek reward withdrawals")
@@ -124,6 +125,7 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		"local", expectedTotalWithdrawals,
 		"received", len(actualWithdrawals),
 	)
+
 	if expectedTotalWithdrawals != len(actualWithdrawals) {
 		return fmt.Errorf(
 			"expected total withdrawals %v should equal to actual withdrawals %v",
@@ -136,30 +138,39 @@ func (s proposalServer) compareWithdrawals(ctx context.Context, actualWithdrawal
 		if expectedWithdrawals[i].Index != actualWithdrawals[pos].Index {
 			return errors.New("invalid withdrawal index")
 		}
+
 		if expectedWithdrawals[i].Validator != actualWithdrawals[pos].Validator {
 			return errors.New("invalid withdrawal type")
 		}
+
 		if expectedWithdrawals[i].Address != actualWithdrawals[pos].Address {
 			return errors.New("invalid withdrawal address")
 		}
+
 		if expectedWithdrawals[i].Amount != actualWithdrawals[pos].Amount {
 			return errors.New("invalid withdrawal amount")
 		}
+
 		pos++
 	}
+
 	for i := range expectedRewardWithdrawals {
 		if expectedRewardWithdrawals[i].Index != actualWithdrawals[pos].Index {
 			return errors.New("invalid withdrawal index")
 		}
+
 		if expectedRewardWithdrawals[i].Validator != actualWithdrawals[pos].Validator {
 			return errors.New("invalid withdrawal type")
 		}
+
 		if expectedRewardWithdrawals[i].Address != actualWithdrawals[pos].Address {
 			return errors.New("invalid withdrawal address")
 		}
+
 		if expectedRewardWithdrawals[i].Amount != actualWithdrawals[pos].Amount {
 			return errors.New("invalid withdrawal amount")
 		}
+
 		pos++
 	}
 

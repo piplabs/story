@@ -43,6 +43,7 @@ func loadPrivVal(cfg Config) (*privval.FilePV, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		key = pv.PrivKey
 	} else {
 		key, err = loadCometFilePV(cmtFile)
@@ -77,6 +78,7 @@ func loadCometFilePV(file string) (crypto.PrivKey, error) {
 	}
 
 	var pvKey privval.FilePVKey
+
 	err = cmtjson.Unmarshal(bz, &pvKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal comet privval", "path", file)
@@ -93,6 +95,7 @@ func loadCometPVState(file string) (privval.FilePVLastSignState, error) {
 	}
 
 	var state privval.FilePVLastSignState
+
 	err = cmtjson.Unmarshal(bz, &state)
 	if err != nil {
 		return privval.FilePVLastSignState{}, errors.Wrap(err, "unmarshal comet privval state", "path", file)
@@ -108,9 +111,9 @@ func exists(file string) bool {
 
 // EncryptedKeyRepresentation defines an internal representation of encrypted validator key.
 type EncryptedKeyRepresentation struct {
-	Crypto  map[string]interface{} `json:"crypto"` //nolint:revive // This is from Prysm.
-	Version uint                   `json:"version"`
-	Name    string                 `json:"name"`
+	Crypto  map[string]any `json:"crypto"`
+	Version uint           `json:"version"`
+	Name    string         `json:"name"`
 }
 
 func EncryptAndStoreKey(key privval.FilePVKey, password, filePath string) error {
@@ -120,6 +123,7 @@ func EncryptAndStoreKey(key privval.FilePVKey, password, filePath string) error 
 	}
 
 	encryptor := keystorev4.New()
+
 	encryptedKey, err := encryptor.Encrypt(encodedKey, password)
 	if err != nil {
 		return errors.Wrap(err, "could not encrypt key")
@@ -150,11 +154,13 @@ func LoadEncryptedPrivKey(password, encPrivKeyFile string) (privval.FilePVKey, e
 	}
 
 	var encKeyRepr EncryptedKeyRepresentation
+
 	if err := json.Unmarshal(data, &encKeyRepr); err != nil {
 		return privval.FilePVKey{}, errors.Wrap(err, "failed to unmarshal enc_priv_key.json data")
 	}
 
 	decryptor := keystorev4.New()
+
 	decryptedKey, err := decryptor.Decrypt(encKeyRepr.Crypto, password)
 	if err != nil && strings.Contains(err.Error(), "invalid checksum") {
 		return privval.FilePVKey{}, errors.Wrap(err, "wrong password for wallet entered")
@@ -163,6 +169,7 @@ func LoadEncryptedPrivKey(password, encPrivKeyFile string) (privval.FilePVKey, e
 	}
 
 	var key privval.FilePVKey
+
 	if err := cmtjson.Unmarshal(decryptedKey, &key); err != nil {
 		return privval.FilePVKey{}, errors.Wrap(err, "failed to unmarshal decrypted key")
 	}

@@ -30,6 +30,7 @@ func TestProcessSetWithdrawalAddress(t *testing.T) {
 			sameAddr: true,
 			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
+
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
 					Delegator:        addr,
 					ExecutionAddress: [32]byte(paddedExecAddr),
@@ -41,6 +42,7 @@ func TestProcessSetWithdrawalAddress(t *testing.T) {
 			sameAddr: false,
 			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetWithdrawalAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
+
 				return &bindings.IPTokenStakingSetWithdrawalAddress{
 					Delegator:        addr,
 					ExecutionAddress: [32]byte(paddedExecAddr),
@@ -52,10 +54,12 @@ func TestProcessSetWithdrawalAddress(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 			evmAddr := execAddr
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
+
 			ev := tc.input(evmAddr, common.Address(accAddrs[0]))
 
 			cachedCtx, _ := ctx.CacheContext()
@@ -90,6 +94,7 @@ func TestProcessSetRewardAddress(t *testing.T) {
 			sameAddr: true,
 			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetRewardAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
+
 				return &bindings.IPTokenStakingSetRewardAddress{
 					Delegator:        addr,
 					ExecutionAddress: [32]byte(paddedExecAddr),
@@ -101,6 +106,7 @@ func TestProcessSetRewardAddress(t *testing.T) {
 			sameAddr: false,
 			input: func(execAddr common.Address, addr common.Address) *bindings.IPTokenStakingSetRewardAddress {
 				paddedExecAddr := common.LeftPadBytes(execAddr.Bytes(), 32)
+
 				return &bindings.IPTokenStakingSetRewardAddress{
 					Delegator:        addr,
 					ExecutionAddress: [32]byte(paddedExecAddr),
@@ -112,10 +118,12 @@ func TestProcessSetRewardAddress(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 			evmAddr := execAddr
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
+
 			ev := tc.input(evmAddr, common.Address(accAddrs[0]))
 
 			cachedCtx, _ := ctx.CacheContext()
@@ -175,6 +183,7 @@ func TestProcessSetOperatorAddress(t *testing.T) {
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
 			}
+
 			ev := tc.input(evmAddr, common.Address(accAddrs[0]))
 
 			cachedCtx, _ := ctx.CacheContext()

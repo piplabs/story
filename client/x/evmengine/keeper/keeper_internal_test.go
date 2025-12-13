@@ -74,13 +74,17 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 	cmtAPI := newMockCometAPI(t, args.validatorsFunc)
 	header := args.header(args.height)
 
-	var nxtAddr common.Address
-	var err error
+	var (
+		nxtAddr common.Address
+		err     error
+	)
+
 	if args.isNextProposer {
 		nxtAddr, err = k1util.PubKeyToAddress(cmtAPI.validatorSet.CopyIncrementProposerPriority(1).Proposer.PubKey)
 	} else {
 		nxtAddr = common.HexToAddress("0x0000000000000000000000000000000000000000")
 	}
+
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -99,6 +103,7 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 	if !args.unsetCmtAPI {
 		keeper.SetCometAPI(cmtAPI)
 	}
+
 	keeper.SetValidatorAddress(nxtAddr)
 
 	return ctx, cmtAPI, keeper
@@ -106,6 +111,7 @@ func createKeeper(t *testing.T, args args) (sdk.Context, *mockCometAPI, *Keeper)
 
 func TestKeeper_SetBuildDelay(t *testing.T) {
 	t.Parallel()
+
 	keeper := new(Keeper)
 	// check existing value
 	require.Equal(t, 0*time.Second, keeper.buildDelay)
@@ -116,6 +122,7 @@ func TestKeeper_SetBuildDelay(t *testing.T) {
 
 func TestKeeper_SetBuildOptimistic(t *testing.T) {
 	t.Parallel()
+
 	keeper := new(Keeper)
 	// check existing value
 	require.False(t, keeper.buildOptimistic)
@@ -126,6 +133,7 @@ func TestKeeper_SetBuildOptimistic(t *testing.T) {
 
 func TestKeeper_SetIsExecEngSyncing(t *testing.T) {
 	t.Parallel()
+
 	keeper := new(Keeper)
 	// check existing value
 	require.False(t, keeper.IsExecEngSyncing())
@@ -136,6 +144,7 @@ func TestKeeper_SetIsExecEngSyncing(t *testing.T) {
 
 func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 	t.Parallel()
+
 	now := time.Now()
 	fuzzer := ethclient.NewFuzzer(now.Unix())
 	ctx, _, keeper := createKeeper(t, args{
@@ -304,6 +313,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 			msg: func(c context.Context) *types.MsgExecutionPayload {
 				execHead, err := keeper.getExecutionHead(c)
 				require.NoError(t, err)
+
 				weekAgo := execHead.GetBlockTime() - 604800
 
 				payload, err := ethclient.MakePayload(fuzzer, 1, weekAgo, execHead.Hash(), common.Address{}, common.Hash{}, &common.Hash{})
@@ -481,6 +491,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 		//nolint:tparallel // cannot run parallel because of data race on execution head table
 		t.Run(tc.name, func(t *testing.T) {
 			cachedCtx, _ := ctx.CacheContext()
+
 			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
 			if !tc.unsetExecHead {
 				populateGenesisHead(cachedCtx, t, keeper)
@@ -489,6 +500,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}
+
 			_, err := keeper.parseAndVerifyProposedPayload(cachedCtx, tc.msg(cachedCtx))
 			if tc.expectedErr != "" {
 				require.ErrorContains(t, err, tc.expectedErr)
@@ -523,7 +535,9 @@ func TestKeeper_setOptimisticPayload(t *testing.T) {
 
 func TestKeeper_isNextProposer(t *testing.T) {
 	t.Parallel()
+
 	height := int64(1)
+
 	tests := []struct {
 		name    string
 		args    args
@@ -593,6 +607,7 @@ func TestKeeper_isNextProposer(t *testing.T) {
 				t.Errorf("isNextProposer() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
 				t.Errorf("isNextProposer() got = %v, want %v", got, tt.want)
 			}
@@ -608,6 +623,7 @@ var _ comet.API = (*mockCometAPI)(nil)
 
 type mockCometAPI struct {
 	comet.API
+
 	fuzzer         *fuzz.Fuzzer
 	validatorSet   *cmttypes.ValidatorSet
 	validatorsFunc func(context.Context, int64) (*cmttypes.ValidatorSet, error)
@@ -616,6 +632,7 @@ type mockCometAPI struct {
 
 func newMockCometAPI(t *testing.T, valFun func(context.Context, int64) (*cmttypes.ValidatorSet, error)) *mockCometAPI {
 	t.Helper()
+
 	fuzzer := newFuzzer(0)
 	valSet := fuzzValidators(t, fuzzer)
 
@@ -628,6 +645,7 @@ func newMockCometAPI(t *testing.T, valFun func(context.Context, int64) (*cmttype
 
 func fuzzValidators(t *testing.T, fuzzer *fuzz.Fuzzer) *cmttypes.ValidatorSet {
 	t.Helper()
+
 	var validators []*cmttypes.Validator
 
 	fuzzer.NilChance(0).NumElements(3, 7).Fuzz(&validators)

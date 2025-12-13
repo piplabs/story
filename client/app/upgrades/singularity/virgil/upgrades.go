@@ -36,66 +36,87 @@ func CreateUpgradeHandler(
 			log.Info(ctx, "Virgil upgrade not needed for current chain, skip", "ChainID", chainID)
 			return vm, nil
 		}
+
 		log.Info(ctx, "Start Virgil upgrade", "ChainID", chainID)
 
 		log.Info(ctx, "Get current staking params...")
+
 		stakingParams, err := keepers.StakingKeeper.GetParams(ctx)
 		if err != nil {
 			return vm, errors.Wrap(err, "failed to get staking params")
 		}
 
 		log.Info(ctx, "Update staking periods...")
+
 		newRewardsMultiplier := GetRewardsMultipliers(chainID)
+
 		var oldShortPeriodDuration time.Duration
+
 		for i := range stakingParams.Periods {
-			if stakingParams.Periods[i].PeriodType == 1 {
+			switch stakingParams.Periods[i].PeriodType {
+			case 1:
 				oldShortPeriodDuration = stakingParams.Periods[i].Duration
 				log.Info(ctx, "Existing short period duration", "Time", oldShortPeriodDuration.String())
 				log.Info(ctx, "Change short period duration to 90 days (7776000 seconds)")
+
 				stakingParams.Periods[i].Duration = NewShortPeriodDuration
+
 				log.Info(ctx, "Change short period rewards multiplier", "new_multiplier", newRewardsMultiplier.Short.String())
 				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Short
-			} else if stakingParams.Periods[i].PeriodType == 2 {
+			case 2:
 				log.Info(ctx, "Existing medium period duration", "Time", stakingParams.Periods[i].Duration.String())
 				log.Info(ctx, "Change medium period rewards multiplier", "new_multiplier", newRewardsMultiplier.Medium.String())
 				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Medium
-			} else if stakingParams.Periods[i].PeriodType == 3 {
+			case 3:
 				log.Info(ctx, "Existing long period duration", "Time", stakingParams.Periods[i].Duration.String())
 				log.Info(ctx, "Change long period rewards multiplier", "new_multiplier", newRewardsMultiplier.Long.String())
 				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Long
+			default:
+				log.Error(ctx, "Unexpected type", nil)
+				return vm, errors.New("unexpected type of period for staking module")
 			}
 		}
 
 		log.Info(ctx, "Apply staking param changes...")
+
 		if err := keepers.StakingKeeper.SetParams(ctx, stakingParams); err != nil {
 			return vm, errors.Wrap(err, "failed to update staking params")
 		}
 
 		log.Info(ctx, "Check new staking params...")
+
 		stakingParams, err = keepers.StakingKeeper.GetParams(ctx)
 		if err != nil {
 			return vm, errors.Wrap(err, "failed to get staking params")
 		}
 
 		for _, p := range stakingParams.Periods {
-			if p.PeriodType == 1 { //nolint:nestif // no issue
+			switch p.PeriodType {
+			case 1:
 				log.Info(ctx, "New short period duration", "Time", p.Duration.String())
+
 				if p.Duration != NewShortPeriodDuration {
 					return vm, errors.New("new short period duration is not correct")
 				}
+
 				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Short) {
 					return vm, errors.New("new short period rewards multiplier is not correct")
 				}
-			} else if p.PeriodType == 2 {
+			case 2:
 				log.Info(ctx, "New medium period duration", "Time", p.Duration.String())
+
 				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Medium) {
 					return vm, errors.New("new medium period rewards multiplier is not correct")
 				}
-			} else if p.PeriodType == 3 {
+			case 3:
 				log.Info(ctx, "New long period duration", "Time", p.Duration.String())
+
 				if !p.RewardsMultiplier.Equal(newRewardsMultiplier.Long) {
 					return vm, errors.New("new long period rewards multiplier is not correct")
 				}
+			default:
+				log.Error(ctx, "Unexpected type", nil)
+				return vm, errors.New("unexpected type of period for staking module")
 			}
 		}
 
@@ -103,7 +124,9 @@ func CreateUpgradeHandler(
 		if err != nil {
 			return vm, errors.Wrap(err, "failed to get all period delegations")
 		}
+
 		log.Info(ctx, "Sweep all delegations and modify short period delegations", "Count", len(periodDelegations))
+
 		for i := range periodDelegations {
 			if periodDelegations[i].PeriodType != 1 {
 				continue
@@ -125,15 +148,19 @@ func CreateUpgradeHandler(
 			log.Info(ctx, "New short period delegation", "EndTime", newEndTime)
 
 			log.Info(ctx, "Set new short period delegation")
+
 			periodDelegations[i].EndTime = newEndTime
+
 			delAddr, err := sdk.AccAddressFromBech32(periodDelegations[i].DelegatorAddress)
 			if err != nil {
 				return vm, errors.Wrap(err, "failed to get delegator address")
 			}
+
 			valAddr, err := sdk.ValAddressFromBech32(periodDelegations[i].ValidatorAddress)
 			if err != nil {
 				return vm, errors.Wrap(err, "failed to get validator address")
 			}
+
 			if err := keepers.StakingKeeper.SetPeriodDelegation(ctx, delAddr, valAddr, periodDelegations[i]); err != nil {
 				return vm, errors.Wrap(err, "failed to set period delegation")
 			}
@@ -142,6 +169,7 @@ func CreateUpgradeHandler(
 			if err != nil {
 				return vm, errors.Wrap(err, "failed to get new period delegation")
 			}
+
 			log.Info(
 				ctx, "Get new short period delegation",
 				"Delegator", periodDelegations[i].DelegatorAddress,
@@ -152,6 +180,7 @@ func CreateUpgradeHandler(
 				"PeriodType", periodDelegations[i].PeriodType,
 				"EndTime", periodDelegations[i].EndTime.String(),
 			)
+
 			if newPeriodDelegation.EndTime != newEndTime {
 				return vm, errors.New("new period delegation end time is not correct")
 			}
