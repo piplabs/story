@@ -26,7 +26,6 @@ contract DKGTest is Test {
     bytes finalizeDKG_signature =
         hex"70a1d8b96be91078aa807ac9f26127147fd147b0dc68e84676761ad2b70a1b604ea07f56e94d77a041119143cf994b78b64f462ef56aa4d6d289eb352f086d9d1b";
 
-
     // validator 1
     address validator1 = address(0x591942F67Cf7d6104aD2f41Be899713fCb60dceB);
     bytes commPubKey1 =

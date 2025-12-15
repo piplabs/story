@@ -102,6 +102,26 @@ func (mr *MockTEEClientMockRecorder) GenerateDeals(ctx, in any, opts ...any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockTEEClient)(nil).GenerateDeals), varargs...)
 }
 
+// PartialDecryptTDH2 mocks base method.
+func (m *MockTEEClient) PartialDecryptTDH2(ctx context.Context, in *types.PartialDecryptTDH2Request, opts ...grpc.CallOption) (*types.PartialDecryptTDH2Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PartialDecryptTDH2", varargs...)
+	ret0, _ := ret[0].(*types.PartialDecryptTDH2Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PartialDecryptTDH2 indicates an expected call of PartialDecryptTDH2.
+func (mr *MockTEEClientMockRecorder) PartialDecryptTDH2(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockTEEClient)(nil).PartialDecryptTDH2), varargs...)
+}
+
 // ProcessDeals mocks base method.
 func (m *MockTEEClient) ProcessDeals(ctx context.Context, in *types.ProcessDealRequest, opts ...grpc.CallOption) (*types.ProcessDealResponse, error) {
 	m.ctrl.T.Helper()
@@ -249,6 +269,21 @@ func (m *MockTEEServer) GenerateDeals(arg0 context.Context, arg1 *types.Generate
 func (mr *MockTEEServerMockRecorder) GenerateDeals(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockTEEServer)(nil).GenerateDeals), arg0, arg1)
+}
+
+// PartialDecryptTDH2 mocks base method.
+func (m *MockTEEServer) PartialDecryptTDH2(arg0 context.Context, arg1 *types.PartialDecryptTDH2Request) (*types.PartialDecryptTDH2Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartialDecryptTDH2", arg0, arg1)
+	ret0, _ := ret[0].(*types.PartialDecryptTDH2Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PartialDecryptTDH2 indicates an expected call of PartialDecryptTDH2.
+func (mr *MockTEEServerMockRecorder) PartialDecryptTDH2(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockTEEServer)(nil).PartialDecryptTDH2), arg0, arg1)
 }
 
 // ProcessDeals mocks base method.

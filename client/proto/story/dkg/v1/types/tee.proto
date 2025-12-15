@@ -14,6 +14,7 @@ service TEE {
   rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
   rpc ProcessResponses(ProcessResponsesRequest) returns (ProcessResponsesResponse);
   rpc FinalizeDKG(FinalizeDKGRequest) returns (FinalizeDKGResponse);
+  rpc PartialDecryptTDH2(PartialDecryptTDH2Request) returns (PartialDecryptTDH2Response);
 }
 
 // GenerateAndSealKeyRequest is sent to TEE client to generate and seal a key
@@ -255,6 +256,62 @@ message FinalizeDKGResponse {
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
 }
+
+message PartialDecryptTDH2Request {
+  bytes mrenclave = 1 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  bytes ciphertext = 3 [
+    (gogoproto.moretags) = "yaml:\"ciphertext\""
+  ];
+
+  bytes label = 4 [
+    (gogoproto.moretags) = "yaml:\"label\""
+  ];
+
+  uint32 pid = 5 [
+    (gogoproto.moretags) = "yaml:\"pid\""
+  ];
+
+  bytes dkg_pub_key = 6 [
+    (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
+  ];
+
+  string sealed_share_id = 7 [
+    (gogoproto.moretags) = "yaml:\"sealed_share_id\""
+  ];
+
+  // secp256k1 uncompressed requester pubkey (65 bytes)
+  bytes requester_pub_key = 8 [
+    (gogoproto.moretags) = "yaml:\"requester_pub_key\""
+  ];
+}
+
+message PartialDecryptTDH2Response {
+  // AES-GCM encrypted TDH2 partial, encrypted to requester pubkey
+  bytes encrypted_partial_decryption = 1 [
+    (gogoproto.moretags) = "yaml:\"encrypted_partial_decryption\""
+  ];
+
+  // Ephemeral secp256k1 pubkey (uncompressed) used for ECDH
+  bytes ephemeral_pub_key = 2 [
+    (gogoproto.moretags) = "yaml:\"ephemeral_pub_key\""
+  ];
+
+  bytes pub_share = 3 [
+    (gogoproto.moretags) = "yaml:\"pub_share\""
+  ];
+
+  bytes signature = 4 [
+    (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}
+
 
 message Justification {
   uint32 index = 1 [

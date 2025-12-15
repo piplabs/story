@@ -429,6 +429,20 @@ func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, vali
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, mrenclave)
 }
 
+// ThresholdDecryptRequested mocks base method.
+func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey, ciphertext, label []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ThresholdDecryptRequested indicates an expected call of ThresholdDecryptRequested.
+func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label)
+}
+
 // UpgradeScheduled mocks base method.
 func (m *MockDKGKeeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error {
 	m.ctrl.T.Helper()

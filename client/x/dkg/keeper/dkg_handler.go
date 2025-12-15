@@ -231,3 +231,71 @@ func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mren
 	// TODO: Implement actual invalid deal handling logic
 	return nil
 }
+
+// ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
+// This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
+	if !k.isDKGSvcEnabled {
+		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
+
+		return nil
+	}
+
+	dkgNetwork, err := k.getDKGNetwork(ctx, mrenclave, round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get dkg network for decrypt request")
+	}
+
+	if dkgNetwork.Stage != types.DKGStageActive {
+		log.Info(ctx, "Skipping threshold decrypt request; DKG round is not active",
+			"round", round,
+			"stage", dkgNetwork.Stage.String(),
+		)
+
+		return nil
+	}
+
+	validator := strings.ToLower(k.validatorAddress.Hex())
+	if !slices.Contains(dkgNetwork.ActiveValSet, validator) {
+		log.Info(ctx, "Validator not in active DKG committee; skipping threshold decrypt request",
+			"validator", validator,
+			"round", round,
+		)
+
+		return nil
+	}
+
+	log.Info(ctx, "DKG ThresholdDecryptRequested event received",
+		"requester", requester.Hex(),
+		"round", round,
+		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"requester_pubkey_len", len(requesterPubKey),
+		"ciphertext_len", len(ciphertext),
+		"label_len", len(label),
+	)
+
+	session, err := k.stateManager.GetSession(mrenclave[:], round)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG session for decrypt request")
+	}
+
+	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.
+	session.AddDecryptRequest(types.DecryptRequest{
+		Requester:       requester.Hex(),
+		Round:           round,
+		Mrenclave:       mrenclave[:],
+		Ciphertext:      ciphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+	})
+
+	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+		return errors.Wrap(err, "failed to persist decrypt request")
+	}
+
+	log.Info(ctx, "Queued threshold decrypt request",
+		"session", session.GetSessionKey(),
+		"pending_requests", len(session.DecryptRequests),
+	)
+	return nil
+}

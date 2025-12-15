@@ -58,4 +58,37 @@ contract IDKG {
     event DealVerified(uint32 index, uint32 recipientIndex, uint32 round, bytes32 mrenclave);
 
     event InvalidDeal(uint32 index, uint32 round, bytes32 mrenclave);
+
+    // Emitted when a client requests TDH2 threshold decryption for a ciphertext/label pair.
+    // @param requesterPubKey: secp256k1 uncompressed requester pubkey (65 bytes)
+    event ThresholdDecryptRequested(
+        address indexed requester,
+        uint32 round,
+        bytes32 mrenclave,
+        bytes requesterPubKey,
+        bytes ciphertext,
+        bytes label
+    );
+
+    // Emitted when a validator submits a TDH2 partial decryption.
+    // @param pid: party ID, 1-based index from DKG registration (used in Kyber polynomial evaluation)
+    event PartialDecryptionSubmitted(
+        address indexed validator,
+        uint32 round,
+        bytes32 mrenclave,
+        uint32 pid,
+        bytes encryptedPartial,
+        bytes ephemeralPubKey,
+        bytes pubShare,
+        bytes label
+    );
+
+    // TDH2 partial decrypt submissions keyed by (mrenclave, round, labelHash, pid).
+    struct PartialDecryptSubmission {
+        address validator;
+        bytes partialDecryption;
+        bytes pubShare;
+        bytes label;
+        bool exists;
+    }
 }

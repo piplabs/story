@@ -69,6 +69,9 @@ type DKGSession struct {
 	Deals         map[uint32]Deal   `json:"deals,omitempty"` // deals by dealer index
 	Complaints    []Complaint       `json:"complaints,omitempty"`
 	IsFinalized   bool              `json:"is_finalized"`
+
+	// Pending threshold decrypt requests (from contract events)
+	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
@@ -88,6 +91,7 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *D
 		Threshold:        0,
 		Deals:            make(map[uint32]Deal),
 		IsFinalized:      false,
+		DecryptRequests:  make([]DecryptRequest, 0),
 	}
 }
 
@@ -113,5 +117,14 @@ func (s *DKGSession) UpdatePhase(phase DKGPhase) {
 	defer s.mu.Unlock()
 
 	s.Phase = phase
+	s.LastUpdate = time.Now()
+}
+
+// AddDecryptRequest appends a threshold decrypt request to this session.
+func (s *DKGSession) AddDecryptRequest(req DecryptRequest) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.DecryptRequests = append(s.DecryptRequests, req)
 	s.LastUpdate = time.Now()
 }
