@@ -130,6 +130,16 @@ type protoTxProvider interface {
 
 // validateTx checks whether the transaction contains any disallowed data.
 func validateTx(tx sdk.Tx) error {
+	protoTx, ok := tx.(protoTxProvider)
+	if !ok {
+		return errors.New("invalid proto tx")
+	}
+
+	signatures := protoTx.GetProtoTx().Signatures
+	if len(signatures) != 0 {
+		return errors.New("disallowed signatures in tx")
+	}
+
 	standardTx, ok := tx.(signing.Tx)
 	if !ok {
 		return errors.New("invalid standard tx message")
@@ -147,8 +157,8 @@ func validateTx(tx sdk.Tx) error {
 		return errors.New("disallowed memo in tx")
 	}
 
-	if fee := standardTx.GetFee(); fee != nil {
-		return errors.New("disallowed fee in tx")
+	if protoTx.GetProtoTx().AuthInfo.Fee == nil || standardTx.GetFee() != nil {
+		return errors.New("invalid fee in tx")
 	}
 
 	if !bytes.Equal(standardTx.FeePayer(), authtypes.NewModuleAddress(evmenginetypes.ModuleName).Bytes()) {
@@ -163,14 +173,6 @@ func validateTx(tx sdk.Tx) error {
 	if ok {
 		if tip := tipTx.GetTip(); tip != nil {
 			return errors.New("disallowed tip in tx")
-		}
-	}
-
-	protoTx, ok := tx.(protoTxProvider)
-	if ok {
-		signatures := protoTx.GetProtoTx().Signatures
-		if len(signatures) != 0 {
-			return errors.New("disallowed signatures in tx")
 		}
 	}
 

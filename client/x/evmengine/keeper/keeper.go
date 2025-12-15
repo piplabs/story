@@ -176,13 +176,13 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 	)
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	isV140, err := netconf.IsV140(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	isTerence, err := netconf.IsTerence(sdkCtx.ChainID(), sdkCtx.BlockHeight())
 	if err != nil {
-		return engine.ExecutableData{}, errors.Wrap(err, "failed to check if the v1.4.0 upgrade is activated or not")
+		return engine.ExecutableData{}, errors.Wrap(err, "failed to check if the Terence upgrade is activated or not")
 	}
 
-	//nolint:nestif // required to handle multiple conditional branches depending on v1.4.0 upgrade activation
-	if isV140 {
+	//nolint:nestif // required to handle multiple conditional branches depending on Terence upgrade activation
+	if isTerence {
 		if msg.ExecutionPayload != nil {
 			return engine.ExecutableData{}, errors.New("legacy json payload not allowed")
 		}
