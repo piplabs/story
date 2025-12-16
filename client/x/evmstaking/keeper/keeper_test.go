@@ -76,6 +76,7 @@ func TestValidatorAddressCodec(t *testing.T) {
 
 func ConvertAddressToBytes32(addr common.Address) [32]byte {
 	uint160 := new(big.Int).SetBytes(addr.Bytes())
+
 	var bytes32 [32]byte
 	copy(bytes32[32-len(uint160.Bytes()):], uint160.Bytes())
 
@@ -89,6 +90,7 @@ func TestProcessStakingEvents(t *testing.T) {
 	delPubKey := pubKeys[0]
 	delEVMAddr, err := keeper.CmpPubKeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(t, err)
+
 	delAccAddrFromEVM := sdk.AccAddress(delEVMAddr.Bytes())
 
 	// validator
@@ -96,8 +98,10 @@ func TestProcessStakingEvents(t *testing.T) {
 	val1ValAddr := valAddrs[1]
 	val1EVMAddr, err := k1util.CosmosPubkeyToEVMAddress(val1PubKey.Bytes())
 	require.NoError(t, err)
+
 	val2PubKey := pubKeys[2]
 	val2ValAddr := valAddrs[2]
+
 	invalidPubKey := append([]byte{0x04}, val1PubKey.Bytes()[1:]...)
 
 	// ABI of IPTokenStaking contract
@@ -912,6 +916,7 @@ func TestProcessStakingEvents(t *testing.T) {
 				// set validator jailed
 				val, err := sk.GetValidator(ctx, val1ValAddr)
 				require.NoError(t, err)
+
 				val.Jailed = true
 				_ = skeeper.TestingUpdateValidator(sk, ctx, val, true)
 
@@ -944,6 +949,7 @@ func TestProcessStakingEvents(t *testing.T) {
 				// set validator jailed
 				val, err := sk.GetValidator(ctx, val1ValAddr)
 				require.NoError(t, err)
+
 				val.Jailed = true
 				_ = skeeper.TestingUpdateValidator(sk, ctx, val, true)
 
@@ -996,6 +1002,7 @@ func TestProcessStakingEvents(t *testing.T) {
 				// set validator jailed
 				val, err := sk.GetValidator(ctx, val1ValAddr)
 				require.NoError(t, err)
+
 				val.Jailed = true
 				_ = skeeper.TestingUpdateValidator(sk, ctx, val, true)
 
@@ -1062,14 +1069,18 @@ func createAddresses(count int) ([]crypto.PubKey, []sdk.AccAddress, []sdk.ValAdd
 	cfg.SetBech32PrefixForValidator("storyvaloper", "storyvaloperpub")
 	cfg.SetBech32PrefixForConsensusNode("storyvalcons", "storyvalconspub")
 
-	var pubKeys []crypto.PubKey
-	var accAddrs []sdk.AccAddress
-	var valAddrs []sdk.ValAddress
+	var (
+		pubKeys  []crypto.PubKey
+		accAddrs []sdk.AccAddress
+		valAddrs []sdk.ValAddress
+	)
+
 	for range count {
 		pubKey := k1.GenPrivKey().PubKey()
 		evmAddr, _ := k1util.CosmosPubkeyToEVMAddress(pubKey.Bytes())
 		accAddr := sdk.AccAddress(pubKey.Address().Bytes())
 		valAddr := sdk.ValAddress(evmAddr.Bytes())
+
 		pubKeys = append(pubKeys, pubKey)
 		accAddrs = append(accAddrs, accAddr)
 		valAddrs = append(valAddrs, valAddr)
@@ -1199,9 +1210,11 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 	key := storetypes.NewKVStoreKey("test")
 	storeService := runtime.NewKVStoreService(key)
 	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+
 	if header == nil {
 		header = &cmtproto.Header{Time: cmttime.Now()}
 	}
+
 	ctx := testCtx.Ctx.WithBlockHeader(*header).WithChainID(netconf.TestChainID)
 	defaultConsensusParams := genutil.DefaultConsensusParams()
 	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto())
@@ -1212,6 +1225,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 func getCodec() codec.Codec {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	cryptocodec.RegisterInterfaces(interfaceRegistry)
+
 	legacyAmino := codec.NewLegacyAmino()
 	authtypes.RegisterLegacyAminoCodec(legacyAmino)
 	authtypes.RegisterInterfaces(interfaceRegistry)
@@ -1268,6 +1282,7 @@ func createDelegation(t *testing.T, ctx context.Context, sKeeper *skeeper.Keeper
 	// add to validator
 	validator, err := sKeeper.GetValidator(ctx, valAddr)
 	require.NoError(t, err)
+
 	validator, _, _ = validator.AddTokensFromDel(math.NewInt(amount), math.LegacyNewDecFromInt(math.NewInt(amount)).Quo(math.LegacyNewDec(2)))
 	_ = skeeper.TestingUpdateValidator(sKeeper, sdkCtx, validator, true)
 }
@@ -1289,6 +1304,7 @@ func ethLogsToEvmEvents(logs []ethtypes.Log) ([]*evmenginetypes.EVMEvent, error)
 		for _, t := range l.Topics {
 			topics = append(topics, t.Bytes())
 		}
+
 		events = append(events, &evmenginetypes.EVMEvent{
 			Address: l.Address.Bytes(),
 			Topics:  topics,

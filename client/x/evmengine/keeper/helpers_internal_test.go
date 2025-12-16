@@ -10,6 +10,7 @@ import (
 
 func TestRetryForever(t *testing.T) {
 	t.Parallel()
+
 	attempts := 0
 
 	tests := []struct {
@@ -59,6 +60,7 @@ func TestRetryForever(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			err := retryForever(tc.ctxFunc(), tc.fn)
 			if tc.expectedErr != "" {
 				require.Error(t, err)

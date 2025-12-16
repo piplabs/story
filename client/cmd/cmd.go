@@ -3,9 +3,8 @@ package cmd
 
 import (
 	"context"
-	"strconv"
-
 	"github.com/spf13/cobra"
+	"strconv"
 
 	"github.com/piplabs/story/client/app"
 	storycfg "github.com/piplabs/story/client/config"
@@ -47,6 +46,7 @@ func newRunCmd(name string, runFunc func(context.Context, app.Config) error) *co
 			if err != nil {
 				return err
 			}
+
 			if err := libcmd.LogFlags(ctx, cmd.Flags()); err != nil {
 				return err
 			}
@@ -75,6 +75,7 @@ func aliasWithComet(cmd *cobra.Command) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get bool value from with-tendermint flag")
 		}
+
 		if err := cmd.Flags().Set("with-comet", strconv.FormatBool(val)); err != nil {
 			return errors.Wrap(err, "failed to set value to with-comet flag for alias", "val", val)
 		}

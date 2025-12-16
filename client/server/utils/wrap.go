@@ -29,6 +29,7 @@ type Response struct {
 func SimpleWrap(codec *codec.LegacyAmino, api SimpleWrapFunc) RespFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		msg, err := api(r)
+
 		resp := &Response{}
 		if err != nil {
 			resp.Code = 500
@@ -58,20 +59,22 @@ func SimpleWrap(codec *codec.LegacyAmino, api SimpleWrapFunc) RespFunc {
 
 // AutoWrap implements a response encoder for requests with query paramenters.
 func AutoWrap[T any](codec *codec.LegacyAmino, api AutoSimpleInterfaceWrapFunc[T]) RespFunc {
-	typ := reflect.TypeOf(new(T)).Elem()
+	typ := reflect.TypeFor[T]()
+
 	return SimpleWrap(codec, func(r *http.Request) (resp any, err error) {
 		val := reflect.New(typ).Interface()
 
 		if r.URL.RawQuery != "" {
-			err = QueryMapToVal(r.URL.Query(), val)
-			if err != nil {
+			if err := QueryMapToVal(r.URL.Query(), val); err != nil {
 				return nil, NewHTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("decode `%s` query err: %v", typ.String(), err))
 			}
 		}
 
 		if r.ContentLength > 0 {
 			const maxBodySize = 10 << 20 // 10 MiB
+
 			r.Body = http.MaxBytesReader(nil, r.Body, maxBodySize)
+
 			err = json.NewDecoder(r.Body).Decode(val)
 			if err != nil {
 				return nil, NewHTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("decode `%s` body err: %v", typ.String(), err))

@@ -13,9 +13,12 @@ type Withdrawals struct {
 }
 
 func (ws Withdrawals) String() (out string) {
+	var outSb16 strings.Builder
 	for _, w := range ws.Withdrawals {
-		out += w.String() + "\n"
+		outSb16.WriteString(w.String() + "\n") //nolint:revive // ignore handling error here because no error would be returned.
 	}
+
+	out += outSb16.String()
 
 	return strings.TrimSpace(out)
 }

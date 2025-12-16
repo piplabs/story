@@ -13,6 +13,7 @@ import (
 
 func TestKeeper_InitGenesis(t *testing.T) {
 	t.Parallel()
+
 	dummyExecutionHead := common.HexToHash("0x047e24c3455107d87c68dffa307b3b7fa1877f3e9d7f30c7ee359f2eff3a75d9")
 	validParams := types.NewParams(dummyExecutionHead.Bytes())
 
@@ -67,10 +68,12 @@ func TestKeeper_InitGenesis(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			ctx, keeper := createTestKeeper(t)
 			if tc.setup != nil {
 				tc.setup(ctx, keeper)
 			}
+
 			if tc.requirePanic {
 				require.PanicsWithError(t, tc.expectedError, func() {
 					_ = keeper.InitGenesis(ctx, tc.gs())
@@ -91,6 +94,7 @@ func TestKeeper_InitGenesis(t *testing.T) {
 
 func TestKeeper_ExportGenesis(t *testing.T) {
 	t.Parallel()
+
 	dummyExecutionHead := common.HexToHash("0x047e24c3455107d87c68dffa307b3b7fa1877f3e9d7f30c7ee359f2eff3a75d9")
 	validParams := types.NewParams(dummyExecutionHead.Bytes())
 
@@ -121,10 +125,12 @@ func TestKeeper_ExportGenesis(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			ctx, keeper := createTestKeeper(t)
 			if tc.setup != nil {
 				tc.setup(ctx, keeper)
 			}
+
 			tc.postStateCheck(ctx, keeper)
 		})
 	}

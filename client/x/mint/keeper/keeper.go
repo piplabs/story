@@ -56,6 +56,7 @@ func NewKeeper(
 	if err != nil {
 		panic(err)
 	}
+
 	k.Schema = schema
 
 	return k

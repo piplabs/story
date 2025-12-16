@@ -33,8 +33,10 @@ func (c Config) toOpts() (func(*options), error) {
 	}
 
 	headers := make(map[string]string)
+
 	if len(c.Headers) > 0 {
 		var err error
+
 		headers, err = stringToHeader(c.Headers)
 		if err != nil {
 			return nil, err
@@ -63,6 +65,7 @@ func stringToHeader(value string) (map[string]string, error) {
 		}
 
 		trimmedName := strings.TrimSpace(name)
+
 		value, err := url.PathUnescape(v)
 		if err != nil {
 			return nil, errors.Wrap(err, "escape header value", "value", v)

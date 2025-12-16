@@ -17,6 +17,7 @@ func RandomBytes(l int) []byte {
 // RandomHash returns a random 32-byte 256-bit hash.
 func RandomHash() common.Hash {
 	var resp common.Hash
+
 	_, _ = rand.Read(resp[:])
 
 	return resp

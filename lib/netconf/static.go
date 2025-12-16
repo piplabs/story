@@ -35,7 +35,8 @@ func (Static) StoryConsensusChainIDStr() string {
 
 func (s Static) ConsensusSeeds() []string {
 	var resp []string
-	for _, seed := range strings.Split(string(s.ConsensusSeedTXT), "\n") {
+
+	for seed := range strings.SplitSeq(string(s.ConsensusSeedTXT), "\n") {
 		if seed = strings.TrimSpace(seed); seed != "" {
 			resp = append(resp, seed)
 		}

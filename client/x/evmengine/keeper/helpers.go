@@ -23,12 +23,17 @@ var (
 // Keeper logic must however be deterministic, retrying forever mitigates this.
 func retryForever(ctx context.Context, fn func(ctx context.Context) (bool, error)) error {
 	backoffFuncMu.RLock()
+
 	backoff := backoffFunc(ctx)
+
 	backoffFuncMu.RUnlock()
+
 	for {
 		innerCtx, cancel := context.WithTimeout(ctx, retryTimeout)
 		ok, err := fn(innerCtx)
+
 		cancel()
+
 		if ctx.Err() != nil {
 			return errors.Wrap(ctx.Err(), "retry canceled")
 		} else if err != nil {

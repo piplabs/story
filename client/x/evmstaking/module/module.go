@@ -118,6 +118,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // ValidateGenesis performs genesis state validation for the module.
 func (am AppModule) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
 	var gs types.GenesisState
+
 	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to unmarshal %s genesis state", types.ModuleName))
 	}

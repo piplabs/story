@@ -64,6 +64,7 @@ func NewVersionCmd() *cobra.Command {
 			commit, timestamp := get()
 
 			var sb strings.Builder
+
 			_, _ = sb.WriteString("Version       " + VersionWithMeta())
 			_, _ = sb.WriteString("\n")
 			_, _ = sb.WriteString("Git Commit    " + commit)
@@ -87,13 +88,17 @@ func get() (hash string, timestamp string) { //nolint:nonamedreturns // Disambig
 	}
 
 	for _, s := range info.Settings {
-		if s.Key == "vcs.revision" {
+		switch s.Key {
+		case "vcs.revision":
 			if len(s.Value) < hashLen {
 				hashLen = len(s.Value)
 			}
+
 			hash = s.Value[:hashLen]
-		} else if s.Key == "vcs.time" {
+		case "vcs.time":
 			timestamp = s.Value
+		default:
+			return hash, timestamp
 		}
 	}
 

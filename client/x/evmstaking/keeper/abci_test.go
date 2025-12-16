@@ -30,6 +30,7 @@ func TestEndBlock(t *testing.T) {
 	// delAccAddr := accAddrs[0]
 	delEVMAddr, err := keeper.CmpPubKeyToEVMAddress(delPubKey.Bytes())
 	require.NoError(t, err)
+
 	delAccAddrFromEVM := sdk.AccAddress(delEVMAddr.Bytes())
 
 	// validator
@@ -85,6 +86,7 @@ func TestEndBlock(t *testing.T) {
 						Amount:           math.NewInt(10),
 					},
 				}
+
 				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
 				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, invalidUBD, nil)
 			},
@@ -100,6 +102,7 @@ func TestEndBlock(t *testing.T) {
 						Amount:           math.NewInt(10),
 					},
 				}
+
 				sk.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
 				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, ubd, nil)
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil)
@@ -142,6 +145,7 @@ func TestEndBlock(t *testing.T) {
 			setupMocks: func(ak *estestutil.MockAccountKeeper, bk *estestutil.MockBankKeeper, dk *estestutil.MockDistributionKeeper, sk *estestutil.MockStakingKeeper) {
 				validator, err := stypes.NewValidator(valValAddr.String(), valCosmosPubKey, stypes.Description{Moniker: "test"}, 0)
 				require.NoError(t, err)
+
 				delegation := stypes.NewDelegation(delAccAddrFromEVM.String(), valValAddr.String(), math.LegacyNewDec(10), math.LegacyNewDec(10).Quo(math.LegacyNewDec(2)))
 
 				delegationRewardDec := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, math.LegacyNewDec(10)))
@@ -265,14 +269,16 @@ func TestEndBlock(t *testing.T) {
 					require.NoError(t, err)
 
 					if len(expected.withdrawals) > 0 {
-						require.Equal(t, len(expected.withdrawals), len(ws))
+						require.Len(t, ws, len(expected.withdrawals))
+
 						for i, w := range ws {
 							require.Equal(t, expected.withdrawals[i], w)
 						}
 					}
 
 					if len(expected.rewardWithdrawals) > 0 {
-						require.Equal(t, len(expected.rewardWithdrawals), len(rws))
+						require.Len(t, rws, len(expected.rewardWithdrawals))
+
 						for i, rw := range rws {
 							require.Equal(t, expected.rewardWithdrawals[i], rw)
 						}

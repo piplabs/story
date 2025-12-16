@@ -57,9 +57,11 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		_, entryCoins := IPTokenToBondCoin(big.NewInt(0).SetUint64(entry.Amount.Uint64()))
+
 		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, entryCoins); err != nil {
 			return errors.Wrap(err, "send coins from account to module for unbonding entry coins")
 		}
+
 		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, entryCoins); err != nil {
 			return errors.Wrap(err, "burn coins of unbonding entry coins")
 		}
@@ -82,6 +84,7 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		if err != nil {
 			return errors.Wrap(err, "delegator address from bech32")
 		}
+
 		validatorAddr, err := sdk.ValAddressFromBech32(entry.ValidatorAddress)
 		if err != nil {
 			return errors.Wrap(err, "validator address from bech32")
@@ -93,6 +96,7 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		var totallyUnstaked bool
+
 		if _, err := k.stakingKeeper.GetDelegation(ctx, delegatorAddr, validatorAddr); err == nil {
 			totallyUnstaked = false
 		} else if errors.Is(err, stypes.ErrNoDelegation) {
@@ -114,6 +118,7 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 		}
 
 		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
 		isV121, err := netconf.IsV121(sdkCtx.ChainID(), sdkCtx.BlockHeight())
 		if err != nil {
 			return errors.Wrap(err, "failed to check if v1.2.1 is applied or not", "chain_id", sdkCtx.ChainID(), "block_height", sdkCtx.BlockHeight())
@@ -131,10 +136,13 @@ func (k Keeper) ProcessUnstakeWithdrawals(ctx context.Context, unbondedEntries [
 			log.Debug(ctx, "No residue reward claimed", "delegator_addr", delegatorAddr.String())
 			continue
 		}
+
 		_, coins := IPTokenToBondCoin(big.NewInt(0).SetUint64(residueAmount))
+
 		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, delegatorAddr, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "send coins from account to module for residue reward")
 		}
+
 		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
 			return errors.Wrap(err, "burn coins of residue reward")
 		}
@@ -236,6 +244,7 @@ func (k Keeper) ProcessRewardWithdrawals(ctx context.Context) error {
 		}
 
 		nextDelegations := delegations[nextValDelIndex:]
+
 		var shouldStopPrematurely bool
 
 		// Check if the sweep should stop prematurely as the current delegator loop exceeds the sweep bound while sweeping.
@@ -289,6 +298,7 @@ func (k Keeper) ProcessEligibleRewardWithdrawal(ctx context.Context, delegation 
 	if err != nil {
 		return errors.Wrap(err, "validator address from bech32")
 	}
+
 	valAddr := sdk.ValAddress(valBz)
 	valAccAddr := sdk.AccAddress(valAddr)
 
@@ -348,6 +358,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 	if err != nil {
 		return errors.Wrap(err, "convert acc address from bech32 address")
 	}
+
 	delRewards, err := k.distributionKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	if err != nil {
 		return err
@@ -401,6 +412,7 @@ func (k Keeper) EnqueueRewardWithdrawal(ctx context.Context, delAddrBech32, valA
 	if err != nil {
 		return err
 	}
+
 	err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, delRewards)
 	if err != nil {
 		return err
@@ -432,8 +444,10 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUndelegateSuccess,
 				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
@@ -492,6 +506,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
+
 		if operatorAddr != ev.OperatorAddress.String() {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -542,8 +557,13 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	msg.ApplyRewardsSharesFix = isV142
 
+	sKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
-	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
+	resp, err := skeeper.NewMsgServerImpl(sKeeper).Undelegate(cachedCtx, msg)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
 		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
 	} else if errors.Is(err, stypes.ErrNoDelegation) {

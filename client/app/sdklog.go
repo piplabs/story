@@ -36,6 +36,7 @@ func (c sdkLogger) Debug(msg string, keyvals ...any) {
 	if dropCosmosDebugs[msg] {
 		return
 	}
+
 	log.Debug(c.ctx, msg, keyvals...)
 }
 
@@ -67,8 +68,11 @@ func (c sdkLogger) Impl() any {
 
 // splitOutError splits the keyvals into a slice of keyvals without the error and the error.
 func splitOutError(keyvals []any) ([]any, error) {
-	var remaining []any
-	var err error
+	var (
+		remaining []any
+		err       error
+	)
+
 	for i := 0; i < len(keyvals); i += 2 {
 		if keyErr, ok := keyvals[i+1].(error); ok {
 			err = keyErr

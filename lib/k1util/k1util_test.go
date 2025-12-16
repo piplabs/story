@@ -41,7 +41,7 @@ func TestK1Util(t *testing.T) {
 
 	sig, err := k1util.Sign(key, [32]byte(digest))
 	require.NoError(t, err)
-	require.EqualValues(t, fromHex(t, sig1), sig[:])
+	require.Equal(t, fromHex(t, sig1), sig[:])
 
 	addr, err := k1util.PubKeyToAddress(key.PubKey())
 	require.NoError(t, err)
@@ -54,9 +54,11 @@ func TestK1Util(t *testing.T) {
 
 func TestRandom(t *testing.T) {
 	t.Parallel()
+
 	key := k1.GenPrivKey()
 
 	var digest [32]byte
+
 	_, _ = rand.Read(digest[:])
 
 	sig, err := k1util.Sign(key, digest)
@@ -149,6 +151,7 @@ func signVote(t *testing.T, key k1.PrivKey, chainID string, vote *cmtproto.Vote)
 
 func fromHex(t *testing.T, hexStr string) []byte {
 	t.Helper()
+
 	b, err := hex.DecodeString(hexStr)
 	require.NoError(t, err)
 

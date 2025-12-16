@@ -82,6 +82,7 @@ func TestKeeper_ProcessUBIPercentageSet(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setupMock()
+
 			err := keeper.ProcessUBIPercentageSet(ctx, tc.ev())
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -201,7 +202,9 @@ func TestKeeper_ProcessUBIEvents(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
+
 			cachedCtx, _ := ctx.CacheContext()
+
 			err := keeper.ProcessUBIEvents(cachedCtx, 1, tc.evmEvents())
 			if tc.expectedErr != "" {
 				require.Error(t, err)

@@ -57,9 +57,7 @@ func newCmtLogger(ctx context.Context, levelStr string) (cmtlog.Logger, error) {
 }
 
 func (c cmtLogger) Debug(msg string, keyvals ...any) {
-	if c.level < levelDebug {
-		return
-	} else if dropCometDebugs[msg] {
+	if c.level < levelDebug || dropCometDebugs[msg] {
 		return
 	}
 
@@ -70,6 +68,7 @@ func (c cmtLogger) Info(msg string, keyvals ...any) {
 	if c.level < levelInfo {
 		return
 	}
+
 	log.Info(c.ctx, msg, keyvals...)
 }
 
