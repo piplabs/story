@@ -85,6 +85,7 @@ func newApp(
 		app        = new(App)
 		appBuilder = new(runtime.AppBuilder)
 	)
+
 	if err := depinject.Inject(depCfg,
 		&appBuilder,
 		&app.appCodec,
@@ -143,7 +144,7 @@ func newApp(
 			return nil, errors.Wrap(err, "set module version map")
 		}
 
-		return app.App.InitChainer(ctx, req)
+		return app.InitChainer(ctx, req)
 	})
 
 	app.setupUpgradeHandlers()

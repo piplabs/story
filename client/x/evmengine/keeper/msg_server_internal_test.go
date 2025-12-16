@@ -66,6 +66,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		// get latest block to build on top
 		latestBlock, err := mockEngine.HeaderByType(c, ethclient.HeadLatest)
 		require.NoError(t, err)
+
 		latestHeight := latestBlock.Number.Uint64()
 
 		sdkCtx := sdk.UnwrapSDKContext(c)
@@ -141,6 +142,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			createPayload: func(ctx context.Context) (*etypes.Block, engine.PayloadID, []byte) {
 				latestBlock, err := mockEngine.HeaderByType(ctx, ethclient.HeadLatest)
 				require.NoError(t, err)
+
 				latestHeight := latestBlock.Number.Uint64()
 				wrongNextHeight := latestHeight + 2
 
@@ -235,6 +237,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+
 				mockEngine.forceInvalidNewPayloadV3 = true
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -249,6 +252,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+
 				mockEngine.forceInvalidForkchoiceUpdatedV3 = true
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -304,19 +308,24 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 		//nolint:tparallel // currently, we can't run the tests in parallel due to the shared mockEngine. don't know how to fix it yet, just disable parallel for now.
 		t.Run(tc.name, func(t *testing.T) {
 			// t.Parallel()
-			var payloadData []byte
-			var payloadID engine.PayloadID
-			var block *etypes.Block
-			var events []*types.EVMEvent
+			var (
+				payloadData []byte
+				payloadID   engine.PayloadID
+				block       *etypes.Block
+				events      []*types.EVMEvent
+			)
 
 			cachedCtx, _ := ctx.CacheContext()
+
 			cachedCtx = cachedCtx.WithChainID(netconf.TestChainID)
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}
+
 			if tc.createPayload != nil {
 				block, payloadID, payloadData = tc.createPayload(cachedCtx)
 			}
+
 			if tc.createPrevPayloadEvents != nil {
 				events = tc.createPrevPayloadEvents(cachedCtx, block.Hash())
 			}
@@ -331,6 +340,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, resp)
+
 				if tc.postCheck != nil {
 					tc.postCheck(cachedCtx, block, payloadID)
 				}
@@ -348,6 +358,7 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 // populateGenesisHead inserts the mock genesis execution head into the database.
 func populateGenesisHead(ctx context.Context, t *testing.T, keeper *Keeper) {
 	t.Helper()
+
 	genesisBlock, err := ethclient.MockGenesisBlock()
 	require.NoError(t, err)
 
@@ -361,6 +372,7 @@ func Test_pushPayload(t *testing.T) {
 		// get latest block to build on top
 		latestBlock, err := mockEngine.HeaderByType(ctx, ethclient.HeadLatest)
 		require.NoError(t, err)
+
 		latestHeight := latestBlock.Number.Uint64()
 
 		sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -372,10 +384,12 @@ func Test_pushPayload(t *testing.T) {
 
 		return execPayload, payloadID
 	}
+
 	type args struct {
 		transformPayload func(*engine.ExecutableData)
 		newPayloadV3Func func(context.Context, engine.ExecutableData, []common.Hash, *common.Hash) (engine.PayloadStatusV1, error)
 	}
+
 	tests := []struct {
 		name       string
 		args       args
@@ -466,6 +480,7 @@ func Test_pushPayload(t *testing.T) {
 			require.NoError(t, err)
 
 			mockEngine.newPayloadV3Func = tt.args.newPayloadV3Func
+
 			payload, payloadID := newPayload(ctx, mockEngine, common.Address{})
 			if tt.args.transformPayload != nil {
 				tt.args.transformPayload(&payload)
@@ -476,11 +491,13 @@ func Test_pushPayload(t *testing.T) {
 				t.Errorf("pushPayload() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			require.Equal(t, tt.wantStatus, status.Status)
 
 			if status.Status == engine.VALID {
 				want, err := mockEngine.GetPayloadV3(ctx, payloadID)
 				require.NoError(t, err)
+
 				if !reflect.DeepEqual(payload, *want.ExecutionPayload) {
 					t.Errorf("pushPayload() got = %v, want %v", payload, want)
 				}

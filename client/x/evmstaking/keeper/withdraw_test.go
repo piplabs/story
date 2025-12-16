@@ -435,6 +435,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			name: "pass: process multiple withdrawals - different delegators unstake from different validators, with a claimed reward for one of them",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				callCount := 0
+
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, addr sdk.AccAddress, denom string) sdk.Coin {
 					callCount++
@@ -595,6 +596,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 			name: "pass: process multiple withdrawals - a single delegator unstakes from multiple validators, with a claimed reward",
 			setupMocks: func(bk *moduletestutil.MockBankKeeper, dk *moduletestutil.MockDistributionKeeper, sk *moduletestutil.MockStakingKeeper) {
 				callCount := 0
+
 				sk.EXPECT().GetDelegation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stypes.Delegation{}, nil).Times(2)
 				bk.EXPECT().SpendableCoin(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, addr sdk.AccAddress, denom string) sdk.Coin {
 					callCount++
@@ -693,14 +695,16 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 					require.NoError(t, err)
 
 					if len(expected.withdrawals) > 0 {
-						require.Equal(t, len(expected.withdrawals), len(ws))
+						require.Len(t, ws, len(expected.withdrawals))
+
 						for i, w := range ws {
 							require.Equal(t, expected.withdrawals[i], w)
 						}
 					}
 
 					if len(expected.rewardWithdrawals) > 0 {
-						require.Equal(t, len(expected.rewardWithdrawals), len(rws))
+						require.Len(t, rws, len(expected.rewardWithdrawals))
+
 						for i, rw := range rws {
 							require.Equal(t, expected.rewardWithdrawals[i], rw)
 						}
@@ -770,6 +774,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 					Jailed:          false,
 					OperatorAddress: strings.Replace(val1ValAddr.String(), "story", "cosmos", 1),
 				}}
+
 				sk.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("storyvaloper"))
 				sk.EXPECT().GetAllValidators(gomock.Any()).Return(valSet, nil)
 			},
@@ -782,6 +787,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 					Jailed:          false,
 					OperatorAddress: val1ValAddr.String(),
 				}}
+
 				sk.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("storyvaloper"))
 				sk.EXPECT().GetAllValidators(gomock.Any()).Return(valSet, nil)
 				sk.EXPECT().GetValidatorDelegations(gomock.Any(), gomock.Any()).Return([]stypes.Delegation{}, errors.New("failed to get delegations"))
@@ -799,6 +805,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 					DelegatorAddress: getDelegatorAddr(false),
 					ValidatorAddress: val1ValAddr.String(),
 				}}
+
 				sk.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("storyvaloper")).Times(2)
 				sk.EXPECT().GetAllValidators(gomock.Any()).Return(valSet, nil)
 				sk.EXPECT().GetValidatorDelegations(gomock.Any(), gomock.Any()).Return(delegations, nil)
@@ -814,6 +821,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 				require.NoError(t, err)
 				validator2, err := stypes.NewValidator(val2ValAddr.String(), val2CosmosPubKey, stypes.Description{Moniker: "validator2"}, 0)
 				require.NoError(t, err)
+
 				valSet := []stypes.Validator{validator1, validator2}
 
 				// set delegations
@@ -873,6 +881,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 				require.NoError(t, err)
 				validator2, err := stypes.NewValidator(val2ValAddr.String(), val2CosmosPubKey, stypes.Description{Moniker: "validator2"}, 0)
 				require.NoError(t, err)
+
 				valSet := []stypes.Validator{validator1, validator2}
 
 				// set delegations
@@ -922,9 +931,11 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 				// set validator set
 				validator1, err := stypes.NewValidator(val1ValAddr.String(), val1CosmosPubKey, stypes.Description{Moniker: "validator1"}, 0)
 				require.NoError(t, err)
+
 				validator1.Jailed = true
 				validator2, err := stypes.NewValidator(val2ValAddr.String(), val2CosmosPubKey, stypes.Description{Moniker: "validator2"}, 0)
 				require.NoError(t, err)
+
 				valSet := []stypes.Validator{validator1, validator2}
 
 				// set delegations
@@ -998,7 +1009,8 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 					expected := tc.expectedResult(cachedCtx)
 					rws, err := esk.GetAllRewardWithdrawals(cachedCtx)
 					require.NoError(t, err)
-					require.Equal(t, len(expected), len(rws))
+					require.Len(t, rws, len(expected))
+
 					for i, rw := range rws {
 						require.Equal(t, expected[i], rw)
 					}
@@ -1887,7 +1899,7 @@ func TestProcessWithdraw(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, tc.expectedResult.DelegatorAddress, ubd.DelegatorAddress)
 					require.Equal(t, tc.expectedResult.ValidatorAddress, ubd.ValidatorAddress)
-					require.Equal(t, len(tc.expectedResult.Entries), len(ubd.Entries))
+					require.Len(t, ubd.Entries, len(tc.expectedResult.Entries))
 
 					for i, entry := range ubd.Entries {
 						require.Equal(t, tc.expectedResult.Entries[i].Balance.Uint64(), entry.Balance.Uint64())

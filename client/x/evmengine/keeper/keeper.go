@@ -55,6 +55,7 @@ type Keeper struct {
 	// so we might not actually be the next proposer.
 	mutablePayload struct {
 		sync.Mutex
+
 		ID        engine.PayloadID
 		Height    uint64
 		UpdatedAt time.Time
@@ -165,6 +166,7 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 	)
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
 	isTerence, err := netconf.IsTerence(sdkCtx.ChainID(), sdkCtx.BlockHeight())
 	if err != nil {
 		return engine.ExecutableData{}, errors.Wrap(err, "failed to check if the Terence upgrade is activated or not")
@@ -175,6 +177,7 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 		if msg.ExecutionPayload != nil {
 			return engine.ExecutableData{}, errors.New("legacy json payload not allowed")
 		}
+
 		payload, err = types.PayloadFromProto(msg.ExecutionPayloadDeneb)
 		if err != nil {
 			return engine.ExecutableData{}, errors.Wrap(err, "unmarshal proto payload")
@@ -187,6 +190,7 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 		if err := types.ValidateExecPayload(msg); err != nil {
 			return engine.ExecutableData{}, errors.Wrap(err, "validate execution payload")
 		}
+
 		if err := json.Unmarshal(msg.ExecutionPayload, &payload); err != nil {
 			return engine.ExecutableData{}, errors.Wrap(err, "unmarshal payload")
 		}
@@ -207,10 +211,9 @@ func (k *Keeper) parseAndVerifyProposedPayload(ctx context.Context, msg *types.M
 
 	// Ensure the payload timestamp is after latest execution block and before or equaled to the current consensus block.
 	minTimestamp := head.GetBlockTime() + 1
-	maxTimestamp := uint64(sdk.UnwrapSDKContext(ctx).BlockTime().Unix())
-	if maxTimestamp < minTimestamp { // Execution block minimum takes precedence
-		maxTimestamp = minTimestamp
-	}
+
+	maxTimestamp := max(uint64(sdk.UnwrapSDKContext(ctx).BlockTime().Unix()), minTimestamp)
+
 	if payload.Timestamp < minTimestamp || payload.Timestamp > maxTimestamp {
 		return engine.ExecutableData{}, errors.New("invalid payload timestamp",
 			"proposed", payload.Timestamp, "min", minTimestamp, "max", maxTimestamp,
@@ -254,6 +257,7 @@ func (k *Keeper) isNextProposer(ctx context.Context, currentHeight int64) (bool,
 	}
 
 	nextProposer := valset.CopyIncrementProposerPriority(1).Proposer
+
 	nextAddr, err := k1util.PubKeyToAddress(nextProposer.PubKey) // Convert to EVM address
 	if err != nil {
 		return false, err

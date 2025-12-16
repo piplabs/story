@@ -1,4 +1,4 @@
-//nolint:revive,stylecheck // versioning
+//nolint:staticcheck,revive,nolintlint // versioning
 package v_1_2_0
 
 import (

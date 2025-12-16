@@ -43,14 +43,17 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		ctx, "Dequeueing eligible withdrawals [BEFORE]",
 		"total_len", len(payload.Withdrawals),
 	)
+
 	maxWithdrawals, err := s.evmstakingKeeper.MaxWithdrawalPerBlock(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting max withdrawal per block")
 	}
+
 	ws, err := s.evmstakingKeeper.DequeueEligibleWithdrawals(ctx, maxWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on withdrawals dequeue")
 	}
+
 	log.Debug(
 		ctx, "Dequeueing eligible withdrawals [AFTER]",
 		"total_len", len(payload.Withdrawals),
@@ -70,10 +73,12 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 		"withdrawals_len", len(ws),
 	)
 	maxRewardWithdrawals := maxWithdrawals - uint32(len(ws))
+
 	rws, err := s.evmstakingKeeper.DequeueEligibleRewardWithdrawals(ctx, maxRewardWithdrawals)
 	if err != nil {
 		return nil, errors.Wrap(err, "error on reward withdrawals dequeue")
 	}
+
 	log.Debug(
 		ctx, "Dequeueing eligible reward withdrawals [AFTER]",
 		"total_len", len(payload.Withdrawals),
@@ -147,9 +152,11 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.evmstakingKeeper.ProcessStakingEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver staking-related event logs")
 	}
+
 	if err := s.ProcessUpgradeEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver upgrade-related event logs")
 	}
+
 	if err := s.ProcessUBIEvents(ctx, payload.Number-1, msg.PrevPayloadEvents); err != nil {
 		return nil, errors.Wrap(err, "deliver ubi-related event logs")
 	}
@@ -167,6 +174,7 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 // pushPayload pushes the given Engine API payload to EL and returns the engine payload status or an error.
 func pushPayload(ctx context.Context, engineCl ethclient.EngineClient, payload engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
 	appHash := common.BytesToHash(sdkCtx.BlockHeader().AppHash)
 	if appHash == (common.Hash{}) {
 		return engine.PayloadStatusV1{}, errors.New("app hash is empty")

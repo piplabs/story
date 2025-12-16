@@ -19,6 +19,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/k1util"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStakingRedelegate) (err error) {
@@ -33,8 +34,10 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeRedelegateSuccess,
 				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
@@ -84,6 +87,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to evm address")
 	}
+
 	valDstEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorDstPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to evm address")
@@ -104,6 +108,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
+
 		if operatorAddr != ev.OperatorAddress.String() {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -148,7 +153,19 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		delID, amountCoin,
 	)
 
-	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
+	isV142, err := netconf.IsV142(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	if err != nil {
+		return errors.Wrap(err, "failed to check if v1.4.2 is applied or not", "chain_id", sdkCtx.ChainID(), "block_height", sdkCtx.BlockHeight())
+	}
+
+	msg.ApplyRewardsSharesFix = isV142
+
+	sKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
+	resp, err := skeeper.NewMsgServerImpl(sKeeper).BeginRedelegate(cachedCtx, msg)
 	switch {
 	case errors.Is(err, stypes.ErrSelfRedelegation):
 		return errors.WrapErrWithCode(errors.SelfRedelegation, err)

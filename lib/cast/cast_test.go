@@ -14,7 +14,9 @@ func TestCast(t *testing.T) {
 	t.Parallel()
 
 	slice := make([]byte, 100)
+
 	var resp common.Address
+
 	_, _ = rand.Read(resp[:])
 
 	// 8

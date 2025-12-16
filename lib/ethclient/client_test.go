@@ -21,6 +21,7 @@ import (
 
 func TestGetPayloadV3(t *testing.T) {
 	t.Parallel()
+
 	fuzzer := fuzz.New().NilChance(0)
 
 	var param1 engine.PayloadID
@@ -38,6 +39,7 @@ func TestGetPayloadV3(t *testing.T) {
 
 func TestNewPayloadV3(t *testing.T) {
 	t.Parallel()
+
 	fuzzer := fuzz.New().NilChance(0)
 
 	var param1 engine.ExecutableData
@@ -62,6 +64,7 @@ func TestNewPayloadV3(t *testing.T) {
 
 func TestForkchoiceUpdatedV3(t *testing.T) {
 	t.Parallel()
+
 	fuzzer := fuzz.New().NilChance(0)
 
 	var param1 engine.ForkchoiceStateV1
@@ -105,6 +108,7 @@ func testEndpoint(t *testing.T, callback func(context.Context, ethclient.EngineC
 		assert.NoError(t, err)
 
 		var rpcReq jsonRPCRequest
+
 		err = json.Unmarshal(body, &rpcReq)
 		assert.NoError(t, err)
 
@@ -112,7 +116,7 @@ func testEndpoint(t *testing.T, callback func(context.Context, ethclient.EngineC
 			expectJSON, err := json.Marshal(params[i])
 			assert.NoError(t, err)
 
-			assert.Equal(t, string(expectJSON), string(actualJSON))
+			assert.JSONEq(t, string(expectJSON), string(actualJSON))
 		}
 
 		rpcResp := jsonRPCResponse{

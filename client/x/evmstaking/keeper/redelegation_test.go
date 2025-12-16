@@ -39,6 +39,7 @@ func TestProcessRedelegate(t *testing.T) {
 	valSrcAddr := valAddrs[1]
 	valDstPubKey := pubKeys[2]
 	valDstAddr := valAddrs[2]
+
 	invalidPubKey := append([]byte{0x04}, valSrcPubKey.Bytes()[1:]...)
 
 	createRedelegate := func(valSrcPubKey, valDstPubKey []byte, amount *big.Int) *bindings.IPTokenStakingRedelegate {
@@ -497,6 +498,7 @@ func TestProcessRedelegate(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, *tc.expectedResult.srcDelegation, srcDelegation)
 				}
+
 				if tc.expectedResult.dstDelegation != nil {
 					dstDelegation, err := sk.GetDelegation(cachedCtx, delAddr, valDstAddr)
 					require.NoError(t, err)
@@ -532,6 +534,7 @@ func TestParseRedelegateLog(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 			_, err := esk.ParseRedelegateLog(tc.log)
 			if tc.expectErr {
 				require.Error(t, err, "should return error for %s", tc.name)

@@ -23,6 +23,7 @@ func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*ty
 		if err := evmLog.Verify(); err != nil {
 			return errors.Wrap(err, "verify log [BUG]")
 		}
+
 		ethlog, err := evmLog.ToEthLog()
 		if err != nil {
 			return err
@@ -36,6 +37,7 @@ func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*ty
 				clog.Error(ctx, "Failed to parse UBIPercentageSet log", err)
 				continue
 			}
+
 			if err = k.ProcessUBIPercentageSet(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process UBI percentage set", err)
 				continue
@@ -58,8 +60,10 @@ func (k *Keeper) ProcessUBIPercentageSet(ctx context.Context, ev *bindings.UBIPo
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUpdateUbiSuccess,
 			)

@@ -50,6 +50,7 @@ func TestGetWithdrawalQueue(t *testing.T) {
 	valAddr = "storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0"
 	valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(valAddr)
 	require.NoError(t, err)
+
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 	withdrawals := []types.Withdrawal{
 		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
@@ -57,6 +58,7 @@ func TestGetWithdrawalQueue(t *testing.T) {
 		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_UNSTAKE, valEVMAddr),
 	}
 	require.Len(t, withdrawals, 3)
+
 	for _, w := range withdrawals {
 		require.NoError(t, esk.AddWithdrawalToQueue(ctx, w))
 	}
@@ -105,6 +107,7 @@ func TestGetRewardWithdrawalQueue(t *testing.T) {
 	valAddr = "storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0"
 	valEVMAddr, err := utils.Bech32ValidatorAddressToEvmAddress(valAddr)
 	require.NoError(t, err)
+
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 	withdrawals := []types.Withdrawal{
 		types.NewWithdrawal(1, evmAddr.String(), 100, types.WithdrawalType_WITHDRAWAL_TYPE_REWARD, valEVMAddr),
@@ -112,6 +115,7 @@ func TestGetRewardWithdrawalQueue(t *testing.T) {
 		types.NewWithdrawal(3, evmAddr.String(), 300, types.WithdrawalType_WITHDRAWAL_TYPE_REWARD, valEVMAddr),
 	}
 	require.Len(t, withdrawals, 3)
+
 	for _, w := range withdrawals {
 		require.NoError(t, esk.AddRewardWithdrawalToQueue(ctx, w))
 	}
@@ -132,6 +136,7 @@ func TestGetOperatorAddress(t *testing.T) {
 
 	delEVMAddr, err := utils.Bech32DelegatorAddressToEvmAddress(delAddr)
 	require.NoError(t, err)
+
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 
 	req := &types.QueryGetOperatorAddressRequest{
@@ -141,7 +146,7 @@ func TestGetOperatorAddress(t *testing.T) {
 	// Query an empty operator
 	res, err := queryClient.GetOperatorAddress(context.Background(), req)
 	require.NoError(t, err)
-	require.Equal(t, "", res.OperatorAddress, "expected empty operator address yet")
+	require.Empty(t, res.OperatorAddress, "expected empty operator address yet")
 
 	// Set operator address
 	require.NoError(t, esk.DelegatorOperatorAddress.Set(ctx, delAddr, delEVMAddr))
@@ -161,6 +166,7 @@ func TestGetWithdrawAddress(t *testing.T) {
 
 	delEVMAddr, err := utils.Bech32DelegatorAddressToEvmAddress(delAddr)
 	require.NoError(t, err)
+
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 
 	req := &types.QueryGetWithdrawAddressRequest{
@@ -170,7 +176,7 @@ func TestGetWithdrawAddress(t *testing.T) {
 	// Query an empty withdraw address
 	res, err := queryClient.GetWithdrawAddress(context.Background(), req)
 	require.NoError(t, err)
-	require.Equal(t, "", res.WithdrawAddress, "expected empty withdraw address yet")
+	require.Empty(t, res.WithdrawAddress, "expected empty withdraw address yet")
 
 	// Set withdraw address
 	require.NoError(t, esk.DelegatorWithdrawAddress.Set(ctx, delAddr, delEVMAddr))
@@ -190,6 +196,7 @@ func TestGetRewardAddress(t *testing.T) {
 
 	delEVMAddr, err := utils.Bech32DelegatorAddressToEvmAddress(delAddr)
 	require.NoError(t, err)
+
 	evmAddr = common.HexToAddress("0x131D25EDE18178BAc9275b312001a63C081722d2")
 
 	req := &types.QueryGetRewardAddressRequest{
@@ -199,7 +206,7 @@ func TestGetRewardAddress(t *testing.T) {
 	// Query an empty reward address
 	res, err := queryClient.GetRewardAddress(context.Background(), req)
 	require.NoError(t, err)
-	require.Equal(t, "", res.RewardAddress, "expected empty reward address yet")
+	require.Empty(t, res.RewardAddress, "expected empty reward address yet")
 
 	// Set reward address
 	require.NoError(t, esk.DelegatorRewardAddress.Set(ctx, delAddr, delEVMAddr))

@@ -11,6 +11,7 @@ import (
 
 func TestFuzzer(t *testing.T) {
 	t.Parallel()
+
 	f := ethclient.NewFuzzer(0)
 
 	var payload engine.ExecutableData

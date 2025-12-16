@@ -32,6 +32,7 @@ func TestProcessDeposit(t *testing.T) {
 	// validator
 	valPubKey := pubKeys[1]
 	valAddr := valAddrs[1]
+
 	invalidPubKey := append([]byte{0x04}, valPubKey.Bytes()[1:]...)
 
 	createDeposit := func(delPubKey, valPubKey []byte, amount *big.Int) *bindings.IPTokenStakingDeposit {
@@ -306,6 +307,7 @@ func TestParseDepositLog(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+
 			_, err := esk.ParseDepositLog(tc.log)
 			if tc.expectErr {
 				require.Error(t, err, "should return error for %s", tc.name)

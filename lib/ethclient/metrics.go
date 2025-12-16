@@ -26,6 +26,7 @@ var (
 // latency returns a function that records the latency of an RPC call.
 func latency(chain string, endpoint string) func() {
 	start := time.Now()
+
 	return func() {
 		latencyHist.WithLabelValues(chain, endpoint).Observe(time.Since(start).Seconds())
 	}

@@ -23,6 +23,7 @@ import (
 
 func createKeeper(t *testing.T) (sdk.Context, *minttestutil.MockAccountKeeper, *minttestutil.MockBankKeeper, *minttestutil.MockStakingKeeper, *keeper.Keeper) {
 	t.Helper()
+
 	encCfg := moduletestutil.MakeTestEncodingConfig(mintmodule.AppModuleBasic{})
 	key := storetypes.NewKVStoreKey(types.StoreKey)
 	storeService := runtime.NewKVStoreService(key)

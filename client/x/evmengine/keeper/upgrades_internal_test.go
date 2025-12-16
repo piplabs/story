@@ -564,7 +564,9 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
+
 			cachedCtx, _ := ctx.CacheContext()
+
 			err := keeper.ProcessUpgradeEvents(cachedCtx, 1, tc.evmEvents())
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -639,6 +641,7 @@ func TestKeeper_ShouldUpgrade(t *testing.T) {
 
 			shouldUpgrade, pendingUpgrade := keeper.ShouldUpgrade(ctx)
 			require.Equal(t, tc.shouldUpgrade, shouldUpgrade)
+
 			if tc.shouldUpgrade {
 				require.Equal(t, tc.expectedUpgrade, pendingUpgrade)
 			}

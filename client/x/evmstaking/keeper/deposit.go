@@ -29,8 +29,10 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeDelegateSuccess,
 			)
@@ -106,16 +108,18 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 	// here we automatically set the period type to flexible period
 	delID := ev.DelegationId.String()
 	periodType := int32(ev.StakingPeriod.Int64())
+
 	if val.SupportTokenType == lockedTokenType {
 		flexPeriodType, err := k.stakingKeeper.GetFlexiblePeriodType(cachedCtx)
 		if err != nil {
 			return errors.Wrap(err, "get flexible period type")
 		}
+
 		periodType = flexPeriodType
 		delID = stypes.FlexiblePeriodDelegationID
 	}
 
-	evmstakingSKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	sKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
 	if !ok {
 		return errors.New("type assertion failed")
 	}
@@ -130,6 +134,7 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
 	}
+
 	if exists, err := k.DelegatorRewardAddress.Has(cachedCtx, depositorAddr.String()); err != nil {
 		return errors.Wrap(err, "check delegator reward address existence")
 	} else if !exists {
@@ -146,12 +151,13 @@ func (k Keeper) ProcessDeposit(ctx context.Context, ev *bindings.IPTokenStakingD
 		return errors.Wrap(err, "create stake coin for depositor: send coins")
 	}
 
-	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
+	skeeperMsgServer := skeeper.NewMsgServerImpl(sKeeper)
 	// Delegation by the depositor on the validator (validator existence is checked in msgServer.Delegate)
 	msg := stypes.NewMsgDelegate(
 		depositorAddr.String(), validatorAddr.String(), amountCoin,
 		delID, periodType,
 	)
+
 	if _, err = skeeperMsgServer.Delegate(cachedCtx, msg); errors.Is(err, stypes.ErrDelegationBelowMinimum) {
 		return errors.WrapErrWithCode(errors.InvalidDelegationAmount, err)
 	} else if errors.Is(err, stypes.ErrNoPeriodTypeFound) {

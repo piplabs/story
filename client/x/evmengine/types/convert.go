@@ -25,11 +25,13 @@ func PayloadToProto(p *engine.ExecutableData) (*ExecutionPayloadDeneb, error) {
 	p.BaseFeePerGas.FillBytes(baseFeePerGas[:])
 
 	var withdrawals []WithdrawalEVM
+
 	for _, w := range p.Withdrawals {
 		withdrawal, err := WithdrawalToProto(w)
 		if err != nil {
 			return nil, errors.Wrap(err, "withdrawal to proto")
 		}
+
 		withdrawals = append(withdrawals, withdrawal)
 	}
 
