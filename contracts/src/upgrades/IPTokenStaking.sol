@@ -99,6 +99,7 @@ contract IPTokenStaking is
         require(pauser2 != address(0), "IPTokenStaking: Invalid pauser2");
         __AccessControl_init();
         __Pausable_init();
+        // 0x6c7FA8DF1B8Dc29a7481Bb65ad590D2D16787a82 is the timelock address
         _grantRole(DEFAULT_ADMIN_ROLE, 0x6c7FA8DF1B8Dc29a7481Bb65ad590D2D16787a82);
         _grantRole(PAUSER_ROLE, pauser1);
         _grantRole(PAUSER_ROLE, pauser2);
