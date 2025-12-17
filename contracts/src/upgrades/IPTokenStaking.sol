@@ -189,14 +189,14 @@ contract IPTokenStaking is
     /// @notice Sets an operator for a delegator.
     /// Calling this method will override any existing operator.
     /// @param operator The operator address to add.
-    function setOperator(address operator) external payable chargesFee {
+    function setOperator(address operator) external payable whenNotPaused chargesFee {
         // Use unsetOperator to remove an operator, not setting to zero address
         require(operator != address(0), "IPTokenStaking: zero input address");
         emit SetOperator(msg.sender, operator);
     }
 
     /// @notice Removes current operator for a delegator.
-    function unsetOperator() external payable chargesFee {
+    function unsetOperator() external payable whenNotPaused chargesFee {
         emit UnsetOperator(msg.sender);
     }
 
@@ -206,7 +206,7 @@ contract IPTokenStaking is
 
     /// @notice Set/Update the withdrawal address that receives the withdrawals.
     /// @param newWithdrawalAddress EVM address to receive the  withdrawals.
-    function setWithdrawalAddress(address newWithdrawalAddress) external payable chargesFee {
+    function setWithdrawalAddress(address newWithdrawalAddress) external payable whenNotPaused chargesFee {
         require(newWithdrawalAddress != address(0), "IPTokenStaking: zero input address");
         emit SetWithdrawalAddress({
             delegator: msg.sender,
@@ -217,7 +217,7 @@ contract IPTokenStaking is
     /// @notice Set/Update the withdrawal address that receives the stake and reward withdrawals.
     /// @dev To prevent spam, only delegators with stake can call this function with cool-down time.
     /// @param newRewardsAddress EVM address to receive the stake and reward withdrawals.
-    function setRewardsAddress(address newRewardsAddress) external payable chargesFee {
+    function setRewardsAddress(address newRewardsAddress) external payable whenNotPaused chargesFee {
         require(newRewardsAddress != address(0), "IPTokenStaking: zero input address");
         emit SetRewardAddress({
             delegator: msg.sender,
@@ -247,7 +247,7 @@ contract IPTokenStaking is
         uint32 maxCommissionChangeRate,
         bool supportsUnlocked,
         bytes calldata data
-    ) external payable verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) nonReentrant {
+    ) external payable whenNotPaused verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) nonReentrant {
         _createValidator(
             validatorCmpPubkey,
             moniker,
@@ -310,7 +310,7 @@ contract IPTokenStaking is
     function updateValidatorCommission(
         bytes calldata validatorCmpPubkey,
         uint32 commissionRate
-    ) external payable chargesFee verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
+    ) external payable whenNotPaused chargesFee verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
         require(commissionRate >= minCommissionRate, "IPTokenStaking: Commission rate under min");
         emit UpdateValidatorCommission(validatorCmpPubkey, commissionRate);
     }
@@ -401,7 +401,7 @@ contract IPTokenStaking is
         bytes calldata validatorDstCmpPubkey,
         uint256 delegationId,
         uint256 amount
-    ) external payable chargesFee {
+    ) external payable whenNotPaused chargesFee {
         _redelegate(msg.sender, validatorSrcCmpPubkey, validatorDstCmpPubkey, delegationId, amount);
     }
 
@@ -421,7 +421,7 @@ contract IPTokenStaking is
         bytes calldata validatorDstCmpPubkey,
         uint256 delegationId,
         uint256 amount
-    ) external payable chargesFee {
+    ) external payable whenNotPaused chargesFee {
         _redelegate(delegator, validatorSrcCmpPubkey, validatorDstCmpPubkey, delegationId, amount);
     }
 
@@ -468,7 +468,7 @@ contract IPTokenStaking is
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external payable chargesFee {
+    ) external payable whenNotPaused chargesFee {
         _unstake(msg.sender, validatorCmpPubkey, delegationId, amount, data);
     }
 
@@ -487,7 +487,7 @@ contract IPTokenStaking is
         uint256 delegationId,
         uint256 amount,
         bytes calldata data
-    ) external payable chargesFee {
+    ) external payable whenNotPaused chargesFee {
         _unstake(delegator, validatorCmpPubkey, delegationId, amount, data);
     }
 
@@ -516,7 +516,7 @@ contract IPTokenStaking is
     function unjail(
         bytes calldata validatorCmpPubkey,
         bytes calldata data
-    ) external payable chargesFee verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
+    ) external payable whenNotPaused chargesFee verifyCmpPubkeyWithExpectedAddress(validatorCmpPubkey, msg.sender) {
         require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
         emit Unjail(msg.sender, validatorCmpPubkey, data);
     }
@@ -528,7 +528,7 @@ contract IPTokenStaking is
     function unjailOnBehalf(
         bytes calldata validatorCmpPubkey,
         bytes calldata data
-    ) external payable chargesFee verifyCmpPubkey(validatorCmpPubkey) {
+    ) external payable whenNotPaused chargesFee verifyCmpPubkey(validatorCmpPubkey) {
         require(data.length <= MAX_DATA_LENGTH, "IPTokenStaking: Data length over max");
         emit Unjail(msg.sender, validatorCmpPubkey, data);
     }
