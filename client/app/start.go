@@ -2,9 +2,10 @@ package app
 
 import (
 	"context"
+	"time"
+
 	"github.com/piplabs/story/client/x/dkg/keeper"
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
-	"time"
 
 	"cosmossdk.io/store"
 	pruningtypes "cosmossdk.io/store/pruning/types"
@@ -227,6 +228,8 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 		if err := app.Keepers.DKGKeeper.InitDKGService(cfg.Config.SnapshotDir(), addr); err != nil {
 			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
 		}
+
+		app.Keepers.DKGKeeper.StartDecryptWorker(ctx)
 	}
 
 	return app, privVal, nil
