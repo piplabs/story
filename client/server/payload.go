@@ -122,3 +122,7 @@ type QueryRewardsTokenByDelegatorAddressResponse struct {
 type QueryTotalRewardsTokenByDelegatorAddressResponse struct {
 	RewardsToken math.LegacyDec `json:"rewards_token"`
 }
+
+type QueryDKGGlobalPublicKeyResponse struct {
+	PublicKey string `json:"public_key"`
+}

@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"errors"
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,6 +43,7 @@ type Store interface {
 	GetDistrKeeper() distrkeeper.Keeper
 	GetUpgradeKeeper() *upgradekeeper.Keeper
 	GetMintKeeper() mintkeeper.Keeper
+	GetDKGKeeper() *dkgkeeper.Keeper
 }
 
 type Server struct {
