@@ -449,6 +449,9 @@ contract GenerateAlloc is Script {
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
+            vm.deal(0x36184298e57a19FCAaf8D9303106Bcd2160bB24A, 100000000 ether);
+            vm.deal(0xEd4caE1845F9b33b245B0ba9F0293409321f4D35, 100000000 ether);
+            vm.deal(0xF1F7e98e3d7107eb32d779caea2b1274fb1F389B, 100000000 ether);
         }
         if (ALLOCATE_1K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
