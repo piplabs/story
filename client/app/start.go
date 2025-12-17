@@ -191,7 +191,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	)
 
 	if cfg.DKG.Enable {
-		dkgTEEClient, err = keeper.CreateTEEClient(cfg.DKG)
+		dkgTEEClient, err = keeper.CreateTEEClient(cfg.DKG.TEEEndpoint)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to create tee client for DKG")
 		}
@@ -224,7 +224,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
 
 	if cfg.DKG.Enable {
-		if err := app.Keepers.DKGKeeper.InitDKGService(&cfg.Config, addr); err != nil {
+		if err := app.Keepers.DKGKeeper.InitDKGService(cfg.Config.SnapshotDir(), addr); err != nil {
 			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
 		}
 	}

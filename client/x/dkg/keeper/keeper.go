@@ -5,7 +5,6 @@ import (
 	storetypes "cosmossdk.io/core/store"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/lib/errors"
 	"sync"
 
@@ -97,11 +96,11 @@ func (k *Keeper) RegisterProposalService(server grpc.Server) {
 	types.RegisterMsgServiceServer(server, NewProposalServer(k))
 }
 
-func (k *Keeper) InitDKGService(cfg *config.Config, addr common.Address) error {
+func (k *Keeper) InitDKGService(stateDir string, addr common.Address) error {
 	k.setIsDKGSvcEnabled()
 	k.setValidatorAddress(addr)
 
-	stateManager, err := NewStateManager(cfg.DKGStateDir())
+	stateManager, err := NewStateManager(stateDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create state manager")
 	}
