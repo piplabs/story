@@ -129,6 +129,7 @@ func (s *Server) registerHandle() {
 	s.initStakingRoute()
 	s.initUpgradeRoute()
 	s.initMintRoute()
+	s.initDKGRoute()
 }
 
 func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error) {
