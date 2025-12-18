@@ -147,25 +147,11 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 
 	pid := session.Index
 	if pid == 0 {
-		// Fallback: attempt to derive index from DKG registrations
-		var mrenclave [32]byte
-		copy(mrenclave[:], session.Mrenclave)
-
-		regIndex, err := k.getDKGRegistrationIndex(ctx, mrenclave, session.Round, k.validatorAddress)
-		if err != nil {
-			return errors.Wrap(err, "session index not set and failed to derive from registrations")
-		}
-
-		session.Index = regIndex
-		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-			log.Warn(ctx, "Failed to persist derived session index", err)
-		}
-
-		pid = regIndex
+		return errors.New("session index not set")
 	}
 
-	if len(session.DKGPubKey) == 0 {
-		return errors.New("missing DKG public key for session")
+	if len(session.GlobalPubKey) == 0 {
+		return errors.New("missing GlobalPubKey for session")
 	}
 
 	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
@@ -174,7 +160,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
 		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
-		DkgPubKey:       session.DKGPubKey,
+		DkgPubKey:       session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	if err != nil {
