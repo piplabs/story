@@ -63,6 +63,11 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 		}
 
 		session.Index = regIndex
+		log.Info(ctx, "Derived and set session index from DKG registration",
+			"mrenclave", session.GetMrenclaveString(),
+			"round", session.Round,
+			"index", session.Index,
+		)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to persist validator PID on session", err)
 			k.stateManager.MarkFailed(ctx, session)

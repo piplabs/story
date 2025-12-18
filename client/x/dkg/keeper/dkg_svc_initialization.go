@@ -3,11 +3,12 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"slices"
+	"strings"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"slices"
-	"strings"
 )
 
 // handleDKGInitialization handles the DKG initialization event.

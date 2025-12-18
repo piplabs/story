@@ -147,7 +147,21 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 
 	pid := session.Index
 	if pid == 0 {
-		return errors.New("session index not set")
+		// Fallback: attempt to derive index from DKG registrations
+		var mrenclave [32]byte
+		copy(mrenclave[:], session.Mrenclave)
+
+		regIndex, err := k.getDKGRegistrationIndex(ctx, mrenclave, session.Round, k.validatorAddress)
+		if err != nil {
+			return errors.Wrap(err, "session index not set and failed to derive from registrations")
+		}
+
+		session.Index = regIndex
+		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+			log.Warn(ctx, "Failed to persist derived session index", err)
+		}
+
+		pid = regIndex
 	}
 
 	if len(session.DKGPubKey) == 0 {
