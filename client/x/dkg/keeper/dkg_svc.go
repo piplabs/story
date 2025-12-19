@@ -163,7 +163,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		"label_len", len(req.Label),
 	)
 
-	teeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	teeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	resp, err := k.teeClient.PartialDecryptTDH2(teeCtx, &types.PartialDecryptTDH2Request{
