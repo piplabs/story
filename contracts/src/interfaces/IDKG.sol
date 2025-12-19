@@ -71,19 +71,17 @@ contract IDKG {
     );
 
     // Emitted when a validator submits a TDH2 partial decryption.
-    // @param pid: party ID, 1-based index from DKG registration (used in Kyber polynomial evaluation)
     event PartialDecryptionSubmitted(
         address indexed validator,
         uint32 round,
         bytes32 mrenclave,
-        uint32 pid,
         bytes encryptedPartial,
         bytes ephemeralPubKey,
         bytes pubShare,
         bytes label
     );
 
-    // TDH2 partial decrypt submissions keyed by (mrenclave, round, labelHash, pid).
+    // TDH2 partial decrypt submissions keyed by (mrenclave, round, labelHash, validator).
     struct PartialDecryptSubmission {
         address validator;
         bytes partialDecryption;

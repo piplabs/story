@@ -293,7 +293,6 @@ func (c *ContractClient) SubmitPartialDecryption(
 	ctx context.Context,
 	round uint32,
 	mrenclave []byte,
-	pid uint32,
 	encryptedPartial []byte,
 	ephemeralPubKey []byte,
 	pubShare []byte,
@@ -302,7 +301,6 @@ func (c *ContractClient) SubmitPartialDecryption(
 	log.Info(ctx, "Calling submitPartialDecryption contract method",
 		"mrenclave", hex.EncodeToString(mrenclave),
 		"round", round,
-		"pid", pid,
 		"partial_len", len(encryptedPartial),
 		"eph_pub_len", len(ephemeralPubKey),
 		"pub_share_len", len(pubShare),
@@ -314,14 +312,14 @@ func (c *ContractClient) SubmitPartialDecryption(
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, mrenclave32, encryptedPartial, ephemeralPubKey, pubShare, label)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack submitPartialDecryption call data")
 	}
 
 	return c.sendWithRetry(ctx, "SubmitPartialDecryption", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
-		return bound.Transact(auth, "submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+		return bound.Transact(auth, "submitPartialDecryption", round, mrenclave32, encryptedPartial, ephemeralPubKey, pubShare, label)
 	})
 }
 

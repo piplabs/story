@@ -171,7 +171,6 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
-		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
 		DkgPubKey:       session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
@@ -183,7 +182,6 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		ctx,
 		session.Round,
 		session.Mrenclave,
-		pid,
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,
 		resp.PubShare,

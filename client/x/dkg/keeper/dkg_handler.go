@@ -17,6 +17,7 @@ import (
 
 // RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
+// Index (PID) is assigned based on registration order (position in list + 1).
 func (k *Keeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
@@ -292,28 +293,6 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		)
 		// Return nil to ensure deterministic consensus - all validators emit success event
 		return nil
-	}
-
-	// Best-effort: ensure the local session has our 1-based PID (registration index).
-	// If this wasn't set during network-set/dealing (e.g., node didn't participate past registration),
-	// decrypt processing will fail with "session index not set".
-	if session.Index == 0 {
-		regIndex, regErr := k.getDKGRegistrationIndex(ctx, mrenclave, round, k.validatorAddress)
-		if regErr != nil {
-			log.Warn(ctx, "Failed to derive validator PID for decrypt request; will queue request but decrypt processing may fail", regErr,
-				"validator", k.validatorAddress.Hex(),
-				"round", round,
-				"mrenclave", hex.EncodeToString(mrenclave[:]),
-			)
-		} else {
-			session.Index = regIndex
-			log.Info(ctx, "Derived and set session index for decrypt request",
-				"validator", k.validatorAddress.Hex(),
-				"round", round,
-				"mrenclave", hex.EncodeToString(mrenclave[:]),
-				"index", session.Index,
-			)
-		}
 	}
 
 	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.

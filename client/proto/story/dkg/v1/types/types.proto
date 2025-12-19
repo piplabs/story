@@ -91,6 +91,13 @@ message DKGRegistration {
   ];
 }
 
+message DKGRegistrationList {
+  repeated DKGRegistration registrations = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"registrations\""
+  ];
+}
+
 message TEEUpgradeInfo {
   bytes mrenclave = 1 [
     (gogoproto.moretags) = "yaml:\"mrenclave\""

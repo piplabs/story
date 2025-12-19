@@ -18,7 +18,7 @@ contract DKG is IDKG {
     mapping(bytes32 mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
 
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes32 labelHash => mapping(uint32 pid => PartialDecryptSubmission))))
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes32 labelHash => mapping(address validator => PartialDecryptSubmission))))
         public partialDecrypts;
 
     constructor(bytes32 mrenclave) {
@@ -44,6 +44,7 @@ contract DKG is IDKG {
             _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey),
             "Invalid remote attestation"
         );
+        require(dkgNodeInfos[mrenclave][round][msg.sender].dkgPubKey.length == 0, "Already registered");
 
         dkgNodeInfos[mrenclave][round][msg.sender] = NodeInfo({
             dkgPubKey: dkgPubKey,
@@ -154,24 +155,23 @@ contract DKG is IDKG {
     function submitPartialDecryption(
         uint32 round,
         bytes32 mrenclave,
-        uint32 pid,
         bytes calldata encryptedPartial,
         bytes calldata ephemeralPubKey,
         bytes calldata pubShare,
         bytes calldata label
     ) external onlyValidMrenclave(mrenclave) {
         require(round > 0, "Invalid round");
-        require(pid > 0, "Invalid pid");
         require(encryptedPartial.length > 0, "Empty partial");
         require(pubShare.length > 0, "Empty pubShare");
         require(label.length > 0, "Empty label");
         require(ephemeralPubKey.length == 65, "Invalid ephemeral pubkey"); // secp256k1 uncompressed
+        require(dkgNodeInfos[mrenclave][round][msg.sender].dkgPubKey.length > 0, "Sender not registered");
 
         bytes32 labelHash = keccak256(label);
-        PartialDecryptSubmission storage existing = partialDecrypts[mrenclave][round][labelHash][pid];
+        PartialDecryptSubmission storage existing = partialDecrypts[mrenclave][round][labelHash][msg.sender];
         require(!existing.exists, "Partial already submitted");
 
-        partialDecrypts[mrenclave][round][labelHash][pid] = PartialDecryptSubmission({
+        partialDecrypts[mrenclave][round][labelHash][msg.sender] = PartialDecryptSubmission({
             validator: msg.sender,
             partialDecryption: encryptedPartial,
             pubShare: pubShare,
@@ -183,7 +183,6 @@ contract DKG is IDKG {
             msg.sender,
             round,
             mrenclave,
-            pid,
             encryptedPartial,
             ephemeralPubKey,
             pubShare,

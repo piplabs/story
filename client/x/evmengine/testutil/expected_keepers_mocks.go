@@ -360,17 +360,17 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature []byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature, globalPubKey []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, signature)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, signature, globalPubKey)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, signature any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, signature, globalPubKey any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, signature)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, signature, globalPubKey)
 }
 
 // InvalidDeal mocks base method.

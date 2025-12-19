@@ -1,12 +1,13 @@
 package keeper
 
 import (
+	"fmt"
+	"sync"
+
 	"cosmossdk.io/collections"
 	storetypes "cosmossdk.io/core/store"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/lib/errors"
-	"sync"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -41,11 +42,11 @@ type Keeper struct {
 
 	Schema            collections.Schema
 	ParamsStore       collections.Item[types.Params]
-	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
-	LatestDKGNetwork  collections.Item[string]                       // stores mrenclave key of latest DKG network
-	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: mrenclave_round_address
-	GlobalPubKeyVotes collections.Map[string, uint32]                // key: mrenclave_round_globalPubKey
-	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: mrenclave
+	DKGNetworks       collections.Map[string, types.DKGNetwork]          // key: mrenclave_round
+	LatestDKGNetwork  collections.Item[string]                           // stores mrenclave key of latest DKG network
+	DKGRegistrations  collections.Map[string, types.DKGRegistrationList] // key: mrenclave_round -> list of registrations
+	GlobalPubKeyVotes collections.Map[string, uint32]                    // key: mrenclave_round_globalPubKey
+	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]      // key: mrenclave
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -78,7 +79,7 @@ func NewKeeper(
 		ParamsStore:       collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:       collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:  collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
-		DKGRegistrations:  collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
+		DKGRegistrations:  collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistrationList](cdc)),
 		GlobalPubKeyVotes: collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
 		TEEUpgradeInfos:   collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
 	}

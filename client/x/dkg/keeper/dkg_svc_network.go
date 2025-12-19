@@ -49,24 +49,24 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 		return
 	}
 
-	// Ensure the local session PID matches the validator's DKG registration index.
+	// Get PID from registration list.
 	if session.Index == 0 {
 		var mrenclave [32]byte
 		copy(mrenclave[:], session.Mrenclave)
 
-		regIndex, regErr := k.getDKGRegistrationIndex(ctx, mrenclave, session.Round, k.validatorAddress)
+		pid, regErr := k.getDKGRegistrationIndex(ctx, mrenclave, session.Round, k.validatorAddress)
 		if regErr != nil {
-			log.Error(ctx, "Failed to derive validator PID from DKG registration", regErr)
+			log.Error(ctx, "Failed to get validator PID from registration", regErr)
 			k.stateManager.MarkFailed(ctx, session)
 
 			return
 		}
 
-		session.Index = regIndex
-		log.Info(ctx, "Derived and set session index from DKG registration",
+		session.Index = pid
+		log.Info(ctx, "Derived and set session PID from DKG registration",
 			"mrenclave", session.GetMrenclaveString(),
 			"round", session.Round,
-			"index", session.Index,
+			"pid", session.Index,
 		)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to persist validator PID on session", err)

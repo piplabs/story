@@ -274,20 +274,16 @@ message PartialDecryptTDH2Request {
     (gogoproto.moretags) = "yaml:\"label\""
   ];
 
-  uint32 pid = 5 [
-    (gogoproto.moretags) = "yaml:\"pid\""
-  ];
-
-  bytes dkg_pub_key = 6 [
+  bytes dkg_pub_key = 5 [
     (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
   ];
 
-  string sealed_share_id = 7 [
+  string sealed_share_id = 6 [
     (gogoproto.moretags) = "yaml:\"sealed_share_id\""
   ];
 
   // secp256k1 uncompressed requester pubkey (65 bytes)
-  bytes requester_pub_key = 8 [
+  bytes requester_pub_key = 7 [
     (gogoproto.moretags) = "yaml:\"requester_pub_key\""
   ];
 }
