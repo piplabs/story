@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/piplabs/story/client/x/dkg/types"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/piplabs/story/client/x/dkg/types"
 
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -114,6 +115,11 @@ func (sm *StateManager) UpdateSession(ctx context.Context, session *types.DKGSes
 }
 
 func (sm *StateManager) MarkFailed(ctx context.Context, session *types.DKGSession) {
+	if session == nil {
+		log.Warn(ctx, "Cannot mark nil DKG session as failed", nil)
+		return
+	}
+
 	session.UpdatePhase(types.PhaseFailed)
 	if err := sm.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to mark session as failed", err)

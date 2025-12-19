@@ -279,6 +279,28 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		return errors.Wrap(err, "failed to get DKG session for decrypt request")
 	}
 
+	// Best-effort: ensure the local session has our 1-based PID (registration index).
+	// If this wasn't set during network-set/dealing (e.g., node didn't participate past registration),
+	// decrypt processing will fail with "session index not set".
+	if session.Index == 0 {
+		regIndex, regErr := k.getDKGRegistrationIndex(ctx, mrenclave, round, k.validatorAddress)
+		if regErr != nil {
+			log.Warn(ctx, "Failed to derive validator PID for decrypt request; will queue request but decrypt processing may fail", regErr,
+				"validator", k.validatorAddress.Hex(),
+				"round", round,
+				"mrenclave", hex.EncodeToString(mrenclave[:]),
+			)
+		} else {
+			session.Index = regIndex
+			log.Info(ctx, "Derived and set session index for decrypt request",
+				"validator", k.validatorAddress.Hex(),
+				"round", round,
+				"mrenclave", hex.EncodeToString(mrenclave[:]),
+				"index", session.Index,
+			)
+		}
+	}
+
 	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.
 	session.AddDecryptRequest(types.DecryptRequest{
 		Requester:       requester.Hex(),

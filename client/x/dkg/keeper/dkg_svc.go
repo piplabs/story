@@ -78,8 +78,6 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	case types.DKGStageUnspecified:
 		return
 	}
-
-	return
 }
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests
@@ -144,6 +142,9 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 	if k.teeClient == nil {
 		return errors.New("tee client not configured")
 	}
+	if k.contractClient == nil {
+		return errors.New("contract client not configured")
+	}
 
 	pid := session.Index
 	if pid == 0 {
@@ -154,7 +155,18 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("missing GlobalPubKey for session")
 	}
 
-	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
+	log.Info(ctx, "Calling TEE PartialDecryptTDH2",
+		"session", session.GetSessionKey(),
+		"round", session.Round,
+		"pid", pid,
+		"ciphertext_len", len(req.Ciphertext),
+		"label_len", len(req.Label),
+	)
+
+	teeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	resp, err := k.teeClient.PartialDecryptTDH2(teeCtx, &types.PartialDecryptTDH2Request{
 		Mrenclave:       session.Mrenclave,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
