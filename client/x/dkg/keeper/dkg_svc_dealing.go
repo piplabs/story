@@ -112,6 +112,12 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
+	if session.Index == 0 {
+		log.Warn(ctx, "Session index not set, skipping process deals", nil)
+
+		return
+	}
+
 	var resp *types.ProcessDealResponse
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to TEE client",
@@ -126,8 +132,12 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 			Deals:     []types.Deal{},
 		}
 
+		// session.Index is 1-based (registration index)
+		// deal.RecipientIndex is 0-based (kyber participant index)
+		// Convert: participantIndex = regIndex - 1
+		participantIndex := session.Index - 1
 		for _, deal := range deals {
-			if deal.RecipientIndex == session.Index {
+			if deal.RecipientIndex == participantIndex {
 				req.Deals = append(req.Deals, deal)
 			}
 		}
@@ -183,6 +193,12 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
+	if session.Index == 0 {
+		log.Warn(ctx, "Session index not set, skipping process responses", nil)
+
+		return
+	}
+
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessResponses call to TEE client",
 			"mrenclave", session.GetMrenclaveString(),
@@ -196,8 +212,12 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 			Responses: []types.Response{},
 		}
 
+		// session.Index is 1-based (registration index)
+		// resp.VssResponse.Index is 0-based (kyber participant index)
+		// Skip our own responses
+		ownParticipantIndex := session.Index - 1
 		for _, resp := range responses {
-			if resp.VssResponse.Index != session.Index {
+			if resp.VssResponse.Index != ownParticipantIndex {
 				req.Responses = append(req.Responses, resp)
 			}
 		}
