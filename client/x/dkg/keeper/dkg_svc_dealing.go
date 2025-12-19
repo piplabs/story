@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/log"
 )
@@ -69,7 +70,6 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	for _, deal := range resp.GetDeals() {
 		session.Deals[deal.Index] = deal
-		session.Index = deal.Index // same for all deals
 	}
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
