@@ -234,6 +234,11 @@ func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mren
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
+//
+// IMPORTANT: This function runs during block finalization (FinalizeBlock) and MUST be deterministic
+// across all validators. It should NOT return errors based on local state (stateManager) since
+// local state can differ between nodes, causing consensus failures (LastResultsHash mismatch).
+// All local stateManager operations are handled in a fire-and-forget manner with error logging only.
 func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
 	if !k.isDKGSvcEnabled {
 		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
@@ -274,9 +279,19 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		"label_len", len(label),
 	)
 
+	// NOTE: stateManager operations are local disk state, NOT consensus state.
+	// We must not return errors from these operations as they would cause different
+	// validators to emit different events, breaking consensus (LastResultsHash mismatch).
+	// Instead, log errors and continue - the background decrypt worker will handle missing sessions.
+
 	session, err := k.stateManager.GetSession(mrenclave[:], round)
 	if err != nil {
-		return errors.Wrap(err, "failed to get DKG session for decrypt request")
+		log.Warn(ctx, "Failed to get DKG session for decrypt request (local state); decrypt will not be queued", err,
+			"mrenclave", hex.EncodeToString(mrenclave[:]),
+			"round", round,
+		)
+		// Return nil to ensure deterministic consensus - all validators emit success event
+		return nil
 	}
 
 	// Best-effort: ensure the local session has our 1-based PID (registration index).
@@ -312,7 +327,11 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 	})
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to persist decrypt request")
+		log.Warn(ctx, "Failed to persist decrypt request (local state); request may be lost on restart", err,
+			"session", session.GetSessionKey(),
+		)
+		// Return nil to ensure deterministic consensus
+		return nil
 	}
 
 	log.Info(ctx, "Queued threshold decrypt request",
