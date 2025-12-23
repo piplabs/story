@@ -42,6 +42,9 @@ func (k *Keeper) ProcessUBIEvents(ctx context.Context, height uint64, logs []*ty
 				clog.Error(ctx, "Failed to process UBI percentage set", err)
 				continue
 			}
+		default:
+			// skip if the event is not from UBI pool contract
+			continue
 		}
 	}
 
