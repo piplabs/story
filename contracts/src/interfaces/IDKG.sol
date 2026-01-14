@@ -32,7 +32,7 @@ contract IDKG {
         bytes rawQuote
     );
 
-    event DKGFinalized(address indexed msgSender, uint32 round, bytes32 mrenclave, bytes globalPubKey, bytes signature);
+    event DKGFinalized(address indexed msgSender, uint32 round, bytes32 mrenclave, bytes globalPubKey, bytes[] publicCoeffs, bytes signature);
 
     event DKGNetworkSet(
         address indexed msgSender,

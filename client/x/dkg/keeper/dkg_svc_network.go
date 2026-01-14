@@ -3,14 +3,15 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"slices"
 )
 
 // handleDKGNetworkSet handles the network set event (after registration period).
-//
-// TODO: before setting the network, ensure that `session.Registrations` is updated to only DKG validators who are verified.
 func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG network set",
 		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
@@ -28,6 +29,13 @@ func (k *Keeper) handleDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGN
 
 	if dkgNetwork.Stage != types.DKGStageNetworkSet {
 		log.Info(ctx, "DKG NetworkSet is skipped because the current network stage is not in network set stage")
+
+		return
+	}
+
+	isInCurRoundSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
+	if !isInCurRoundSet {
+		log.Info(ctx, "Skip setting DKG network as the validator is not in current round set")
 
 		return
 	}
@@ -103,12 +111,16 @@ func (k *Keeper) callTEESetupDKGNetwork(ctx context.Context, session *types.DKGS
 		return nil
 	}
 
+	mrenclave, err := cast.ToBytes32(session.Mrenclave)
+	if err != nil {
+		log.Error(ctx, "Failed to convert mrenclave to bytes32", err)
+
+		return nil
+	}
+
 	var resp *types.SetupDKGNetworkResponse
 	if err := retry(ctx, func(ctx context.Context) error {
-		rpcResp, err := k.GetVerifiedDKGRegistrations(ctx, &types.QueryGetVerifiedDKGRegistrationsRequest{
-			Round:     session.Round,
-			Mrenclave: session.Mrenclave,
-		})
+		regs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, session.Round, types.DKGRegStatusVerified)
 		if err != nil {
 			return errors.Wrap(err, "failed to get verified dkg registrations from x/dkg module")
 		}
@@ -116,9 +128,10 @@ func (k *Keeper) callTEESetupDKGNetwork(ctx context.Context, session *types.DKGS
 		req := &types.SetupDKGNetworkRequest{
 			Mrenclave:     session.Mrenclave,
 			Round:         session.Round,
+			Address:       k.validatorEVMAddr,
 			Total:         session.Total,
 			Threshold:     session.Threshold,
-			Registrations: rpcResp.Registrations,
+			Registrations: regs,
 		}
 
 		resp, err = k.teeClient.SetupDKGNetwork(ctx, req)
@@ -148,7 +161,8 @@ func (k *Keeper) callContractSetNetwork(ctx context.Context, session *types.DKGS
 		"signature_len", len(session.SigSetupNetwork),
 	)
 
-	isNetworkSet, err := k.contractClient.IsNetworkSet(ctx, session.Round, session.Mrenclave, k.validatorAddress)
+	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
+	isNetworkSet, err := k.contractClient.IsNetworkSet(ctx, session.Round, session.Mrenclave, validatorAddr)
 	if err != nil {
 		return err
 	}

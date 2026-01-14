@@ -3,10 +3,11 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
-
 	"github.com/piplabs/story/lib/log"
+	"slices"
 )
 
 // handleDKGFinalization handles the finalization phase event.
@@ -25,6 +26,13 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 
 	if dkgNetwork.Stage != types.DKGStageFinalization {
 		log.Info(ctx, "DKG Finalization is skipped because the current network stage is not in the finalization stage")
+
+		return
+	}
+
+	isInCurRoundSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
+	if !isInCurRoundSet {
+		log.Info(ctx, "Skip finalizing DKG network as the validator is not in current round set")
 
 		return
 	}
@@ -109,6 +117,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 	session.GlobalPubKey = resp.GetGlobalPubKey()
 	session.SigFinalizeNetwork = resp.GetSignature()
+	session.PublicCoeffs = resp.GetPublicCoeffs()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling FinalizeDKG on the TEE client")
 	}
@@ -124,7 +133,8 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 		"signature_len", len(session.SigFinalizeNetwork),
 	)
 
-	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.Mrenclave, k.validatorAddress)
+	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
+	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.Mrenclave, validatorAddr)
 	if err != nil {
 		return err
 	}
@@ -140,6 +150,7 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 		session.Round,
 		session.Mrenclave,
 		session.GlobalPubKey,
+		session.PublicCoeffs,
 		session.SigFinalizeNetwork,
 	); err != nil {
 		return err

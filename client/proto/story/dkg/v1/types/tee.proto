@@ -8,7 +8,6 @@ option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
 service TEE {
   rpc GenerateAndSealKey(GenerateAndSealKeyRequest) returns (GenerateAndSealKeyResponse);
-  rpc VerifyRawQuote(VerifyRawQuoteRequest) returns (VerifyRawQuoteResponse);
   rpc SetupDKGNetwork(SetupDKGNetworkRequest) returns (SetupDKGNetworkResponse);
   rpc GenerateDeals(GenerateDealsRequest) returns (GenerateDealsResponse);
   rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
@@ -54,8 +53,8 @@ message GenerateAndSealKeyResponse {
   ];
 }
 
-// VerifyRawQuoteRequest is sent to TEE client to verify a raw quote
-message VerifyRawQuoteRequest {
+// SetupDKGNetworkRequest is sent to TEE client to setup DKG network
+message SetupDKGNetworkRequest {
   bytes mrenclave = 1 [
     (gogoproto.moretags) = "yaml:\"mrenclave\""
   ];
@@ -68,56 +67,15 @@ message VerifyRawQuoteRequest {
     (gogoproto.moretags) = "yaml:\"address\""
   ];
 
-  bytes dkg_pub_key = 4 [
-    (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
-  ];
-
-  bytes comm_pub_key = 5 [
-    (gogoproto.moretags) = "yaml:\"comm_pub_key\""
-  ];
-
-  bytes raw_quote = 6 [
-    (gogoproto.moretags) = "yaml:\"raw_quote\""
-  ];
-}
-
-message VerifyRawQuoteResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
-  ];
-
-  string address = 2 [
-    (gogoproto.moretags) = "yaml:\"address\""
-  ];
-
-  uint32 round = 3 [
-    (gogoproto.moretags) = "yaml:\"round\""
-  ];
-
-  bool valid = 4 [
-    (gogoproto.moretags) = "yaml:\"valid\""
-  ];
-}
-
-// SetupDKGNetworkRequest is sent to TEE client to setup DKG network
-message SetupDKGNetworkRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
-  ];
-
-  uint32 round = 2 [
-    (gogoproto.moretags) = "yaml:\"round\""
-  ];
-
-  uint32 total = 3 [
+  uint32 total = 4 [
     (gogoproto.moretags) = "yaml:\"total\""
   ];
 
-  uint32 threshold = 4 [
+  uint32 threshold = 5 [
     (gogoproto.moretags) = "yaml:\"threshold\""
   ];
 
-  repeated types.DKGRegistration registrations = 5 [
+  repeated types.DKGRegistration registrations = 6 [
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"registrations\""
   ];
@@ -251,7 +209,11 @@ message FinalizeDKGResponse {
     (gogoproto.moretags) = "yaml:\"global_pub_key\""
   ];
 
-  bytes signature = 4 [
+  repeated bytes public_coeffs = 4 [
+    (gogoproto.moretags) = "yaml:\"public_coeffs\""
+  ];
+
+  bytes signature = 5 [
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
 }
@@ -309,17 +271,5 @@ message SecShare {
 
   Scalar V = 2 [
     (gogoproto.moretags) = "yaml:\"v\""
-  ];
-}
-
-message Scalar {
-  bytes data = 1 [
-    (gogoproto.moretags) = "yaml:\"data\""
-  ];
-}
-
-message Point {
-  bytes data = 1 [
-    (gogoproto.moretags) = "yaml:\"data\""
   ];
 }

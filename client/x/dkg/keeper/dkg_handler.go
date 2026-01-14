@@ -124,7 +124,7 @@ func (k *Keeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenc
 }
 
 // Finalized handles DKG finalization event.
-func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature, globalPubKey []byte) error {
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -142,13 +142,14 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New("round is not in network set stage")
 	}
 
-	voteCount, err := k.AddGlobalPubKeyVote(ctx, mrenclave, round, globalPubKey)
+	voteCount, err := k.AddGlobalPubKeyVote(ctx, mrenclave, round, globalPubKey, publicCoeffs)
 	if err != nil {
 		return errors.Wrap(err, "failed to add vote for global public key")
 	}
 
 	if voteCount >= latest.Threshold && len(latest.GlobalPublicKey) == 0 {
 		latest.GlobalPublicKey = globalPubKey
+		latest.PublicCoeffs = publicCoeffs
 		if err := k.setDKGNetwork(ctx, latest); err != nil {
 			return errors.Wrap(err, "failed to set dkg network")
 		}

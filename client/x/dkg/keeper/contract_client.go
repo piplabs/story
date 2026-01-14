@@ -133,6 +133,7 @@ func (c *ContractClient) FinalizeDKG(
 	round uint32,
 	mrenclave []byte,
 	globalPubKey []byte,
+	publicCoeffs [][]byte,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
@@ -153,7 +154,7 @@ func (c *ContractClient) FinalizeDKG(
 	}
 
 	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
+		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, publicCoeffs, signature)
 	})
 }
 

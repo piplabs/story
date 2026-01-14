@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/piplabs/story/client/x/dkg/types"
-	"slices"
-	"strings"
-
 	"github.com/piplabs/story/lib/log"
+	"slices"
 )
 
 // handleDKGResharing handles DKG resharing for new epochs.
@@ -21,10 +19,9 @@ func (k *Keeper) handleDKGResharing(ctx context.Context, dkgNetwork *types.DKGNe
 		log.Info(ctx, "DKG resharing is skipped because the current network stage is not in the registration stage")
 	}
 
-	valAddr := k.validatorAddress.Hex()
-	isParticipant := slices.Contains(dkgNetwork.ActiveValSet, strings.ToLower(valAddr))
+	isParticipant := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 	if !isParticipant {
-		log.Info(ctx, "Validator is not part of current active validator set", "validator", valAddr)
+		log.Info(ctx, "Validator is not part of current active validator set", "validator_evm_address", k.validatorEVMAddr)
 
 		return
 	}

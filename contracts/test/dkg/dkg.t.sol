@@ -53,6 +53,11 @@ contract DKGTest is Test {
     }
 
     function testThreeNodeDKG_Success() public {
+        bytes[] memory publicCoeffs = new bytes[](3);
+        publicCoeffs[0] = hex"123456789abcdef0";
+        publicCoeffs[1] = hex"aabbccddeeff11223344";
+        publicCoeffs[2] = hex"deadbeefcafebabe01020304";
+
         // 1.initialize DKG
         // 1.1 validator 0
         vm.prank(validator1);
@@ -85,22 +90,27 @@ contract DKGTest is Test {
 
         // 3. finalize DKG
         vm.prank(validator1);
-        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature1);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, publicCoeffs, finalizeDKG_signature1);
         info = dkg.getNodeInfo(mrenclave, round, validator1);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
 
         vm.prank(validator2);
-        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature2);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, publicCoeffs, finalizeDKG_signature2);
         info = dkg.getNodeInfo(mrenclave, round, validator2);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
 
         vm.prank(validator3);
-        dkg.finalizeDKG(round, mrenclave, globalPubKey, finalizeDKG_signature3);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, publicCoeffs, finalizeDKG_signature3);
         info = dkg.getNodeInfo(mrenclave, round, validator3);
         assertEq(uint8(info.nodeStatus), 3); // Finalized
     }
 
     function testFinalizeDKG_RevertIfInvalidSignature() public {
+        bytes[] memory publicCoeffs = new bytes[](3);
+        publicCoeffs[0] = hex"123456789abcdef0";
+        publicCoeffs[1] = hex"aabbccddeeff11223344";
+        publicCoeffs[2] = hex"deadbeefcafebabe01020304";
+
         // initialize DKG
         vm.prank(validator);
         dkg.initializeDKG(round, mrenclave, dkgPubKey, commPubKey, rawQuote);
@@ -108,6 +118,6 @@ contract DKGTest is Test {
         // finalize DKG with wrong signature
         vm.prank(validator);
         vm.expectRevert("ECDSAInvalidSignature()");
-        dkg.finalizeDKG(round, mrenclave, globalPubKey, invalid_signature);
+        dkg.finalizeDKG(round, mrenclave, globalPubKey, publicCoeffs, invalid_signature);
     }
 }

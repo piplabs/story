@@ -36,6 +36,10 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to emit DKG finalized event")
 	}
 
+	if err := k.setLatestActiveRound(ctx, latestRound); err != nil {
+		return errors.Wrap(err, "failed to set the latest active round of DKG")
+	}
+
 	if k.isDKGSvcEnabled {
 		go k.handleDKGComplete(ctx, latestRound)
 	}

@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 1966,
+      "astId": 1969,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "curMrenclave",
       "offset": 0,
@@ -9,7 +9,7 @@
       "type": "t_bytes32"
     },
     {
-      "astId": 1975,
+      "astId": 1978,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dkgNodeInfos",
       "offset": 0,
@@ -17,7 +17,7 @@
       "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1859_storage)))"
     },
     {
-      "astId": 1985,
+      "astId": 1988,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dealComplaints",
       "offset": 0,

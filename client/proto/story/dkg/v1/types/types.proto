@@ -59,6 +59,10 @@ message DKGNetwork {
   bytes global_public_key = 8 [
     (gogoproto.moretags) = "yaml:\"global_public_key\""
   ];
+
+  repeated bytes public_coeffs = 9 [
+    (gogoproto.moretags) = "yaml:\"public_coeffs\""
+  ];
 }
 
 message DKGRegistration {
@@ -174,5 +178,17 @@ message VSSResponse {
 
   bytes signature = 4 [
     (gogoproto.moretags) = "yaml:\"signature\""
+  ];
+}
+
+message Scalar {
+  bytes data = 1 [
+    (gogoproto.moretags) = "yaml:\"data\""
+  ];
+}
+
+message Point {
+  bytes data = 1 [
+    (gogoproto.moretags) = "yaml:\"data\""
   ];
 }

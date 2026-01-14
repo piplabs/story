@@ -254,3 +254,7 @@ func (a App) GetUpgradeKeeper() *upgradekeeper.Keeper {
 func (a App) GetMintKeeper() mintkeeper.Keeper {
 	return a.Keepers.MintKeeper
 }
+
+func (a App) GetDKGKeeper() *dkgkeeper.Keeper {
+	return a.Keepers.DKGKeeper
+}
