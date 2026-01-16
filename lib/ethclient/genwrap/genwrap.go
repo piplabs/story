@@ -20,12 +20,13 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/piplabs/story/lib/errors"
-	"github.com/piplabs/story/lib/log"
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/imports"
 
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
+
 	_ "github.com/ethereum/go-ethereum"
-	"golang.org/x/tools/go/packages"
 )
 
 var (
@@ -92,10 +93,11 @@ type Client interface {
 
 	// addImport indicates which types need hardcoded imports.
 	addImport = map[string]string{
-		"CallMsg":       "ethereum",
-		"FilterQuery":   "ethereum",
-		"*SyncProgress": "ethereum",
-		"Subscription":  "ethereum",
+		"CallMsg":                  "ethereum",
+		"FilterQuery":              "ethereum",
+		"SyncProgress":             "ethereum",
+		"Subscription":             "ethereum",
+		"TransactionReceiptsQuery": "ethereum",
 	}
 
 	// successFuncs indicates which endpoints have custom success functions.
@@ -181,6 +183,7 @@ type Field struct {
 
 func main() {
 	ctx := context.Background()
+
 	err := run(ctx)
 	if err != nil {
 		log.Error(ctx, "❌ Fatal error", err)
@@ -220,6 +223,7 @@ func parseImports(pkg *packages.Package) ([]string, error) {
 	for _, file := range pkg.Syntax {
 		for _, imprt := range file.Imports {
 			var b bytes.Buffer
+
 			err := printer.Fprint(&b, pkg.Fset, imprt)
 			if err != nil {
 				return nil, errors.Wrap(err, "printf")
@@ -247,6 +251,7 @@ func writeTemplate(methods []Method, providers []string, imprts []string) error 
 	sort.Strings(providers)
 
 	var b bytes.Buffer
+
 	err = t.Execute(&b, struct {
 		Providers []string
 		Methods   []Method
@@ -261,6 +266,7 @@ func writeTemplate(methods []Method, providers []string, imprts []string) error 
 	}
 
 	filename := "ethclient_gen.go"
+
 	out, err := imports.Process(filename, b.Bytes(), nil)
 	if err != nil {
 		return errors.Wrap(err, "format")
@@ -279,6 +285,7 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 		methods   []Method
 		providers []string
 	)
+
 	for _, file := range pkg.Syntax {
 		for _, decl := range file.Decls {
 			gendecl, ok := decl.(*ast.GenDecl)
@@ -317,16 +324,27 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 					name := method.Names[0].Name
 
 					var params []Field
+
 					for _, param := range fnType.Params.List {
 						var b bytes.Buffer
+
 						err := printer.Fprint(&b, pkg.Fset, param.Type)
 						if err != nil {
 							return nil, nil, errors.Wrap(err, "printf")
 						}
 
 						typ := b.String()
-						if imprt, ok := addImport[typ]; ok {
-							typ = imprt + "." + typ
+
+						prefix := ""
+
+						base := typ
+						if strings.HasPrefix(base, "*") {
+							prefix = "*"
+							base = strings.TrimPrefix(base, "*")
+						}
+
+						if imprt, ok := addImport[base]; ok {
+							typ = prefix + imprt + "." + base
 						}
 
 						field := Field{
@@ -338,21 +356,26 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 					}
 
 					var results []Field
+
 					for i, result := range fnType.Results.List {
 						var b bytes.Buffer
+
 						err := printer.Fprint(&b, pkg.Fset, result.Type)
 						if err != nil {
 							return nil, nil, errors.Wrap(err, "printf")
 						}
 
 						typ := b.String()
-						if imprt, ok := addImport[typ]; ok {
-							prefix := ""
-							if strings.HasPrefix(typ, "*") {
-								prefix = "*"
-								typ = strings.TrimPrefix(typ, "*")
-							}
-							typ = prefix + imprt + "." + typ
+						prefix := ""
+
+						base := typ
+						if strings.HasPrefix(base, "*") {
+							prefix = "*"
+							base = strings.TrimPrefix(base, "*")
+						}
+
+						if imprt, ok := addImport[base]; ok {
+							typ = prefix + imprt + "." + base
 						}
 
 						name := fmt.Sprintf("res%d", i)
@@ -369,10 +392,14 @@ func parseEthMethods(pkg *packages.Package) ([]Method, []string, error) {
 					}
 
 					var doc string
+
 					if method.Doc != nil {
-						for _, line := range strings.Split(strings.TrimSpace(method.Doc.Text()), "\n") {
-							doc += "// " + line + "\n"
+						var docSb384 strings.Builder
+						for line := range strings.SplitSeq(strings.TrimSpace(method.Doc.Text()), "\n") {
+							docSb384.WriteString("// " + line + "\n")
 						}
+
+						doc += docSb384.String()
 					}
 
 					successFunc := "nil,"

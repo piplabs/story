@@ -50,6 +50,7 @@ func MakeGenesis(
 
 	// Step 1: Create the default genesis app state for all modules.
 	appState1 := defaultAppState(network.Static().MaxValidators, executionBlockHash, cdc.MustMarshalJSON)
+
 	appState1Bz, err := json.MarshalIndent(appState1, "", " ")
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal app state")
@@ -71,6 +72,7 @@ func MakeGenesis(
 	if err != nil {
 		return nil, errors.Wrap(err, "create temp file")
 	}
+
 	if err := genutil.ExportGenesisFile(appGen, tempFile.Name()); err != nil {
 		return nil, errors.Wrap(err, "export genesis file")
 	}
@@ -82,6 +84,7 @@ func MakeGenesis(
 		if err != nil {
 			return nil, errors.Wrap(err, "add validator")
 		}
+
 		valTxs = append(valTxs, tx)
 	}
 
@@ -90,6 +93,7 @@ func MakeGenesis(
 	if err != nil {
 		return nil, errors.Wrap(err, "collect genesis transactions")
 	}
+
 	appGen.AppState, err = json.MarshalIndent(appState2, "", " ")
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal app state")
@@ -115,36 +119,43 @@ func defaultConsensusGenesis() *gtypes.ConsensusGenesis {
 func validateGenesis(cdc codec.Codec, appState map[string]json.RawMessage) error {
 	// Staking module
 	ststate := sttypes.GetGenesisStateFromAppState(cdc, appState)
+
 	if err := staking.ValidateGenesis(ststate); err != nil {
 		return errors.Wrap(err, "validate staking genesis")
 	}
 
 	// Slashing module
 	var slstate sltypes.GenesisState
+
 	if err := cdc.UnmarshalJSON(appState[sltypes.ModuleName], &slstate); err != nil {
 		return errors.Wrap(err, "unmarshal slashing genesis")
 	}
+
 	if err := sltypes.ValidateGenesis(slstate); err != nil {
 		return errors.Wrap(err, "validate slashing genesis")
 	}
 
 	// Bank module
 	bstate := btypes.GetGenesisStateFromAppState(cdc, appState)
+
 	if err := bstate.Validate(); err != nil {
 		return errors.Wrap(err, "validate bank genesis")
 	}
 
 	// Distribution module
 	dstate := new(dtypes.GenesisState)
+
 	if err := cdc.UnmarshalJSON(appState[dtypes.ModuleName], dstate); err != nil {
 		return errors.Wrap(err, "unmarshal distribution genesis")
 	}
+
 	if err := dtypes.ValidateGenesis(dstate); err != nil {
 		return errors.Wrap(err, "validate distribution genesis")
 	}
 
 	// Auth module
 	astate := atypes.GetGenesisStateFromAppState(cdc, appState)
+
 	if err := atypes.ValidateGenesis(astate); err != nil {
 		return errors.Wrap(err, "validate auth genesis")
 	}
@@ -238,6 +249,7 @@ func defaultAppState(
 
 func getCodec() *codec.ProtoCodec {
 	sdkConfig := sdk.GetConfig()
+
 	reg, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
 		ProtoFiles: proto.HybridResolver,
 		SigningOptions: signing.Options{

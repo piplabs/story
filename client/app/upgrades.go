@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	// `Upgrades` defines the upgrade handlers and store loaders for the application.
+	// Upgrades defines the upgrade handlers and store loaders for the application.
 	// New upgrades should be added to this slice after they are implemented.
 	Upgrades = []upgrades.Upgrade{
 		virgil.Upgrade,
@@ -55,6 +55,7 @@ func (a *App) setupUpgradeStoreLoaders() {
 	}
 
 	storeUpgradesMap := make(StoreUpgradesMap)
+
 	for name, height := range upgradeHistory {
 		if a.Keepers.UpgradeKeeper.IsSkipHeight(height) {
 			continue
@@ -91,6 +92,7 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 //  2. Release the software defined in the upgrade-info.
 func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 	currentBlockHeight := ctx.BlockHeight()
+
 	for _, fork := range Forks {
 		upgradeHeight := fork.UpgradeHeight
 		// Retrieve the upgrade height dynamically based on the network for virgil upgrade
@@ -100,6 +102,7 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				// Virgil upgrade not needed for current chain, skip
 				continue
 			}
+
 			upgradeHeight = virgilUpgradeHeight
 		}
 
@@ -108,6 +111,7 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 			if !ok {
 				continue
 			}
+
 			upgradeHeight = v120UpgradeHeight
 		}
 
@@ -116,6 +120,7 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 			if !ok {
 				continue
 			}
+
 			upgradeHeight = polybiusUpgradeHeight
 		}
 
@@ -124,6 +129,7 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 			if !ok {
 				continue
 			}
+
 			upgradeHeight = terenceUpgradeHeight
 		}
 

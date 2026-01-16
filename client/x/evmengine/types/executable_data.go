@@ -49,6 +49,7 @@ func ValidateExecPayload(msg *MsgExecutionPayload) error {
 	decoder.DisallowUnknownFields()
 
 	var payloadTmp ExecutableData
+
 	if err := decoder.Decode(&payloadTmp); err != nil {
 		return errors.Wrap(err, "unmarshal payload")
 	}

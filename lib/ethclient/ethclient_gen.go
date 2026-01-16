@@ -192,6 +192,27 @@ func (w Wrapper) TransactionReceipt(ctx context.Context, txHash common.Hash) (*t
 	return res0, err
 }
 
+// SubscribeTransactionReceipts subscribes to notifications about transaction receipts.
+// The receipts are delivered in batches when transactions are included in blocks.
+// If q is nil or has empty TransactionHashes, all receipts from new blocks will be delivered.
+// Otherwise, only receipts for the specified transaction hashes will be delivered.
+
+func (w Wrapper) SubscribeTransactionReceipts(ctx context.Context, q *ethereum.TransactionReceiptsQuery, ch chan<- []*types.Receipt) (ethereum.Subscription, error) {
+	const endpoint = "subscribe_transaction_receipts"
+	defer latency(w.chain, endpoint)()
+
+	ctx, span := tracer.Start(ctx, spanName(endpoint))
+	defer span.End()
+
+	res0, err := w.cl.SubscribeTransactionReceipts(ctx, q, ch)
+	if err != nil {
+		incError(w.chain, endpoint)
+		err = errors.Wrap(err, "json-rpc", "endpoint", endpoint)
+	}
+
+	return res0, err
+}
+
 func (w Wrapper) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
 	const endpoint = "balance_at"
 	defer latency(w.chain, endpoint)()

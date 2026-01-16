@@ -307,6 +307,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
+
 						var header *types.Header
 						fuzzer.Fuzz(&header)
 
@@ -343,6 +344,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				mockEngine: mockEngineAPI{
 					headerByTypeFunc: func(context.Context, ethclient.HeadType) (*types.Header, error) {
 						fuzzer := ethclient.NewFuzzer(0)
+
 						var header *types.Header
 						fuzzer.Fuzz(&header)
 
@@ -672,12 +674,14 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				}
 
 				var err error
+
 				tt.mockEngine.EngineClient, err = ethclient.NewEngineMock(storeKey)
 				require.NoError(t, err)
 
 				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk)
 				require.NoError(t, err)
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
+
 				if !tt.unsetExecutionHead {
 					populateGenesisHead(ctx, t, k)
 				}
@@ -986,6 +990,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			}
 
 			var err error
+
 			cmtAPI := newMockCometAPI(t, tt.cmtAPIValFunc)
 
 			// set the header and proposer so we have the correct next proposer
@@ -998,6 +1003,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			} else {
 				nxtAddr = common.HexToAddress("0x0000000000000000000000000000000000000000")
 			}
+
 			require.NoError(t, err)
 
 			ctx, storeKey, storeService := setupCtxStore(t, &header)
@@ -1014,6 +1020,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 			k.SetIsExecEngSyncing(tt.isExecEngSyncing)
 
 			require.NoError(t, k.PostFinalize(ctx))
+
 			if tt.postStateCheck != nil {
 				tt.postStateCheck(k)
 			}
@@ -1024,6 +1031,7 @@ func TestKeeper_PostFinalize(t *testing.T) {
 // appendMsgToTx appends the given message to the unpacked transaction and returns the new packed transaction bytes.
 func appendMsgToTx(t *testing.T, txConfig client.TxConfig, txBytes []byte, msg sdk.Msg) []byte {
 	t.Helper()
+
 	txn, err := txConfig.TxDecoder()(txBytes)
 	require.NoError(t, err)
 
@@ -1040,6 +1048,7 @@ func appendMsgToTx(t *testing.T, txConfig client.TxConfig, txBytes []byte, msg s
 // assertExecutablePayload asserts that the given message is an executable payload with the expected values.
 func assertExecutablePayload(t *testing.T, msg sdk.Msg, ts int64, blockHash common.Hash, validatorAddr common.Address, height uint64) {
 	t.Helper()
+
 	executionPayload, ok := msg.(*etypes.MsgExecutionPayload)
 	require.True(t, ok)
 	require.NotNil(t, executionPayload)
@@ -1067,12 +1076,15 @@ func ctxWithAppHash(t *testing.T, appHash common.Hash) (context.Context, *storet
 
 func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storetypes.KVStoreKey, store.KVStoreService) {
 	t.Helper()
+
 	key := storetypes.NewKVStoreKey("test")
 	storeService := runtime.NewKVStoreService(key)
 	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+
 	if header == nil {
 		header = &cmtproto.Header{Time: cmttime.Now()}
 	}
+
 	ctx := testCtx.Ctx.WithBlockHeader(*header)
 	defaultConsensusParams := genutil.DefaultConsensusParams()
 	ctx = ctx.WithConsensusParams(defaultConsensusParams.ToProto()).WithChainID(netconf.TestChainID)
@@ -1082,6 +1094,7 @@ func setupCtxStore(t *testing.T, header *cmtproto.Header) (sdk.Context, *storety
 
 func getCodec(t *testing.T) codec.Codec {
 	t.Helper()
+
 	sdkConfig := sdk.GetConfig()
 	reg, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
 		ProtoFiles: proto.HybridResolver,
@@ -1108,6 +1121,7 @@ var _ etypes.VoteExtensionProvider = (*mockVEProvider)(nil)
 
 type mockEngineAPI struct {
 	ethclient.EngineClient
+
 	syncings                <-chan struct{}
 	fuzzer                  *fuzz.Fuzzer
 	mock                    ethclient.EngineClient // avoid repeating the implementation but also allow for custom implementations of mocks
@@ -1189,17 +1203,6 @@ func (m mockLogProvider) Deliver(_ context.Context, _ common.Hash, log *etypes.E
 	return m.deliverErr
 }
 
-func (m mockEngineAPI) maybeSync() (eengine.PayloadStatusV1, bool) {
-	select {
-	case <-m.syncings:
-		return eengine.PayloadStatusV1{
-			Status: eengine.SYNCING,
-		}, true
-	default:
-		return eengine.PayloadStatusV1{}, false
-	}
-}
-
 func (m *mockEngineAPI) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
 	if m.filterLogsFunc != nil {
 		return m.filterLogsFunc(ctx, q)
@@ -1220,6 +1223,7 @@ func (m *mockEngineAPI) HeaderByType(ctx context.Context, typ ethclient.HeadType
 func (m *mockEngineAPI) NewPayloadV3(ctx context.Context, params eengine.ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (resp eengine.PayloadStatusV1, err error) {
 	if m.forceInvalidNewPayloadV3 {
 		m.forceInvalidNewPayloadV3 = false
+
 		return eengine.PayloadStatusV1{
 			Status: eengine.INVALID,
 		}, nil
@@ -1242,12 +1246,14 @@ func (m *mockEngineAPI) NewPayloadV3(ctx context.Context, params eengine.Executa
 func (m *mockEngineAPI) ForkchoiceUpdatedV3(ctx context.Context, update eengine.ForkchoiceStateV1, payloadAttributes *eengine.PayloadAttributes) (resp eengine.ForkChoiceResponse, err error) {
 	if m.forceInvalidForkchoiceUpdatedV3 {
 		m.forceInvalidForkchoiceUpdatedV3 = false
+
 		return eengine.ForkChoiceResponse{
 			PayloadStatus: eengine.PayloadStatusV1{
 				Status: eengine.INVALID,
 			},
 		}, nil
 	}
+
 	if status, ok := m.maybeSync(); ok {
 		defer func() {
 			resp.PayloadStatus.Status = status.Status
@@ -1280,6 +1286,7 @@ func (m *mockEngineAPI) nextBlock(
 	beaconRoot *common.Hash,
 ) (*types.Block, eengine.ExecutableData) {
 	t.Helper()
+
 	var header types.Header
 	m.fuzzer.Fuzz(&header)
 	header.Number = big.NewInt(int64(height))
@@ -1301,6 +1308,17 @@ func (m *mockEngineAPI) nextBlock(
 	require.NoError(t, err)
 
 	return block, payload
+}
+
+func (m *mockEngineAPI) maybeSync() (eengine.PayloadStatusV1, bool) {
+	select {
+	case <-m.syncings:
+		return eengine.PayloadStatusV1{
+			Status: eengine.SYNCING,
+		}, true
+	default:
+		return eengine.PayloadStatusV1{}, false
+	}
 }
 
 func withRandomErrs(t *testing.T, ctx sdk.Context) sdk.Context {

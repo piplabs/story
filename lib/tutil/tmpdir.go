@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -15,8 +16,10 @@ import (
 func TempDir(t *testing.T) string {
 	t.Helper()
 
-	dir, err := os.MkdirTemp(t.TempDir(), randStr(t))
-	require.NoError(t, err)
+	base := t.TempDir()
+	dir := filepath.Join(base, randStr(t))
+
+	require.NoError(t, os.Mkdir(dir, 0o755))
 
 	return dir
 }

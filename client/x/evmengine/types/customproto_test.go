@@ -19,6 +19,7 @@ func TestAddress_MarshalUnmarshal(t *testing.T) {
 	require.Len(t, bz, common.AddressLength)
 
 	var unmarshaled types.Address
+
 	err = unmarshaled.Unmarshal(bz)
 	require.NoError(t, err)
 	require.Equal(t, original, unmarshaled)
@@ -40,6 +41,7 @@ func TestAddress_MarshalUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 
 	var jsonUnmarshaled types.Address
+
 	err = json.Unmarshal(jsonBz, &jsonUnmarshaled)
 	require.NoError(t, err)
 	require.Equal(t, original, jsonUnmarshaled)
@@ -65,6 +67,7 @@ func TestHash_MarshalUnmarshal(t *testing.T) {
 	require.Len(t, bz, common.HashLength)
 
 	var unmarshaled types.Hash
+
 	err = unmarshaled.Unmarshal(bz)
 	require.NoError(t, err)
 	require.Equal(t, original, unmarshaled)
@@ -86,6 +89,7 @@ func TestHash_MarshalUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 
 	var jsonUnmarshaled types.Hash
+
 	err = json.Unmarshal(jsonBz, &jsonUnmarshaled)
 	require.NoError(t, err)
 	require.Equal(t, original, jsonUnmarshaled)

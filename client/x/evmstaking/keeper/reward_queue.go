@@ -92,6 +92,7 @@ func (k Keeper) PeekEligibleRewardWithdrawals(ctx context.Context, maxPeek uint3
 
 			return nil, err
 		}
+
 		withdrawals = append(withdrawals, &etypes.Withdrawal{
 			Index: front + uint64(i), // increment front by i to get the correct index in the loop
 			// used to distinguish different types of withdrawals as EL does not use the value
@@ -136,6 +137,7 @@ func (k Keeper) GetRewardWithdrawals(ctx context.Context, maxRetrieve uint32) (w
 		if err != nil {
 			return nil, err
 		}
+
 		withdrawals = append(withdrawals, withdrawal)
 		i++
 	}

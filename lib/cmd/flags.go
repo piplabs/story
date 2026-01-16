@@ -28,29 +28,36 @@ func LogFlags(ctx context.Context, flags *pflag.FlagSet) error {
 	}
 	// Flatten config into key/value pairs for logging.
 	var fields []any
+
 	flags.VisitAll(func(f *pflag.Flag) {
 		if skip[f.Name] {
 			return
 		}
 
-		if mapVal, err := flags.GetStringToString(f.Name); err == nil { // First check if it is a map flag
+		mapVal, err := flags.GetStringToString(f.Name)
+		if err == nil { // First check if it is a map flag
 			// Redact each map value
 			for k, v := range mapVal {
 				mapVal[k] = redact(f.Name, v)
 			}
+
 			fields = append(fields, f.Name)
 			fields = append(fields, mapVal)
-		} else if arrayVal, err := flags.GetStringSlice(f.Name); err == nil { // Then check if it is a slice flag
-			// Redact each slice element
-			var vals []string
-			for _, v := range arrayVal {
-				vals = append(vals, redact(f.Name, v))
-			}
-			fields = append(fields, f.Name)
-			fields = append(fields, vals)
 		} else {
-			fields = append(fields, f.Name)
-			fields = append(fields, redact(f.Name, f.Value.String()))
+			arrayVal, err := flags.GetStringSlice(f.Name) // Then check if it is a slice flag
+			if err == nil {
+				// Redact each slice element
+				var vals []string
+				for _, v := range arrayVal {
+					vals = append(vals, redact(f.Name, v))
+				}
+
+				fields = append(fields, f.Name)
+				fields = append(fields, vals)
+			} else {
+				fields = append(fields, f.Name)
+				fields = append(fields, redact(f.Name, f.Value.String()))
+			}
 		}
 	})
 

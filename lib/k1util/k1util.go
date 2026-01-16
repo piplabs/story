@@ -55,6 +55,7 @@ func Verify(address common.Address, hash [32]byte, sig [65]byte) (bool, error) {
 	if v := sig[vIdx]; v != 27 && v != 28 {
 		return false, errors.New("invalid recovery id (V) format, must be 27 or 28")
 	}
+
 	sig[vIdx] -= 27
 
 	pubkey, err := ethcrypto.SigToPub(hash[:], sig[:])
@@ -202,6 +203,7 @@ func CmpPubKeyToValidatorAddress(cmpPubKeyHex string) (string, error) {
 
 func decodePubKeyFromHex(pubKeyHex string) (*cosmosk1.PubKey, error) {
 	cmpPubKeyHex := strings.Replace(pubKeyHex, "0x", "", 1)
+
 	cmpPubKey, err := hex.DecodeString(cmpPubKeyHex)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid compressed public key")

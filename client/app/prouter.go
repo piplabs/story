@@ -42,6 +42,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		// Only allow 10s to process a proposal. Reject proposal otherwise.
 		timeoutCtx, timeoutCancel := context.WithTimeout(ctx.Context(), processTimeout)
 		defer timeoutCancel()
+
 		ctx = ctx.WithContext(timeoutCtx)
 
 		if req.Height == 1 {
@@ -61,8 +62,10 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 			if vote.BlockIdFlag != cmttypes.BlockIDFlagCommit {
 				continue
 			}
+
 			votedPower += vote.Validator.Power
 		}
+
 		if totalPower*2/3 >= votedPower {
 			return rejectProposal(ctx, errors.New("proposed doesn't include quorum votes extensions"))
 		}
@@ -73,6 +76,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		}
 
 		rawTX := req.Txs[0]
+
 		tx, err := txConfig.TxDecoder()(rawTX)
 		if err != nil {
 			return rejectProposal(ctx, errors.Wrap(err, "decode transaction"))
@@ -91,6 +95,7 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 			} else if i <= 0 {
 				return rejectProposal(ctx, errors.New("message type included too many times", "msg_type", typeURL))
 			}
+
 			expectedMsgCounts[typeURL]--
 
 			handler := router.Handler(msg)
@@ -146,6 +151,7 @@ func validateTx(tx sdk.Tx) error {
 	if err != nil {
 		return errors.Wrap(err, "get signatures from tx")
 	}
+
 	if len(signaturesV2) != 0 {
 		return errors.New("disallowed signatures in tx")
 	}

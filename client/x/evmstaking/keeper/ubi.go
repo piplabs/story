@@ -17,6 +17,7 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "get ubi params")
 	}
+
 	ubiBalance, err := k.distributionKeeper.GetUbiBalanceByDenom(ctx, sdk.DefaultBondDenom)
 	if err != nil {
 		return errors.Wrap(err, "get ubi balance by denom")
@@ -34,6 +35,7 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 		return errors.Wrap(err, "withdraw ubi by denom to module")
 	}
 	// Burn tokens from the ubi.
+
 	if err = k.bankKeeper.BurnCoins(
 		ctx, types.ModuleName,
 		sdk.NewCoins(ubiCoin),

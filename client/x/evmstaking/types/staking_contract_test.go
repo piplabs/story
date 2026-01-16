@@ -12,6 +12,7 @@ import (
 
 func Test_mustGetABI(t *testing.T) {
 	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		input       *bind.MetaData
@@ -48,6 +49,7 @@ func Test_mustGetABI(t *testing.T) {
 
 func Test_mustGetEvent(t *testing.T) {
 	t.Parallel()
+
 	abi := mustGetABI(bindings.IPTokenStakingMetaData)
 	testCases := []struct {
 		name        string
