@@ -21,7 +21,6 @@ import { console2 } from "forge-std/console2.sol";
  * @dev A test for the IPTokenStaking contract
  */
 contract IPTokenStakingTest is Test {
-
     IPTokenStaking ipTokenStakingProxy;
     address safeGovernanceMultisig;
     address securityCouncilMultisig;
@@ -36,7 +35,7 @@ contract IPTokenStakingTest is Test {
     uint256 public minStakeAmountBefore;
     uint256 public minUnstakeAmountBefore;
     uint256 public feeBefore;
-    
+
     function setUp() public override {
         // Fork the desired network where UMA contracts are deployed
         uint256 forkId = vm.createFork("https://mainnet.storyrpc.io/");
@@ -72,7 +71,11 @@ contract IPTokenStakingTest is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(
+                    IPTokenStaking.initializeV2.selector,
+                    safeGovernanceMultisig,
+                    securityCouncilMultisig
+                )
             ),
             bytes32(0),
             bytes32(0),
@@ -88,7 +91,11 @@ contract IPTokenStakingTest is Test {
                 ProxyAdmin.upgradeAndCall.selector,
                 ITransparentUpgradeableProxy(address(ipTokenStakingProxy)),
                 newImpl,
-                abi.encodeWithSelector(IPTokenStaking.initializeV2.selector, safeGovernanceMultisig, securityCouncilMultisig)
+                abi.encodeWithSelector(
+                    IPTokenStaking.initializeV2.selector,
+                    safeGovernanceMultisig,
+                    securityCouncilMultisig
+                )
             ),
             bytes32(0),
             bytes32(0)
@@ -97,20 +104,40 @@ contract IPTokenStakingTest is Test {
     }
 
     function testNewRoles() public {
-        assertEq(AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(AccessControlUpgradeable(address(ipTokenStakingProxy)).DEFAULT_ADMIN_ROLE(), address(timelock)), true);
-        assertEq(AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(ipTokenStakingProxy.PAUSER_ROLE(), address(safeGovernanceMultisig)), true);
-        assertEq(AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(ipTokenStakingProxy.PAUSER_ROLE(), address(securityCouncilMultisig)), true);
+        assertEq(
+            AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(
+                AccessControlUpgradeable(address(ipTokenStakingProxy)).DEFAULT_ADMIN_ROLE(),
+                address(timelock)
+            ),
+            true
+        );
+        assertEq(
+            AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(
+                ipTokenStakingProxy.PAUSER_ROLE(),
+                address(safeGovernanceMultisig)
+            ),
+            true
+        );
+        assertEq(
+            AccessControlUpgradeable(address(ipTokenStakingProxy)).hasRole(
+                ipTokenStakingProxy.PAUSER_ROLE(),
+                address(securityCouncilMultisig)
+            ),
+            true
+        );
     }
 
     function testInitializeRevertWhenCalledTwice() public {
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        ipTokenStakingProxy.initialize(IIPTokenStaking.InitializerArgs({
-            minStakeAmount: 1,
-            minUnstakeAmount: 1,
-            minCommissionRate: 1,
-            fee: 1,
-            owner: address(1)
-        }));
+        ipTokenStakingProxy.initialize(
+            IIPTokenStaking.InitializerArgs({
+                minStakeAmount: 1,
+                minUnstakeAmount: 1,
+                minCommissionRate: 1,
+                fee: 1,
+                owner: address(1)
+            })
+        );
     }
 
     function testInitializeV2RevertWhenCalledTwice() public {
@@ -138,7 +165,13 @@ contract IPTokenStakingTest is Test {
 
     function testSetMinStakeAmountRevertWhenNotAdmin() public {
         vm.startPrank(address(1));
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(1), ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()
+            )
+        );
         ipTokenStakingProxy.setMinStakeAmount(1 ether);
     }
 
@@ -150,7 +183,13 @@ contract IPTokenStakingTest is Test {
 
     function testSetMinUnstakeAmountRevertWhenNotAdmin() public {
         vm.startPrank(address(1));
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(1), ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()
+            )
+        );
         ipTokenStakingProxy.setMinUnstakeAmount(1 ether);
     }
 
@@ -162,7 +201,13 @@ contract IPTokenStakingTest is Test {
 
     function testSetFeeRevertWhenNotAdmin() public {
         vm.startPrank(address(1));
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(1), ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()
+            )
+        );
         ipTokenStakingProxy.setFee(1);
     }
 
@@ -174,7 +219,13 @@ contract IPTokenStakingTest is Test {
 
     function testSetMinCommissionRateRevertWhenNotAdmin() public {
         vm.startPrank(address(1));
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(1), ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.DEFAULT_ADMIN_ROLE()
+            )
+        );
         ipTokenStakingProxy.setMinCommissionRate(1);
     }
 
@@ -199,9 +250,14 @@ contract IPTokenStakingTest is Test {
         ipTokenStakingProxy.pause();
         assertEq(ipTokenStakingProxy.paused(), true);
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
-        ipTokenStakingProxy.stakeOnBehalf{ value: 1 ether }(address(1), bytes(""), IIPTokenStaking.StakingPeriod.FLEXIBLE, bytes(""));
+        ipTokenStakingProxy.stakeOnBehalf{ value: 1 ether }(
+            address(1),
+            bytes(""),
+            IIPTokenStaking.StakingPeriod.FLEXIBLE,
+            bytes("")
+        );
     }
-    
+
     function testStorage() public {
         assertEq(ipTokenStakingProxy.MAX_MONIKER_LENGTH(), monikerLengthBefore);
         assertEq(ipTokenStakingProxy.STAKE_ROUNDING(), stakeRoundingBefore);
