@@ -182,26 +182,6 @@ func (mr *MockTEEClientMockRecorder) SetupDKGNetwork(ctx, in any, opts ...any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEClient)(nil).SetupDKGNetwork), varargs...)
 }
 
-// VerifyRawQuote mocks base method.
-func (m *MockTEEClient) VerifyRawQuote(ctx context.Context, in *types.VerifyRawQuoteRequest, opts ...grpc.CallOption) (*types.VerifyRawQuoteResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "VerifyRawQuote", varargs...)
-	ret0, _ := ret[0].(*types.VerifyRawQuoteResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// VerifyRawQuote indicates an expected call of VerifyRawQuote.
-func (mr *MockTEEClientMockRecorder) VerifyRawQuote(ctx, in any, opts ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRawQuote", reflect.TypeOf((*MockTEEClient)(nil).VerifyRawQuote), varargs...)
-}
-
 // MockTEEServer is a mock of TEEServer interface.
 type MockTEEServer struct {
 	ctrl     *gomock.Controller
@@ -329,19 +309,4 @@ func (m *MockTEEServer) SetupDKGNetwork(arg0 context.Context, arg1 *types.SetupD
 func (mr *MockTEEServerMockRecorder) SetupDKGNetwork(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEServer)(nil).SetupDKGNetwork), arg0, arg1)
-}
-
-// VerifyRawQuote mocks base method.
-func (m *MockTEEServer) VerifyRawQuote(arg0 context.Context, arg1 *types.VerifyRawQuoteRequest) (*types.VerifyRawQuoteResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyRawQuote", arg0, arg1)
-	ret0, _ := ret[0].(*types.VerifyRawQuoteResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// VerifyRawQuote indicates an expected call of VerifyRawQuote.
-func (mr *MockTEEServerMockRecorder) VerifyRawQuote(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRawQuote", reflect.TypeOf((*MockTEEServer)(nil).VerifyRawQuote), arg0, arg1)
 }
