@@ -320,7 +320,7 @@ func TestKeeper_Finalized(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.signature, tc.globalPubKey)
+			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.signature, tc.globalPubKey, [][]byte{}) // TODO mock public coeffs
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)

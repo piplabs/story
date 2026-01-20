@@ -256,10 +256,9 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		return nil
 	}
 
-	validator := strings.ToLower(k.validatorAddress.Hex())
-	if !slices.Contains(dkgNetwork.ActiveValSet, validator) {
+	if !slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr) {
 		log.Info(ctx, "Validator not in active DKG committee; skipping threshold decrypt request",
-			"validator", validator,
+			"validator_address", k.validatorEVMAddr,
 			"round", round,
 		)
 
