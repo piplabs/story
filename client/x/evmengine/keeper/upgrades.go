@@ -86,12 +86,12 @@ func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.Upgrad
 
 	clog.Info(ctx, "SoftwareUpgradeEvent detected")
 
-	isV140, err := netconf.IsV140(cachedCtx.ChainID(), cachedCtx.BlockHeight())
+	isTerence, err := netconf.IsTerence(cachedCtx.ChainID(), cachedCtx.BlockHeight())
 	if err != nil {
-		return errors.Wrap(err, "failed to check v1.4.0 upgrade height")
+		return errors.Wrap(err, "failed to check Terence upgrade height")
 	}
 
-	if err = k.ScheduleUpgrade(cachedCtx, ev, isV140); err != nil {
+	if err = k.ScheduleUpgrade(cachedCtx, ev, isTerence); err != nil {
 		return errors.Wrap(err, "failed to schedule upgrade")
 	}
 
@@ -140,12 +140,12 @@ func (k *Keeper) ProcessCancelUpgrade(ctx context.Context, ev *bindings.UpgradeE
 
 	clog.Info(ctx, "SoftwareUpgradeCancelEvent detected")
 
-	isV140, err := netconf.IsV140(cachedCtx.ChainID(), cachedCtx.BlockHeight())
+	isTerence, err := netconf.IsTerence(cachedCtx.ChainID(), cachedCtx.BlockHeight())
 	if err != nil {
-		return errors.Wrap(err, "failed to check v1.4.0 upgrade height")
+		return errors.Wrap(err, "failed to check Terence upgrade height")
 	}
 
-	if err = k.CancelUpgrade(cachedCtx, isV140); err != nil {
+	if err = k.CancelUpgrade(cachedCtx, isTerence); err != nil {
 		return errors.Wrap(err, "failed to cancel the upgrade")
 	}
 
@@ -154,13 +154,13 @@ func (k *Keeper) ProcessCancelUpgrade(ctx context.Context, ev *bindings.UpgradeE
 	return nil
 }
 
-func (k *Keeper) ScheduleUpgrade(ctx sdk.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade, isV140 bool) (err error) {
+func (k *Keeper) ScheduleUpgrade(ctx sdk.Context, ev *bindings.UpgradeEntrypointSoftwareUpgrade, isTerence bool) (err error) {
 	plan := upgradetypes.Plan{
 		Name:   ev.Name,
 		Info:   ev.Info,
 		Height: ev.Height,
 	}
-	if isV140 {
+	if isTerence {
 		if err = k.SetPendingUpgrade(ctx, plan); errors.Is(err, types.ErrUpgradePending) {
 			return errors.WrapErrWithCode(errors.PendingUpgradeExists, err)
 		} else if err != nil {
@@ -179,8 +179,8 @@ func (k *Keeper) ScheduleUpgrade(ctx sdk.Context, ev *bindings.UpgradeEntrypoint
 	return nil
 }
 
-func (k *Keeper) CancelUpgrade(ctx sdk.Context, isV140 bool) (err error) {
-	if isV140 {
+func (k *Keeper) CancelUpgrade(ctx sdk.Context, isTerence bool) (err error) {
+	if isTerence {
 		if err = k.ResetPendingUpgrade(ctx); err != nil {
 			return errors.Wrap(err, "failed to reset upgrade")
 		}

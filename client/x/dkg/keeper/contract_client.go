@@ -5,9 +5,10 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"math/big"
 	"time"
+
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -286,6 +287,43 @@ func (c *ContractClient) ComplainDeals(
 	}
 
 	return receipt, nil
+}
+
+// SubmitPartialDecryption calls the submitPartialDecryption contract method.
+func (c *ContractClient) SubmitPartialDecryption(
+	ctx context.Context,
+	round uint32,
+	mrenclave []byte,
+	pid uint32,
+	encryptedPartial []byte,
+	ephemeralPubKey []byte,
+	pubShare []byte,
+	label []byte,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling submitPartialDecryption contract method",
+		"mrenclave", hex.EncodeToString(mrenclave),
+		"round", round,
+		"pid", pid,
+		"partial_len", len(encryptedPartial),
+		"eph_pub_len", len(ephemeralPubKey),
+		"pub_share_len", len(pubShare),
+		"label_len", len(label),
+	)
+
+	mrenclave32, err := cast.ToBytes32(mrenclave)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert bytes32")
+	}
+
+	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack submitPartialDecryption call data")
+	}
+
+	return c.sendWithRetry(ctx, "SubmitPartialDecryption", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
+		return bound.Transact(auth, "submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	})
 }
 
 // GetNodeInfo queries node information from the contract.

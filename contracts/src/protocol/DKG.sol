@@ -18,12 +18,18 @@ contract DKG is IDKG {
     mapping(bytes32 mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
 
+    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes32 labelHash => mapping(uint32 pid => PartialDecryptSubmission))))
+        public partialDecrypts;
+
     constructor(bytes32 mrenclave) {
         curMrenclave = mrenclave;
     }
 
     modifier onlyValidMrenclave(bytes32 mrenclave) {
-        require(keccak256(abi.encodePacked(mrenclave)) == keccak256(abi.encodePacked(curMrenclave)), "Invalid mrenclave");
+        require(
+            keccak256(abi.encodePacked(mrenclave)) == keccak256(abi.encodePacked(curMrenclave)),
+            "Invalid mrenclave"
+        );
         _;
     }
 
@@ -58,7 +64,7 @@ contract DKG is IDKG {
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
-        
+
         require(
             _verifySetNetworkSignature(node.commPubKey, round, total, threshold, mrenclave, signature),
             "Invalid set network signature"
@@ -129,15 +135,68 @@ contract DKG is IDKG {
         emit DealComplaintsSubmitted(index, complainIndexes, round, mrenclave);
     }
 
+    /// @dev Emit a TDH2 threshold decryption request so validators can fetch ciphertext+label.
+    /// TODO: some fee should flow into the contract to prevent abuse and incentivize DKG validators.
+    function requestThresholdDecryption(
+        uint32 round,
+        bytes32 mrenclave,
+        bytes calldata requesterPubKey,
+        bytes calldata ciphertext,
+        bytes calldata label
+    ) external onlyValidMrenclave(mrenclave) {
+        require(round > 0, "Invalid round");
+        require(ciphertext.length > 0, "Empty ciphertext");
+        require(requesterPubKey.length == 65, "Invalid requester pubkey"); // secp256k1 uncompressed
+        emit ThresholdDecryptRequested(msg.sender, round, mrenclave, requesterPubKey, ciphertext, label);
+    }
+
+    /// @dev Submit a TDH2 partial decryption for a given round/mrenclave/label.
+    /// TODO: only allow certain contracts to call this function so only IP holder can request decryption.
+    function submitPartialDecryption(
+        uint32 round,
+        bytes32 mrenclave,
+        uint32 pid,
+        bytes calldata encryptedPartial,
+        bytes calldata ephemeralPubKey,
+        bytes calldata pubShare,
+        bytes calldata label
+    ) external onlyValidMrenclave(mrenclave) {
+        require(round > 0, "Invalid round");
+        require(pid > 0, "Invalid pid");
+        require(encryptedPartial.length > 0, "Empty partial");
+        require(pubShare.length > 0, "Empty pubShare");
+        require(label.length > 0, "Empty label");
+        require(ephemeralPubKey.length == 65, "Invalid ephemeral pubkey"); // secp256k1 uncompressed
+
+        bytes32 labelHash = keccak256(label);
+        PartialDecryptSubmission storage existing = partialDecrypts[mrenclave][round][labelHash][pid];
+        require(!existing.exists, "Partial already submitted");
+
+        partialDecrypts[mrenclave][round][labelHash][pid] = PartialDecryptSubmission({
+            validator: msg.sender,
+            partialDecryption: encryptedPartial,
+            pubShare: pubShare,
+            label: label,
+            exists: true
+        });
+
+        emit PartialDecryptionSubmitted(
+            msg.sender,
+            round,
+            mrenclave,
+            pid,
+            encryptedPartial,
+            ephemeralPubKey,
+            pubShare,
+            label
+        );
+    }
+
     //////////////////////////////////////////////////////////////
     //                      Getter Functions                    //
     //////////////////////////////////////////////////////////////
 
-    function getNodeInfo(
-        bytes32 mrenclave,
-        uint32 round,
-        address validator
-    ) external view returns (NodeInfo memory) {
+    function getNodeInfo(bytes32 mrenclave, uint32 round, address validator) external view returns (NodeInfo memory) {
         return dkgNodeInfos[mrenclave][round][validator];
     }
 
@@ -176,7 +235,7 @@ contract DKG is IDKG {
         bytes32 mrenclave,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked( mrenclave, round, total, threshold));
+        bytes32 msgHash = keccak256(abi.encodePacked(mrenclave, round, total, threshold));
         address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }
@@ -199,9 +258,7 @@ contract DKG is IDKG {
         return _validateReportData(validator, round, dkgPubKey, commPubKey, expectedReportData);
     }
 
-    function _extractReportData(
-        bytes memory rawQuote
-    ) internal pure returns (bytes32) {
+    function _extractReportData(bytes memory rawQuote) internal pure returns (bytes32) {
         // According to Intel’s SGX quote structure:
         // - The SGX quote header is 48 bytes in size
         // - The enclave report body is 384 bytes long

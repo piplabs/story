@@ -21,6 +21,7 @@ const (
 	EventTypeDKGDealComplaintsSubmittedSuccess           = "dkg_deal_complaints_submitted_success"
 	EventTypeDKGDealVerifiedSuccess                      = "dkg_deal_verified_success"
 	EventTypeDKGInvalidDealSuccess                       = "dkg_invalid_deal_success"
+	EventTypeDKGThresholdDecryptRequestedSuccess         = "dkg_threshold_decrypt_requested_success"
 
 	// DKG events (failure).
 	EventTypeDKGInitializedFailure                       = "dkg_initialized_failure"
@@ -31,6 +32,7 @@ const (
 	EventTypeDKGDealComplaintsSubmittedFailure           = "dkg_deal_complaints_submitted_failure"
 	EventTypeDKGDealVerifiedFailure                      = "dkg_deal_verified_failure"
 	EventTypeDKGInvalidDealFailure                       = "dkg_invalid_deal_failure"
+	EventTypeDKGThresholdDecryptRequestedFailure         = "dkg_threshold_decrypt_requested_failure"
 
 	// Common attributes.
 	AttributeKeyErrorCode   = "error_code"
@@ -58,4 +60,7 @@ const (
 	AttributeKeyDKGComplainIndexes  = "dkg_complain_indexes"
 	AttributeKeyDKGRecipientIndex   = "dkg_recipient_index"
 	AttributeKeyDKGChalStatus       = "dkg_chal_status"
+	AttributeKeyDKGRequester        = "dkg_requester"
+	AttributeKeyDKGCiphertextLen    = "dkg_ciphertext_len"
+	AttributeKeyDKGLabelLen         = "dkg_label_len"
 )

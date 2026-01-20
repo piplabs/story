@@ -153,6 +153,33 @@ message Complaint {
   ];
 }
 
+message DecryptRequest {
+  string requester = 1 [
+    (gogoproto.moretags) = "yaml:\"requester\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  bytes mrenclave = 3 [
+    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  ];
+
+  bytes ciphertext = 4 [
+    (gogoproto.moretags) = "yaml:\"ciphertext\""
+  ];
+
+  bytes label = 5 [
+    (gogoproto.moretags) = "yaml:\"label\""
+  ];
+
+  // secp256k1 uncompressed requester pubkey (65 bytes)
+  bytes requester_pub_key = 6 [
+    (gogoproto.moretags) = "yaml:\"requester_pub_key\""
+  ];
+}
+
 message Response {
   uint32 index = 1 [
     (gogoproto.moretags) = "yaml:\"index\""

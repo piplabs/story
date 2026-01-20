@@ -120,7 +120,7 @@
                 },
                 "value": {
                   "denom": "stake",
-                  "amount": "1024000000000"
+                  "amount": "1000000"
                 },
                 "support_token_type": 0
               }

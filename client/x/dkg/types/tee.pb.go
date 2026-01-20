@@ -798,6 +798,177 @@ func (m *FinalizeDKGResponse) GetSignature() []byte {
 	return nil
 }
 
+type PartialDecryptTDH2Request struct {
+	Mrenclave     []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round         uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Ciphertext    []byte `protobuf:"bytes,3,opt,name=ciphertext,proto3" json:"ciphertext,omitempty" yaml:"ciphertext"`
+	Label         []byte `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty" yaml:"label"`
+	Pid           uint32 `protobuf:"varint,5,opt,name=pid,proto3" json:"pid,omitempty" yaml:"pid"`
+	DkgPubKey     []byte `protobuf:"bytes,6,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
+	SealedShareId string `protobuf:"bytes,7,opt,name=sealed_share_id,json=sealedShareId,proto3" json:"sealed_share_id,omitempty" yaml:"sealed_share_id"`
+	// secp256k1 uncompressed requester pubkey (65 bytes)
+	RequesterPubKey []byte `protobuf:"bytes,8,opt,name=requester_pub_key,json=requesterPubKey,proto3" json:"requester_pub_key,omitempty" yaml:"requester_pub_key"`
+}
+
+func (m *PartialDecryptTDH2Request) Reset()         { *m = PartialDecryptTDH2Request{} }
+func (m *PartialDecryptTDH2Request) String() string { return proto.CompactTextString(m) }
+func (*PartialDecryptTDH2Request) ProtoMessage()    {}
+func (*PartialDecryptTDH2Request) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{14}
+}
+func (m *PartialDecryptTDH2Request) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PartialDecryptTDH2Request) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PartialDecryptTDH2Request.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PartialDecryptTDH2Request) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PartialDecryptTDH2Request.Merge(m, src)
+}
+func (m *PartialDecryptTDH2Request) XXX_Size() int {
+	return m.Size()
+}
+func (m *PartialDecryptTDH2Request) XXX_DiscardUnknown() {
+	xxx_messageInfo_PartialDecryptTDH2Request.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PartialDecryptTDH2Request proto.InternalMessageInfo
+
+func (m *PartialDecryptTDH2Request) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Request) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *PartialDecryptTDH2Request) GetCiphertext() []byte {
+	if m != nil {
+		return m.Ciphertext
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Request) GetLabel() []byte {
+	if m != nil {
+		return m.Label
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Request) GetPid() uint32 {
+	if m != nil {
+		return m.Pid
+	}
+	return 0
+}
+
+func (m *PartialDecryptTDH2Request) GetDkgPubKey() []byte {
+	if m != nil {
+		return m.DkgPubKey
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Request) GetSealedShareId() string {
+	if m != nil {
+		return m.SealedShareId
+	}
+	return ""
+}
+
+func (m *PartialDecryptTDH2Request) GetRequesterPubKey() []byte {
+	if m != nil {
+		return m.RequesterPubKey
+	}
+	return nil
+}
+
+type PartialDecryptTDH2Response struct {
+	// AES-GCM encrypted TDH2 partial, encrypted to requester pubkey
+	EncryptedPartialDecryption []byte `protobuf:"bytes,1,opt,name=encrypted_partial_decryption,json=encryptedPartialDecryption,proto3" json:"encrypted_partial_decryption,omitempty" yaml:"encrypted_partial_decryption"`
+	// Ephemeral secp256k1 pubkey (uncompressed) used for ECDH
+	EphemeralPubKey []byte `protobuf:"bytes,2,opt,name=ephemeral_pub_key,json=ephemeralPubKey,proto3" json:"ephemeral_pub_key,omitempty" yaml:"ephemeral_pub_key"`
+	PubShare        []byte `protobuf:"bytes,3,opt,name=pub_share,json=pubShare,proto3" json:"pub_share,omitempty" yaml:"pub_share"`
+	Signature       []byte `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty" yaml:"signature"`
+}
+
+func (m *PartialDecryptTDH2Response) Reset()         { *m = PartialDecryptTDH2Response{} }
+func (m *PartialDecryptTDH2Response) String() string { return proto.CompactTextString(m) }
+func (*PartialDecryptTDH2Response) ProtoMessage()    {}
+func (*PartialDecryptTDH2Response) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{15}
+}
+func (m *PartialDecryptTDH2Response) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PartialDecryptTDH2Response) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PartialDecryptTDH2Response.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PartialDecryptTDH2Response) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PartialDecryptTDH2Response.Merge(m, src)
+}
+func (m *PartialDecryptTDH2Response) XXX_Size() int {
+	return m.Size()
+}
+func (m *PartialDecryptTDH2Response) XXX_DiscardUnknown() {
+	xxx_messageInfo_PartialDecryptTDH2Response.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PartialDecryptTDH2Response proto.InternalMessageInfo
+
+func (m *PartialDecryptTDH2Response) GetEncryptedPartialDecryption() []byte {
+	if m != nil {
+		return m.EncryptedPartialDecryption
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Response) GetEphemeralPubKey() []byte {
+	if m != nil {
+		return m.EphemeralPubKey
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Response) GetPubShare() []byte {
+	if m != nil {
+		return m.PubShare
+	}
+	return nil
+}
+
+func (m *PartialDecryptTDH2Response) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
+}
+
 type Justification struct {
 	Index            uint32            `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
 	VssJustification *VSSJustification `protobuf:"bytes,2,opt,name=vss_justification,json=vssJustification,proto3" json:"vss_justification,omitempty" yaml:"vss_justification"`
@@ -1051,6 +1222,8 @@ func init() {
 	proto.RegisterType((*ProcessResponsesResponse)(nil), "story.dkg.v1.types.ProcessResponsesResponse")
 	proto.RegisterType((*FinalizeDKGRequest)(nil), "story.dkg.v1.types.FinalizeDKGRequest")
 	proto.RegisterType((*FinalizeDKGResponse)(nil), "story.dkg.v1.types.FinalizeDKGResponse")
+	proto.RegisterType((*PartialDecryptTDH2Request)(nil), "story.dkg.v1.types.PartialDecryptTDH2Request")
+	proto.RegisterType((*PartialDecryptTDH2Response)(nil), "story.dkg.v1.types.PartialDecryptTDH2Response")
 	proto.RegisterType((*Justification)(nil), "story.dkg.v1.types.Justification")
 	proto.RegisterType((*VSSJustification)(nil), "story.dkg.v1.types.VSSJustification")
 	proto.RegisterType((*PlainDeal)(nil), "story.dkg.v1.types.PlainDeal")
@@ -1153,6 +1326,7 @@ type TEEClient interface {
 	ProcessDeals(ctx context.Context, in *ProcessDealRequest, opts ...grpc.CallOption) (*ProcessDealResponse, error)
 	ProcessResponses(ctx context.Context, in *ProcessResponsesRequest, opts ...grpc.CallOption) (*ProcessResponsesResponse, error)
 	FinalizeDKG(ctx context.Context, in *FinalizeDKGRequest, opts ...grpc.CallOption) (*FinalizeDKGResponse, error)
+	PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTDH2Request, opts ...grpc.CallOption) (*PartialDecryptTDH2Response, error)
 }
 
 type tEEClient struct {
@@ -1217,6 +1391,15 @@ func (c *tEEClient) FinalizeDKG(ctx context.Context, in *FinalizeDKGRequest, opt
 	return out, nil
 }
 
+func (c *tEEClient) PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTDH2Request, opts ...grpc.CallOption) (*PartialDecryptTDH2Response, error) {
+	out := new(PartialDecryptTDH2Response)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/PartialDecryptTDH2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TEEServer is the server API for TEE service.
 type TEEServer interface {
 	GenerateAndSealKey(context.Context, *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error)
@@ -1225,6 +1408,7 @@ type TEEServer interface {
 	ProcessDeals(context.Context, *ProcessDealRequest) (*ProcessDealResponse, error)
 	ProcessResponses(context.Context, *ProcessResponsesRequest) (*ProcessResponsesResponse, error)
 	FinalizeDKG(context.Context, *FinalizeDKGRequest) (*FinalizeDKGResponse, error)
+	PartialDecryptTDH2(context.Context, *PartialDecryptTDH2Request) (*PartialDecryptTDH2Response, error)
 }
 
 // UnimplementedTEEServer can be embedded to have forward compatible implementations.
@@ -1248,6 +1432,9 @@ func (*UnimplementedTEEServer) ProcessResponses(ctx context.Context, req *Proces
 }
 func (*UnimplementedTEEServer) FinalizeDKG(ctx context.Context, req *FinalizeDKGRequest) (*FinalizeDKGResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeDKG not implemented")
+}
+func (*UnimplementedTEEServer) PartialDecryptTDH2(ctx context.Context, req *PartialDecryptTDH2Request) (*PartialDecryptTDH2Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PartialDecryptTDH2 not implemented")
 }
 
 func RegisterTEEServer(s grpc1.Server, srv TEEServer) {
@@ -1362,6 +1549,24 @@ func _TEE_FinalizeDKG_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TEE_PartialDecryptTDH2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PartialDecryptTDH2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TEEServer).PartialDecryptTDH2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.dkg.v1.types.TEE/PartialDecryptTDH2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TEEServer).PartialDecryptTDH2(ctx, req.(*PartialDecryptTDH2Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var TEE_serviceDesc = _TEE_serviceDesc
 var _TEE_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "story.dkg.v1.types.TEE",
@@ -1390,6 +1595,10 @@ var _TEE_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FinalizeDKG",
 			Handler:    _TEE_FinalizeDKG_Handler,
+		},
+		{
+			MethodName: "PartialDecryptTDH2",
+			Handler:    _TEE_PartialDecryptTDH2_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1973,6 +2182,132 @@ func (m *FinalizeDKGResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PartialDecryptTDH2Request) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PartialDecryptTDH2Request) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PartialDecryptTDH2Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RequesterPubKey) > 0 {
+		i -= len(m.RequesterPubKey)
+		copy(dAtA[i:], m.RequesterPubKey)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.RequesterPubKey)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.SealedShareId) > 0 {
+		i -= len(m.SealedShareId)
+		copy(dAtA[i:], m.SealedShareId)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.SealedShareId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.DkgPubKey) > 0 {
+		i -= len(m.DkgPubKey)
+		copy(dAtA[i:], m.DkgPubKey)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.DkgPubKey)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Pid != 0 {
+		i = encodeVarintTee(dAtA, i, uint64(m.Pid))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Ciphertext) > 0 {
+		i -= len(m.Ciphertext)
+		copy(dAtA[i:], m.Ciphertext)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.Ciphertext)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Round != 0 {
+		i = encodeVarintTee(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PartialDecryptTDH2Response) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PartialDecryptTDH2Response) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PartialDecryptTDH2Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PubShare) > 0 {
+		i -= len(m.PubShare)
+		copy(dAtA[i:], m.PubShare)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.PubShare)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.EphemeralPubKey) > 0 {
+		i -= len(m.EphemeralPubKey)
+		copy(dAtA[i:], m.EphemeralPubKey)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.EphemeralPubKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.EncryptedPartialDecryption) > 0 {
+		i -= len(m.EncryptedPartialDecryption)
+		copy(dAtA[i:], m.EncryptedPartialDecryption)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.EncryptedPartialDecryption)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Justification) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2442,6 +2777,70 @@ func (m *FinalizeDKGResponse) Size() (n int) {
 			l = len(b)
 			n += 1 + l + sovTee(uint64(l))
 		}
+	}
+	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	return n
+}
+
+func (m *PartialDecryptTDH2Request) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovTee(uint64(m.Round))
+	}
+	l = len(m.Ciphertext)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	if m.Pid != 0 {
+		n += 1 + sovTee(uint64(m.Pid))
+	}
+	l = len(m.DkgPubKey)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	l = len(m.SealedShareId)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	l = len(m.RequesterPubKey)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	return n
+}
+
+func (m *PartialDecryptTDH2Response) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.EncryptedPartialDecryption)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	l = len(m.EphemeralPubKey)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	l = len(m.PubShare)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
 	}
 	l = len(m.Signature)
 	if l > 0 {
@@ -4247,6 +4646,482 @@ func (m *FinalizeDKGResponse) Unmarshal(dAtA []byte) error {
 			copy(m.PublicCoeffs[len(m.PublicCoeffs)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PartialDecryptTDH2Request) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PartialDecryptTDH2Request: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PartialDecryptTDH2Request: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ciphertext", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ciphertext = append(m.Ciphertext[:0], dAtA[iNdEx:postIndex]...)
+			if m.Ciphertext == nil {
+				m.Ciphertext = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = append(m.Label[:0], dAtA[iNdEx:postIndex]...)
+			if m.Label == nil {
+				m.Label = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pid", wireType)
+			}
+			m.Pid = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Pid |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DkgPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DkgPubKey = append(m.DkgPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.DkgPubKey == nil {
+				m.DkgPubKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SealedShareId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SealedShareId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequesterPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequesterPubKey = append(m.RequesterPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.RequesterPubKey == nil {
+				m.RequesterPubKey = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PartialDecryptTDH2Response) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PartialDecryptTDH2Response: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PartialDecryptTDH2Response: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EncryptedPartialDecryption", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EncryptedPartialDecryption = append(m.EncryptedPartialDecryption[:0], dAtA[iNdEx:postIndex]...)
+			if m.EncryptedPartialDecryption == nil {
+				m.EncryptedPartialDecryption = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EphemeralPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EphemeralPubKey = append(m.EphemeralPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.EphemeralPubKey == nil {
+				m.EphemeralPubKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PubShare", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PubShare = append(m.PubShare[:0], dAtA[iNdEx:postIndex]...)
+			if m.PubShare == nil {
+				m.PubShare = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
 			}

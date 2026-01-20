@@ -258,3 +258,12 @@ func (a App) GetMintKeeper() mintkeeper.Keeper {
 func (a App) GetDKGKeeper() *dkgkeeper.Keeper {
 	return a.Keepers.DKGKeeper
 }
+
+func (a App) CreateQueryContext(height int64, prove bool) (sdk.Context, error) {
+	ctx, err := a.BaseApp.CreateQueryContext(height, prove)
+	if err != nil {
+		return sdk.Context{}, errors.Wrap(err, "failed to create query context")
+	}
+
+	return ctx, nil
+}

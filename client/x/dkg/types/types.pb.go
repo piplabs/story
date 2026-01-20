@@ -5,11 +5,12 @@ package types
 
 import (
 	fmt "fmt"
-	_ "github.com/cosmos/gogoproto/gogoproto"
-	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	_ "github.com/cosmos/gogoproto/gogoproto"
+	proto "github.com/cosmos/gogoproto/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -535,6 +536,91 @@ func (m *Complaint) GetSignature() []byte {
 	return nil
 }
 
+type DecryptRequest struct {
+	Requester  string `protobuf:"bytes,1,opt,name=requester,proto3" json:"requester,omitempty" yaml:"requester"`
+	Round      uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Mrenclave  []byte `protobuf:"bytes,3,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Ciphertext []byte `protobuf:"bytes,4,opt,name=ciphertext,proto3" json:"ciphertext,omitempty" yaml:"ciphertext"`
+	Label      []byte `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty" yaml:"label"`
+	// secp256k1 uncompressed requester pubkey (65 bytes)
+	RequesterPubKey []byte `protobuf:"bytes,6,opt,name=requester_pub_key,json=requesterPubKey,proto3" json:"requester_pub_key,omitempty" yaml:"requester_pub_key"`
+}
+
+func (m *DecryptRequest) Reset()         { *m = DecryptRequest{} }
+func (m *DecryptRequest) String() string { return proto.CompactTextString(m) }
+func (*DecryptRequest) ProtoMessage()    {}
+func (*DecryptRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a7c6c6d7f465ec7b, []int{6}
+}
+func (m *DecryptRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DecryptRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DecryptRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DecryptRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DecryptRequest.Merge(m, src)
+}
+func (m *DecryptRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *DecryptRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DecryptRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DecryptRequest proto.InternalMessageInfo
+
+func (m *DecryptRequest) GetRequester() string {
+	if m != nil {
+		return m.Requester
+	}
+	return ""
+}
+
+func (m *DecryptRequest) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *DecryptRequest) GetMrenclave() []byte {
+	if m != nil {
+		return m.Mrenclave
+	}
+	return nil
+}
+
+func (m *DecryptRequest) GetCiphertext() []byte {
+	if m != nil {
+		return m.Ciphertext
+	}
+	return nil
+}
+
+func (m *DecryptRequest) GetLabel() []byte {
+	if m != nil {
+		return m.Label
+	}
+	return nil
+}
+
+func (m *DecryptRequest) GetRequesterPubKey() []byte {
+	if m != nil {
+		return m.RequesterPubKey
+	}
+	return nil
+}
+
 type Response struct {
 	Index       uint32       `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
 	VssResponse *VSSResponse `protobuf:"bytes,2,opt,name=vss_response,json=vssResponse,proto3" json:"vss_response,omitempty" yaml:"vss_response"`
@@ -544,7 +630,7 @@ func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
 func (*Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a7c6c6d7f465ec7b, []int{6}
+	return fileDescriptor_a7c6c6d7f465ec7b, []int{7}
 }
 func (m *Response) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -598,7 +684,7 @@ func (m *VSSResponse) Reset()         { *m = VSSResponse{} }
 func (m *VSSResponse) String() string { return proto.CompactTextString(m) }
 func (*VSSResponse) ProtoMessage()    {}
 func (*VSSResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_a7c6c6d7f465ec7b, []int{7}
+	return fileDescriptor_a7c6c6d7f465ec7b, []int{8}
 }
 func (m *VSSResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -752,6 +838,7 @@ func init() {
 	proto.RegisterType((*EncryptedDeal)(nil), "story.dkg.v1.types.EncryptedDeal")
 	proto.RegisterType((*Deal)(nil), "story.dkg.v1.types.Deal")
 	proto.RegisterType((*Complaint)(nil), "story.dkg.v1.types.Complaint")
+	proto.RegisterType((*DecryptRequest)(nil), "story.dkg.v1.types.DecryptRequest")
 	proto.RegisterType((*Response)(nil), "story.dkg.v1.types.Response")
 	proto.RegisterType((*VSSResponse)(nil), "story.dkg.v1.types.VSSResponse")
 	proto.RegisterType((*Scalar)(nil), "story.dkg.v1.types.Scalar")
@@ -1162,6 +1249,69 @@ func (m *Complaint) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *DecryptRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DecryptRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DecryptRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RequesterPubKey) > 0 {
+		i -= len(m.RequesterPubKey)
+		copy(dAtA[i:], m.RequesterPubKey)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.RequesterPubKey)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Ciphertext) > 0 {
+		i -= len(m.Ciphertext)
+		copy(dAtA[i:], m.Ciphertext)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Ciphertext)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Mrenclave) > 0 {
+		i -= len(m.Mrenclave)
+		copy(dAtA[i:], m.Mrenclave)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Mrenclave)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Round != 0 {
+		i = encodeVarintTypes(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Requester) > 0 {
+		i -= len(m.Requester)
+		copy(dAtA[i:], m.Requester)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Requester)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Response) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1475,6 +1625,38 @@ func (m *Complaint) Size() (n int) {
 		n += 1 + sovTypes(uint64(m.DealerIndex))
 	}
 	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	return n
+}
+
+func (m *DecryptRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Requester)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovTypes(uint64(m.Round))
+	}
+	l = len(m.Mrenclave)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	l = len(m.Ciphertext)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	l = len(m.RequesterPubKey)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
@@ -2594,6 +2776,243 @@ func (m *Complaint) Unmarshal(dAtA []byte) error {
 			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
 			if m.Signature == nil {
 				m.Signature = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTypes(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DecryptRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTypes
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DecryptRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DecryptRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Requester", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Requester = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
+			if m.Mrenclave == nil {
+				m.Mrenclave = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ciphertext", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ciphertext = append(m.Ciphertext[:0], dAtA[iNdEx:postIndex]...)
+			if m.Ciphertext == nil {
+				m.Ciphertext = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = append(m.Label[:0], dAtA[iNdEx:postIndex]...)
+			if m.Label == nil {
+				m.Label = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequesterPubKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequesterPubKey = append(m.RequesterPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.RequesterPubKey == nil {
+				m.RequesterPubKey = []byte{}
 			}
 			iNdEx = postIndex
 		default:

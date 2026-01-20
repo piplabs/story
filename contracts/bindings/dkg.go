@@ -364,6 +364,66 @@ func (_DKG *DKGCallerSession) GetNodeInfo(mrenclave [32]byte, round uint32, vali
 	return _DKG.Contract.GetNodeInfo(&_DKG.CallOpts, mrenclave, round, validator)
 }
 
+// PartialDecrypts is a free data retrieval call binding the contract method 0xdd7b0d8a.
+//
+// Solidity: function partialDecrypts(bytes32 mrenclave, uint32 round, bytes32 labelHash, uint32 pid) view returns(address validator, bytes partialDecryption, bytes pubShare, bytes label, bool exists)
+func (_DKG *DKGCaller) PartialDecrypts(opts *bind.CallOpts, mrenclave [32]byte, round uint32, labelHash [32]byte, pid uint32) (struct {
+	Validator         common.Address
+	PartialDecryption []byte
+	PubShare          []byte
+	Label             []byte
+	Exists            bool
+}, error) {
+	var out []interface{}
+	err := _DKG.contract.Call(opts, &out, "partialDecrypts", mrenclave, round, labelHash, pid)
+
+	outstruct := new(struct {
+		Validator         common.Address
+		PartialDecryption []byte
+		PubShare          []byte
+		Label             []byte
+		Exists            bool
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.PartialDecryption = *abi.ConvertType(out[1], new([]byte)).(*[]byte)
+	outstruct.PubShare = *abi.ConvertType(out[2], new([]byte)).(*[]byte)
+	outstruct.Label = *abi.ConvertType(out[3], new([]byte)).(*[]byte)
+	outstruct.Exists = *abi.ConvertType(out[4], new(bool)).(*bool)
+
+	return *outstruct, err
+
+}
+
+// PartialDecrypts is a free data retrieval call binding the contract method 0xdd7b0d8a.
+//
+// Solidity: function partialDecrypts(bytes32 mrenclave, uint32 round, bytes32 labelHash, uint32 pid) view returns(address validator, bytes partialDecryption, bytes pubShare, bytes label, bool exists)
+func (_DKG *DKGSession) PartialDecrypts(mrenclave [32]byte, round uint32, labelHash [32]byte, pid uint32) (struct {
+	Validator         common.Address
+	PartialDecryption []byte
+	PubShare          []byte
+	Label             []byte
+	Exists            bool
+}, error) {
+	return _DKG.Contract.PartialDecrypts(&_DKG.CallOpts, mrenclave, round, labelHash, pid)
+}
+
+// PartialDecrypts is a free data retrieval call binding the contract method 0xdd7b0d8a.
+//
+// Solidity: function partialDecrypts(bytes32 mrenclave, uint32 round, bytes32 labelHash, uint32 pid) view returns(address validator, bytes partialDecryption, bytes pubShare, bytes label, bool exists)
+func (_DKG *DKGCallerSession) PartialDecrypts(mrenclave [32]byte, round uint32, labelHash [32]byte, pid uint32) (struct {
+	Validator         common.Address
+	PartialDecryption []byte
+	PubShare          []byte
+	Label             []byte
+	Exists            bool
+}, error) {
+	return _DKG.Contract.PartialDecrypts(&_DKG.CallOpts, mrenclave, round, labelHash, pid)
+}
+
 // ComplainDeals is a paid mutator transaction binding the contract method 0x08ad63ac.
 //
 // Solidity: function complainDeals(uint32 round, uint32 index, uint32[] complainIndexes, bytes32 mrenclave) returns()
@@ -448,6 +508,27 @@ func (_DKG *DKGTransactorSession) RequestRemoteAttestationOnChain(targetValidato
 	return _DKG.Contract.RequestRemoteAttestationOnChain(&_DKG.TransactOpts, targetValidatorAddr, round, mrenclave)
 }
 
+// RequestThresholdDecryption is a paid mutator transaction binding the contract method 0xb1133cac.
+//
+// Solidity: function requestThresholdDecryption(uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label) returns()
+func (_DKG *DKGTransactor) RequestThresholdDecryption(opts *bind.TransactOpts, round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.contract.Transact(opts, "requestThresholdDecryption", round, mrenclave, requesterPubKey, ciphertext, label)
+}
+
+// RequestThresholdDecryption is a paid mutator transaction binding the contract method 0xb1133cac.
+//
+// Solidity: function requestThresholdDecryption(uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label) returns()
+func (_DKG *DKGSession) RequestThresholdDecryption(round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.Contract.RequestThresholdDecryption(&_DKG.TransactOpts, round, mrenclave, requesterPubKey, ciphertext, label)
+}
+
+// RequestThresholdDecryption is a paid mutator transaction binding the contract method 0xb1133cac.
+//
+// Solidity: function requestThresholdDecryption(uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label) returns()
+func (_DKG *DKGTransactorSession) RequestThresholdDecryption(round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.Contract.RequestThresholdDecryption(&_DKG.TransactOpts, round, mrenclave, requesterPubKey, ciphertext, label)
+}
+
 // SetNetwork is a paid mutator transaction binding the contract method 0x227cd922.
 //
 // Solidity: function setNetwork(uint32 round, uint32 total, uint32 threshold, bytes32 mrenclave, bytes signature) returns()
@@ -467,6 +548,27 @@ func (_DKG *DKGSession) SetNetwork(round uint32, total uint32, threshold uint32,
 // Solidity: function setNetwork(uint32 round, uint32 total, uint32 threshold, bytes32 mrenclave, bytes signature) returns()
 func (_DKG *DKGTransactorSession) SetNetwork(round uint32, total uint32, threshold uint32, mrenclave [32]byte, signature []byte) (*types.Transaction, error) {
 	return _DKG.Contract.SetNetwork(&_DKG.TransactOpts, round, total, threshold, mrenclave, signature)
+}
+
+// SubmitPartialDecryption is a paid mutator transaction binding the contract method 0x79b131a7.
+//
+// Solidity: function submitPartialDecryption(uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label) returns()
+func (_DKG *DKGTransactor) SubmitPartialDecryption(opts *bind.TransactOpts, round uint32, mrenclave [32]byte, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.contract.Transact(opts, "submitPartialDecryption", round, mrenclave, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+}
+
+// SubmitPartialDecryption is a paid mutator transaction binding the contract method 0x79b131a7.
+//
+// Solidity: function submitPartialDecryption(uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label) returns()
+func (_DKG *DKGSession) SubmitPartialDecryption(round uint32, mrenclave [32]byte, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.Contract.SubmitPartialDecryption(&_DKG.TransactOpts, round, mrenclave, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+}
+
+// SubmitPartialDecryption is a paid mutator transaction binding the contract method 0x79b131a7.
+//
+// Solidity: function submitPartialDecryption(uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label) returns()
+func (_DKG *DKGTransactorSession) SubmitPartialDecryption(round uint32, mrenclave [32]byte, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, label []byte) (*types.Transaction, error) {
+	return _DKG.Contract.SubmitPartialDecryption(&_DKG.TransactOpts, round, mrenclave, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 }
 
 // DKGDKGFinalizedIterator is returned from FilterDKGFinalized and is used to iterate over the raw logs and unpacked data for DKGFinalized events raised by the DKG contract.
@@ -1326,6 +1428,157 @@ func (_DKG *DKGFilterer) ParseInvalidDeal(log types.Log) (*DKGInvalidDeal, error
 	return event, nil
 }
 
+// DKGPartialDecryptionSubmittedIterator is returned from FilterPartialDecryptionSubmitted and is used to iterate over the raw logs and unpacked data for PartialDecryptionSubmitted events raised by the DKG contract.
+type DKGPartialDecryptionSubmittedIterator struct {
+	Event *DKGPartialDecryptionSubmitted // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DKGPartialDecryptionSubmittedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DKGPartialDecryptionSubmitted)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DKGPartialDecryptionSubmitted)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DKGPartialDecryptionSubmittedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DKGPartialDecryptionSubmittedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DKGPartialDecryptionSubmitted represents a PartialDecryptionSubmitted event raised by the DKG contract.
+type DKGPartialDecryptionSubmitted struct {
+	Validator        common.Address
+	Round            uint32
+	Mrenclave        [32]byte
+	Pid              uint32
+	EncryptedPartial []byte
+	EphemeralPubKey  []byte
+	PubShare         []byte
+	Label            []byte
+	Raw              types.Log // Blockchain specific contextual infos
+}
+
+// FilterPartialDecryptionSubmitted is a free log retrieval operation binding the contract event 0x835e2245f021610650983a80011abf0755d752f7ce7935d861f90dcfa4ad8db2.
+//
+// Solidity: event PartialDecryptionSubmitted(address indexed validator, uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label)
+func (_DKG *DKGFilterer) FilterPartialDecryptionSubmitted(opts *bind.FilterOpts, validator []common.Address) (*DKGPartialDecryptionSubmittedIterator, error) {
+
+	var validatorRule []interface{}
+	for _, validatorItem := range validator {
+		validatorRule = append(validatorRule, validatorItem)
+	}
+
+	logs, sub, err := _DKG.contract.FilterLogs(opts, "PartialDecryptionSubmitted", validatorRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DKGPartialDecryptionSubmittedIterator{contract: _DKG.contract, event: "PartialDecryptionSubmitted", logs: logs, sub: sub}, nil
+}
+
+// WatchPartialDecryptionSubmitted is a free log subscription operation binding the contract event 0x835e2245f021610650983a80011abf0755d752f7ce7935d861f90dcfa4ad8db2.
+//
+// Solidity: event PartialDecryptionSubmitted(address indexed validator, uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label)
+func (_DKG *DKGFilterer) WatchPartialDecryptionSubmitted(opts *bind.WatchOpts, sink chan<- *DKGPartialDecryptionSubmitted, validator []common.Address) (event.Subscription, error) {
+
+	var validatorRule []interface{}
+	for _, validatorItem := range validator {
+		validatorRule = append(validatorRule, validatorItem)
+	}
+
+	logs, sub, err := _DKG.contract.WatchLogs(opts, "PartialDecryptionSubmitted", validatorRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DKGPartialDecryptionSubmitted)
+				if err := _DKG.contract.UnpackLog(event, "PartialDecryptionSubmitted", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParsePartialDecryptionSubmitted is a log parse operation binding the contract event 0x835e2245f021610650983a80011abf0755d752f7ce7935d861f90dcfa4ad8db2.
+//
+// Solidity: event PartialDecryptionSubmitted(address indexed validator, uint32 round, bytes32 mrenclave, uint32 pid, bytes encryptedPartial, bytes ephemeralPubKey, bytes pubShare, bytes label)
+func (_DKG *DKGFilterer) ParsePartialDecryptionSubmitted(log types.Log) (*DKGPartialDecryptionSubmitted, error) {
+	event := new(DKGPartialDecryptionSubmitted)
+	if err := _DKG.contract.UnpackLog(event, "PartialDecryptionSubmitted", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // DKGRemoteAttestationProcessedOnChainIterator is returned from FilterRemoteAttestationProcessedOnChain and is used to iterate over the raw logs and unpacked data for RemoteAttestationProcessedOnChain events raised by the DKG contract.
 type DKGRemoteAttestationProcessedOnChainIterator struct {
 	Event *DKGRemoteAttestationProcessedOnChain // Event containing the contract specifics and raw log
@@ -1457,6 +1710,155 @@ func (_DKG *DKGFilterer) WatchRemoteAttestationProcessedOnChain(opts *bind.Watch
 func (_DKG *DKGFilterer) ParseRemoteAttestationProcessedOnChain(log types.Log) (*DKGRemoteAttestationProcessedOnChain, error) {
 	event := new(DKGRemoteAttestationProcessedOnChain)
 	if err := _DKG.contract.UnpackLog(event, "RemoteAttestationProcessedOnChain", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// DKGThresholdDecryptRequestedIterator is returned from FilterThresholdDecryptRequested and is used to iterate over the raw logs and unpacked data for ThresholdDecryptRequested events raised by the DKG contract.
+type DKGThresholdDecryptRequestedIterator struct {
+	Event *DKGThresholdDecryptRequested // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DKGThresholdDecryptRequestedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DKGThresholdDecryptRequested)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DKGThresholdDecryptRequested)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DKGThresholdDecryptRequestedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DKGThresholdDecryptRequestedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DKGThresholdDecryptRequested represents a ThresholdDecryptRequested event raised by the DKG contract.
+type DKGThresholdDecryptRequested struct {
+	Requester       common.Address
+	Round           uint32
+	Mrenclave       [32]byte
+	RequesterPubKey []byte
+	Ciphertext      []byte
+	Label           []byte
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterThresholdDecryptRequested is a free log retrieval operation binding the contract event 0x5f9d4b68667a3b91f2fe8369c2ac9040ce4a68400aadbe076f9d109b13e09b61.
+//
+// Solidity: event ThresholdDecryptRequested(address indexed requester, uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label)
+func (_DKG *DKGFilterer) FilterThresholdDecryptRequested(opts *bind.FilterOpts, requester []common.Address) (*DKGThresholdDecryptRequestedIterator, error) {
+
+	var requesterRule []interface{}
+	for _, requesterItem := range requester {
+		requesterRule = append(requesterRule, requesterItem)
+	}
+
+	logs, sub, err := _DKG.contract.FilterLogs(opts, "ThresholdDecryptRequested", requesterRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DKGThresholdDecryptRequestedIterator{contract: _DKG.contract, event: "ThresholdDecryptRequested", logs: logs, sub: sub}, nil
+}
+
+// WatchThresholdDecryptRequested is a free log subscription operation binding the contract event 0x5f9d4b68667a3b91f2fe8369c2ac9040ce4a68400aadbe076f9d109b13e09b61.
+//
+// Solidity: event ThresholdDecryptRequested(address indexed requester, uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label)
+func (_DKG *DKGFilterer) WatchThresholdDecryptRequested(opts *bind.WatchOpts, sink chan<- *DKGThresholdDecryptRequested, requester []common.Address) (event.Subscription, error) {
+
+	var requesterRule []interface{}
+	for _, requesterItem := range requester {
+		requesterRule = append(requesterRule, requesterItem)
+	}
+
+	logs, sub, err := _DKG.contract.WatchLogs(opts, "ThresholdDecryptRequested", requesterRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DKGThresholdDecryptRequested)
+				if err := _DKG.contract.UnpackLog(event, "ThresholdDecryptRequested", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseThresholdDecryptRequested is a log parse operation binding the contract event 0x5f9d4b68667a3b91f2fe8369c2ac9040ce4a68400aadbe076f9d109b13e09b61.
+//
+// Solidity: event ThresholdDecryptRequested(address indexed requester, uint32 round, bytes32 mrenclave, bytes requesterPubKey, bytes ciphertext, bytes label)
+func (_DKG *DKGFilterer) ParseThresholdDecryptRequested(log types.Log) (*DKGThresholdDecryptRequested, error) {
+	event := new(DKGThresholdDecryptRequested)
+	if err := _DKG.contract.UnpackLog(event, "ThresholdDecryptRequested", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

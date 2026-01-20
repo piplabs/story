@@ -144,12 +144,12 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		payloadProto *types.ExecutionPayloadDeneb
 	)
 
-	isV140, err := netconf.IsV140(ctx.ChainID(), ctx.BlockHeight())
+	isTerence, err := netconf.IsTerence(ctx.ChainID(), ctx.BlockHeight())
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to check if the v1.4.0 upgrade is activated or not", "chain_id", ctx.ChainID(), "block_number", ctx.BlockHeight())
+		return nil, errors.Wrap(err, "failed to check if the Terence upgrade is activated or not", "chain_id", ctx.ChainID(), "block_number", ctx.BlockHeight())
 	}
 
-	if isV140 {
+	if isTerence {
 		payloadProto, err = types.PayloadToProto(payloadResp.ExecutionPayload)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert execution payload to proto message")

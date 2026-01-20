@@ -195,10 +195,10 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 					Authority:        authtypes.NewModuleAddress(types.ModuleName).String(),
 				}
 			},
-			expectedErr: "failed to check if the v1.4.0 upgrade is activated or not",
+			expectedErr: "failed to check if the Terence upgrade is activated or not",
 		},
 		{
-			name: "fail: v1.4.0 is activated but ExecutionPayload of msg is not nil",
+			name: "fail: Terence is activated but ExecutionPayload of msg is not nil",
 			setup: func(ctx context.Context) sdk.Context {
 				sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(51)
 
@@ -229,7 +229,7 @@ func TestKeeper_parseAndVerifyProposedPayload(t *testing.T) {
 			expectedErr: "unmarshal proto payload",
 		},
 		{
-			name: "fail: v1.4.0 is not activated and ExecutionPayloadDeneb of msg is not nil",
+			name: "fail: Terence is not activated and ExecutionPayloadDeneb of msg is not nil",
 			msg: func(_ context.Context) *types.MsgExecutionPayload {
 				return &types.MsgExecutionPayload{
 					ExecutionPayloadDeneb: &types.ExecutionPayloadDeneb{},

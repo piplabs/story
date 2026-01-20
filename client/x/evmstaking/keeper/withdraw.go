@@ -535,6 +535,13 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 
 	msg := stypes.NewMsgUndelegate(depositorAddr.String(), validatorAddr.String(), delID, amountCoin)
 
+	isV142, err := netconf.IsV142(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	if err != nil {
+		return errors.Wrap(err, "failed to check if v1.4.2 is applied or not", "chain_id", sdkCtx.ChainID(), "block_height", sdkCtx.BlockHeight())
+	}
+
+	msg.ApplyRewardsSharesFix = isV142
+
 	// Undelegate from the validator (validator existence is checked in ValidateUnbondAmount)
 	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).Undelegate(cachedCtx, msg)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
