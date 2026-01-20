@@ -42,14 +42,14 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, mrenclave [32]byte, rou
 // getDKGRegistrationIndex gets the index of a specific DKG registration by mrenclave, round, and msg sender.
 //
 // TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
-func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte, round uint32, msgSender common.Address) (uint32, error) {
+func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte, round uint32, msgSender string) (uint32, error) {
 	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, round)
 	if err != nil {
 		return 0, err
 	}
 
 	for _, registration := range registrations {
-		if registration.MsgSender == msgSender.Hex() {
+		if registration.MsgSender == msgSender {
 			return registration.Index, nil
 		}
 	}

@@ -182,14 +182,14 @@ func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mr
 
 // RemoteAttestationProcessedOnChain handles remote attestation processed event.
 func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error {
-	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, validator)
+	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, strings.ToLower(validator.Hex()))
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg registration index")
 	}
 
 	log.Info(ctx, "DKG RemoteAttestationProcessedOnChain event received",
 		"index", index,
-		"validator", validator.Hex(),
+		"validator", strings.ToLower(validator.Hex()),
 		"challenge_status", chalStatus,
 		"round", round,
 		"mrenclave", hex.EncodeToString(mrenclave[:]),
