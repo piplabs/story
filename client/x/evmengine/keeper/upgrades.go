@@ -54,7 +54,7 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 				continue
 			}
 		default:
-			clog.Error(ctx, "Unexpected event type from upgrade entrypoint contract", nil)
+			// skip if the event is not from upgrade entrypoint contract
 			continue
 		}
 	}
