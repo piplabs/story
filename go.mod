@@ -343,6 +343,8 @@ replace (
 	// replace evidence module to the story's evidence module
 	cosmossdk.io/x/evidence => github.com/piplabs/cosmos-sdk/x/evidence v0.1.1-piplabs-v1.0
 
+	github.com/cometbft/cometbft => github.com/piplabs/cometbft v0.38.20-piplabs-v0.1
+
 	// Direct cosmos-sdk branch link: https://github.com/piplabs/cosmos-sdk/tree/piplabs/v0.50.14, current branch: piplabs/v0.50.14
 	github.com/cosmos/cosmos-sdk => github.com/piplabs/cosmos-sdk v0.50.14-piplabs-v1.1
 
