@@ -13,6 +13,8 @@ const (
 
 	Terence = "terence"
 	V142    = "v1.4.2"
+
+	Horace = "horace"
 )
 
 var (
@@ -28,16 +30,19 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V121:    10,
 		Terence: 50,
 		V142:    50,
+		Horace:  100,
 	},
 	LocalChainID: {
 		V121:    0,
 		Terence: 50,
 		V142:    50,
+		Horace:  100,
 	},
 	StoryLocalnetID: {
 		V121:    0,
 		Terence: 0,
 		V142:    0,
+		Horace:  100,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
@@ -46,6 +51,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 6008000,
 		Terence:  10886688,
 		V142:     12088950,
+		Horace:   13849500,
 	},
 	StoryChainID: {
 		Virgil:   809988,
@@ -54,6 +60,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 8270000,
 		Terence:  11538000,
 		V142:     11784600,
+		Horace:   13604350,
 	},
 }
 

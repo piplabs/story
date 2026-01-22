@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/piplabs/story/client/app/upgrades/horace"
 
 	storetypes "cosmossdk.io/store/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -26,6 +27,7 @@ var (
 		v_1_2_0.Upgrade,
 		polybius.Upgrade,
 		terence.Upgrade,
+		horace.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -33,6 +35,7 @@ var (
 		v_1_2_0.Fork,
 		polybius.Fork,
 		terence.Fork,
+		horace.Fork,
 	}
 )
 
@@ -94,43 +97,9 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 	currentBlockHeight := ctx.BlockHeight()
 
 	for _, fork := range Forks {
-		upgradeHeight := fork.UpgradeHeight
-		// Retrieve the upgrade height dynamically based on the network for virgil upgrade
-		if fork.UpgradeName == virgil.UpgradeName {
-			virgilUpgradeHeight, ok := virgil.GetUpgradeHeight(ctx.ChainID())
-			if !ok {
-				// Virgil upgrade not needed for current chain, skip
-				continue
-			}
-
-			upgradeHeight = virgilUpgradeHeight
-		}
-
-		if fork.UpgradeName == v_1_2_0.UpgradeName {
-			v120UpgradeHeight, ok := v_1_2_0.GetUpgradeHeight(ctx.ChainID())
-			if !ok {
-				continue
-			}
-
-			upgradeHeight = v120UpgradeHeight
-		}
-
-		if fork.UpgradeName == polybius.UpgradeName {
-			polybiusUpgradeHeight, ok := polybius.GetUpgradeHeight(ctx.ChainID())
-			if !ok {
-				continue
-			}
-
-			upgradeHeight = polybiusUpgradeHeight
-		}
-
-		if fork.UpgradeName == netconf.Terence {
-			terenceUpgradeHeight, ok := terence.GetUpgradeHeight(ctx)
-			if !ok {
-				continue
-			}
-
-			upgradeHeight = terenceUpgradeHeight
+		upgradeHeight, ok := GetUpgradeHeight(ctx, fork.UpgradeName, fork.UpgradeHeight)
+		if !ok {
+			continue
 		}
 
 		if currentBlockHeight == upgradeHeight {
@@ -154,5 +123,31 @@ func (a *App) scheduleForkUpgrade(ctx sdk.Context) {
 				)
 			}
 		}
+	}
+}
+
+// GetUpgradeHeight returns the upgrade height for a given upgrade name,
+// or the static fallback height if no dynamic resolution exists.
+// If the upgrade is not applicable for this chain, it returns (0, false).
+func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64) (int64, bool) {
+	switch upgradeName {
+	case virgil.UpgradeName:
+		return virgil.GetUpgradeHeight(ctx.ChainID())
+
+	case v_1_2_0.UpgradeName:
+		return v_1_2_0.GetUpgradeHeight(ctx.ChainID())
+
+	case polybius.UpgradeName:
+		return polybius.GetUpgradeHeight(ctx.ChainID())
+
+	case netconf.Terence:
+		return terence.GetUpgradeHeight(ctx)
+
+	case netconf.Horace:
+		return horace.GetUpgradeHeight(ctx)
+
+	default:
+		// no dynamic resolver → use fallback (static height)
+		return fallbackHeight, true
 	}
 }
