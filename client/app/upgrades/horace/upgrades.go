@@ -126,8 +126,23 @@ func CreateUpgradeHandler(
 			newTotalRewardsShares := math.LegacyZeroDec()                                          // used for updating the total rewards shares of each validator
 			newRewardsTokens := math.LegacyNewDecFromInt(val.Tokens).Mul(NewLockedTokenMultiplier) // used for updating the rewards tokens of each validator
 
+			// withdraw validator commission before updating rewards tokens of validator
+			if _, err := dKeeper.WithdrawValidatorCommission(ctx, valAddr); err != nil {
+				return vm, lerrors.Wrap(err, "failed to withdraw validator commission")
+			}
+
 			// iterate all delegations which is delegated on the locked validator to scale the rewards shares
 			for _, del := range dels {
+				// withdraw delegation rewards before updating rewards shares
+				delAccAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress)
+				if err != nil {
+					return vm, lerrors.Wrap(err, "failed to convert delegation delegator address")
+				}
+
+				if _, err := dKeeper.WithdrawDelegationRewards(ctx, delAccAddr, valAddr); err != nil {
+					return vm, lerrors.Wrap(err, "failed to withdraw delegation rewards")
+				}
+
 				shares := del.Shares
 
 				newDelRewardsShares := shares.MulTruncate(NewLockedTokenMultiplier)
