@@ -51,7 +51,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 6008000,
 		Terence:  10886688,
 		V142:     12088950,
-		Horace:   13849500,
+		Horace:   14017000,
 	},
 	StoryChainID: {
 		Virgil:   809988,
@@ -60,7 +60,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Polybius: 8270000,
 		Terence:  11538000,
 		V142:     11784600,
-		Horace:   13604350,
+		Horace:   13780500,
 	},
 }
 
