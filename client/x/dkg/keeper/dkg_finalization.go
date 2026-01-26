@@ -26,6 +26,7 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
 	}
 
+	// TODO: compare with minReqFinalized
 	if finalizedCount < latestRound.Threshold {
 		log.Info(ctx, "The number of DKG registrations in Finalized status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
 

@@ -17,7 +17,7 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 		return nil, errors.Wrap(err, "failed to get all validators")
 	}
 
-	var bondedValidators []string
+	bondedValidators := make([]string, 0, len(validators))
 	for _, val := range validators {
 		if val.IsBonded() && !val.IsJailed() {
 			evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(val.OperatorAddress)

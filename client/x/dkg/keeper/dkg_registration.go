@@ -49,7 +49,7 @@ func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, mrenclave [32]byte
 	}
 
 	for _, registration := range registrations {
-		if registration.MsgSender == msgSender {
+		if registration.ValidatorAddr == msgSender {
 			return registration.Index, nil
 		}
 	}

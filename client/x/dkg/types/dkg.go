@@ -58,6 +58,7 @@ type DKGSession struct {
 	SigSetupNetwork    []byte    `json:"sig_setup_network"`
 	SigFinalizeNetwork []byte    `json:"sig_finalize_network"`
 	PublicCoeffs       [][]byte  `json:"public_coeffs"`
+	ParticipantsRoot   []byte    `json:"participants_root"`
 
 	// Network information
 	ActiveValidators []string `json:"active_validators"`

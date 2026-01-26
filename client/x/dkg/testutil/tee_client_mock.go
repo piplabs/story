@@ -162,26 +162,6 @@ func (mr *MockTEEClientMockRecorder) ProcessResponses(ctx, in any, opts ...any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEClient)(nil).ProcessResponses), varargs...)
 }
 
-// SetupDKGNetwork mocks base method.
-func (m *MockTEEClient) SetupDKGNetwork(ctx context.Context, in *types.SetupDKGNetworkRequest, opts ...grpc.CallOption) (*types.SetupDKGNetworkResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "SetupDKGNetwork", varargs...)
-	ret0, _ := ret[0].(*types.SetupDKGNetworkResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetupDKGNetwork indicates an expected call of SetupDKGNetwork.
-func (mr *MockTEEClientMockRecorder) SetupDKGNetwork(ctx, in any, opts ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEClient)(nil).SetupDKGNetwork), varargs...)
-}
-
 // MockTEEServer is a mock of TEEServer interface.
 type MockTEEServer struct {
 	ctrl     *gomock.Controller
@@ -294,19 +274,4 @@ func (m *MockTEEServer) ProcessResponses(arg0 context.Context, arg1 *types.Proce
 func (mr *MockTEEServerMockRecorder) ProcessResponses(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEServer)(nil).ProcessResponses), arg0, arg1)
-}
-
-// SetupDKGNetwork mocks base method.
-func (m *MockTEEServer) SetupDKGNetwork(arg0 context.Context, arg1 *types.SetupDKGNetworkRequest) (*types.SetupDKGNetworkResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetupDKGNetwork", arg0, arg1)
-	ret0, _ := ret[0].(*types.SetupDKGNetworkResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetupDKGNetwork indicates an expected call of SetupDKGNetwork.
-func (mr *MockTEEServerMockRecorder) SetupDKGNetwork(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetupDKGNetwork", reflect.TypeOf((*MockTEEServer)(nil).SetupDKGNetwork), arg0, arg1)
 }

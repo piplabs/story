@@ -115,6 +115,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		return errors.Wrap(err, "TEE client FinalizeDKG request failed")
 	}
 
+	session.ParticipantsRoot = resp.GetParticipantsRoot()
 	session.GlobalPubKey = resp.GetGlobalPubKey()
 	session.SigFinalizeNetwork = resp.GetSignature()
 	session.PublicCoeffs = resp.GetPublicCoeffs()
@@ -149,6 +150,7 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 		ctx,
 		session.Round,
 		session.Mrenclave,
+		session.ParticipantsRoot,
 		session.GlobalPubKey,
 		session.PublicCoeffs,
 		session.SigFinalizeNetwork,

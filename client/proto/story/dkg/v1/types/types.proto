@@ -10,7 +10,6 @@ enum DKGRegStatus {
 
   DKG_REG_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGRegStatusUnspecified"];
   DKG_REG_STATUS_VERIFIED = 1 [(gogoproto.enumvalue_customname) = "DKGRegStatusVerified"];
-  DKG_REG_STATUS_NETWORK_SET = 2 [(gogoproto.enumvalue_customname) = "DKGRegStatusNetworkSet"];
   DKG_REG_STATUS_FINALIZED = 3 [(gogoproto.enumvalue_customname) = "DKGRegStatusFinalized"];
 }
 
@@ -19,7 +18,6 @@ enum DKGStage {
 
   DKG_STAGE_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGStageUnspecified"];
   DKG_STAGE_REGISTRATION = 1 [(gogoproto.enumvalue_customname) = "DKGStageRegistration"];
-  DKG_STAGE_NETWORK_SET = 2 [(gogoproto.enumvalue_customname) = "DKGStageNetworkSet"];
   DKG_STAGE_DEALING = 3 [(gogoproto.enumvalue_customname) = "DKGStageDealing"];
   DKG_STAGE_FINALIZATION = 4 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
   DKG_STAGE_ACTIVE = 5 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
@@ -70,8 +68,8 @@ message DKGRegistration {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string msg_sender = 2 [
-    (gogoproto.moretags) = "yaml:\"msg_sender\""
+  string validator_addr = 2 [
+    (gogoproto.moretags) = "yaml:\"validator_addr\""
   ];
 
   uint32 index = 3 [

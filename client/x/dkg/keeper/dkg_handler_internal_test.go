@@ -65,13 +65,13 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				// Network already set up in test setup
 			},
 			expectedRegData: &types.DKGRegistration{
-				Round:      testRound,
-				MsgSender:  testValidator.Hex(),
-				Index:      1,
-				DkgPubKey:  testDkgPubKey,
-				CommPubKey: testCommPubKey,
-				RawQuote:   testRawQuote,
-				Status:     types.DKGRegStatusVerified,
+				Round:         testRound,
+				ValidatorAddr: testValidator.Hex(),
+				Index:         1,
+				DkgPubKey:     testDkgPubKey,
+				CommPubKey:    testCommPubKey,
+				RawQuote:      testRawQuote,
+				Status:        types.DKGRegStatusVerified,
 			},
 		},
 		{
@@ -100,7 +100,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					ActiveValSet: []string{testValidator.Hex()},
 					Total:        5,
 					Threshold:    3,
-					Stage:        types.DKGStageNetworkSet,
+					Stage:        types.DKGStageDealing,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, networkWithDifferentStage))
 			},
@@ -150,24 +150,24 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				require.NoError(t, k.setDKGNetwork(ctx, networkWithMultipleValidators))
 
 				firstReg := &types.DKGRegistration{
-					Round:      testRound,
-					MsgSender:  anotherValidator.Hex(),
-					Index:      1,
-					DkgPubKey:  []byte("first-dkg-pubkey"),
-					CommPubKey: []byte("first-comm-pubkey"),
-					RawQuote:   []byte("first-raw-quote"),
-					Status:     types.DKGRegStatusVerified,
+					Round:         testRound,
+					ValidatorAddr: anotherValidator.Hex(),
+					Index:         1,
+					DkgPubKey:     []byte("first-dkg-pubkey"),
+					CommPubKey:    []byte("first-comm-pubkey"),
+					RawQuote:      []byte("first-raw-quote"),
+					Status:        types.DKGRegStatusVerified,
 				}
 				require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, anotherValidator, firstReg))
 			},
 			expectedRegData: &types.DKGRegistration{
-				Round:      testRound,
-				MsgSender:  testValidator.Hex(),
-				Index:      2,
-				DkgPubKey:  []byte("second-dkg-pubkey"),
-				CommPubKey: []byte("second-comm-pubkey"),
-				RawQuote:   []byte("second-raw-quote"),
-				Status:     types.DKGRegStatusVerified,
+				Round:         testRound,
+				ValidatorAddr: testValidator.Hex(),
+				Index:         2,
+				DkgPubKey:     []byte("second-dkg-pubkey"),
+				CommPubKey:    []byte("second-comm-pubkey"),
+				RawQuote:      []byte("second-raw-quote"),
+				Status:        types.DKGRegStatusVerified,
 			},
 		},
 	}
@@ -190,7 +190,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					storedReg, err := k.getDKGRegistration(ctx, tc.mrenclave, tc.round, tc.msgSender)
 					require.NoError(t, err)
 					require.Equal(t, tc.expectedRegData.Round, storedReg.Round)
-					require.Equal(t, tc.expectedRegData.MsgSender, storedReg.MsgSender)
+					require.Equal(t, tc.expectedRegData.ValidatorAddr, storedReg.ValidatorAddr)
 					require.Equal(t, tc.expectedRegData.Index, storedReg.Index)
 					require.Equal(t, tc.expectedRegData.DkgPubKey, storedReg.DkgPubKey)
 					require.Equal(t, tc.expectedRegData.CommPubKey, storedReg.CommPubKey)
@@ -202,125 +202,59 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	}
 }
 
-func TestKeeper_NetworkSet(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
-	testRound := uint32(1)
-	testTotal := uint32(5)
-	testThreshold := uint32(3)
-	testSignature := []byte("test-signature")
-
-	testReg := &types.DKGRegistration{
-		Round:      testRound,
-		MsgSender:  testValidator.Hex(),
-		Index:      1,
-		DkgPubKey:  []byte("test-dkg-pubkey"),
-		CommPubKey: []byte("test-comm-pubkey"),
-		RawQuote:   []byte("test-raw-quote"),
-		Status:     types.DKGRegStatusVerified,
-	}
-	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
-
-	tcs := []struct {
-		name        string
-		msgSender   common.Address
-		mrenclave   [32]byte
-		round       uint32
-		total       uint32
-		threshold   uint32
-		signature   []byte
-		expectedErr string
-	}{
-		{
-			name:      "pass: successful network set",
-			msgSender: testValidator,
-			mrenclave: testMrenclave,
-			round:     testRound,
-			total:     testTotal,
-			threshold: testThreshold,
-			signature: testSignature,
-		},
-		{
-			name:        "fail: registration not found",
-			msgSender:   common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			mrenclave:   testMrenclave,
-			round:       testRound,
-			total:       testTotal,
-			threshold:   testThreshold,
-			signature:   testSignature,
-			expectedErr: "dkg registration not found",
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			err := k.NetworkSet(ctx, tc.msgSender, tc.mrenclave, tc.round, tc.total, tc.threshold, tc.signature)
-
-			if tc.expectedErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr)
-			} else {
-				require.NoError(t, err)
-
-				updatedReg, err := k.getDKGRegistration(ctx, tc.mrenclave, tc.round, tc.msgSender)
-				require.NoError(t, err)
-				require.Equal(t, types.DKGRegStatusNetworkSet, updatedReg.Status)
-			}
-		})
-	}
-}
-
 func TestKeeper_Finalized(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testParticipantsRoot := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 	testSignature := []byte("test-signature")
 
 	testReg := &types.DKGRegistration{
-		Round:      testRound,
-		MsgSender:  testValidator.Hex(),
-		Index:      1,
-		DkgPubKey:  []byte("test-dkg-pubkey"),
-		CommPubKey: []byte("test-comm-pubkey"),
-		RawQuote:   []byte("test-raw-quote"),
-		Status:     types.DKGRegStatusNetworkSet,
+		Round:         testRound,
+		ValidatorAddr: testValidator.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte("test-dkg-pubkey"),
+		CommPubKey:    []byte("test-comm-pubkey"),
+		RawQuote:      []byte("test-raw-quote"),
+		Status:        types.DKGRegStatusVerified,
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
 
 	tcs := []struct {
-		name         string
-		round        uint32
-		msgSender    common.Address
-		mrenclave    [32]byte
-		globalPubKey []byte
-		signature    []byte
-		expectedErr  string
+		name             string
+		round            uint32
+		msgSender        common.Address
+		mrenclave        [32]byte
+		participantsRoot [32]byte
+		globalPubKey     []byte
+		signature        []byte
+		expectedErr      string
 	}{
 		{
-			name:      "pass: successful finalization",
-			round:     testRound,
-			msgSender: testValidator,
-			mrenclave: testMrenclave,
-			signature: testSignature,
+			name:             "pass: successful finalization",
+			round:            testRound,
+			msgSender:        testValidator,
+			mrenclave:        testMrenclave,
+			participantsRoot: testParticipantsRoot,
+			signature:        testSignature,
 		},
 		{
-			name:        "fail: registration not found",
-			round:       testRound,
-			msgSender:   common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			mrenclave:   testMrenclave,
-			signature:   testSignature,
-			expectedErr: "dkg registration not found",
+			name:             "fail: registration not found",
+			round:            testRound,
+			msgSender:        common.HexToAddress("0x9999999999999999999999999999999999999999"),
+			mrenclave:        testMrenclave,
+			participantsRoot: testParticipantsRoot,
+			signature:        testSignature,
+			expectedErr:      "dkg registration not found",
 		},
 		// TODO: add tc for setting global pub key
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.signature, tc.globalPubKey, [][]byte{}) // TODO mock public coeffs
+			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.participantsRoot, tc.signature, tc.globalPubKey, [][]byte{}) // TODO mock public coeffs
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -378,13 +312,13 @@ func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
 	testChalStatus := 1 // ChallengeStatus.Invalidated
 
 	testReg := &types.DKGRegistration{
-		Round:      testRound,
-		MsgSender:  testValidator.Hex(),
-		Index:      1,
-		DkgPubKey:  []byte("test-dkg-pubkey"),
-		CommPubKey: []byte("test-comm-pubkey"),
-		RawQuote:   []byte("test-raw-quote"),
-		Status:     types.DKGRegStatusVerified,
+		Round:         testRound,
+		ValidatorAddr: testValidator.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte("test-dkg-pubkey"),
+		CommPubKey:    []byte("test-comm-pubkey"),
+		RawQuote:      []byte("test-raw-quote"),
+		Status:        types.DKGRegStatusVerified,
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
 

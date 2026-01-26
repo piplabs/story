@@ -12,10 +12,6 @@ message Params {
     (gogoproto.moretags) = "yaml:\"registration_period\""
   ];
 
-  uint32 network_set_period = 2 [
-    (gogoproto.moretags) = "yaml:\"network_set_period\""
-  ];
-
   uint32 dealing_period = 3 [
     (gogoproto.moretags) = "yaml:\"dealing_period\""
   ];

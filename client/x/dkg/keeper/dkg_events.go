@@ -31,22 +31,6 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 	return nil
 }
 
-func (*Keeper) emitBeginDKGNetworkSet(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-
-	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginNetworkSet{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
-		Total:     dkgNetwork.Total,
-		Threshold: dkgNetwork.Threshold,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to emit dkg_begin_network_set event")
-	}
-
-	return nil
-}
-
 func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 

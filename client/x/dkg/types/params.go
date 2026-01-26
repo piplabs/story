@@ -8,7 +8,6 @@ const (
 	// periods are in seconds.
 	MinDkgStagePeriod            uint32 = 1                 // 1 block
 	DefaultDkgRegistrationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
-	DefaultDkgNetworkSetPeriod   uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgDealingPeriod      uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgFinalizationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
@@ -22,7 +21,6 @@ const (
 // NewParams creates a new Params instance.
 func NewParams(
 	registrationPeriod uint32,
-	networkSetPeriod uint32,
 	dealingPeriod uint32,
 	finalizationPeriod uint32,
 	activePeriod uint32,
@@ -31,7 +29,6 @@ func NewParams(
 ) Params {
 	return Params{
 		RegistrationPeriod: registrationPeriod,
-		NetworkSetPeriod:   networkSetPeriod,
 		DealingPeriod:      dealingPeriod,
 		FinalizationPeriod: finalizationPeriod,
 		ActivePeriod:       activePeriod,
@@ -44,7 +41,6 @@ func NewParams(
 func DefaultParams() Params {
 	return NewParams(
 		DefaultDkgRegistrationPeriod,
-		DefaultDkgNetworkSetPeriod,
 		DefaultDkgDealingPeriod,
 		DefaultDkgFinalizationPeriod,
 		DefaultDkgActivePeriod,
@@ -56,10 +52,6 @@ func DefaultParams() Params {
 
 func (p Params) Validate() error {
 	if err := ValidateRegistrationPeriod(p.RegistrationPeriod); err != nil {
-		return err
-	}
-
-	if err := ValidateNetworkSetPeriod(p.NetworkSetPeriod); err != nil {
 		return err
 	}
 
@@ -93,18 +85,6 @@ func ValidateRegistrationPeriod(registrationPeriod uint32) error {
 
 	if registrationPeriod < MinDkgStagePeriod {
 		return errors.New("minimum dkg registration period is 1 day", "period", registrationPeriod)
-	}
-
-	return nil
-}
-
-func ValidateNetworkSetPeriod(networkSetPeriod uint32) error {
-	if networkSetPeriod == 0 {
-		return errors.New("invalid dkg network set period", "period", networkSetPeriod)
-	}
-
-	if networkSetPeriod < MinDkgStagePeriod {
-		return errors.New("minimum dkg network set period is 1 day", "period", networkSetPeriod)
 	}
 
 	return nil

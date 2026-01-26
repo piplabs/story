@@ -47,15 +47,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		}
 
 		// Emit appropriate events for stage transitions
-		//nolint:exhaustive // skip `types.DKGStageNetworkSetCompleted` for now
 		switch nextStage {
 		case types.DKGStageRegistration:
 			// round = DKGStageRegistration if either
 			// 1. it's the initial (first) round, OR
 			// 2. the active stage of the previous round has ended, so DKG needs to reshare deals
 			return k.InitiateDKGRound(ctx)
-		case types.DKGStageNetworkSet:
-			return k.SetDKGNetwork(ctx, latestRound)
 		case types.DKGStageDealing:
 			return k.BeginDealing(ctx, latestRound)
 		case types.DKGStageFinalization:

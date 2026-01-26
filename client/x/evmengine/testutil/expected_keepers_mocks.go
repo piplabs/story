@@ -360,17 +360,17 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, signature, globalPubKey, publicCoeffs)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, signature, globalPubKey, publicCoeffs any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, signature, globalPubKey, publicCoeffs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs)
 }
 
 // InvalidDeal mocks base method.
@@ -385,20 +385,6 @@ func (m *MockDKGKeeper) InvalidDeal(ctx context.Context, index, round uint32, mr
 func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, mrenclave any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDeal", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDeal), ctx, index, round, mrenclave)
-}
-
-// NetworkSet mocks base method.
-func (m *MockDKGKeeper) NetworkSet(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round, total, threshold uint32, signature []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NetworkSet", ctx, msgSender, mrenclave, round, total, threshold, signature)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// NetworkSet indicates an expected call of NetworkSet.
-func (mr *MockDKGKeeperMockRecorder) NetworkSet(ctx, msgSender, mrenclave, round, total, threshold, signature any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkSet", reflect.TypeOf((*MockDKGKeeper)(nil).NetworkSet), ctx, msgSender, mrenclave, round, total, threshold, signature)
 }
 
 // RegistrationInitialized mocks base method.
