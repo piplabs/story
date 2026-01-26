@@ -101,8 +101,9 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	)
 	if err := retry(ctx, func(ctx context.Context) error {
 		req := &types.FinalizeDKGRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			IsResharing: session.IsResharing,
 		}
 
 		resp, err = k.teeClient.FinalizeDKG(ctx, req)

@@ -54,11 +54,15 @@ message DKGNetwork {
     (gogoproto.moretags) = "yaml:\"stage\""
   ];
 
-  bytes global_public_key = 8 [
+  bool is_resharing = 8 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
+  ];
+
+  bytes global_public_key = 9 [
     (gogoproto.moretags) = "yaml:\"global_public_key\""
   ];
 
-  repeated bytes public_coeffs = 9 [
+  repeated bytes public_coeffs = 10 [
     (gogoproto.moretags) = "yaml:\"public_coeffs\""
   ];
 }

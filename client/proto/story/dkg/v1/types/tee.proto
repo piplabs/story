@@ -62,6 +62,10 @@ message GenerateDealsRequest {
   uint32 round = 2 [
     (gogoproto.moretags) = "yaml:\"round\""
   ];
+
+  bool is_resharing = 3 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
+  ];
 }
 
 // GenerateDealsResponse is returned from TEE client with generated deals
@@ -94,6 +98,10 @@ message ProcessDealRequest {
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"deals\""
   ];
+
+  bool is_resharing = 4 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
+  ];
 }
 
 // ProcessDealResponse is returned from TEE client after processing deals
@@ -125,6 +133,10 @@ message ProcessResponsesRequest {
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"responses\""
   ];
+
+  bool is_resharing = 4 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
+  ];
 }
 
 message ProcessResponsesResponse {
@@ -141,6 +153,10 @@ message FinalizeDKGRequest {
 
   uint32 round = 2 [
     (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  bool is_resharing = 3 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
   ];
 }
 

@@ -67,8 +67,9 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		)
 
 		req := &types.GenerateDealsRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			IsResharing: session.IsResharing,
 		}
 		resp, err = k.teeClient.GenerateDeals(ctx, req)
 		if err != nil {
@@ -143,9 +144,10 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		)
 
 		req := &types.ProcessDealRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
-			Deals:     []types.Deal{},
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			Deals:       []types.Deal{},
+			IsResharing: session.IsResharing,
 		}
 
 		for _, deal := range deals {
@@ -226,9 +228,10 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		)
 
 		req := &types.ProcessResponsesRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
-			Responses: []types.Response{},
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			Responses:   []types.Response{},
+			IsResharing: session.IsResharing,
 		}
 
 		for _, resp := range responses {

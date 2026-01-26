@@ -37,7 +37,7 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 	// we still create a session. Old members do not generate new keys, but they still
 	// participate in later stages (especially dealing, and finalization).
 	// Therefore, a session must exist regardless of key generation eligibility.
-	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet)
+	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing)
 	if err := k.stateManager.CreateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to create DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
