@@ -4,8 +4,10 @@ import (
 	"context"
 	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
+	"errors"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -127,7 +129,9 @@ func CreateUpgradeHandler(
 			newRewardsTokens := math.LegacyNewDecFromInt(val.Tokens).Mul(NewLockedTokenMultiplier) // used for updating the rewards tokens of each validator
 
 			// withdraw validator commission before updating rewards tokens of validator
-			if _, err := dKeeper.WithdrawValidatorCommission(ctx, valAddr); err != nil {
+			if _, err := dKeeper.WithdrawValidatorCommission(ctx, valAddr); errors.Is(err, dtypes.ErrNoValidatorCommission) {
+				log.Debug(ctx, "Skip withdrawal of commission as there is no commission", "validator_addr", valAddr.String())
+			} else if err != nil {
 				return vm, lerrors.Wrap(err, "failed to withdraw validator commission")
 			}
 
