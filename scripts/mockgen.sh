@@ -6,3 +6,9 @@ $mockgen_cmd -package mock -destination testutil/mock/logger.go cosmossdk.io/log
 $mockgen_cmd -source=../client/x/evmengine/types/expected_keepers.go -package testutil -destination ../client/x/evmengine/testutil/expected_keepers_mocks.go
 $mockgen_cmd -source=../client/x/evmstaking/types/expected_keepers.go -package testutil -destination ../client/x/evmstaking/testutil/expected_keepers_mocks.go
 $mockgen_cmd -source=../client/x/mint/types/expected_keepers.go -package testutil -destination ../client/x/mint/testutil/expected_keepers_mocks.go
+
+# mock keepers for upgarde
+$mockgen_cmd \
+  -source=../client/app/upgrades/horace/expected_keepers.go \
+  -package testutil \
+  -destination ../client/app/upgrades/horace/testutil/expected_keepers_mocks.go
