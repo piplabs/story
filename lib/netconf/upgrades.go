@@ -30,7 +30,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V121:    10,
 		Terence: 50,
 		V142:    50,
-		Horace:  3000,
+		Horace:  100,
 	},
 	LocalChainID: {
 		V121:    0,
