@@ -14,7 +14,6 @@ const (
 
 	// DKG events (success).
 	EventTypeDKGInitializedSuccess                       = "dkg_initialized_success"
-	EventTypeDKGNetworkSetSuccess                        = "dkg_network_set_success"
 	EventTypeDKGFinalizedSuccess                         = "dkg_finalized_success"
 	EventTypeDKGUpgradeScheduledSuccess                  = "dkg_upgrade_scheduled_success"
 	EventTypeDKGRemoteAttestationProcessedOnChainSuccess = "dkg_remote_attestation_processed_on_chain_success"
@@ -25,7 +24,6 @@ const (
 
 	// DKG events (failure).
 	EventTypeDKGInitializedFailure                       = "dkg_initialized_failure"
-	EventTypeDKGNetworkSetFailure                        = "dkg_network_set_failure"
 	EventTypeDKGFinalizedFailure                         = "dkg_finalized_failure"
 	EventTypeDKGUpgradeScheduledFailure                  = "dkg_upgrade_scheduled_failure"
 	EventTypeDKGRemoteAttestationProcessedOnChainFailure = "dkg_remote_attestation_processed_on_chain_failure"
@@ -55,6 +53,7 @@ const (
 	AttributeKeyDKGCommPubKey       = "dkg_comm_pub_key"
 	AttributeKeyDKGRawQuote         = "dkg_raw_quote"
 	AttributeKeyDKGActivationHeight = "dkg_activation_height"
+	AttributeKeyDKGParticipantsRoot = "dkg_participants_root"
 	AttributeKeyDKGChallenger       = "dkg_challenger"
 	AttributeKeyDKGValidator        = "dkg_validator"
 	AttributeKeyDKGComplainIndexes  = "dkg_complain_indexes"

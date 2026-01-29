@@ -39,15 +39,6 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		go k.handleDKGInitialization(ctx, dkgNetwork)
-	case types.DKGStageNetworkSet:
-		session.UpdatePhase(types.PhaseInitialized)
-		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-			log.Error(ctx, "Failed to update session phase to initialized", err)
-
-			return
-		}
-
-		go k.handleDKGNetworkSet(ctx, dkgNetwork)
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {

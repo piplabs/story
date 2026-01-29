@@ -25,7 +25,7 @@ func (k *Keeper) handleTEEUpgrade(ctx context.Context, dkgNetwork *types.DKGNetw
 	log.Info(ctx, "TEE upgrade scheduled",
 		"tee_binary_id", dkgNetwork.Mrenclave,
 		//"activation_height", event.BlockHeight,
-		"validator", k.validatorAddress.Hex(),
+		"validator_evm_addr", k.validatorEVMAddr,
 	)
 
 	// TODO: Implement actual TEE binary upgrade logic

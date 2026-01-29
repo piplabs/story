@@ -8,13 +8,14 @@ import (
 )
 
 func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork) error {
-	networkSetCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusNetworkSet)
+	verifiedRegCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusVerified)
 	if err != nil {
-		return errors.Wrap(err, "failed to fetch DKG registrations in NetworkSet status")
+		return errors.Wrap(err, "failed to fetch verified DKG registrations")
 	}
 
-	if networkSetCount < latestRound.Threshold {
-		log.Info(ctx, "The number of DKG registrations in NetworkSet status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+	// TODO: compare with minReqRegistered
+	if verifiedRegCount < latestRound.Threshold {
+		log.Info(ctx, "The number of DKG registrations verified is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
 
 		return k.SkipToNextRound(ctx, latestRound)
 	}

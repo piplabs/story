@@ -11,7 +11,6 @@ contract IDKG {
     enum NodeStatus {
         Unregistered,
         Registered,
-        NetworkSetDone,
         Finalized
     }
 
@@ -32,14 +31,13 @@ contract IDKG {
         bytes rawQuote
     );
 
-    event DKGFinalized(address indexed msgSender, uint32 round, bytes32 mrenclave, bytes globalPubKey, bytes signature);
-
-    event DKGNetworkSet(
+    event DKGFinalized(
         address indexed msgSender,
         uint32 round,
-        uint32 total,
-        uint32 threshold,
         bytes32 mrenclave,
+        bytes32 participantsRoot,
+        bytes globalPubKey,
+        bytes[] publicCoeffs,
         bytes signature
     );
 

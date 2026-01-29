@@ -57,6 +57,8 @@ type DKGSession struct {
 	Index              uint32    `json:"index"`
 	SigSetupNetwork    []byte    `json:"sig_setup_network"`
 	SigFinalizeNetwork []byte    `json:"sig_finalize_network"`
+	PublicCoeffs       [][]byte  `json:"public_coeffs"`
+	ParticipantsRoot   []byte    `json:"participants_root"`
 
 	// Network information
 	ActiveValidators []string `json:"active_validators"`
@@ -69,13 +71,14 @@ type DKGSession struct {
 	Deals         map[uint32]Deal   `json:"deals,omitempty"` // deals by dealer index
 	Complaints    []Complaint       `json:"complaints,omitempty"`
 	IsFinalized   bool              `json:"is_finalized"`
+	IsResharing   bool              `json:"is_resharing"`
 
 	// Pending threshold decrypt requests (from contract events)
 	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
-func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *DKGSession {
+func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string, isResharing bool) *DKGSession {
 	now := time.Now()
 
 	return &DKGSession{
@@ -91,7 +94,9 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string) *D
 		Threshold:        0,
 		Deals:            make(map[uint32]Deal),
 		IsFinalized:      false,
-		DecryptRequests:  make([]DecryptRequest, 0),
+		IsResharing:      isResharing,
+
+		DecryptRequests: make([]DecryptRequest, 0),
 	}
 }
 

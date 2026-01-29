@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/cast"
@@ -32,7 +33,12 @@ func (k *Keeper) GetDKGNetwork(ctx context.Context, req *types.QueryGetDKGNetwor
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+	}
+
+	mrenclave, err := cast.ToBytes32(mrenclaveBz)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
 	}
@@ -90,7 +96,12 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+	}
+
+	mrenclave, err := cast.ToBytes32(mrenclaveBz)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
 	}
@@ -107,13 +118,18 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 	}, nil
 }
 
-// GetVerifiedDKGRegistrations queries the count of verified DKG registrations (verified == registered) for a specific mrenclave and round.
-func (k *Keeper) GetVerifiedDKGRegistrations(ctx context.Context, req *types.QueryGetVerifiedDKGRegistrationsRequest) (*types.QueryGetVerifiedDKGRegistrationsResponse, error) {
+// GetAllVerifiedDKGRegistrations queries all verified DKG registrations for a specific mrenclave and round.
+func (k *Keeper) GetAllVerifiedDKGRegistrations(ctx context.Context, req *types.QueryGetAllVerifiedDKGRegistrationsRequest) (*types.QueryGetAllVerifiedDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclave, err := cast.ToBytes32(req.Mrenclave)
+	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+	}
+
+	mrenclave, err := cast.ToBytes32(mrenclaveBz)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
 	}
@@ -123,5 +139,18 @@ func (k *Keeper) GetVerifiedDKGRegistrations(ctx context.Context, req *types.Que
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &types.QueryGetVerifiedDKGRegistrationsResponse{Registrations: registrations}, nil
+	return &types.QueryGetAllVerifiedDKGRegistrationsResponse{Registrations: registrations}, nil
+}
+
+func (k *Keeper) GetLatestActiveDKGNetwork(ctx context.Context, request *types.QueryGetLatestActiveDKGNetworkRequest) (*types.QueryGetLatestActiveDKGNetworkResponse, error) {
+	if request == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	latest, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.QueryGetLatestActiveDKGNetworkResponse{Network: *latest}, nil
 }

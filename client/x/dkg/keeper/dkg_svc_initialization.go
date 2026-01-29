@@ -3,11 +3,11 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 	"slices"
-	"strings"
 )
 
 // handleDKGInitialization handles the DKG initialization event.
@@ -30,15 +30,14 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 		return
 	}
 
-	valAddr := k.validatorAddress.Hex()
-	isParticipant := slices.Contains(dkgNetwork.ActiveValSet, strings.ToLower(valAddr))
-	if !isParticipant {
-		log.Info(ctx, "Validator is not part of current active validator set", "validator", valAddr)
+	isInCurRoundSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
-		return
-	}
-
-	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet)
+	// NOTE:
+	// Even if this validator is an old member (i.e., not part of the current round set),
+	// we still create a session. Old members do not generate new keys, but they still
+	// participate in later stages (especially dealing, and finalization).
+	// Therefore, a session must exist regardless of key generation eligibility.
+	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing)
 	if err := k.stateManager.CreateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to create DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -50,6 +49,13 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 		log.Warn(ctx, "Session not in initializing phase, skipping initialization", nil,
 			"current_phase", session.Phase.String())
 		k.stateManager.MarkFailed(ctx, session)
+
+		return
+	}
+
+	// only current round members generate a new key
+	if !isInCurRoundSet {
+		log.Info(ctx, "Skip generating sealed keys for DKG as the validator is not in current round set")
 
 		return
 	}
@@ -88,7 +94,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	log.Info(ctx, "GenerateAndSealKey call to TEE client",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"validator", k.validatorAddress.Hex(),
+		"validator", k.validatorEVMAddr,
 	)
 
 	if len(session.DKGPubKey) > 0 && len(session.CommPubKey) > 0 && len(session.RawQuote) > 0 {
@@ -103,7 +109,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	)
 	if err := retry(ctx, func(ctx context.Context) error {
 		req := &types.GenerateAndSealKeyRequest{
-			Address:   k.validatorAddress.Hex(),
+			Address:   k.validatorEVMAddr,
 			Mrenclave: session.Mrenclave,
 			Round:     session.Round,
 		}
@@ -137,7 +143,8 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 		"raw_quote_len", len(session.RawQuote),
 	)
 
-	isInitialized, err := k.contractClient.IsInitialized(ctx, session.Round, session.Mrenclave, k.validatorAddress)
+	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
+	isInitialized, err := k.contractClient.IsInitialized(ctx, session.Round, session.Mrenclave, validatorAddr)
 	if err != nil {
 		return err
 	}

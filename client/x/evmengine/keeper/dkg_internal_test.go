@@ -33,14 +33,14 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testMrenclave := [32]byte{0x12, 0x34}
+	testParticipantsRoot := [32]byte{0x56, 0x78}
 	testRound := uint32(1)
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testRawQuote := []byte("test-raw-quote")
 	testSignature := []byte("test-signature")
 	testGlobalPubKey := []byte("test-global-pubkey")
-	testTotal := uint32(5)
-	testThreshold := uint32(3)
+	testPublicCoeffs := []byte("test-public-coeffs")
 	testIndex := uint32(1)
 	testComplainIndexes := []uint32{1, 2, 3}
 	testRecipientIndex := uint32(2)
@@ -118,52 +118,10 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			},
 		},
 		{
-			name: "pass: DKGNetworkSet event",
-			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["DKGNetworkSet"].Inputs.NonIndexed().Pack(
-					testRound, testTotal, testThreshold, testMrenclave, testSignature)
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{
-					{
-						Address: dummyContractAddress.Bytes(),
-						Topics: [][]byte{
-							types.DKGNetworkSetEvent.ID.Bytes(),
-							common.LeftPadBytes(testValidator.Bytes(), 32), // indexed msgSender
-						},
-						Data:   data,
-						TxHash: dummyHash.Bytes(),
-					},
-				}
-			},
-			setupMock: func() {
-				dkgk.EXPECT().NetworkSet(gomock.Any(), testValidator, testMrenclave, testRound, testTotal, testThreshold, testSignature).Return(nil)
-			},
-			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit DKGNetworkSetSuccess event
-				t.Helper()
-				found := false
-				for _, event := range events {
-					if event.Type == types.EventTypeDKGNetworkSetSuccess {
-						found = true
-						// Check attributes
-						attrs := event.Attributes
-						require.NotEmpty(t, attrs)
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
-						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
-
-						break
-					}
-				}
-				require.True(t, found, "Expected DKGNetworkSetSuccess event to be emitted for %s", testName)
-			},
-		},
-		{
 			name: "pass: DKGFinalized event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
-					testRound, testMrenclave, testGlobalPubKey, testSignature)
+					testRound, testMrenclave, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -179,7 +137,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testMrenclave, testSignature).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testMrenclave, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGFinalizedSuccess event
@@ -416,9 +374,9 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
 				require.NoError(t, err)
 
-				// DKGNetworkSet event
-				netData, err := dkgAbi.Events["DKGNetworkSet"].Inputs.NonIndexed().Pack(
-					testRound, testTotal, testThreshold, testMrenclave, testSignature)
+				// DKGFinalized event
+				finalizedData, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
+					testRound, testMrenclave, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -434,33 +392,33 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGNetworkSetEvent.ID.Bytes(),
+							types.DKGFinalizedEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
-						Data:   netData,
+						Data:   finalizedData,
 						TxHash: dummyHash.Bytes(),
 					},
 				}
 			},
 			setupMock: func() {
 				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
-				dkgk.EXPECT().NetworkSet(gomock.Any(), testValidator, testMrenclave, testRound, testTotal, testThreshold, testSignature).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testMrenclave, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit both DKGInitializedSuccess and DKGNetworkSetSuccess events
+				// Should emit both DKGInitializedSuccess and DKGFinalizedSuccess events
 				t.Helper()
 				foundInit := false
-				foundNetworkSet := false
+				foundFinalized := false
 				for _, event := range events {
 					if event.Type == types.EventTypeDKGInitializedSuccess {
 						foundInit = true
 					}
-					if event.Type == types.EventTypeDKGNetworkSetSuccess {
-						foundNetworkSet = true
+					if event.Type == types.EventTypeDKGFinalizedSuccess {
+						foundFinalized = true
 					}
 				}
 				require.True(t, foundInit, "Expected DKGInitializedSuccess event to be emitted for %s", testName)
-				require.True(t, foundNetworkSet, "Expected DKGNetworkSetSuccess event to be emitted for %s", testName)
+				require.True(t, foundFinalized, "Expected DKGFinalizedSuccess event to be emitted for %s", testName)
 			},
 		},
 		{

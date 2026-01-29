@@ -11,21 +11,14 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	elapsed := currentHeight - dkgNetwork.StartBlock
 
 	registrationEnd := int64(params.RegistrationPeriod)
-	networkSetEnd := registrationEnd + int64(params.NetworkSetPeriod)
-	dealingEnd := networkSetEnd + int64(params.DealingPeriod)
+	dealingEnd := registrationEnd + int64(params.DealingPeriod)
 	finalizationEnd := dealingEnd + int64(params.FinalizationPeriod)
 	activeEnd := finalizationEnd + int64(params.ActivePeriod)
 
 	// in switch, we check if the elapsed time is greater than the end of the current stage
-	//nolint:exhaustive // skip `types.DKGStageNetworkSet` for now
 	switch currentStage {
 	case types.DKGStageRegistration:
 		if elapsed >= registrationEnd {
-			return types.DKGStageNetworkSet, true
-		}
-	// NOTE: DKGStageNetworkSet
-	case types.DKGStageNetworkSet:
-		if elapsed >= networkSetEnd {
 			return types.DKGStageDealing, true
 		}
 	case types.DKGStageDealing:

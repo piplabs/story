@@ -27,12 +27,6 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				continue
 			}
 
-		case types.DKGNetworkSetEvent.ID:
-			if err := k.ProcessDKGNetworkSet(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGNetworkSet", err)
-				continue
-			}
-
 		case types.DKGFinalizedEvent.ID:
 			if err := k.ProcessDKGFinalized(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGFinalized", err)
@@ -132,56 +126,6 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 	return nil
 }
 
-func (k *Keeper) ProcessDKGNetworkSet(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseDKGNetworkSet(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse DKGNetworkSet log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGNetworkSetSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGNetworkSetFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
-				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
-				sdk.NewAttribute(types.AttributeKeyDKGTotal, strconv.FormatUint(uint64(ev.Total), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGThreshold, strconv.FormatUint(uint64(ev.Threshold), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.NetworkSet(cachedCtx, ev.MsgSender, ev.Mrenclave, ev.Round, ev.Total, ev.Threshold, ev.Signature); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "set DKG network")
-	}
-
-	return nil
-}
-
 func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
@@ -215,13 +159,14 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGMrenclave, hex.EncodeToString(ev.Mrenclave[:])),
+				sdk.NewAttribute(types.AttributeKeyDKGParticipantsRoot, hex.EncodeToString(ev.ParticipantsRoot[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.MsgSender, ev.Mrenclave, ev.Signature, ev.GlobalPubKey); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.MsgSender, ev.Mrenclave, ev.ParticipantsRoot, ev.Signature, ev.GlobalPubKey, ev.PublicCoeffs); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "finalize DKG")

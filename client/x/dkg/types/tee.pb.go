@@ -166,324 +166,18 @@ func (m *GenerateAndSealKeyResponse) GetRawQuote() []byte {
 	return nil
 }
 
-// VerifyRawQuoteRequest is sent to TEE client to verify a raw quote
-type VerifyRawQuoteRequest struct {
-	Mrenclave  []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round      uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Address    string `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
-	DkgPubKey  []byte `protobuf:"bytes,4,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
-	CommPubKey []byte `protobuf:"bytes,5,opt,name=comm_pub_key,json=commPubKey,proto3" json:"comm_pub_key,omitempty" yaml:"comm_pub_key"`
-	RawQuote   []byte `protobuf:"bytes,6,opt,name=raw_quote,json=rawQuote,proto3" json:"raw_quote,omitempty" yaml:"raw_quote"`
-}
-
-func (m *VerifyRawQuoteRequest) Reset()         { *m = VerifyRawQuoteRequest{} }
-func (m *VerifyRawQuoteRequest) String() string { return proto.CompactTextString(m) }
-func (*VerifyRawQuoteRequest) ProtoMessage()    {}
-func (*VerifyRawQuoteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{2}
-}
-func (m *VerifyRawQuoteRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VerifyRawQuoteRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_VerifyRawQuoteRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *VerifyRawQuoteRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VerifyRawQuoteRequest.Merge(m, src)
-}
-func (m *VerifyRawQuoteRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *VerifyRawQuoteRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_VerifyRawQuoteRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VerifyRawQuoteRequest proto.InternalMessageInfo
-
-func (m *VerifyRawQuoteRequest) GetMrenclave() []byte {
-	if m != nil {
-		return m.Mrenclave
-	}
-	return nil
-}
-
-func (m *VerifyRawQuoteRequest) GetRound() uint32 {
-	if m != nil {
-		return m.Round
-	}
-	return 0
-}
-
-func (m *VerifyRawQuoteRequest) GetAddress() string {
-	if m != nil {
-		return m.Address
-	}
-	return ""
-}
-
-func (m *VerifyRawQuoteRequest) GetDkgPubKey() []byte {
-	if m != nil {
-		return m.DkgPubKey
-	}
-	return nil
-}
-
-func (m *VerifyRawQuoteRequest) GetCommPubKey() []byte {
-	if m != nil {
-		return m.CommPubKey
-	}
-	return nil
-}
-
-func (m *VerifyRawQuoteRequest) GetRawQuote() []byte {
-	if m != nil {
-		return m.RawQuote
-	}
-	return nil
-}
-
-type VerifyRawQuoteResponse struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Address   string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
-	Round     uint32 `protobuf:"varint,3,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Valid     bool   `protobuf:"varint,4,opt,name=valid,proto3" json:"valid,omitempty" yaml:"valid"`
-}
-
-func (m *VerifyRawQuoteResponse) Reset()         { *m = VerifyRawQuoteResponse{} }
-func (m *VerifyRawQuoteResponse) String() string { return proto.CompactTextString(m) }
-func (*VerifyRawQuoteResponse) ProtoMessage()    {}
-func (*VerifyRawQuoteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{3}
-}
-func (m *VerifyRawQuoteResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VerifyRawQuoteResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_VerifyRawQuoteResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *VerifyRawQuoteResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VerifyRawQuoteResponse.Merge(m, src)
-}
-func (m *VerifyRawQuoteResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *VerifyRawQuoteResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_VerifyRawQuoteResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VerifyRawQuoteResponse proto.InternalMessageInfo
-
-func (m *VerifyRawQuoteResponse) GetMrenclave() []byte {
-	if m != nil {
-		return m.Mrenclave
-	}
-	return nil
-}
-
-func (m *VerifyRawQuoteResponse) GetAddress() string {
-	if m != nil {
-		return m.Address
-	}
-	return ""
-}
-
-func (m *VerifyRawQuoteResponse) GetRound() uint32 {
-	if m != nil {
-		return m.Round
-	}
-	return 0
-}
-
-func (m *VerifyRawQuoteResponse) GetValid() bool {
-	if m != nil {
-		return m.Valid
-	}
-	return false
-}
-
-// SetupDKGNetworkRequest is sent to TEE client to setup DKG network
-type SetupDKGNetworkRequest struct {
-	Mrenclave     []byte            `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round         uint32            `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Total         uint32            `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty" yaml:"total"`
-	Threshold     uint32            `protobuf:"varint,4,opt,name=threshold,proto3" json:"threshold,omitempty" yaml:"threshold"`
-	Registrations []DKGRegistration `protobuf:"bytes,5,rep,name=registrations,proto3" json:"registrations" yaml:"registrations"`
-}
-
-func (m *SetupDKGNetworkRequest) Reset()         { *m = SetupDKGNetworkRequest{} }
-func (m *SetupDKGNetworkRequest) String() string { return proto.CompactTextString(m) }
-func (*SetupDKGNetworkRequest) ProtoMessage()    {}
-func (*SetupDKGNetworkRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{4}
-}
-func (m *SetupDKGNetworkRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *SetupDKGNetworkRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_SetupDKGNetworkRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *SetupDKGNetworkRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SetupDKGNetworkRequest.Merge(m, src)
-}
-func (m *SetupDKGNetworkRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *SetupDKGNetworkRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_SetupDKGNetworkRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SetupDKGNetworkRequest proto.InternalMessageInfo
-
-func (m *SetupDKGNetworkRequest) GetMrenclave() []byte {
-	if m != nil {
-		return m.Mrenclave
-	}
-	return nil
-}
-
-func (m *SetupDKGNetworkRequest) GetRound() uint32 {
-	if m != nil {
-		return m.Round
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkRequest) GetTotal() uint32 {
-	if m != nil {
-		return m.Total
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkRequest) GetThreshold() uint32 {
-	if m != nil {
-		return m.Threshold
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkRequest) GetRegistrations() []DKGRegistration {
-	if m != nil {
-		return m.Registrations
-	}
-	return nil
-}
-
-// SetupDKGNetworkResponse is returned from TEE client after DKG network setup
-type SetupDKGNetworkResponse struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Total     uint32 `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty" yaml:"total"`
-	Threshold uint32 `protobuf:"varint,4,opt,name=threshold,proto3" json:"threshold,omitempty" yaml:"threshold"`
-	Signature []byte `protobuf:"bytes,5,opt,name=signature,proto3" json:"signature,omitempty" yaml:"signature"`
-}
-
-func (m *SetupDKGNetworkResponse) Reset()         { *m = SetupDKGNetworkResponse{} }
-func (m *SetupDKGNetworkResponse) String() string { return proto.CompactTextString(m) }
-func (*SetupDKGNetworkResponse) ProtoMessage()    {}
-func (*SetupDKGNetworkResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{5}
-}
-func (m *SetupDKGNetworkResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *SetupDKGNetworkResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_SetupDKGNetworkResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *SetupDKGNetworkResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SetupDKGNetworkResponse.Merge(m, src)
-}
-func (m *SetupDKGNetworkResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *SetupDKGNetworkResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_SetupDKGNetworkResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SetupDKGNetworkResponse proto.InternalMessageInfo
-
-func (m *SetupDKGNetworkResponse) GetMrenclave() []byte {
-	if m != nil {
-		return m.Mrenclave
-	}
-	return nil
-}
-
-func (m *SetupDKGNetworkResponse) GetRound() uint32 {
-	if m != nil {
-		return m.Round
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkResponse) GetTotal() uint32 {
-	if m != nil {
-		return m.Total
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkResponse) GetThreshold() uint32 {
-	if m != nil {
-		return m.Threshold
-	}
-	return 0
-}
-
-func (m *SetupDKGNetworkResponse) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
-
 // GenerateDealsRequest is sent to TEE client to generate deals
 type GenerateDealsRequest struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Mrenclave   []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round       uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	IsResharing bool   `protobuf:"varint,3,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
 }
 
 func (m *GenerateDealsRequest) Reset()         { *m = GenerateDealsRequest{} }
 func (m *GenerateDealsRequest) String() string { return proto.CompactTextString(m) }
 func (*GenerateDealsRequest) ProtoMessage()    {}
 func (*GenerateDealsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{6}
+	return fileDescriptor_cefb4926f681f453, []int{2}
 }
 func (m *GenerateDealsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -526,6 +220,13 @@ func (m *GenerateDealsRequest) GetRound() uint32 {
 	return 0
 }
 
+func (m *GenerateDealsRequest) GetIsResharing() bool {
+	if m != nil {
+		return m.IsResharing
+	}
+	return false
+}
+
 // GenerateDealsResponse is returned from TEE client with generated deals
 type GenerateDealsResponse struct {
 	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
@@ -537,7 +238,7 @@ func (m *GenerateDealsResponse) Reset()         { *m = GenerateDealsResponse{} }
 func (m *GenerateDealsResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateDealsResponse) ProtoMessage()    {}
 func (*GenerateDealsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{7}
+	return fileDescriptor_cefb4926f681f453, []int{3}
 }
 func (m *GenerateDealsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -589,16 +290,17 @@ func (m *GenerateDealsResponse) GetDeals() []Deal {
 
 // ProcessDealRequest is sent to TEE client to process deals
 type ProcessDealRequest struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Deals     []Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals" yaml:"deals"`
+	Mrenclave   []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round       uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Deals       []Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals" yaml:"deals"`
+	IsResharing bool   `protobuf:"varint,4,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
 }
 
 func (m *ProcessDealRequest) Reset()         { *m = ProcessDealRequest{} }
 func (m *ProcessDealRequest) String() string { return proto.CompactTextString(m) }
 func (*ProcessDealRequest) ProtoMessage()    {}
 func (*ProcessDealRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{8}
+	return fileDescriptor_cefb4926f681f453, []int{4}
 }
 func (m *ProcessDealRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -648,6 +350,13 @@ func (m *ProcessDealRequest) GetDeals() []Deal {
 	return nil
 }
 
+func (m *ProcessDealRequest) GetIsResharing() bool {
+	if m != nil {
+		return m.IsResharing
+	}
+	return false
+}
+
 // ProcessDealResponse is returned from TEE client after processing deals
 type ProcessDealResponse struct {
 	Mrenclave []byte     `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
@@ -659,7 +368,7 @@ func (m *ProcessDealResponse) Reset()         { *m = ProcessDealResponse{} }
 func (m *ProcessDealResponse) String() string { return proto.CompactTextString(m) }
 func (*ProcessDealResponse) ProtoMessage()    {}
 func (*ProcessDealResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{9}
+	return fileDescriptor_cefb4926f681f453, []int{5}
 }
 func (m *ProcessDealResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -710,16 +419,17 @@ func (m *ProcessDealResponse) GetResponses() []Response {
 }
 
 type ProcessResponsesRequest struct {
-	Mrenclave []byte     `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round     uint32     `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Responses []Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses" yaml:"responses"`
+	Mrenclave   []byte     `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round       uint32     `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Responses   []Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses" yaml:"responses"`
+	IsResharing bool       `protobuf:"varint,4,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
 }
 
 func (m *ProcessResponsesRequest) Reset()         { *m = ProcessResponsesRequest{} }
 func (m *ProcessResponsesRequest) String() string { return proto.CompactTextString(m) }
 func (*ProcessResponsesRequest) ProtoMessage()    {}
 func (*ProcessResponsesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{10}
+	return fileDescriptor_cefb4926f681f453, []int{6}
 }
 func (m *ProcessResponsesRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -769,6 +479,13 @@ func (m *ProcessResponsesRequest) GetResponses() []Response {
 	return nil
 }
 
+func (m *ProcessResponsesRequest) GetIsResharing() bool {
+	if m != nil {
+		return m.IsResharing
+	}
+	return false
+}
+
 type ProcessResponsesResponse struct {
 	Justifications []*Justification `protobuf:"bytes,1,rep,name=justifications,proto3" json:"justifications,omitempty" yaml:"justifications"`
 }
@@ -777,7 +494,7 @@ func (m *ProcessResponsesResponse) Reset()         { *m = ProcessResponsesRespon
 func (m *ProcessResponsesResponse) String() string { return proto.CompactTextString(m) }
 func (*ProcessResponsesResponse) ProtoMessage()    {}
 func (*ProcessResponsesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{11}
+	return fileDescriptor_cefb4926f681f453, []int{7}
 }
 func (m *ProcessResponsesResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -815,15 +532,16 @@ func (m *ProcessResponsesResponse) GetJustifications() []*Justification {
 
 // FinalizeDKGRequest is sent to TEE client to finalize DKG
 type FinalizeDKGRequest struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Mrenclave   []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round       uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	IsResharing bool   `protobuf:"varint,3,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
 }
 
 func (m *FinalizeDKGRequest) Reset()         { *m = FinalizeDKGRequest{} }
 func (m *FinalizeDKGRequest) String() string { return proto.CompactTextString(m) }
 func (*FinalizeDKGRequest) ProtoMessage()    {}
 func (*FinalizeDKGRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{12}
+	return fileDescriptor_cefb4926f681f453, []int{8}
 }
 func (m *FinalizeDKGRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -866,19 +584,28 @@ func (m *FinalizeDKGRequest) GetRound() uint32 {
 	return 0
 }
 
+func (m *FinalizeDKGRequest) GetIsResharing() bool {
+	if m != nil {
+		return m.IsResharing
+	}
+	return false
+}
+
 // FinalizeDKGResponse is returned from TEE client after DKG finalization
 type FinalizeDKGResponse struct {
-	Mrenclave    []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Round        uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	GlobalPubKey []byte `protobuf:"bytes,3,opt,name=global_pub_key,json=globalPubKey,proto3" json:"global_pub_key,omitempty" yaml:"global_pub_key"`
-	Signature    []byte `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty" yaml:"signature"`
+	Mrenclave        []byte   `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round            uint32   `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	ParticipantsRoot []byte   `protobuf:"bytes,3,opt,name=participants_root,json=participantsRoot,proto3" json:"participants_root,omitempty" yaml:"participants_root"`
+	GlobalPubKey     []byte   `protobuf:"bytes,4,opt,name=global_pub_key,json=globalPubKey,proto3" json:"global_pub_key,omitempty" yaml:"global_pub_key"`
+	PublicCoeffs     [][]byte `protobuf:"bytes,5,rep,name=public_coeffs,json=publicCoeffs,proto3" json:"public_coeffs,omitempty" yaml:"public_coeffs"`
+	Signature        []byte   `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty" yaml:"signature"`
 }
 
 func (m *FinalizeDKGResponse) Reset()         { *m = FinalizeDKGResponse{} }
 func (m *FinalizeDKGResponse) String() string { return proto.CompactTextString(m) }
 func (*FinalizeDKGResponse) ProtoMessage()    {}
 func (*FinalizeDKGResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{13}
+	return fileDescriptor_cefb4926f681f453, []int{9}
 }
 func (m *FinalizeDKGResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -921,9 +648,23 @@ func (m *FinalizeDKGResponse) GetRound() uint32 {
 	return 0
 }
 
+func (m *FinalizeDKGResponse) GetParticipantsRoot() []byte {
+	if m != nil {
+		return m.ParticipantsRoot
+	}
+	return nil
+}
+
 func (m *FinalizeDKGResponse) GetGlobalPubKey() []byte {
 	if m != nil {
 		return m.GlobalPubKey
+	}
+	return nil
+}
+
+func (m *FinalizeDKGResponse) GetPublicCoeffs() [][]byte {
+	if m != nil {
+		return m.PublicCoeffs
 	}
 	return nil
 }
@@ -951,7 +692,7 @@ func (m *PartialDecryptTDH2Request) Reset()         { *m = PartialDecryptTDH2Req
 func (m *PartialDecryptTDH2Request) String() string { return proto.CompactTextString(m) }
 func (*PartialDecryptTDH2Request) ProtoMessage()    {}
 func (*PartialDecryptTDH2Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{14}
+	return fileDescriptor_cefb4926f681f453, []int{10}
 }
 func (m *PartialDecryptTDH2Request) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1049,7 +790,7 @@ func (m *PartialDecryptTDH2Response) Reset()         { *m = PartialDecryptTDH2Re
 func (m *PartialDecryptTDH2Response) String() string { return proto.CompactTextString(m) }
 func (*PartialDecryptTDH2Response) ProtoMessage()    {}
 func (*PartialDecryptTDH2Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{15}
+	return fileDescriptor_cefb4926f681f453, []int{11}
 }
 func (m *PartialDecryptTDH2Response) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1115,7 +856,7 @@ func (m *Justification) Reset()         { *m = Justification{} }
 func (m *Justification) String() string { return proto.CompactTextString(m) }
 func (*Justification) ProtoMessage()    {}
 func (*Justification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{16}
+	return fileDescriptor_cefb4926f681f453, []int{12}
 }
 func (m *Justification) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1169,7 +910,7 @@ func (m *VSSJustification) Reset()         { *m = VSSJustification{} }
 func (m *VSSJustification) String() string { return proto.CompactTextString(m) }
 func (*VSSJustification) ProtoMessage()    {}
 func (*VSSJustification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{17}
+	return fileDescriptor_cefb4926f681f453, []int{13}
 }
 func (m *VSSJustification) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1237,7 +978,7 @@ func (m *PlainDeal) Reset()         { *m = PlainDeal{} }
 func (m *PlainDeal) String() string { return proto.CompactTextString(m) }
 func (*PlainDeal) ProtoMessage()    {}
 func (*PlainDeal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{18}
+	return fileDescriptor_cefb4926f681f453, []int{14}
 }
 func (m *PlainDeal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1303,7 +1044,7 @@ func (m *SecShare) Reset()         { *m = SecShare{} }
 func (m *SecShare) String() string { return proto.CompactTextString(m) }
 func (*SecShare) ProtoMessage()    {}
 func (*SecShare) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{19}
+	return fileDescriptor_cefb4926f681f453, []int{15}
 }
 func (m *SecShare) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1346,101 +1087,9 @@ func (m *SecShare) GetV() *Scalar {
 	return nil
 }
 
-type Scalar struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty" yaml:"data"`
-}
-
-func (m *Scalar) Reset()         { *m = Scalar{} }
-func (m *Scalar) String() string { return proto.CompactTextString(m) }
-func (*Scalar) ProtoMessage()    {}
-func (*Scalar) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{20}
-}
-func (m *Scalar) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Scalar) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Scalar.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Scalar) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Scalar.Merge(m, src)
-}
-func (m *Scalar) XXX_Size() int {
-	return m.Size()
-}
-func (m *Scalar) XXX_DiscardUnknown() {
-	xxx_messageInfo_Scalar.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Scalar proto.InternalMessageInfo
-
-func (m *Scalar) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
-type Point struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty" yaml:"data"`
-}
-
-func (m *Point) Reset()         { *m = Point{} }
-func (m *Point) String() string { return proto.CompactTextString(m) }
-func (*Point) ProtoMessage()    {}
-func (*Point) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{21}
-}
-func (m *Point) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Point) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Point.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Point) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Point.Merge(m, src)
-}
-func (m *Point) XXX_Size() int {
-	return m.Size()
-}
-func (m *Point) XXX_DiscardUnknown() {
-	xxx_messageInfo_Point.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Point proto.InternalMessageInfo
-
-func (m *Point) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*GenerateAndSealKeyRequest)(nil), "story.dkg.v1.types.GenerateAndSealKeyRequest")
 	proto.RegisterType((*GenerateAndSealKeyResponse)(nil), "story.dkg.v1.types.GenerateAndSealKeyResponse")
-	proto.RegisterType((*VerifyRawQuoteRequest)(nil), "story.dkg.v1.types.VerifyRawQuoteRequest")
-	proto.RegisterType((*VerifyRawQuoteResponse)(nil), "story.dkg.v1.types.VerifyRawQuoteResponse")
-	proto.RegisterType((*SetupDKGNetworkRequest)(nil), "story.dkg.v1.types.SetupDKGNetworkRequest")
-	proto.RegisterType((*SetupDKGNetworkResponse)(nil), "story.dkg.v1.types.SetupDKGNetworkResponse")
 	proto.RegisterType((*GenerateDealsRequest)(nil), "story.dkg.v1.types.GenerateDealsRequest")
 	proto.RegisterType((*GenerateDealsResponse)(nil), "story.dkg.v1.types.GenerateDealsResponse")
 	proto.RegisterType((*ProcessDealRequest)(nil), "story.dkg.v1.types.ProcessDealRequest")
@@ -1455,105 +1104,95 @@ func init() {
 	proto.RegisterType((*VSSJustification)(nil), "story.dkg.v1.types.VSSJustification")
 	proto.RegisterType((*PlainDeal)(nil), "story.dkg.v1.types.PlainDeal")
 	proto.RegisterType((*SecShare)(nil), "story.dkg.v1.types.SecShare")
-	proto.RegisterType((*Scalar)(nil), "story.dkg.v1.types.Scalar")
-	proto.RegisterType((*Point)(nil), "story.dkg.v1.types.Point")
 }
 
 func init() { proto.RegisterFile("story/dkg/v1/types/tee.proto", fileDescriptor_cefb4926f681f453) }
 
 var fileDescriptor_cefb4926f681f453 = []byte{
-	// 1454 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x58, 0xcd, 0x6f, 0x1b, 0x45,
-	0x14, 0xcf, 0xda, 0x71, 0x1a, 0xbf, 0x7c, 0x76, 0x9b, 0xa4, 0xce, 0x2a, 0x64, 0xc3, 0x14, 0xa5,
-	0xe9, 0x97, 0xad, 0x1a, 0xa8, 0x04, 0x17, 0x84, 0x95, 0xd2, 0x86, 0x48, 0x10, 0xc6, 0x55, 0x0e,
-	0x1c, 0x6a, 0x8d, 0xbd, 0x53, 0x67, 0x9b, 0xf5, 0xee, 0x76, 0x67, 0xed, 0xd6, 0x9c, 0xb8, 0x70,
-	0xe7, 0x8e, 0xc4, 0x0d, 0x89, 0xbf, 0x00, 0xd1, 0x0b, 0xd7, 0x56, 0x70, 0xe9, 0x11, 0x71, 0x58,
-	0xa1, 0x56, 0xe2, 0x0f, 0xd8, 0x1b, 0x37, 0xb4, 0xb3, 0xe3, 0xf5, 0xee, 0x7a, 0x9b, 0x5a, 0x81,
-	0x58, 0x5c, 0xa2, 0x78, 0x7e, 0xbf, 0xf7, 0x39, 0x6f, 0xdf, 0xbc, 0x19, 0xd8, 0x60, 0xae, 0xe5,
-	0xf4, 0x2b, 0xda, 0x71, 0xbb, 0xd2, 0xbb, 0x59, 0x71, 0xfb, 0x36, 0x65, 0x15, 0x97, 0xd2, 0xb2,
-	0xed, 0x58, 0xae, 0x25, 0xcb, 0x1c, 0x2d, 0x6b, 0xc7, 0xed, 0x72, 0xef, 0x66, 0x99, 0xa3, 0xca,
-	0x4a, 0xdb, 0x6a, 0x5b, 0x1c, 0xae, 0x04, 0xff, 0x85, 0x4c, 0x65, 0x33, 0x4b, 0x4f, 0xf0, 0x37,
-	0xc4, 0xd1, 0x0f, 0x12, 0xac, 0xdf, 0xa1, 0x26, 0x75, 0x88, 0x4b, 0x3f, 0x36, 0xb5, 0x3a, 0x25,
-	0xc6, 0x3e, 0xed, 0x63, 0xfa, 0xa8, 0x4b, 0x99, 0x2b, 0x57, 0xa1, 0xd8, 0x71, 0xa8, 0xd9, 0x32,
-	0x48, 0x8f, 0x96, 0xa4, 0x2d, 0x69, 0x67, 0xbe, 0xb6, 0xe2, 0x7b, 0xea, 0x72, 0x9f, 0x74, 0x8c,
-	0x0f, 0x51, 0x04, 0x21, 0x3c, 0xa4, 0xc9, 0xdb, 0x50, 0x70, 0xac, 0xae, 0xa9, 0x95, 0x72, 0x5b,
-	0xd2, 0xce, 0x42, 0x6d, 0xd9, 0xf7, 0xd4, 0xf9, 0x90, 0xcf, 0x97, 0x11, 0x0e, 0x61, 0xf9, 0x3a,
-	0x9c, 0x23, 0x9a, 0xe6, 0x50, 0xc6, 0x4a, 0xf9, 0x2d, 0x69, 0xa7, 0x58, 0x93, 0x7d, 0x4f, 0x5d,
-	0x0c, 0x99, 0x02, 0x40, 0x78, 0x40, 0x41, 0xdf, 0xe7, 0x40, 0xc9, 0xf2, 0x93, 0xd9, 0x96, 0xc9,
-	0xe8, 0x99, 0x3a, 0x7a, 0x0b, 0xe6, 0xb4, 0xe3, 0x76, 0xc3, 0xee, 0x36, 0x1b, 0xc7, 0xb4, 0xcf,
-	0x9d, 0x9d, 0xaf, 0xad, 0xf9, 0x9e, 0x2a, 0x87, 0xec, 0x18, 0x88, 0x70, 0x51, 0x3b, 0x6e, 0x1f,
-	0x74, 0x9b, 0xfb, 0xb4, 0x2f, 0x7f, 0x00, 0xf3, 0x2d, 0xab, 0xd3, 0x89, 0x04, 0xa7, 0xb9, 0xe0,
-	0x45, 0xdf, 0x53, 0x2f, 0x84, 0x82, 0x71, 0x14, 0x61, 0x08, 0x7e, 0x0a, 0xd1, 0x9b, 0x50, 0x74,
-	0xc8, 0xe3, 0xc6, 0xa3, 0xae, 0xe5, 0xd2, 0x52, 0x21, 0x1d, 0x4e, 0x04, 0x21, 0x3c, 0xeb, 0x90,
-	0xc7, 0x5f, 0xf0, 0x7f, 0x9f, 0xe5, 0x60, 0xf5, 0x90, 0x3a, 0xfa, 0x83, 0x3e, 0x16, 0x4b, 0xff,
-	0xbb, 0x4d, 0x4c, 0x67, 0x72, 0xfa, 0xb4, 0x99, 0x2c, 0x9c, 0x32, 0x93, 0x33, 0x63, 0x65, 0xf2,
-	0x57, 0x09, 0xd6, 0xd2, 0x99, 0xfc, 0x17, 0x65, 0x16, 0x4b, 0x51, 0xee, 0xcd, 0x29, 0x8a, 0x12,
-	0x9f, 0x3f, 0x39, 0xf1, 0xdb, 0x50, 0xe8, 0x11, 0x43, 0xd7, 0x78, 0x12, 0x67, 0xe3, 0x3c, 0xbe,
-	0x8c, 0x70, 0x08, 0xa3, 0xa7, 0x39, 0x58, 0xab, 0x53, 0xb7, 0x6b, 0xef, 0xee, 0xdf, 0xf9, 0x8c,
-	0xba, 0x8f, 0x2d, 0xe7, 0x78, 0x12, 0x75, 0xb1, 0x0d, 0x05, 0xd7, 0x72, 0x89, 0x31, 0x1a, 0x06,
-	0x5f, 0x46, 0x38, 0x84, 0x03, 0x1f, 0xdc, 0x23, 0x87, 0xb2, 0x23, 0xcb, 0x08, 0x43, 0x59, 0x88,
-	0xfb, 0x10, 0x41, 0x08, 0x0f, 0x69, 0x72, 0x1b, 0x16, 0x1c, 0xda, 0xd6, 0x99, 0xeb, 0x10, 0x57,
-	0xb7, 0x4c, 0x56, 0x2a, 0x6c, 0xe5, 0x77, 0xe6, 0xaa, 0x97, 0xca, 0xa3, 0x4d, 0xb1, 0xbc, 0xbb,
-	0x7f, 0x07, 0xc7, 0xb8, 0xb5, 0x8d, 0xe7, 0x9e, 0x3a, 0xe5, 0x7b, 0xea, 0x8a, 0x70, 0x3a, 0xae,
-	0x07, 0xe1, 0xa4, 0x5e, 0xf4, 0x4d, 0x0e, 0x2e, 0x8e, 0xe4, 0x6e, 0x02, 0x0d, 0xe7, 0x2c, 0x93,
-	0x57, 0x85, 0x22, 0xd3, 0xdb, 0x26, 0x71, 0xbb, 0x4e, 0x46, 0x67, 0x89, 0x20, 0x84, 0x87, 0x34,
-	0xe4, 0xc0, 0xca, 0xa0, 0xf5, 0xee, 0x52, 0x62, 0xb0, 0x09, 0x14, 0x10, 0x7a, 0x2a, 0xc1, 0x6a,
-	0xca, 0xe8, 0x04, 0x32, 0xbf, 0x0b, 0x05, 0x2d, 0x30, 0x56, 0xca, 0xf3, 0x92, 0x2a, 0x65, 0x96,
-	0x14, 0x25, 0x46, 0x6d, 0x45, 0xd4, 0x91, 0xd0, 0xc2, 0x85, 0x10, 0x0e, 0x85, 0xd1, 0x4f, 0x12,
-	0xc8, 0x07, 0x8e, 0xd5, 0xa2, 0x8c, 0x05, 0xe4, 0x49, 0x7c, 0x6f, 0xff, 0x8d, 0xe3, 0xcf, 0x24,
-	0xb8, 0x90, 0x70, 0x7c, 0x02, 0x29, 0xbf, 0x07, 0x45, 0x47, 0xd8, 0x19, 0x78, 0xbf, 0x91, 0xe5,
-	0xfd, 0xc0, 0x99, 0x5a, 0x49, 0x44, 0x30, 0x68, 0xe1, 0x03, 0x61, 0x84, 0x87, 0x8a, 0xd0, 0x6f,
-	0x12, 0x5c, 0x14, 0x91, 0x0c, 0x04, 0x27, 0x51, 0xb6, 0x67, 0x14, 0xcd, 0xd7, 0x12, 0x94, 0x46,
-	0xa3, 0x11, 0x9b, 0xa3, 0xc1, 0xe2, 0xc3, 0x2e, 0x73, 0xf5, 0x07, 0x7a, 0x4b, 0xf4, 0x43, 0x89,
-	0xdb, 0x7d, 0x3b, 0xcb, 0xee, 0xa7, 0x71, 0x66, 0x6d, 0xdd, 0xf7, 0xd4, 0xd5, 0xd0, 0x70, 0x52,
-	0x05, 0xc2, 0x29, 0x9d, 0xc8, 0x06, 0xf9, 0x13, 0xdd, 0x24, 0x86, 0xfe, 0x15, 0xe5, 0x3d, 0xf5,
-	0xec, 0x3b, 0xc0, 0x5f, 0x12, 0x5c, 0x48, 0x98, 0x9c, 0x40, 0x31, 0x7e, 0x04, 0x8b, 0x6d, 0xc3,
-	0x6a, 0x12, 0x23, 0x35, 0xed, 0xc5, 0x12, 0x95, 0xc4, 0x11, 0x9e, 0x0f, 0x17, 0xc4, 0xb8, 0x91,
-	0x68, 0xaf, 0xd3, 0xe3, 0xb5, 0xd7, 0x5f, 0xf2, 0xb0, 0x7e, 0x40, 0x1c, 0x57, 0x27, 0xc6, 0x2e,
-	0x6d, 0x39, 0x7d, 0xdb, 0xbd, 0xb7, 0x7b, 0xb7, 0x3a, 0x89, 0x6a, 0x7d, 0x1f, 0xa0, 0xa5, 0xdb,
-	0x47, 0xd4, 0x71, 0xe9, 0x13, 0x57, 0x84, 0xba, 0xea, 0x7b, 0xea, 0x79, 0x31, 0x55, 0x45, 0x58,
-	0x30, 0x53, 0x45, 0x3f, 0x02, 0xf5, 0x06, 0x69, 0x52, 0x43, 0x04, 0x18, 0x53, 0xcf, 0x97, 0x11,
-	0x0e, 0x61, 0x79, 0x0b, 0xf2, 0xb6, 0xae, 0xf1, 0x53, 0x66, 0xa1, 0xb6, 0xe8, 0x7b, 0x2a, 0x84,
-	0x2c, 0x3b, 0x98, 0x4f, 0x02, 0x28, 0x3d, 0x10, 0xce, 0x8c, 0x3b, 0x10, 0xd6, 0x60, 0x89, 0x51,
-	0x62, 0x50, 0xad, 0xc1, 0x8e, 0x88, 0x43, 0x1b, 0xba, 0x56, 0x3a, 0xc7, 0x67, 0x2b, 0xc5, 0xf7,
-	0xd4, 0x35, 0x91, 0xec, 0x24, 0x01, 0xe1, 0x85, 0x70, 0xa5, 0x1e, 0x2c, 0xec, 0x69, 0xf2, 0x5d,
-	0x38, 0xef, 0x84, 0x39, 0xa6, 0x4e, 0xe4, 0xc1, 0x2c, 0xf7, 0x60, 0xc3, 0xf7, 0xd4, 0xd2, 0xe0,
-	0x83, 0x4c, 0x51, 0x10, 0x5e, 0x8a, 0xd6, 0x42, 0x6f, 0xd0, 0xcf, 0x39, 0x50, 0xb2, 0x36, 0x50,
-	0x14, 0xac, 0x0e, 0x1b, 0xd4, 0xe4, 0xcb, 0x54, 0x6b, 0xd8, 0x21, 0xaf, 0xa1, 0x85, 0x44, 0xdd,
-	0x32, 0xc5, 0xa6, 0x5e, 0xf6, 0x3d, 0xf5, 0x52, 0x68, 0xf3, 0x24, 0x36, 0xc2, 0x4a, 0x04, 0x27,
-	0x6d, 0xea, 0x96, 0x19, 0xc4, 0x44, 0xed, 0x23, 0xda, 0xa1, 0x4e, 0xac, 0x84, 0x73, 0xe9, 0x98,
-	0x46, 0x28, 0x08, 0x2f, 0x45, 0x6b, 0xc3, 0xb9, 0x39, 0x00, 0x79, 0xf6, 0x44, 0x65, 0xc4, 0xca,
-	0x2e, 0x82, 0x10, 0x9e, 0xb5, 0xbb, 0x4d, 0x9e, 0xd2, 0x53, 0xd5, 0xfe, 0x8f, 0x12, 0x2c, 0x24,
-	0x7a, 0x52, 0x50, 0x5c, 0xba, 0xa9, 0xd1, 0x27, 0x3c, 0x2d, 0x89, 0xda, 0xe5, 0xcb, 0x08, 0x87,
-	0xb0, 0x6c, 0xc1, 0xf9, 0x1e, 0x63, 0x8d, 0x44, 0x9b, 0xe2, 0xa1, 0xce, 0x55, 0xdf, 0xc9, 0xea,
-	0x7c, 0x87, 0xf5, 0x7a, 0xb2, 0xf9, 0xc5, 0x12, 0x32, 0xa2, 0x08, 0xe1, 0xe5, 0x1e, 0x63, 0x09,
-	0x3e, 0xfa, 0x5b, 0x82, 0xe5, 0xb4, 0x12, 0xf9, 0x3d, 0x00, 0x46, 0x19, 0xd3, 0x2d, 0x33, 0xa8,
-	0x41, 0x29, 0xfd, 0x05, 0x0d, 0xb1, 0x20, 0xea, 0xf0, 0xc7, 0x9e, 0x36, 0x8c, 0x31, 0x77, 0x72,
-	0x8c, 0x75, 0x00, 0xdb, 0x20, 0xba, 0xd9, 0x08, 0x8e, 0x67, 0xbe, 0x0b, 0x73, 0xd5, 0xb7, 0xb2,
-	0x82, 0x3b, 0x08, 0x58, 0xfc, 0x7c, 0x8f, 0x19, 0x1f, 0x8a, 0x22, 0x5c, 0xb4, 0x07, 0x8c, 0x53,
-	0x6d, 0xd3, 0x77, 0x39, 0x28, 0x46, 0x36, 0x4e, 0x19, 0xf4, 0xe7, 0x50, 0x64, 0xb4, 0x25, 0x2a,
-	0x2a, 0xdc, 0xa8, 0xcc, 0xa3, 0xb1, 0x4e, 0x5b, 0xbc, 0x9e, 0x12, 0x5e, 0x0d, 0x04, 0x11, 0x9e,
-	0x65, 0x02, 0x4f, 0x8e, 0xbf, 0xf9, 0xf1, 0xc6, 0xdf, 0x3a, 0xcc, 0x05, 0x97, 0x43, 0xdd, 0xed,
-	0x50, 0xd3, 0x65, 0xa5, 0x69, 0x7e, 0x52, 0xae, 0x67, 0xa6, 0xd4, 0xd2, 0x4d, 0x37, 0xde, 0x8b,
-	0x62, 0x72, 0x08, 0xc7, 0xb5, 0xa0, 0xfb, 0x30, 0x3b, 0x70, 0x5a, 0x56, 0x40, 0xda, 0x13, 0xa5,
-	0x3b, 0xef, 0x7b, 0xea, 0xac, 0xd8, 0x56, 0x84, 0xa5, 0x3d, 0xf9, 0x16, 0x48, 0x87, 0x22, 0x72,
-	0x25, 0x33, 0xf2, 0x16, 0x31, 0x88, 0x13, 0x97, 0xeb, 0x21, 0x2c, 0x1d, 0xa2, 0x1b, 0x30, 0x13,
-	0x42, 0xf2, 0x25, 0x98, 0xd6, 0x88, 0x4b, 0x44, 0xce, 0x97, 0x7c, 0x4f, 0x9d, 0x13, 0x8d, 0x92,
-	0xb8, 0x04, 0x61, 0x0e, 0xa2, 0xeb, 0x50, 0xe0, 0xce, 0x8f, 0xc5, 0xae, 0xfe, 0x31, 0x03, 0xf9,
-	0x7b, 0xb7, 0x6f, 0xcb, 0x0c, 0xe4, 0xd1, 0xf7, 0x15, 0xf9, 0x46, 0x96, 0x9f, 0xaf, 0x7d, 0x2f,
-	0x52, 0xca, 0xe3, 0xd2, 0x45, 0x6b, 0x6c, 0xc3, 0x62, 0xf2, 0xa6, 0x2d, 0x5f, 0xc9, 0xfc, 0x76,
-	0xb3, 0xde, 0x35, 0x94, 0xab, 0xe3, 0x50, 0x85, 0xa1, 0x87, 0xb0, 0x94, 0xba, 0xc9, 0xc9, 0x57,
-	0xb3, 0x8b, 0x2f, 0xeb, 0xaa, 0xac, 0x5c, 0x1b, 0x8b, 0x1b, 0x0d, 0x64, 0x0b, 0x89, 0x9b, 0x8b,
-	0xbc, 0x73, 0x52, 0x56, 0xe2, 0x37, 0x2a, 0xe5, 0xca, 0x18, 0x4c, 0x61, 0xa5, 0x01, 0xf3, 0xb1,
-	0x51, 0x9d, 0xc9, 0xdb, 0x99, 0x45, 0x3c, 0x72, 0x0b, 0x51, 0x2e, 0xbf, 0x91, 0x27, 0x0c, 0x74,
-	0x60, 0x39, 0x3d, 0x73, 0xca, 0xd7, 0x4e, 0x10, 0x4e, 0xcf, 0xd9, 0xca, 0xf5, 0xf1, 0xc8, 0xc2,
-	0xdc, 0x7d, 0x98, 0x8b, 0x4d, 0x7b, 0xd9, 0xe1, 0x8c, 0x4e, 0xa0, 0xd9, 0xe1, 0x64, 0x8d, 0x8d,
-	0x0c, 0xe4, 0xd1, 0x33, 0x3a, 0xbb, 0xbe, 0x5f, 0x3b, 0x8c, 0x65, 0xd7, 0xf7, 0xeb, 0x8f, 0xfe,
-	0xda, 0xed, 0xe7, 0x2f, 0x37, 0xa5, 0x17, 0x2f, 0x37, 0xa5, 0x3f, 0x5f, 0x6e, 0x4a, 0xdf, 0xbe,
-	0xda, 0x9c, 0x7a, 0xf1, 0x6a, 0x73, 0xea, 0xf7, 0x57, 0x9b, 0x53, 0x5f, 0x5e, 0x6b, 0xeb, 0xee,
-	0x51, 0xb7, 0x59, 0x6e, 0x59, 0x9d, 0x8a, 0xad, 0xdb, 0x06, 0x69, 0xb2, 0x4a, 0xf8, 0x54, 0xdb,
-	0x32, 0x74, 0x6a, 0xba, 0x95, 0x27, 0xfc, 0xcd, 0x96, 0x5b, 0x68, 0xce, 0xf0, 0xb7, 0xda, 0x77,
-	0xff, 0x09, 0x00, 0x00, 0xff, 0xff, 0x9f, 0xc5, 0x0a, 0xc1, 0x15, 0x16, 0x00, 0x00,
+	// 1327 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x58, 0xcf, 0x8f, 0xdb, 0xc4,
+	0x17, 0x5f, 0x27, 0xbb, 0x6d, 0xf2, 0x92, 0x6c, 0x77, 0xa7, 0xdb, 0xd6, 0x1b, 0xed, 0x37, 0xde,
+	0xef, 0x80, 0xda, 0x45, 0x2d, 0x89, 0xba, 0x40, 0x25, 0x2a, 0x21, 0x44, 0xd8, 0xd2, 0x2e, 0x3d,
+	0xb0, 0x4c, 0xaa, 0x1e, 0x38, 0xd4, 0x72, 0xec, 0x69, 0x76, 0x58, 0xc7, 0x76, 0x3d, 0x4e, 0xda,
+	0x70, 0xe2, 0x82, 0xb8, 0x72, 0x47, 0xe2, 0x86, 0xc4, 0x01, 0x71, 0x86, 0x0b, 0x57, 0x7a, 0xec,
+	0x91, 0x93, 0x85, 0xda, 0x7f, 0x00, 0xf9, 0xc6, 0x0d, 0x79, 0xec, 0x38, 0xb6, 0xe3, 0x2e, 0x4b,
+	0xa1, 0x11, 0x97, 0x28, 0x33, 0x9f, 0xcf, 0x7b, 0xf3, 0x7e, 0xcd, 0xcc, 0x1b, 0xc3, 0x16, 0xf7,
+	0x6c, 0x77, 0xd2, 0x31, 0x8e, 0x06, 0x9d, 0xf1, 0xd5, 0x8e, 0x37, 0x71, 0x28, 0xef, 0x78, 0x94,
+	0xb6, 0x1d, 0xd7, 0xf6, 0x6c, 0x84, 0x04, 0xda, 0x36, 0x8e, 0x06, 0xed, 0xf1, 0xd5, 0xb6, 0x40,
+	0x9b, 0x1b, 0x03, 0x7b, 0x60, 0x0b, 0xb8, 0x13, 0xfe, 0x8b, 0x98, 0xcd, 0x56, 0x91, 0x9e, 0xf0,
+	0x37, 0xc2, 0xf1, 0xb7, 0x12, 0x6c, 0xde, 0xa4, 0x16, 0x75, 0x35, 0x8f, 0xbe, 0x67, 0x19, 0x3d,
+	0xaa, 0x99, 0xb7, 0xe9, 0x84, 0xd0, 0x07, 0x23, 0xca, 0x3d, 0xb4, 0x0b, 0xd5, 0xa1, 0x4b, 0x2d,
+	0xdd, 0xd4, 0xc6, 0x54, 0x96, 0xb6, 0xa5, 0x9d, 0x7a, 0x77, 0x23, 0xf0, 0x95, 0xb5, 0x89, 0x36,
+	0x34, 0xaf, 0xe3, 0x04, 0xc2, 0x64, 0x46, 0x43, 0x17, 0x61, 0xc5, 0xb5, 0x47, 0x96, 0x21, 0x97,
+	0xb6, 0xa5, 0x9d, 0x46, 0x77, 0x2d, 0xf0, 0x95, 0x7a, 0xc4, 0x17, 0xd3, 0x98, 0x44, 0x30, 0xba,
+	0x02, 0xa7, 0x35, 0xc3, 0x70, 0x29, 0xe7, 0x72, 0x79, 0x5b, 0xda, 0xa9, 0x76, 0x51, 0xe0, 0x2b,
+	0xab, 0x11, 0x33, 0x06, 0x30, 0x99, 0x52, 0xf0, 0x37, 0x25, 0x68, 0x16, 0xd9, 0xc9, 0x1d, 0xdb,
+	0xe2, 0xf4, 0xa5, 0x1a, 0x7a, 0x0d, 0x6a, 0xc6, 0xd1, 0x40, 0x75, 0x46, 0x7d, 0xf5, 0x88, 0x4e,
+	0x84, 0xb1, 0xf5, 0xee, 0xf9, 0xc0, 0x57, 0x50, 0xc4, 0x4e, 0x81, 0x98, 0x54, 0x8d, 0xa3, 0xc1,
+	0xc1, 0xa8, 0x7f, 0x9b, 0x4e, 0xd0, 0xdb, 0x50, 0xd7, 0xed, 0xe1, 0x30, 0x11, 0x5c, 0x16, 0x82,
+	0x17, 0x02, 0x5f, 0x39, 0x1b, 0x09, 0xa6, 0x51, 0x4c, 0x20, 0x1c, 0xc6, 0xa2, 0x57, 0xa1, 0xea,
+	0x6a, 0x0f, 0xd5, 0x07, 0x23, 0xdb, 0xa3, 0xf2, 0x4a, 0xde, 0x9d, 0x04, 0xc2, 0xa4, 0xe2, 0x6a,
+	0x0f, 0x3f, 0x16, 0x7f, 0x7f, 0x90, 0x60, 0x63, 0x1a, 0xa0, 0x3d, 0xaa, 0x99, 0x7c, 0x11, 0x39,
+	0xbc, 0x0e, 0x75, 0xc6, 0x55, 0x97, 0xf2, 0x43, 0xcd, 0x65, 0xd6, 0x40, 0xc4, 0xa6, 0x92, 0x76,
+	0x31, 0x8d, 0x62, 0x52, 0x63, 0x9c, 0x24, 0xa3, 0x9f, 0x24, 0x38, 0x97, 0x33, 0x78, 0x01, 0xc9,
+	0xdc, 0x83, 0x15, 0x23, 0x5c, 0x4c, 0x2e, 0x6f, 0x97, 0x77, 0x6a, 0xbb, 0x72, 0x7b, 0x7e, 0x27,
+	0xb5, 0x43, 0x6b, 0xba, 0x1b, 0x8f, 0x7d, 0x65, 0x69, 0xa6, 0x45, 0x08, 0x61, 0x12, 0x09, 0xe3,
+	0x40, 0x02, 0x74, 0xe0, 0xda, 0x3a, 0xe5, 0x3c, 0x24, 0x2f, 0x22, 0xd4, 0xff, 0x8a, 0xe1, 0x73,
+	0x09, 0x5b, 0xfe, 0x1b, 0x09, 0xfb, 0x45, 0x82, 0xb3, 0x19, 0xa7, 0x17, 0x90, 0xae, 0x3b, 0x50,
+	0x75, 0xe3, 0x75, 0xa6, 0x9e, 0x6f, 0x15, 0x79, 0x3e, 0x35, 0xa6, 0x2b, 0xc7, 0xde, 0x4f, 0xb7,
+	0xca, 0x54, 0x18, 0x93, 0x99, 0x22, 0xfc, 0x65, 0x09, 0x2e, 0xc4, 0x9e, 0x4c, 0x05, 0x17, 0xb2,
+	0x5d, 0x5e, 0x8a, 0x37, 0xff, 0x28, 0xa7, 0x9f, 0x4b, 0x20, 0xcf, 0x47, 0x22, 0x4e, 0xac, 0x01,
+	0xab, 0x9f, 0x8e, 0xb8, 0xc7, 0xee, 0x33, 0x5d, 0xf3, 0x98, 0x6d, 0x71, 0x59, 0x12, 0x36, 0xff,
+	0xbf, 0xc8, 0xe6, 0x0f, 0xd3, 0xcc, 0xee, 0x66, 0xe0, 0x2b, 0xe7, 0xa2, 0xd5, 0xb3, 0x2a, 0x30,
+	0xc9, 0xe9, 0xc4, 0xdf, 0x4b, 0x80, 0x3e, 0x60, 0x96, 0x66, 0xb2, 0xcf, 0xe8, 0xde, 0xed, 0x9b,
+	0xff, 0xf5, 0x63, 0xeb, 0xf7, 0x12, 0x9c, 0xcd, 0x98, 0xbb, 0x80, 0x5d, 0xb0, 0x0f, 0xeb, 0x8e,
+	0xe6, 0x7a, 0x4c, 0x67, 0x8e, 0x66, 0x79, 0x5c, 0x75, 0x6d, 0xdb, 0x8b, 0xef, 0xa1, 0xad, 0xc0,
+	0x57, 0xe4, 0x48, 0x66, 0x8e, 0x82, 0xc9, 0x5a, 0x7a, 0x8e, 0xd8, 0xb6, 0x87, 0xde, 0x85, 0xd5,
+	0x81, 0x69, 0xf7, 0x35, 0x33, 0x77, 0x2d, 0xa5, 0x12, 0x96, 0xc5, 0x31, 0xa9, 0x47, 0x13, 0xf1,
+	0xd5, 0xf4, 0x0e, 0x34, 0x9c, 0x51, 0xdf, 0x64, 0xba, 0xaa, 0xdb, 0xf4, 0xfe, 0x7d, 0x2e, 0xaf,
+	0x6c, 0x97, 0x77, 0xea, 0x5d, 0x39, 0xf0, 0x95, 0x8d, 0xd8, 0x8e, 0x34, 0x8c, 0x49, 0x3d, 0x1a,
+	0xbf, 0x2f, 0x86, 0x61, 0x98, 0x38, 0x1b, 0x58, 0x9a, 0x37, 0x72, 0xa9, 0x7c, 0x2a, 0x1f, 0xa6,
+	0x04, 0xc2, 0x64, 0x46, 0xc3, 0x3f, 0x97, 0x61, 0xf3, 0x20, 0x74, 0x44, 0x33, 0xf7, 0xa8, 0xee,
+	0x4e, 0x1c, 0xef, 0xce, 0xde, 0xad, 0xdd, 0x45, 0x14, 0xca, 0x5b, 0x00, 0x3a, 0x73, 0x0e, 0xa9,
+	0xeb, 0xd1, 0x47, 0xd3, 0x88, 0x9f, 0x0b, 0x7c, 0x65, 0x3d, 0xbe, 0xc0, 0x13, 0x2c, 0xbc, 0xbe,
+	0x93, 0x41, 0xa8, 0xde, 0xd4, 0xfa, 0xd4, 0x8c, 0x63, 0x9b, 0x52, 0x2f, 0xa6, 0x31, 0x89, 0x60,
+	0xb4, 0x0d, 0x65, 0x87, 0x19, 0xe2, 0x82, 0x6f, 0x74, 0x57, 0x03, 0x5f, 0x81, 0x38, 0x82, 0xcc,
+	0xc0, 0x24, 0x84, 0xf2, 0xbd, 0xc7, 0xa9, 0x93, 0xf6, 0x1e, 0x5d, 0x38, 0xc3, 0xa9, 0x66, 0x52,
+	0x43, 0x0d, 0xeb, 0x96, 0xaa, 0xcc, 0x90, 0x4f, 0x8b, 0x26, 0xab, 0x19, 0xf8, 0xca, 0xf9, 0x38,
+	0xd8, 0x59, 0x02, 0x26, 0x8d, 0x68, 0xa6, 0x17, 0x4e, 0xec, 0x1b, 0xe8, 0x16, 0xac, 0xbb, 0x51,
+	0x8c, 0xa9, 0x9b, 0x58, 0x50, 0xc9, 0x57, 0xdd, 0x1c, 0x05, 0x93, 0x33, 0xc9, 0x5c, 0x64, 0x0d,
+	0xfe, 0xb1, 0x04, 0xcd, 0xa2, 0x04, 0xc6, 0x5b, 0x87, 0xc1, 0x16, 0xb5, 0xc4, 0x34, 0x35, 0x54,
+	0x27, 0xe2, 0xa9, 0x46, 0x44, 0x64, 0xb6, 0x15, 0x27, 0xf5, 0x52, 0xe0, 0x2b, 0xaf, 0x44, 0x6b,
+	0x1e, 0xc7, 0xc6, 0xa4, 0x99, 0xc0, 0xd9, 0x35, 0x99, 0x6d, 0x85, 0x3e, 0x51, 0xe7, 0x90, 0x0e,
+	0xa9, 0x9b, 0xda, 0x01, 0xa5, 0xbc, 0x4f, 0x73, 0x14, 0x4c, 0xce, 0x24, 0x73, 0xb3, 0x16, 0x2d,
+	0x04, 0x45, 0xf4, 0xe2, 0xca, 0x48, 0x95, 0x5d, 0x02, 0x61, 0x52, 0x71, 0x46, 0x7d, 0x11, 0xd2,
+	0x6c, 0xed, 0x2f, 0x9f, 0xac, 0xf6, 0xbf, 0x93, 0xa0, 0x91, 0x39, 0x5a, 0xc3, 0xe2, 0x62, 0x96,
+	0x41, 0x1f, 0x89, 0xb0, 0x64, 0x6a, 0x57, 0x4c, 0x63, 0x12, 0xc1, 0xc8, 0x86, 0xf5, 0x31, 0xe7,
+	0x6a, 0xe6, 0xb4, 0x15, 0xae, 0xd6, 0x76, 0x5f, 0x2d, 0x3a, 0xc0, 0xef, 0xf6, 0x7a, 0xd9, 0x33,
+	0x3c, 0x15, 0x90, 0x39, 0x45, 0x98, 0xac, 0x8d, 0x39, 0xcf, 0xf0, 0xf1, 0x1f, 0x12, 0xac, 0xe5,
+	0x95, 0xa0, 0x37, 0x01, 0x38, 0xe5, 0x9c, 0xd9, 0x56, 0x58, 0x83, 0x52, 0x7e, 0x07, 0xcd, 0xb0,
+	0xd0, 0xeb, 0x68, 0xb0, 0x6f, 0xcc, 0x7c, 0x2c, 0x1d, 0xef, 0x63, 0x0f, 0xc0, 0x31, 0x35, 0x66,
+	0xa9, 0x61, 0x77, 0x23, 0xb2, 0x50, 0xdb, 0xfd, 0x5f, 0x91, 0x73, 0x07, 0x21, 0x4b, 0xb4, 0x47,
+	0xa9, 0xc5, 0x67, 0xa2, 0x98, 0x54, 0x9d, 0x29, 0xe3, 0x85, 0xd2, 0xf4, 0x75, 0x09, 0xaa, 0xc9,
+	0x1a, 0x2f, 0xe8, 0xf4, 0x47, 0x50, 0xe5, 0x54, 0x8f, 0x2b, 0x2a, 0x4a, 0x54, 0x61, 0x77, 0xd0,
+	0xa3, 0xba, 0xa8, 0xa7, 0x8c, 0x55, 0x53, 0x41, 0x4c, 0x2a, 0x3c, 0xc6, 0x43, 0x47, 0xbc, 0xc3,
+	0xf0, 0x1e, 0xb3, 0x4d, 0x43, 0x04, 0xa7, 0x91, 0x16, 0x49, 0x20, 0x4c, 0x66, 0x34, 0xd4, 0x83,
+	0x5a, 0xf8, 0x0e, 0x61, 0xde, 0x90, 0x5a, 0x1e, 0x97, 0x97, 0xc5, 0x85, 0xbf, 0x59, 0x18, 0x52,
+	0x9b, 0x59, 0x5e, 0xfa, 0x2c, 0x4a, 0xc9, 0x61, 0x92, 0xd6, 0x82, 0xef, 0x41, 0x65, 0x6a, 0x34,
+	0x6a, 0x82, 0xb4, 0x1f, 0x97, 0x6e, 0x3d, 0xf0, 0x95, 0x4a, 0x9c, 0x56, 0x4c, 0xa4, 0x7d, 0x74,
+	0x0d, 0xa4, 0xbb, 0xb1, 0xe7, 0xcd, 0x42, 0xcf, 0x75, 0xcd, 0xd4, 0xdc, 0xb4, 0xdc, 0x18, 0x13,
+	0xe9, 0xee, 0xee, 0x17, 0x2b, 0x50, 0xbe, 0x73, 0xe3, 0x06, 0xe2, 0x80, 0xe6, 0xdf, 0x88, 0xe8,
+	0xf5, 0x22, 0x55, 0xcf, 0x7d, 0xf3, 0x36, 0xdb, 0x27, 0xa5, 0x27, 0x5d, 0x52, 0x23, 0xf3, 0x8c,
+	0x41, 0x3b, 0xc7, 0x29, 0x48, 0x3f, 0xcd, 0x9a, 0xaf, 0x9d, 0x80, 0x19, 0xaf, 0xa2, 0x42, 0x3d,
+	0xd5, 0x7b, 0x73, 0x74, 0xb1, 0x30, 0x25, 0x73, 0x4f, 0x92, 0xe6, 0xa5, 0xbf, 0xe4, 0xc5, 0x0b,
+	0x0c, 0x61, 0x2d, 0xdf, 0x08, 0xa2, 0xcb, 0xc7, 0x08, 0xe7, 0x1b, 0xe7, 0xe6, 0x95, 0x93, 0x91,
+	0xe3, 0xe5, 0xee, 0x41, 0x2d, 0xd5, 0x45, 0x15, 0xbb, 0x33, 0xdf, 0x15, 0x16, 0xbb, 0x53, 0xd4,
+	0x8e, 0x71, 0x40, 0xf3, 0x37, 0x4e, 0x71, 0x29, 0x3c, 0xb7, 0xb5, 0x28, 0x2e, 0x85, 0xe7, 0x5f,
+	0x64, 0xdd, 0x1b, 0x8f, 0x9f, 0xb6, 0xa4, 0x27, 0x4f, 0x5b, 0xd2, 0x6f, 0x4f, 0x5b, 0xd2, 0x57,
+	0xcf, 0x5a, 0x4b, 0x4f, 0x9e, 0xb5, 0x96, 0x7e, 0x7d, 0xd6, 0x5a, 0xfa, 0xe4, 0xf2, 0x80, 0x79,
+	0x87, 0xa3, 0x7e, 0x5b, 0xb7, 0x87, 0x1d, 0x87, 0x39, 0xa6, 0xd6, 0xe7, 0x9d, 0xe8, 0xcb, 0x8c,
+	0x6e, 0x32, 0x6a, 0x79, 0x9d, 0x47, 0xe2, 0x13, 0x8d, 0x58, 0xa1, 0x7f, 0x4a, 0x7c, 0x9a, 0x79,
+	0xe3, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf1, 0x48, 0xa0, 0x8e, 0x04, 0x12, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1569,8 +1208,6 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type TEEClient interface {
 	GenerateAndSealKey(ctx context.Context, in *GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*GenerateAndSealKeyResponse, error)
-	VerifyRawQuote(ctx context.Context, in *VerifyRawQuoteRequest, opts ...grpc.CallOption) (*VerifyRawQuoteResponse, error)
-	SetupDKGNetwork(ctx context.Context, in *SetupDKGNetworkRequest, opts ...grpc.CallOption) (*SetupDKGNetworkResponse, error)
 	GenerateDeals(ctx context.Context, in *GenerateDealsRequest, opts ...grpc.CallOption) (*GenerateDealsResponse, error)
 	ProcessDeals(ctx context.Context, in *ProcessDealRequest, opts ...grpc.CallOption) (*ProcessDealResponse, error)
 	ProcessResponses(ctx context.Context, in *ProcessResponsesRequest, opts ...grpc.CallOption) (*ProcessResponsesResponse, error)
@@ -1589,24 +1226,6 @@ func NewTEEClient(cc grpc1.ClientConn) TEEClient {
 func (c *tEEClient) GenerateAndSealKey(ctx context.Context, in *GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*GenerateAndSealKeyResponse, error) {
 	out := new(GenerateAndSealKeyResponse)
 	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/GenerateAndSealKey", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tEEClient) VerifyRawQuote(ctx context.Context, in *VerifyRawQuoteRequest, opts ...grpc.CallOption) (*VerifyRawQuoteResponse, error) {
-	out := new(VerifyRawQuoteResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/VerifyRawQuote", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tEEClient) SetupDKGNetwork(ctx context.Context, in *SetupDKGNetworkRequest, opts ...grpc.CallOption) (*SetupDKGNetworkResponse, error) {
-	out := new(SetupDKGNetworkResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/SetupDKGNetwork", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1661,8 +1280,6 @@ func (c *tEEClient) PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTD
 // TEEServer is the server API for TEE service.
 type TEEServer interface {
 	GenerateAndSealKey(context.Context, *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error)
-	VerifyRawQuote(context.Context, *VerifyRawQuoteRequest) (*VerifyRawQuoteResponse, error)
-	SetupDKGNetwork(context.Context, *SetupDKGNetworkRequest) (*SetupDKGNetworkResponse, error)
 	GenerateDeals(context.Context, *GenerateDealsRequest) (*GenerateDealsResponse, error)
 	ProcessDeals(context.Context, *ProcessDealRequest) (*ProcessDealResponse, error)
 	ProcessResponses(context.Context, *ProcessResponsesRequest) (*ProcessResponsesResponse, error)
@@ -1676,12 +1293,6 @@ type UnimplementedTEEServer struct {
 
 func (*UnimplementedTEEServer) GenerateAndSealKey(ctx context.Context, req *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateAndSealKey not implemented")
-}
-func (*UnimplementedTEEServer) VerifyRawQuote(ctx context.Context, req *VerifyRawQuoteRequest) (*VerifyRawQuoteResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method VerifyRawQuote not implemented")
-}
-func (*UnimplementedTEEServer) SetupDKGNetwork(ctx context.Context, req *SetupDKGNetworkRequest) (*SetupDKGNetworkResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetupDKGNetwork not implemented")
 }
 func (*UnimplementedTEEServer) GenerateDeals(ctx context.Context, req *GenerateDealsRequest) (*GenerateDealsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateDeals not implemented")
@@ -1717,42 +1328,6 @@ func _TEE_GenerateAndSealKey_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TEEServer).GenerateAndSealKey(ctx, req.(*GenerateAndSealKeyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TEE_VerifyRawQuote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyRawQuoteRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TEEServer).VerifyRawQuote(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/VerifyRawQuote",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).VerifyRawQuote(ctx, req.(*VerifyRawQuoteRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TEE_SetupDKGNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetupDKGNetworkRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TEEServer).SetupDKGNetwork(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/SetupDKGNetwork",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).SetupDKGNetwork(ctx, req.(*SetupDKGNetworkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1855,14 +1430,6 @@ var _TEE_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateAndSealKey",
 			Handler:    _TEE_GenerateAndSealKey_Handler,
-		},
-		{
-			MethodName: "VerifyRawQuote",
-			Handler:    _TEE_VerifyRawQuote_Handler,
-		},
-		{
-			MethodName: "SetupDKGNetwork",
-			Handler:    _TEE_SetupDKGNetwork_Handler,
 		},
 		{
 			MethodName: "GenerateDeals",
@@ -1987,232 +1554,6 @@ func (m *GenerateAndSealKeyResponse) MarshalToSizedBuffer(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
-func (m *VerifyRawQuoteRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *VerifyRawQuoteRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VerifyRawQuoteRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.RawQuote) > 0 {
-		i -= len(m.RawQuote)
-		copy(dAtA[i:], m.RawQuote)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.RawQuote)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.CommPubKey) > 0 {
-		i -= len(m.CommPubKey)
-		copy(dAtA[i:], m.CommPubKey)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.CommPubKey)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.DkgPubKey) > 0 {
-		i -= len(m.DkgPubKey)
-		copy(dAtA[i:], m.DkgPubKey)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.DkgPubKey)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Address)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Round != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Round))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Mrenclave)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *VerifyRawQuoteResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *VerifyRawQuoteResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VerifyRawQuoteResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Valid {
-		i--
-		if m.Valid {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Round != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Round))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Address)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Mrenclave)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SetupDKGNetworkRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetupDKGNetworkRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SetupDKGNetworkRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Registrations) > 0 {
-		for iNdEx := len(m.Registrations) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Registrations[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintTee(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if m.Threshold != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Threshold))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Total != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Total))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Round != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Round))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Mrenclave)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SetupDKGNetworkResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetupDKGNetworkResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SetupDKGNetworkResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Signature) > 0 {
-		i -= len(m.Signature)
-		copy(dAtA[i:], m.Signature)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Signature)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Threshold != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Threshold))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Total != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Total))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Round != 0 {
-		i = encodeVarintTee(dAtA, i, uint64(m.Round))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Mrenclave)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *GenerateDealsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2233,6 +1574,16 @@ func (m *GenerateDealsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.IsResharing {
+		i--
+		if m.IsResharing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Round != 0 {
 		i = encodeVarintTee(dAtA, i, uint64(m.Round))
 		i--
@@ -2317,6 +1668,16 @@ func (m *ProcessDealRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.IsResharing {
+		i--
+		if m.IsResharing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Deals) > 0 {
 		for iNdEx := len(m.Deals) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -2415,6 +1776,16 @@ func (m *ProcessResponsesRequest) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	_ = i
 	var l int
 	_ = l
+	if m.IsResharing {
+		i--
+		if m.IsResharing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Responses) > 0 {
 		for iNdEx := len(m.Responses) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -2501,6 +1872,16 @@ func (m *FinalizeDKGRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.IsResharing {
+		i--
+		if m.IsResharing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Round != 0 {
 		i = encodeVarintTee(dAtA, i, uint64(m.Round))
 		i--
@@ -2541,12 +1922,28 @@ func (m *FinalizeDKGResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.Signature)
 		i = encodeVarintTee(dAtA, i, uint64(len(m.Signature)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x32
+	}
+	if len(m.PublicCoeffs) > 0 {
+		for iNdEx := len(m.PublicCoeffs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.PublicCoeffs[iNdEx])
+			copy(dAtA[i:], m.PublicCoeffs[iNdEx])
+			i = encodeVarintTee(dAtA, i, uint64(len(m.PublicCoeffs[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
 	if len(m.GlobalPubKey) > 0 {
 		i -= len(m.GlobalPubKey)
 		copy(dAtA[i:], m.GlobalPubKey)
 		i = encodeVarintTee(dAtA, i, uint64(len(m.GlobalPubKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ParticipantsRoot) > 0 {
+		i -= len(m.ParticipantsRoot)
+		copy(dAtA[i:], m.ParticipantsRoot)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.ParticipantsRoot)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -2886,66 +2283,6 @@ func (m *SecShare) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *Scalar) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Scalar) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Scalar) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		i -= len(m.Data)
-		copy(dAtA[i:], m.Data)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Data)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Point) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Point) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Point) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		i -= len(m.Data)
-		copy(dAtA[i:], m.Data)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.Data)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func encodeVarintTee(dAtA []byte, offset int, v uint64) int {
 	offset -= sovTee(v)
 	base := offset
@@ -3005,115 +2342,6 @@ func (m *GenerateAndSealKeyResponse) Size() (n int) {
 	return n
 }
 
-func (m *VerifyRawQuoteRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Mrenclave)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	if m.Round != 0 {
-		n += 1 + sovTee(uint64(m.Round))
-	}
-	l = len(m.Address)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	l = len(m.DkgPubKey)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	l = len(m.CommPubKey)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	l = len(m.RawQuote)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	return n
-}
-
-func (m *VerifyRawQuoteResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Mrenclave)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	l = len(m.Address)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	if m.Round != 0 {
-		n += 1 + sovTee(uint64(m.Round))
-	}
-	if m.Valid {
-		n += 2
-	}
-	return n
-}
-
-func (m *SetupDKGNetworkRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Mrenclave)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	if m.Round != 0 {
-		n += 1 + sovTee(uint64(m.Round))
-	}
-	if m.Total != 0 {
-		n += 1 + sovTee(uint64(m.Total))
-	}
-	if m.Threshold != 0 {
-		n += 1 + sovTee(uint64(m.Threshold))
-	}
-	if len(m.Registrations) > 0 {
-		for _, e := range m.Registrations {
-			l = e.Size()
-			n += 1 + l + sovTee(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *SetupDKGNetworkResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Mrenclave)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	if m.Round != 0 {
-		n += 1 + sovTee(uint64(m.Round))
-	}
-	if m.Total != 0 {
-		n += 1 + sovTee(uint64(m.Total))
-	}
-	if m.Threshold != 0 {
-		n += 1 + sovTee(uint64(m.Threshold))
-	}
-	l = len(m.Signature)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	return n
-}
-
 func (m *GenerateDealsRequest) Size() (n int) {
 	if m == nil {
 		return 0
@@ -3126,6 +2354,9 @@ func (m *GenerateDealsRequest) Size() (n int) {
 	}
 	if m.Round != 0 {
 		n += 1 + sovTee(uint64(m.Round))
+	}
+	if m.IsResharing {
+		n += 2
 	}
 	return n
 }
@@ -3171,6 +2402,9 @@ func (m *ProcessDealRequest) Size() (n int) {
 			n += 1 + l + sovTee(uint64(l))
 		}
 	}
+	if m.IsResharing {
+		n += 2
+	}
 	return n
 }
 
@@ -3215,6 +2449,9 @@ func (m *ProcessResponsesRequest) Size() (n int) {
 			n += 1 + l + sovTee(uint64(l))
 		}
 	}
+	if m.IsResharing {
+		n += 2
+	}
 	return n
 }
 
@@ -3246,6 +2483,9 @@ func (m *FinalizeDKGRequest) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovTee(uint64(m.Round))
 	}
+	if m.IsResharing {
+		n += 2
+	}
 	return n
 }
 
@@ -3262,9 +2502,19 @@ func (m *FinalizeDKGResponse) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovTee(uint64(m.Round))
 	}
+	l = len(m.ParticipantsRoot)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
 	l = len(m.GlobalPubKey)
 	if l > 0 {
 		n += 1 + l + sovTee(uint64(l))
+	}
+	if len(m.PublicCoeffs) > 0 {
+		for _, b := range m.PublicCoeffs {
+			l = len(b)
+			n += 1 + l + sovTee(uint64(l))
+		}
 	}
 	l = len(m.Signature)
 	if l > 0 {
@@ -3414,32 +2664,6 @@ func (m *SecShare) Size() (n int) {
 	}
 	if m.V != nil {
 		l = m.V.Size()
-		n += 1 + l + sovTee(uint64(l))
-	}
-	return n
-}
-
-func (m *Scalar) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovTee(uint64(l))
-	}
-	return n
-}
-
-func (m *Point) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
 		n += 1 + l + sovTee(uint64(l))
 	}
 	return n
@@ -3791,748 +3015,6 @@ func (m *GenerateAndSealKeyResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *VerifyRawQuoteRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VerifyRawQuoteRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VerifyRawQuoteRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
-			}
-			m.Round = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Round |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Address = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DkgPubKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.DkgPubKey = append(m.DkgPubKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.DkgPubKey == nil {
-				m.DkgPubKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommPubKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CommPubKey = append(m.CommPubKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.CommPubKey == nil {
-				m.CommPubKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RawQuote", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RawQuote = append(m.RawQuote[:0], dAtA[iNdEx:postIndex]...)
-			if m.RawQuote == nil {
-				m.RawQuote = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VerifyRawQuoteResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VerifyRawQuoteResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VerifyRawQuoteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Address = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
-			}
-			m.Round = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Round |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Valid", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Valid = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *SetupDKGNetworkRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetupDKGNetworkRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetupDKGNetworkRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
-			}
-			m.Round = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Round |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Total", wireType)
-			}
-			m.Total = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Total |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Threshold", wireType)
-			}
-			m.Threshold = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Threshold |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Registrations", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Registrations = append(m.Registrations, DKGRegistration{})
-			if err := m.Registrations[len(m.Registrations)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *SetupDKGNetworkResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetupDKGNetworkResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetupDKGNetworkResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
-			}
-			m.Round = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Round |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Total", wireType)
-			}
-			m.Total = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Total |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Threshold", wireType)
-			}
-			m.Threshold = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Threshold |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
-			if m.Signature == nil {
-				m.Signature = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func (m *GenerateDealsRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4615,6 +3097,26 @@ func (m *GenerateDealsRequest) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsResharing = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTee(dAtA[iNdEx:])
@@ -4889,6 +3391,26 @@ func (m *ProcessDealRequest) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsResharing = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTee(dAtA[iNdEx:])
@@ -5163,6 +3685,26 @@ func (m *ProcessResponsesRequest) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsResharing = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTee(dAtA[iNdEx:])
@@ -5350,6 +3892,26 @@ func (m *FinalizeDKGRequest) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsResharing = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTee(dAtA[iNdEx:])
@@ -5455,6 +4017,40 @@ func (m *FinalizeDKGResponse) Unmarshal(dAtA []byte) error {
 			}
 		case 3:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantsRoot", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ParticipantsRoot = append(m.ParticipantsRoot[:0], dAtA[iNdEx:postIndex]...)
+			if m.ParticipantsRoot == nil {
+				m.ParticipantsRoot = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GlobalPubKey", wireType)
 			}
 			var byteLen int
@@ -5487,7 +4083,39 @@ func (m *FinalizeDKGResponse) Unmarshal(dAtA []byte) error {
 				m.GlobalPubKey = []byte{}
 			}
 			iNdEx = postIndex
-		case 4:
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicCoeffs", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PublicCoeffs = append(m.PublicCoeffs, make([]byte, postIndex-iNdEx))
+			copy(m.PublicCoeffs[len(m.PublicCoeffs)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
 			}
@@ -6551,174 +5179,6 @@ func (m *SecShare) Unmarshal(dAtA []byte) error {
 			}
 			if err := m.V.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Scalar) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Scalar: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Scalar: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTee(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTee
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Point) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTee
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Point: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Point: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTee
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTee
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTee
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
 			}
 			iNdEx = postIndex
 		default:

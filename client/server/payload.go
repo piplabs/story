@@ -122,3 +122,13 @@ type QueryRewardsTokenByDelegatorAddressResponse struct {
 type QueryTotalRewardsTokenByDelegatorAddressResponse struct {
 	RewardsToken math.LegacyDec `json:"rewards_token"`
 }
+
+type getDKGNetworkRequest struct {
+	Round        uint32 `mapstructure:"round"`
+	MrenclaveHex string `mapstructure:"mrenclave_hex"`
+}
+
+type getVerifiedDKGRegistrationsRequest struct {
+	Round        uint32 `mapstructure:"round"`
+	MrenclaveHex string `mapstructure:"mrenclave_hex"`
+}
