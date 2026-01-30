@@ -73,7 +73,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 		return lerrors.New(
 			"locked token multiplier not updated",
 			"expected", NewLockedTokenMultiplier,
-			"actual", stakingParams.TokenTypes[0].RewardsMultiplier,
+			"actual", newStakingParams.TokenTypes[0].RewardsMultiplier,
 		)
 	}
 
