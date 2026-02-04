@@ -27,23 +27,23 @@ func (k *Keeper) Params(ctx context.Context, req *types.QueryParamsRequest) (*ty
 	return &types.QueryParamsResponse{Params: params}, nil
 }
 
-// GetDKGNetwork queries a DKG network by mrenclave and round.
+// GetDKGNetwork queries a DKG network by code commitment and round.
 func (k *Keeper) GetDKGNetwork(ctx context.Context, req *types.QueryGetDKGNetworkRequest) (*types.QueryGetDKGNetworkResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
 	}
 
-	mrenclave, err := cast.ToBytes32(mrenclaveBz)
+	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
 	}
 
-	network, err := k.getDKGNetwork(ctx, mrenclave, req.Round)
+	network, err := k.getDKGNetwork(ctx, codeCommitment, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, err.Error())
 	}
@@ -79,7 +79,7 @@ func (k *Keeper) GetAllDKGNetworks(ctx context.Context, req *types.QueryGetAllDK
 	return &types.QueryGetAllDKGNetworksResponse{Networks: networks}, nil
 }
 
-// GetDKGRegistration queries a DKG registration by mrenclave, round, and validator address.
+// GetDKGRegistration queries a DKG registration by code commitment, round, and validator address.
 func (*Keeper) GetDKGRegistration(_ context.Context, req *types.QueryGetDKGRegistrationRequest) (*types.QueryGetDKGRegistrationResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -90,23 +90,23 @@ func (*Keeper) GetDKGRegistration(_ context.Context, req *types.QueryGetDKGRegis
 	return nil, status.Error(codes.Unimplemented, "GetDKGRegistration by validator address not implemented")
 }
 
-// GetAllDKGRegistrations queries all DKG registrations (registered & verified) for a specific mrenclave and round.
+// GetAllDKGRegistrations queries all DKG registrations (registered & verified) for a specific code commitment and round.
 func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGetAllDKGRegistrationsRequest) (*types.QueryGetAllDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
 	}
 
-	mrenclave, err := cast.ToBytes32(mrenclaveBz)
+	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
 	}
 
-	registrations, err := k.getDKGRegistrationsByRound(ctx, mrenclave, req.Round)
+	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -118,23 +118,23 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 	}, nil
 }
 
-// GetAllVerifiedDKGRegistrations queries all verified DKG registrations for a specific mrenclave and round.
+// GetAllVerifiedDKGRegistrations queries all verified DKG registrations for a specific code commitment and round.
 func (k *Keeper) GetAllVerifiedDKGRegistrations(ctx context.Context, req *types.QueryGetAllVerifiedDKGRegistrationsRequest) (*types.QueryGetAllVerifiedDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	mrenclaveBz, err := hex.DecodeString(req.MrenclaveHex)
+	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid mrenclave")
+		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
 	}
 
-	mrenclave, err := cast.ToBytes32(mrenclaveBz)
+	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of MRENCLAVE")
+		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
 	}
 
-	registrations, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, req.Round, types.DKGRegStatusVerified)
+	registrations, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment, req.Round, types.DKGRegStatusVerified)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

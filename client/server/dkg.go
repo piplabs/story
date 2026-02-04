@@ -19,8 +19,8 @@ func (s *Server) GetDKGNetwork(req *getDKGNetworkRequest, r *http.Request) (resp
 	}
 
 	queryResp, err := s.store.GetDKGKeeper().GetDKGNetwork(queryContext, &dkgtypes.QueryGetDKGNetworkRequest{
-		Round:        req.Round,
-		MrenclaveHex: req.MrenclaveHex,
+		Round:             req.Round,
+		CodeCommitmentHex: req.CodeCommitmentHex,
 	})
 	if err != nil {
 		return nil, err
@@ -36,8 +36,8 @@ func (s *Server) GetVerifiedDKGRegistrations(req *getVerifiedDKGRegistrationsReq
 	}
 
 	queryResp, err := s.store.GetDKGKeeper().GetAllVerifiedDKGRegistrations(queryContext, &dkgtypes.QueryGetAllVerifiedDKGRegistrationsRequest{
-		Round:        req.Round,
-		MrenclaveHex: req.MrenclaveHex,
+		Round:             req.Round,
+		CodeCommitmentHex: req.CodeCommitmentHex,
 	})
 	if err != nil {
 		return nil, err

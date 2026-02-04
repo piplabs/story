@@ -32,7 +32,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 	require.NoError(t, err, "failed to load DKG ABI")
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34}
+	testCodeCommitment := [32]byte{0x12, 0x34}
 	testParticipantsRoot := [32]byte{0x56, 0x78}
 	testRound := uint32(1)
 	testDkgPubKey := []byte("test-dkg-pubkey")
@@ -79,7 +79,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DKGInitialized event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -95,7 +95,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGInitializedSuccess event
@@ -109,7 +109,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
 						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 
 						break
 					}
@@ -121,7 +121,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DKGFinalized event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
-					testRound, testMrenclave, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
+					testRound, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -137,7 +137,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testMrenclave, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGFinalizedSuccess event
@@ -151,7 +151,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
 						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 
 						break
 					}
@@ -163,7 +163,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DKG UpgradeScheduled event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["UpgradeScheduled"].Inputs.NonIndexed().Pack(
-					testActivationHeight, testMrenclave)
+					testActivationHeight, testCodeCommitment)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -178,7 +178,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().UpgradeScheduled(gomock.Any(), testActivationHeight, testMrenclave).Return(nil)
+				dkgk.EXPECT().UpgradeScheduled(gomock.Any(), testActivationHeight, testCodeCommitment).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGUpgradeScheduledSuccess event
@@ -191,7 +191,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						attrs := event.Attributes
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testActivationHeight), 10), attrs[1].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[2].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[2].Value)
 
 						break
 					}
@@ -203,7 +203,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: RemoteAttestationProcessedOnChain event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["RemoteAttestationProcessedOnChain"].Inputs.NonIndexed().Pack(
-					testValidator, uint8(1), testRound, testMrenclave) // ChallengeStatus.Invalidated = 1
+					testValidator, uint8(1), testRound, testCodeCommitment) // ChallengeStatus.Invalidated = 1
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -218,7 +218,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RemoteAttestationProcessedOnChain(gomock.Any(), testValidator, int(1), testRound, testMrenclave).Return(nil)
+				dkgk.EXPECT().RemoteAttestationProcessedOnChain(gomock.Any(), testValidator, int(1), testRound, testCodeCommitment).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGRemoteAttestationProcessedOnChainSuccess event
@@ -233,7 +233,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.Equal(t, testValidator.Hex(), attrs[1].Value)
 						require.Equal(t, "1", attrs[2].Value) // ChalStatus = 1
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[4].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
 
 						break
 					}
@@ -245,7 +245,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DealComplaintsSubmitted event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DealComplaintsSubmitted"].Inputs.NonIndexed().Pack(
-					testIndex, testComplainIndexes, testRound, testMrenclave)
+					testIndex, testComplainIndexes, testRound, testCodeCommitment)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -260,7 +260,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().DealComplaintsSubmitted(gomock.Any(), testIndex, testComplainIndexes, testRound, testMrenclave).Return(nil)
+				dkgk.EXPECT().DealComplaintsSubmitted(gomock.Any(), testIndex, testComplainIndexes, testRound, testCodeCommitment).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGDealComplaintsSubmittedSuccess event
@@ -275,7 +275,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
 						require.Equal(t, "1,2,3", attrs[2].Value) // ComplainIndexes joined
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[4].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
 
 						break
 					}
@@ -287,7 +287,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DealVerified event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DealVerified"].Inputs.NonIndexed().Pack(
-					testIndex, testRecipientIndex, testRound, testMrenclave)
+					testIndex, testRecipientIndex, testRound, testCodeCommitment)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -302,7 +302,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().DealVerified(gomock.Any(), testIndex, testRecipientIndex, testRound, testMrenclave).Return(nil)
+				dkgk.EXPECT().DealVerified(gomock.Any(), testIndex, testRecipientIndex, testRound, testCodeCommitment).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGDealVerifiedSuccess event
@@ -317,7 +317,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
 						require.Equal(t, strconv.FormatUint(uint64(testRecipientIndex), 10), attrs[2].Value)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[4].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
 
 						break
 					}
@@ -329,7 +329,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: InvalidDeal event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["InvalidDeal"].Inputs.NonIndexed().Pack(
-					testIndex, testRound, testMrenclave)
+					testIndex, testRound, testCodeCommitment)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -344,7 +344,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().InvalidDeal(gomock.Any(), testIndex, testRound, testMrenclave).Return(nil)
+				dkgk.EXPECT().InvalidDeal(gomock.Any(), testIndex, testRound, testCodeCommitment).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGInvalidDealSuccess event
@@ -358,7 +358,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 
 						break
 					}
@@ -371,12 +371,12 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			evmEvents: func() []*types.EVMEvent {
 				// DKGInitialized event
 				initData, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
 				require.NoError(t, err)
 
 				// DKGFinalized event
 				finalizedData, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
-					testRound, testMrenclave, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
+					testRound, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -401,8 +401,8 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testMrenclave, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit both DKGInitializedSuccess and DKGFinalizedSuccess events
@@ -508,7 +508,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	t.Cleanup(ctrl.Finish)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34}
+	testCodeCommitment := [32]byte{0x12, 0x34}
 	testRound := uint32(1)
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
@@ -534,7 +534,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	dkgAbi, err := bindings.DKGMetaData.GetAbi()
 	require.NoError(t, err)
 	data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-		testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+		testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
 	require.NoError(t, err)
 	mockLog.Data = data
 
@@ -546,13 +546,13 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 		{
 			name: "pass: successful DKG initialization",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
 			},
 		},
 		{
 			name: "fail: DKG keeper returns error",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testMrenclave, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(
+				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(
 					sdkerrors.ErrInvalidRequest.Wrap("invalid request"))
 			},
 			expectedErr: "invalid request",
@@ -586,7 +586,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
 						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 
 						break
 					}
@@ -603,7 +603,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
 						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testMrenclave[:]), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 						require.Equal(t, hex.EncodeToString(testDkgPubKey), attrs[4].Value)
 						require.Equal(t, hex.EncodeToString(testCommPubKey), attrs[5].Value)
 						require.Equal(t, hex.EncodeToString(testRawQuote), attrs[6].Value)

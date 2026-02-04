@@ -57,8 +57,8 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 		Round:            roundNum,
 		StartBlockHeight: sdkCtx.BlockHeight(),
 		StartBlockHash:   sdkCtx.HeaderHash(),
-		Mrenclave:        params.Mrenclave, // latest TEE mrenclave
-		ActiveValSet:     activeValidators, // list of active validators' EVM addresses
+		CodeCommitment:   params.CodeCommitment, // latest TEE codeCommitment
+		ActiveValSet:     activeValidators,      // list of active validators' EVM addresses
 		Total:            0,
 		Threshold:        0,
 		Stage:            types.DKGStageRegistration,

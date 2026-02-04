@@ -21,7 +21,7 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
-	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusFinalized)
+	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.CodeCommitment, latestRound.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
 	}
@@ -45,7 +45,7 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		go k.handleDKGComplete(ctx, latestRound)
 	}
 
-	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "mrenclave", hex.EncodeToString(latestRound.Mrenclave))
+	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "code_commitment", hex.EncodeToString(latestRound.CodeCommitment))
 
 	return nil
 }

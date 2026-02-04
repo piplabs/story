@@ -11,7 +11,7 @@ import (
 // handleDKGComplete handles the DKG completion event.
 func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG completion",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -22,7 +22,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 	defer dkgSvcRunning.Store(false)
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -54,7 +54,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 
 	log.Info(ctx, "DKG process completed successfully",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"validator_evm_address", k.validatorEVMAddr,
 	)

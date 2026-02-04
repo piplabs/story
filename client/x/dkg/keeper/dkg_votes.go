@@ -10,12 +10,12 @@ import (
 )
 
 // AddGlobalPubKeyVote Increase vote for global public key by 1.
-func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, mrenclave [32]byte, round uint32, globalPubKey []byte, publicCoeffs [][]byte) (uint32, error) {
+func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, codeCommitment [32]byte, round uint32, globalPubKey []byte, publicCoeffs [][]byte) (uint32, error) {
 	coeffHash := hex.EncodeToString(hashPublicCoeffs(publicCoeffs))
 
 	key := fmt.Sprintf(
 		"%s_%d_%s_%s",
-		hex.EncodeToString(mrenclave[:]),
+		hex.EncodeToString(codeCommitment[:]),
 		round,
 		hex.EncodeToString(globalPubKey),
 		coeffHash,
@@ -28,7 +28,7 @@ func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, mrenclave [32]byte, ro
 			current = 0
 		} else {
 			return 0, errors.Wrap(err, "failed to get votes for global public key",
-				"mrenclave", hex.EncodeToString(mrenclave[:]),
+				"code_commitment", hex.EncodeToString(codeCommitment[:]),
 				"round", round,
 			)
 		}
@@ -38,7 +38,7 @@ func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, mrenclave [32]byte, ro
 	newCount := current + 1
 	if err := k.GlobalPubKeyVotes.Set(ctx, key, newCount); err != nil {
 		return 0, errors.Wrap(err, "failed to set votes",
-			"mrenclave", hex.EncodeToString(mrenclave[:]),
+			"code_commitment", hex.EncodeToString(codeCommitment[:]),
 			"round", round,
 		)
 	}

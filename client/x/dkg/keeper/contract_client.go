@@ -103,27 +103,27 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 }
 
 // InitializeDKG calls the initializeDKG contract method.
-func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrenclave []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
+func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCommitment []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"code_commitment", hex.EncodeToString(codeCommitment),
 		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
 		"comm_pub_key", hex.EncodeToString(commPubKey),
 		"raw_quote_len", len(rawQuote),
 	)
 
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, dkgPubKey, commPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
 	}
 
 	return c.sendWithRetry(ctx, "InitializeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.InitializeDKG(auth, round, mrenclave32, dkgPubKey, commPubKey, rawQuote)
+		return c.dkgContract.InitializeDKG(auth, round, codeCommitment32, dkgPubKey, commPubKey, rawQuote)
 	})
 }
 
@@ -131,22 +131,22 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, mrencl
 func (c *ContractClient) FinalizeDKG(
 	ctx context.Context,
 	round uint32,
-	mrenclave []byte,
+	codeCommitment []byte,
 	participantsRoot []byte,
 	globalPubKey []byte,
 	publicCoeffs [][]byte,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
 		"signature_len", len(signature),
 	)
 
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert mrenclave to bytes32")
+		return nil, errors.Wrap(err, "failed to convert codeCommitment to bytes32")
 	}
 
 	participants32, err := cast.ToBytes32(participantsRoot)
@@ -154,13 +154,13 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to convert participants root to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, mrenclave32, globalPubKey, signature)
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, codeCommitment32, globalPubKey, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
 
 	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, participants32, globalPubKey, publicCoeffs, signature)
+		return c.dkgContract.FinalizeDKG(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, signature)
 	})
 }
 
@@ -169,15 +169,15 @@ func (c *ContractClient) RequestRemoteAttestationOnChain(
 	ctx context.Context,
 	targetValidatorAddr common.Address,
 	round uint32,
-	mrenclave []byte,
+	codeCommitment []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling requestRemoteAttestationOnChain contract method",
-		"mrenclave", string(mrenclave),
+		"code_commitment", string(codeCommitment),
 		"round", round,
 		"target_validator_addr", targetValidatorAddr.Hex(),
 	)
 
-	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetValidatorAddr, round, mrenclave)
+	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetValidatorAddr, round, codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack requestRemoteAttestationOnChain call data")
 	}
@@ -192,12 +192,12 @@ func (c *ContractClient) RequestRemoteAttestationOnChain(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, mrenclave32)
+	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, codeCommitment32)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call request remote attestation on chain")
 	}
@@ -218,16 +218,16 @@ func (c *ContractClient) ComplainDeals(
 	round uint32,
 	index uint32,
 	complainIndexes []uint32,
-	mrenclave []byte,
+	codeCommitment []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling complainDeals contract method",
-		"mrenclave", string(mrenclave),
+		"code_commitment", string(codeCommitment),
 		"round", round,
 		"index", index,
 		"complain_indexes", complainIndexes,
 	)
 
-	callData, err := c.dkgContractAbi.Pack("complainDeals", round, index, complainIndexes, mrenclave)
+	callData, err := c.dkgContractAbi.Pack("complainDeals", round, index, complainIndexes, codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack complain deals call data")
 	}
@@ -242,12 +242,12 @@ func (c *ContractClient) ComplainDeals(
 		return nil, errors.Wrap(err, "failed to create transaction options")
 	}
 
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, mrenclave32)
+	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, codeCommitment32)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call complain deals")
 	}
@@ -266,7 +266,7 @@ func (c *ContractClient) ComplainDeals(
 func (c *ContractClient) SubmitPartialDecryption(
 	ctx context.Context,
 	round uint32,
-	mrenclave []byte,
+	codeCommitment []byte,
 	pid uint32,
 	encryptedPartial []byte,
 	ephemeralPubKey []byte,
@@ -274,7 +274,7 @@ func (c *ContractClient) SubmitPartialDecryption(
 	label []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling submitPartialDecryption contract method",
-		"mrenclave", hex.EncodeToString(mrenclave),
+		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"pid", pid,
 		"partial_len", len(encryptedPartial),
@@ -283,30 +283,30 @@ func (c *ContractClient) SubmitPartialDecryption(
 		"label_len", len(label),
 	)
 
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack submitPartialDecryption call data")
 	}
 
 	return c.sendWithRetry(ctx, "SubmitPartialDecryption", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
-		return bound.Transact(auth, "submitPartialDecryption", round, mrenclave32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+		return bound.Transact(auth, "submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 	})
 }
 
 // GetNodeInfo queries node information from the contract.
-func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
-	mrenclave32, err := cast.ToBytes32(mrenclave)
+func (c *ContractClient) GetNodeInfo(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, mrenclave32, round, validatorAddr)
+	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, codeCommitment32, round, validatorAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get node info")
 	}
@@ -314,8 +314,8 @@ func (c *ContractClient) GetNodeInfo(ctx context.Context, mrenclave []byte, roun
 	return &nodeInfo, nil
 }
 
-func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
-	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
+func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, codeCommitment []byte, validator common.Address) (bool, error) {
+	nodeInfo, err := c.GetNodeInfo(ctx, codeCommitment, round, validator)
 	if err != nil {
 		return false, err
 	}
@@ -323,8 +323,8 @@ func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, mrencl
 	return nodeInfo.NodeStatus == NodeStatusRegistered, nil
 }
 
-func (c *ContractClient) IsFinalized(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
-	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
+func (c *ContractClient) IsFinalized(ctx context.Context, round uint32, codeCommitment []byte, validator common.Address) (bool, error) {
+	nodeInfo, err := c.GetNodeInfo(ctx, codeCommitment, round, validator)
 	if err != nil {
 		return false, err
 	}

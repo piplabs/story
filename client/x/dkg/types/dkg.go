@@ -45,7 +45,7 @@ func (p DKGPhase) String() string {
 type DKGSession struct {
 	mu sync.RWMutex
 
-	Mrenclave          []byte    `json:"mrenclave"`
+	CodeCommitment     []byte    `json:"code_commitment"`
 	Round              uint32    `json:"round"`
 	GlobalPubKey       []byte    `json:"global_pub_key"`
 	DKGPubKey          []byte    `json:"dkg_pub_key"`
@@ -78,11 +78,11 @@ type DKGSession struct {
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
-func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string, isResharing bool) *DKGSession {
+func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []string, isResharing bool) *DKGSession {
 	now := time.Now()
 
 	return &DKGSession{
-		Mrenclave:        mrenclave,
+		CodeCommitment:   codeCommitment,
 		Round:            round,
 		GlobalPubKey:     make([]byte, 0),
 		CommPubKey:       make([]byte, 0),
@@ -100,20 +100,20 @@ func NewDKGSession(mrenclave []byte, round uint32, activeValidators []string, is
 	}
 }
 
-// GetMrenclaveString returns the string representation of the mrenclave.
-func (s *DKGSession) GetMrenclaveString() string {
+// GetCodeCommitmentString returns the string representation of the code commitment.
+func (s *DKGSession) GetCodeCommitmentString() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return hex.EncodeToString(s.Mrenclave)
+	return hex.EncodeToString(s.CodeCommitment)
 }
 
-// GetSessionKey returns a unique key (mrenclave_round) for this DKG session.
+// GetSessionKey returns a unique key (codeCommitment_round) for this DKG session.
 func (s *DKGSession) GetSessionKey() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return fmt.Sprintf("%s_%d", s.GetMrenclaveString(), s.Round)
+	return fmt.Sprintf("%s_%d", s.GetCodeCommitmentString(), s.Round)
 }
 
 // UpdatePhase updates the session phase and timestamp.

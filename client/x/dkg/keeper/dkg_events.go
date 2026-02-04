@@ -19,7 +19,7 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginInitialization{
-		Mrenclave:        dkgNetwork.Mrenclave,
+		CodeCommitment:   dkgNetwork.CodeCommitment,
 		Round:            dkgNetwork.Round,
 		ActiveValidators: dkgNetwork.ActiveValSet,
 		StartBlockHeight: uint32(dkgNetwork.StartBlockHeight),
@@ -35,8 +35,8 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginDealing{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
+		CodeCommitment: dkgNetwork.CodeCommitment,
+		Round:          dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_dealing event")
@@ -51,15 +51,15 @@ func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGN
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
-		Deals:     deals,
+		CodeCommitment: dkgNetwork.CodeCommitment,
+		Round:          dkgNetwork.Round,
+		Deals:          deals,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_deals event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessDeals event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave), "num_deals", len(deals))
+	log.Info(ctx, "Emitted BeginProcessDeals event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "num_deals", len(deals))
 
 	return nil
 }
@@ -68,15 +68,15 @@ func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
-		Responses: responses,
+		CodeCommitment: dkgNetwork.CodeCommitment,
+		Round:          dkgNetwork.Round,
+		Responses:      responses,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_responses event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave), "num_responses", len(responses))
+	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "num_responses", len(responses))
 
 	return nil
 }
@@ -85,14 +85,14 @@ func (*Keeper) emitBeginDKGFinalization(ctx context.Context, dkgNetwork *types.D
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginFinalization{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
+		CodeCommitment: dkgNetwork.CodeCommitment,
+		Round:          dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_finalization event")
 	}
 
-	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
+	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment))
 
 	return nil
 }
@@ -101,14 +101,14 @@ func (*Keeper) emitDKGFinalized(ctx context.Context, dkgNetwork *types.DKGNetwor
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventDKGFinalized{
-		Mrenclave: dkgNetwork.Mrenclave,
-		Round:     dkgNetwork.Round,
+		CodeCommitment: dkgNetwork.CodeCommitment,
+		Round:          dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_finalized_event")
 	}
 
-	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round, "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave))
+	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment))
 
 	return nil
 }

@@ -40,14 +40,14 @@ type DistrKeeper interface {
 
 type DKGKeeper interface {
 	// NOTE: completed
-	RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
-	Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error
+	RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
+	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error
 
 	// TODO: complete these functions
-	UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error
-	RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error
-	DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave [32]byte) error
-	DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, mrenclave [32]byte) error
-	InvalidDeal(ctx context.Context, index uint32, round uint32, mrenclave [32]byte) error
-	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error
+	UpgradeScheduled(ctx context.Context, activationHeight uint32, codeCommitment [32]byte) error
+	RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, codeCommitment [32]byte) error
+	DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, codeCommitment [32]byte) error
+	DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, codeCommitment [32]byte) error
+	InvalidDeal(ctx context.Context, index uint32, round uint32, codeCommitment [32]byte) error
+	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error
 }

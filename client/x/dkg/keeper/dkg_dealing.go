@@ -8,7 +8,7 @@ import (
 )
 
 func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork) error {
-	verifiedRegCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Mrenclave, latestRound.Round, types.DKGRegStatusVerified)
+	verifiedRegCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.CodeCommitment, latestRound.Round, types.DKGRegStatusVerified)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch verified DKG registrations")
 	}

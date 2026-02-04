@@ -42,12 +42,12 @@ type Keeper struct {
 
 	Schema            collections.Schema
 	ParamsStore       collections.Item[types.Params]
-	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
-	LatestDKGNetwork  collections.Item[string]                       // stores mrenclave key of latest DKG network
+	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: codeCommitment_round
+	LatestDKGNetwork  collections.Item[string]                       // stores codeCommitment key of latest DKG network
 	LatestActiveRound collections.Item[string]                       // stores latest active round of DKG network
-	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: mrenclave_round_address
-	GlobalPubKeyVotes collections.Map[string, uint32]                // key: mrenclave_round_globalPubKey_hash(publicCoeffs)
-	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: mrenclave
+	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: codeCommitment_round_address
+	GlobalPubKeyVotes collections.Map[string, uint32]                // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
+	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: codeCommitment
 }
 
 // NewKeeper creates a new dkg Keeper instance.

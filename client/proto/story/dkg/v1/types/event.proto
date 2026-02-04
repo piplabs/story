@@ -17,19 +17,19 @@ enum EventType {
 }
 
 message EventBeginInitialization {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
   uint32 start_block_height = 3;
   repeated string active_validators = 4;
 }
 
 message EventBeginDealing {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
 }
 
 message EventBeginProcessDeals {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
   repeated types.Deal deals = 3 [
     (gogoproto.nullable) = false
@@ -37,7 +37,7 @@ message EventBeginProcessDeals {
 }
 
 message EventBeginProcessResponses {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
   repeated types.Response responses = 3 [
     (gogoproto.nullable) = false
@@ -45,11 +45,11 @@ message EventBeginProcessResponses {
 }
 
 message EventBeginFinalization {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
 }
 
 message EventDKGFinalized {
-  bytes mrenclave = 1;
+  bytes code_commitment = 1;
   uint32 round = 2;
 }

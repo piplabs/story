@@ -32,8 +32,8 @@ message Params {
     (gogoproto.moretags) = "yaml:\"min_committee_size\""
   ];
 
-  // latest TEE mrenclave
-  bytes mrenclave = 8 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  // latest TEE code commitment
+  bytes code_commitment = 8 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 }

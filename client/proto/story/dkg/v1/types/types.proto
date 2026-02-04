@@ -25,8 +25,8 @@ enum DKGStage {
 }
 
 message DKGNetwork {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -102,8 +102,8 @@ message DKGRegistration {
 }
 
 message TEEUpgradeInfo {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   int64 activation_height = 2 [
@@ -168,8 +168,8 @@ message DecryptRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes mrenclave = 3 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 3 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   bytes ciphertext = 4 [

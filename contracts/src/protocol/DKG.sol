@@ -12,40 +12,40 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 contract DKG is IDKG {
     uint32 constant UINT32_MAX = type(uint32).max;
 
-    bytes32 public curMrenclave;
+    bytes32 public curCodeCommitment;
 
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
+    mapping(bytes32 codeCommitment => mapping(uint32 round => mapping(address validator => NodeInfo))) public dkgNodeInfos;
+    mapping(bytes32 codeCommitment => mapping(uint32 round => mapping(uint32 index => mapping(address complainant => bool))))
         public dealComplaints;
 
-    mapping(bytes32 mrenclave => mapping(uint32 round => mapping(bytes32 labelHash => mapping(uint32 pid => PartialDecryptSubmission))))
+    mapping(bytes32 codeCommitment => mapping(uint32 round => mapping(bytes32 labelHash => mapping(uint32 pid => PartialDecryptSubmission))))
         public partialDecrypts;
 
-    constructor(bytes32 mrenclave) {
-        curMrenclave = mrenclave;
+    constructor(bytes32 codeCommitment) {
+        curCodeCommitment = codeCommitment;
     }
 
-    modifier onlyValidMrenclave(bytes32 mrenclave) {
+    modifier onlyValidCodeCommitment(bytes32 codeCommitment) {
         require(
-            keccak256(abi.encodePacked(mrenclave)) == keccak256(abi.encodePacked(curMrenclave)),
-            "Invalid mrenclave"
+            keccak256(abi.encodePacked(codeCommitment)) == keccak256(abi.encodePacked(curCodeCommitment)),
+            "Invalid code commitment"
         );
         _;
     }
 
     function initializeDKG(
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes calldata dkgPubKey,
         bytes calldata commPubKey,
         bytes calldata rawQuote
-    ) external onlyValidMrenclave(mrenclave) {
+    ) external onlyValidCodeCommitment(codeCommitment) {
         require(
             _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey),
             "Invalid remote attestation"
         );
 
-        dkgNodeInfos[mrenclave][round][msg.sender] = NodeInfo({
+        dkgNodeInfos[codeCommitment][round][msg.sender] = NodeInfo({
             dkgPubKey: dkgPubKey,
             commPubKey: commPubKey,
             rawQuote: rawQuote,
@@ -53,25 +53,25 @@ contract DKG is IDKG {
             nodeStatus: NodeStatus.Registered
         });
 
-        emit DKGInitialized(msg.sender, mrenclave, round, dkgPubKey, commPubKey, rawQuote);
+        emit DKGInitialized(msg.sender, codeCommitment, round, dkgPubKey, commPubKey, rawQuote);
     }
 
     function finalizeDKG(
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
         bytes calldata signature
-    ) external onlyValidMrenclave(mrenclave) {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
+    ) external onlyValidCodeCommitment(codeCommitment) {
+        NodeInfo storage node = dkgNodeInfos[codeCommitment][round][msg.sender];
 
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
             _verifyFinalizationSignature(
                 node.commPubKey,
                 round,
-                mrenclave,
+                codeCommitment,
                 participantsRoot,
                 globalPubKey,
                 publicCoeffs,
@@ -82,15 +82,15 @@ contract DKG is IDKG {
 
         node.nodeStatus = NodeStatus.Finalized;
 
-        emit DKGFinalized(msg.sender, round, mrenclave, participantsRoot, globalPubKey, publicCoeffs, signature);
+        emit DKGFinalized(msg.sender, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, signature);
     }
 
     function requestRemoteAttestationOnChain(
         address targetValidatorAddr,
         uint32 round,
-        bytes32 mrenclave
-    ) external onlyValidMrenclave(mrenclave) {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][targetValidatorAddr];
+        bytes32 codeCommitment
+    ) external onlyValidCodeCommitment(codeCommitment) {
+        NodeInfo storage node = dkgNodeInfos[codeCommitment][round][targetValidatorAddr];
         require(node.dkgPubKey.length != 0, "Node does not exist");
         require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
 
@@ -107,50 +107,50 @@ contract DKG is IDKG {
             node.chalStatus = ChallengeStatus.Invalidated;
         }
 
-        emit RemoteAttestationProcessedOnChain(targetValidatorAddr, node.chalStatus, round, mrenclave);
+        emit RemoteAttestationProcessedOnChain(targetValidatorAddr, node.chalStatus, round, codeCommitment);
     }
 
     function complainDeals(
         uint32 round,
         uint32 index,
         uint32[] memory complainIndexes,
-        bytes32 mrenclave
-    ) external onlyValidMrenclave(mrenclave) {
-        NodeInfo storage complainant = dkgNodeInfos[mrenclave][round][msg.sender];
+        bytes32 codeCommitment
+    ) external onlyValidCodeCommitment(codeCommitment) {
+        NodeInfo storage complainant = dkgNodeInfos[codeCommitment][round][msg.sender];
 
         for (uint256 i = 0; i < complainIndexes.length; i++) {
-            dealComplaints[mrenclave][round][complainIndexes[i]][msg.sender] = true;
+            dealComplaints[codeCommitment][round][complainIndexes[i]][msg.sender] = true;
         }
 
-        emit DealComplaintsSubmitted(index, complainIndexes, round, mrenclave);
+        emit DealComplaintsSubmitted(index, complainIndexes, round, codeCommitment);
     }
 
     /// @dev Emit a TDH2 threshold decryption request so validators can fetch ciphertext+label.
     /// TODO: some fee should flow into the contract to prevent abuse and incentivize DKG validators.
     function requestThresholdDecryption(
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes calldata requesterPubKey,
         bytes calldata ciphertext,
         bytes calldata label
-    ) external onlyValidMrenclave(mrenclave) {
+    ) external onlyValidCodeCommitment(codeCommitment) {
         require(round > 0, "Invalid round");
         require(ciphertext.length > 0, "Empty ciphertext");
         require(requesterPubKey.length == 65, "Invalid requester pubkey"); // secp256k1 uncompressed
-        emit ThresholdDecryptRequested(msg.sender, round, mrenclave, requesterPubKey, ciphertext, label);
+        emit ThresholdDecryptRequested(msg.sender, round, codeCommitment, requesterPubKey, ciphertext, label);
     }
 
-    /// @dev Submit a TDH2 partial decryption for a given round/mrenclave/label.
+    /// @dev Submit a TDH2 partial decryption for a given round/codeCommitment/label.
     /// TODO: only allow certain contracts to call this function so only IP holder can request decryption.
     function submitPartialDecryption(
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         uint32 pid,
         bytes calldata encryptedPartial,
         bytes calldata ephemeralPubKey,
         bytes calldata pubShare,
         bytes calldata label
-    ) external onlyValidMrenclave(mrenclave) {
+    ) external onlyValidCodeCommitment(codeCommitment) {
         require(round > 0, "Invalid round");
         require(pid > 0, "Invalid pid");
         require(encryptedPartial.length > 0, "Empty partial");
@@ -159,10 +159,10 @@ contract DKG is IDKG {
         require(ephemeralPubKey.length == 65, "Invalid ephemeral pubkey"); // secp256k1 uncompressed
 
         bytes32 labelHash = keccak256(label);
-        PartialDecryptSubmission storage existing = partialDecrypts[mrenclave][round][labelHash][pid];
+        PartialDecryptSubmission storage existing = partialDecrypts[codeCommitment][round][labelHash][pid];
         require(!existing.exists, "Partial already submitted");
 
-        partialDecrypts[mrenclave][round][labelHash][pid] = PartialDecryptSubmission({
+        partialDecrypts[codeCommitment][round][labelHash][pid] = PartialDecryptSubmission({
             validator: msg.sender,
             partialDecryption: encryptedPartial,
             pubShare: pubShare,
@@ -173,7 +173,7 @@ contract DKG is IDKG {
         emit PartialDecryptionSubmitted(
             msg.sender,
             round,
-            mrenclave,
+            codeCommitment,
             pid,
             encryptedPartial,
             ephemeralPubKey,
@@ -186,8 +186,8 @@ contract DKG is IDKG {
     //                      Getter Functions                    //
     //////////////////////////////////////////////////////////////
 
-    function getNodeInfo(bytes32 mrenclave, uint32 round, address validator) external view returns (NodeInfo memory) {
-        return dkgNodeInfos[mrenclave][round][validator];
+    function getNodeInfo(bytes32 codeCommitment, uint32 round, address validator) external view returns (NodeInfo memory) {
+        return dkgNodeInfos[codeCommitment][round][validator];
     }
 
     //////////////////////////////////////////////////////////////
@@ -197,13 +197,13 @@ contract DKG is IDKG {
     function _verifyFinalizationSignature(
         bytes memory commPubKey,
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes memory encoded = abi.encodePacked(mrenclave, round, participantsRoot, globalPubKey);
+        bytes memory encoded = abi.encodePacked(codeCommitment, round, participantsRoot, globalPubKey);
 
         for (uint256 i = 0; i < publicCoeffs.length; i++) {
             encoded = bytes.concat(encoded, publicCoeffs[i]);

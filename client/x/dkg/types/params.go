@@ -14,8 +14,8 @@ const (
 	DefaultDkgComplaintPeriod    uint32 = 2 * 60 * 60       // 2 hours
 
 	// other parameters.
-	DefaultMinCommitteeSize uint32 = 3
-	ExpectedMrenclaveSize   int    = 32 // 256-bit digest (32 bytes)
+	DefaultMinCommitteeSize    uint32 = 3
+	ExpectedCodeCommitmentSize int    = 32 // 256-bit digest (32 bytes)
 )
 
 // NewParams creates a new Params instance.
@@ -46,7 +46,7 @@ func DefaultParams() Params {
 		DefaultDkgActivePeriod,
 		DefaultDkgComplaintPeriod,
 		DefaultMinCommitteeSize,
-		// no default for mrenclave
+		// no default for code commitment
 	)
 }
 
@@ -75,7 +75,7 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	return ValidateMrenclave(p.Mrenclave)
+	return ValidateCodeCommitment(p.CodeCommitment)
 }
 
 func ValidateRegistrationPeriod(registrationPeriod uint32) error {
@@ -144,11 +144,11 @@ func ValidateMinCommitteeSize(minCommitteeSize uint32) error {
 	return nil
 }
 
-func ValidateMrenclave(mrenclave []byte) error {
-	if len(mrenclave) != ExpectedMrenclaveSize {
-		return errors.New("mrenclave must be a 256-bit digest (32 bytes)",
-			"expected_size", ExpectedMrenclaveSize,
-			"actual_size", len(mrenclave))
+func ValidateCodeCommitment(codeCommitment []byte) error {
+	if len(codeCommitment) != ExpectedCodeCommitmentSize {
+		return errors.New("codeCommitment must be a 256-bit digest (32 bytes)",
+			"expected_size", ExpectedCodeCommitmentSize,
+			"actual_size", len(codeCommitment))
 	}
 
 	return nil

@@ -24,7 +24,7 @@ contract IDKG {
 
     event DKGInitialized(
         address indexed msgSender,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         uint32 round,
         bytes dkgPubKey,
         bytes commPubKey,
@@ -34,35 +34,35 @@ contract IDKG {
     event DKGFinalized(
         address indexed msgSender,
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes32 participantsRoot,
         bytes globalPubKey,
         bytes[] publicCoeffs,
         bytes signature
     );
 
-    event UpgradeScheduled(uint32 activationHeight, bytes32 mrenclave);
+    event UpgradeScheduled(uint32 activationHeight, bytes32 codeCommitment);
 
     event RemoteAttestationProcessedOnChain(
         address validator,
         ChallengeStatus chalStatus,
         uint32 round,
-        bytes32 mrenclave
+        bytes32 codeCommitment
     );
 
     // TODO: remove index and use validator address instead
-    event DealComplaintsSubmitted(uint32 index, uint32[] complainIndexes, uint32 round, bytes32 mrenclave);
+    event DealComplaintsSubmitted(uint32 index, uint32[] complainIndexes, uint32 round, bytes32 codeCommitment);
 
-    event DealVerified(uint32 index, uint32 recipientIndex, uint32 round, bytes32 mrenclave);
+    event DealVerified(uint32 index, uint32 recipientIndex, uint32 round, bytes32 codeCommitment);
 
-    event InvalidDeal(uint32 index, uint32 round, bytes32 mrenclave);
+    event InvalidDeal(uint32 index, uint32 round, bytes32 codeCommitment);
 
     // Emitted when a client requests TDH2 threshold decryption for a ciphertext/label pair.
     // @param requesterPubKey: secp256k1 uncompressed requester pubkey (65 bytes)
     event ThresholdDecryptRequested(
         address indexed requester,
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         bytes requesterPubKey,
         bytes ciphertext,
         bytes label
@@ -73,7 +73,7 @@ contract IDKG {
     event PartialDecryptionSubmitted(
         address indexed validator,
         uint32 round,
-        bytes32 mrenclave,
+        bytes32 codeCommitment,
         uint32 pid,
         bytes encryptedPartial,
         bytes ephemeralPubKey,
@@ -81,7 +81,7 @@ contract IDKG {
         bytes label
     );
 
-    // TDH2 partial decrypt submissions keyed by (mrenclave, round, labelHash, pid).
+    // TDH2 partial decrypt submissions keyed by (codeCommitment, round, labelHash, pid).
     struct PartialDecryptSubmission {
         address validator;
         bytes partialDecryption;

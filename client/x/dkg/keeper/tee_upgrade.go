@@ -10,9 +10,9 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// SetTEEUpgradeInfo stores a TEE upgrade info in the store using mrenclave as the key.
+// SetTEEUpgradeInfo stores a TEE upgrade info in the store using code commitment as the key.
 func (k *Keeper) SetTEEUpgradeInfo(ctx context.Context, teeUpgradeInfo *types.TEEUpgradeInfo) error {
-	key := string(teeUpgradeInfo.Mrenclave)
+	key := string(teeUpgradeInfo.CodeCommitment)
 	if err := k.TEEUpgradeInfos.Set(ctx, key, *teeUpgradeInfo); err != nil {
 		return errors.Wrap(err, "failed to set tee upgrade info")
 	}
@@ -31,9 +31,9 @@ func (k *Keeper) SetTEEUpgradeInfos(ctx context.Context, teeUpgradeInfos []types
 	return nil
 }
 
-// GetTEEUpgradeInfo retrieves a TEE upgrade info by mrenclave.
-func (k *Keeper) GetTEEUpgradeInfo(ctx context.Context, mrenclave []byte) (*types.TEEUpgradeInfo, error) {
-	key := string(mrenclave)
+// GetTEEUpgradeInfo retrieves a TEE upgrade info by codeCommitment.
+func (k *Keeper) GetTEEUpgradeInfo(ctx context.Context, codeCommitment []byte) (*types.TEEUpgradeInfo, error) {
+	key := string(codeCommitment)
 	teeInfo, err := k.TEEUpgradeInfos.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -62,12 +62,12 @@ func (k *Keeper) GetAllTEEUpgradeInfos(ctx context.Context) ([]types.TEEUpgradeI
 	return teeInfos, nil
 }
 
-// GetTEEUpgradeInfoByMrenclave retrieves a TEE upgrade info with a specific mrenclave.
-func (k *Keeper) GetTEEUpgradeInfoByMrenclave(ctx context.Context, mrenclave []byte) (types.TEEUpgradeInfo, error) {
+// GetTEEUpgradeInfoByCodeCommitment retrieves a TEE upgrade info with a specific code commitment.
+func (k *Keeper) GetTEEUpgradeInfoByCodeCommitment(ctx context.Context, codeCommitment []byte) (types.TEEUpgradeInfo, error) {
 	var upgradeInfo types.TEEUpgradeInfo
 
 	err := k.TEEUpgradeInfos.Walk(ctx, nil, func(_ string, info types.TEEUpgradeInfo) (bool, error) {
-		if slices.Equal(info.Mrenclave, mrenclave) {
+		if slices.Equal(info.CodeCommitment, codeCommitment) {
 			upgradeInfo = info
 			return true, nil // stop iteration
 		}
@@ -76,15 +76,15 @@ func (k *Keeper) GetTEEUpgradeInfoByMrenclave(ctx context.Context, mrenclave []b
 	})
 
 	if err != nil {
-		return upgradeInfo, errors.Wrap(err, "failed to iterate tee upgrade infos by mrenclave")
+		return upgradeInfo, errors.Wrap(err, "failed to iterate tee upgrade infos by code commitment")
 	}
 
 	return upgradeInfo, nil
 }
 
 // DeleteTEEUpgradeInfo removes a TEE upgrade info from the store.
-func (k *Keeper) DeleteTEEUpgradeInfo(ctx context.Context, mrenclave []byte) error {
-	key := string(mrenclave)
+func (k *Keeper) DeleteTEEUpgradeInfo(ctx context.Context, codeCommitment []byte) error {
+	key := string(codeCommitment)
 	if err := k.TEEUpgradeInfos.Remove(ctx, key); err != nil {
 		return errors.Wrap(err, "failed to delete tee upgrade info")
 	}

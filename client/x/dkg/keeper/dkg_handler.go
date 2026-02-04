@@ -18,7 +18,7 @@ import (
 
 // RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.Address, mrenclave [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -28,8 +28,8 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
 	}
 
-	if !bytes.Equal(latest.Mrenclave, mrenclave[:]) {
-		return errors.New(fmt.Sprintf("mrenclave mismatch: expected %s, got %s)", hex.EncodeToString(latest.Mrenclave), hex.EncodeToString(mrenclave[:])))
+	if !bytes.Equal(latest.CodeCommitment, codeCommitment[:]) {
+		return errors.New(fmt.Sprintf("codeCommitment mismatch: expected %s, got %s)", hex.EncodeToString(latest.CodeCommitment), hex.EncodeToString(codeCommitment[:])))
 	}
 
 	if latest.Stage != types.DKGStageRegistration {
@@ -40,7 +40,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		return errors.New("msg sender is not in the active validator set")
 	}
 
-	index, err := k.getNextDKGRegistrationIndex(ctx, mrenclave, round)
+	index, err := k.getNextDKGRegistrationIndex(ctx, codeCommitment, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get next dkg registration index")
 	}
@@ -55,9 +55,9 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		Status:        types.DKGRegStatusVerified,
 	}
 
-	if err := k.setDKGRegistration(ctx, mrenclave, validator, dkgReg); err != nil {
+	if err := k.setDKGRegistration(ctx, codeCommitment, validator, dkgReg); err != nil {
 		log.Error(ctx, "Failed to store DKG registration", err,
-			"mrenclave", hex.EncodeToString(mrenclave[:]),
+			"code_commitment", hex.EncodeToString(codeCommitment[:]),
 			"round", round,
 			"validator_address", validator.Hex(),
 			"next_index", index,
@@ -67,7 +67,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 	}
 
 	log.Info(ctx, "DKG registration stored successfully",
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 		"round", round,
 		"validator_address", validator.Hex(),
 		"index", index,
@@ -81,7 +81,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 }
 
 // Finalized handles DKG finalization event.
-func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -91,11 +91,11 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
 	}
 
-	if !bytes.Equal(latest.Mrenclave, mrenclave[:]) {
-		return errors.New(fmt.Sprintf("mrenclave mismatch: expected %s, got %s)", hex.EncodeToString(latest.Mrenclave), hex.EncodeToString(mrenclave[:])))
+	if !bytes.Equal(latest.CodeCommitment, codeCommitment[:]) {
+		return errors.New(fmt.Sprintf("codeCommitment mismatch: expected %s, got %s)", hex.EncodeToString(latest.CodeCommitment), hex.EncodeToString(codeCommitment[:])))
 	}
 
-	if err := k.validateParticipantsRoot(ctx, round, mrenclave, participantsRoot); err != nil {
+	if err := k.validateParticipantsRoot(ctx, round, codeCommitment, participantsRoot); err != nil {
 		return errors.Wrap(err, "failed to validate participants root")
 	}
 
@@ -103,7 +103,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New("round is not in network set stage")
 	}
 
-	voteCount, err := k.AddGlobalPubKeyVote(ctx, mrenclave, round, globalPubKey, publicCoeffs)
+	voteCount, err := k.AddGlobalPubKeyVote(ctx, codeCommitment, round, globalPubKey, publicCoeffs)
 	if err != nil {
 		return errors.Wrap(err, "failed to add vote for global public key")
 	}
@@ -116,12 +116,12 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		}
 	}
 
-	if err := k.updateDKGRegistrationStatus(ctx, mrenclave, round, msgSender, types.DKGRegStatusFinalized); err != nil {
+	if err := k.updateDKGRegistrationStatus(ctx, codeCommitment, round, msgSender, types.DKGRegStatusFinalized); err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}
 
 	log.Info(ctx, "DKG successfully finalized",
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 		"round", round,
 		"validator_address", msgSender.Hex(),
 		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusFinalized)],
@@ -132,8 +132,8 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 }
 
 // validateParticipantsRoot validates the root hash of the participants
-func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, mrenclave, participantsRoot [32]byte) error {
-	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, mrenclave, round, types.DKGRegStatusVerified)
+func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, codeCommitment, participantsRoot [32]byte) error {
+	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment, round, types.DKGRegStatusVerified)
 	if err != nil {
 		return errors.Wrap(err, "failed to get verified DKG registration")
 	}
@@ -172,18 +172,18 @@ func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, mre
 }
 
 // UpgradeScheduled handles upgrade scheduled event.
-func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error {
+func (*Keeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, codeCommitment [32]byte) error {
 	log.Info(ctx, "DKG UpgradeScheduled event received",
 		"activation_height", activationHeight,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual upgrade scheduling logic
 	return nil
 }
 
 // RemoteAttestationProcessedOnChain handles remote attestation processed event.
-func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error {
-	index, err := k.getDKGRegistrationIndex(ctx, mrenclave, round, strings.ToLower(validator.Hex()))
+func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, codeCommitment [32]byte) error {
+	index, err := k.getDKGRegistrationIndex(ctx, codeCommitment, round, strings.ToLower(validator.Hex()))
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg registration index")
 	}
@@ -193,42 +193,42 @@ func (k *Keeper) RemoteAttestationProcessedOnChain(ctx context.Context, validato
 		"validator", strings.ToLower(validator.Hex()),
 		"challenge_status", chalStatus,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual remote attestation processing logic
 	return nil
 }
 
 // DealComplaintsSubmitted handles deal complaints submission event.
-func (*Keeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave [32]byte) error {
+func (*Keeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, codeCommitment [32]byte) error {
 	log.Info(ctx, "DKG DealComplaintsSubmitted event received",
 		"index", index,
 		"complain_indexes", complainIndexes,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual deal complaints handling logic
 	return nil
 }
 
 // DealVerified handles deal verification event.
-func (*Keeper) DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, mrenclave [32]byte) error {
+func (*Keeper) DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, codeCommitment [32]byte) error {
 	log.Info(ctx, "DKG DealVerified event received",
 		"index", index,
 		"recipient_index", recipientIndex,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual deal verification logic
 	return nil
 }
 
 // InvalidDeal handles invalid deal event.
-func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mrenclave [32]byte) error {
+func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, codeCommitment [32]byte) error {
 	log.Info(ctx, "DKG InvalidDeal event received",
 		"index", index,
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual invalid deal handling logic
 	return nil
@@ -236,14 +236,14 @@ func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, mren
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
-func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
 	if !k.isDKGSvcEnabled {
 		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
 
 		return nil
 	}
 
-	dkgNetwork, err := k.getDKGNetwork(ctx, mrenclave, round)
+	dkgNetwork, err := k.getDKGNetwork(ctx, codeCommitment, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg network for decrypt request")
 	}
@@ -269,13 +269,13 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 	log.Info(ctx, "DKG ThresholdDecryptRequested event received",
 		"requester", requester.Hex(),
 		"round", round,
-		"mrenclave", hex.EncodeToString(mrenclave[:]),
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 		"requester_pubkey_len", len(requesterPubKey),
 		"ciphertext_len", len(ciphertext),
 		"label_len", len(label),
 	)
 
-	session, err := k.stateManager.GetSession(mrenclave[:], round)
+	session, err := k.stateManager.GetSession(codeCommitment[:], round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get DKG session for decrypt request")
 	}
@@ -284,7 +284,7 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 	session.AddDecryptRequest(types.DecryptRequest{
 		Requester:       requester.Hex(),
 		Round:           round,
-		Mrenclave:       mrenclave[:],
+		CodeCommitment:  codeCommitment[:],
 		Ciphertext:      ciphertext,
 		Label:           label,
 		RequesterPubKey: requesterPubKey,
