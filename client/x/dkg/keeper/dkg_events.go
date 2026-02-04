@@ -22,7 +22,7 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 		Mrenclave:        dkgNetwork.Mrenclave,
 		Round:            dkgNetwork.Round,
 		ActiveValidators: dkgNetwork.ActiveValSet,
-		StartBlock:       uint32(dkgNetwork.StartBlock),
+		StartBlockHeight: uint32(dkgNetwork.StartBlockHeight),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_initialization event")

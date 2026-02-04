@@ -33,36 +33,40 @@ message DKGNetwork {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  int64 start_block = 3 [
-    (gogoproto.moretags) = "yaml:\"start_block\""
+  int64 start_block_height = 3 [
+    (gogoproto.moretags) = "yaml:\"start_block_height\""
+  ];
+
+  bytes start_block_hash = 4 [
+    (gogoproto.moretags) = "yaml:\"start_block_hash\""
   ];
 
   // list of active validators' evm addresses
-  repeated string active_val_set = 4 [
+  repeated string active_val_set = 5 [
     (gogoproto.moretags) = "yaml:\"active_val_set\""
   ];
 
-  uint32 total = 5 [
+  uint32 total = 6 [
     (gogoproto.moretags) = "yaml:\"total\""
   ];
 
-  uint32 threshold = 6 [
+  uint32 threshold = 7 [
     (gogoproto.moretags) = "yaml:\"threshold\""
   ];
 
-  DKGStage stage = 7 [
+  DKGStage stage = 8 [
     (gogoproto.moretags) = "yaml:\"stage\""
   ];
 
-  bool is_resharing = 8 [
+  bool is_resharing = 9 [
     (gogoproto.moretags) = "yaml:\"is_resharing\""
   ];
 
-  bytes global_public_key = 9 [
+  bytes global_public_key = 10 [
     (gogoproto.moretags) = "yaml:\"global_public_key\""
   ];
 
-  repeated bytes public_coeffs = 10 [
+  repeated bytes public_coeffs = 11 [
     (gogoproto.moretags) = "yaml:\"public_coeffs\""
   ];
 }

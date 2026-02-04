@@ -19,7 +19,7 @@ enum EventType {
 message EventBeginInitialization {
   bytes mrenclave = 1;
   uint32 round = 2;
-  uint32 start_block = 3;
+  uint32 start_block_height = 3;
   repeated string active_validators = 4;
 }
 
