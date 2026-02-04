@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"context"
+	"cosmossdk.io/collections"
 	"encoding/hex"
 	"fmt"
-
-	"cosmossdk.io/collections"
+	"slices"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -174,7 +174,42 @@ func (k *Keeper) getNextRoundNumber(ctx context.Context) uint32 {
 	return latestNetwork.Round + 1
 }
 
-//nolint:unused // ignore unused error
+func (k *Keeper) setLatestActiveRound(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.Mrenclave), dkgNetwork.Round)
+	if err := k.LatestActiveRound.Set(ctx, key); err != nil {
+		return errors.Wrap(err, "failed to update latest active round of DKG network pointer")
+	}
+
+	return nil
+}
+
+func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwork, error) {
+	key, err := k.LatestActiveRound.Get(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get latest active round of DKG network key")
+	}
+
+	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, errors.Wrap(err, "no active round of dkg network")
+		}
+
+		return nil, errors.Wrap(err, "failed to get latest active round of dkg network")
+	}
+
+	return &dkgNetwork, nil
+}
+
+func (k *Keeper) isInPrevActiveValSet(ctx context.Context) (bool, error) {
+	latestActive, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return slices.Contains(latestActive.ActiveValSet, k.validatorEVMAddr), nil
+}
+
 func (*Keeper) calculateThreshold(total uint32) uint32 {
 	threshold := (total * 2) / 3
 	if threshold*3 < total*2 {

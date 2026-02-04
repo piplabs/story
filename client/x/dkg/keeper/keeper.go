@@ -5,8 +5,8 @@ import (
 	storetypes "cosmossdk.io/core/store"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/piplabs/story/client/config"
 	"github.com/piplabs/story/lib/errors"
+	"strings"
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -38,14 +38,15 @@ type Keeper struct {
 	stateManager   *StateManager
 
 	isDKGSvcEnabled  bool
-	validatorAddress common.Address
+	validatorEVMAddr string // EVM address of the validator
 
 	Schema            collections.Schema
 	ParamsStore       collections.Item[types.Params]
 	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: mrenclave_round
 	LatestDKGNetwork  collections.Item[string]                       // stores mrenclave key of latest DKG network
+	LatestActiveRound collections.Item[string]                       // stores latest active round of DKG network
 	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: mrenclave_round_address
-	GlobalPubKeyVotes collections.Map[string, uint32]                // key: mrenclave_round_globalPubKey
+	GlobalPubKeyVotes collections.Map[string, uint32]                // key: mrenclave_round_globalPubKey_hash(publicCoeffs)
 	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: mrenclave
 }
 
@@ -79,6 +80,7 @@ func NewKeeper(
 		ParamsStore:       collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:       collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:  collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
+		LatestActiveRound: collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
 		DKGRegistrations:  collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
 		GlobalPubKeyVotes: collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
 		TEEUpgradeInfos:   collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
@@ -97,11 +99,11 @@ func (k *Keeper) RegisterProposalService(server grpc.Server) {
 	types.RegisterMsgServiceServer(server, NewProposalServer(k))
 }
 
-func (k *Keeper) InitDKGService(cfg *config.Config, addr common.Address) error {
+func (k *Keeper) InitDKGService(stateDir string, addr common.Address) error {
 	k.setIsDKGSvcEnabled()
 	k.setValidatorAddress(addr)
 
-	stateManager, err := NewStateManager(cfg.DKGStateDir())
+	stateManager, err := NewStateManager(stateDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create state manager")
 	}
@@ -116,5 +118,5 @@ func (k *Keeper) setIsDKGSvcEnabled() {
 }
 
 func (k *Keeper) setValidatorAddress(addr common.Address) {
-	k.validatorAddress = addr
+	k.validatorEVMAddr = strings.ToLower(addr.Hex())
 }

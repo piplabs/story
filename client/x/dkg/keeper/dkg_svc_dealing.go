@@ -2,9 +2,12 @@ package keeper
 
 import (
 	"context"
+	"cosmossdk.io/collections"
 	"encoding/hex"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"slices"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -23,6 +26,19 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	if dkgNetwork.Stage != types.DKGStageDealing {
 		log.Info(ctx, "DKG Dealing is skipped because the current network stage is not dealing stage")
+
+		return
+	}
+
+	shouldDeal, err := k.shouldDeal(ctx, dkgNetwork)
+	if err != nil {
+		log.Error(ctx, "Failed to check whether the validator should deal or not", err)
+
+		return
+	}
+
+	if !shouldDeal {
+		log.Debug(ctx, "Skip dealing")
 
 		return
 	}
@@ -51,8 +67,9 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		)
 
 		req := &types.GenerateDealsRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			IsResharing: session.IsResharing,
 		}
 		resp, err = k.teeClient.GenerateDeals(ctx, req)
 		if err != nil {
@@ -97,6 +114,12 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		"num_deals", len(deals),
 	)
 
+	if !slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr) {
+		log.Info(ctx, "Skip processing deals as the validator is not in current round set")
+
+		return
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
@@ -121,9 +144,10 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		)
 
 		req := &types.ProcessDealRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
-			Deals:     []types.Deal{},
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			Deals:       []types.Deal{},
+			IsResharing: session.IsResharing,
 		}
 
 		for _, deal := range deals {
@@ -168,6 +192,19 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		"num_responses", len(responses),
 	)
 
+	shouldProcess, err := k.shouldProcessResponses(ctx, dkgNetwork)
+	if err != nil {
+		log.Error(ctx, "Failed to check whether the validator should process responses", err)
+
+		return
+	}
+
+	if !shouldProcess {
+		log.Info(ctx, "Skip processing of responses")
+
+		return
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
@@ -191,9 +228,10 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		)
 
 		req := &types.ProcessResponsesRequest{
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
-			Responses: []types.Response{},
+			Mrenclave:   session.Mrenclave,
+			Round:       session.Round,
+			Responses:   []types.Response{},
+			IsResharing: session.IsResharing,
 		}
 
 		for _, resp := range responses {
@@ -225,4 +263,38 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	)
 
 	return
+}
+
+func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
+	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
+
+	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			// First DKG round: only current set of validators deal
+			return inCurSet, nil
+		}
+
+		return false, err
+	}
+
+	// Resharing round: only current set of validators deal
+	return inPrevSet, nil
+}
+
+func (k *Keeper) shouldProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
+	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
+
+	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			// First DKG round: only current set of validators process deals or responses
+			return inCurSet, nil
+		}
+
+		return false, err
+	}
+
+	// Resharing round: both previous and current set of validators process deals or responses
+	return inCurSet || inPrevSet, nil
 }

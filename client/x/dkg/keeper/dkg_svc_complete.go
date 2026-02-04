@@ -56,7 +56,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	log.Info(ctx, "DKG process completed successfully",
 		"mrenclave", session.GetMrenclaveString(),
 		"round", session.Round,
-		"validator", k.validatorAddress.Hex(),
+		"validator_evm_address", k.validatorEVMAddr,
 	)
 
 	return

@@ -28,10 +28,9 @@ const (
 	maxRetries = 3
 
 	// Node status in DKG contract
-	NodeStatusUnregistered   uint8 = 0
-	NodeStatusRegistered     uint8 = 1
-	NodeStatusNetworkSetDone uint8 = 2
-	NodeStatusFinalized      uint8 = 3
+	NodeStatusUnregistered uint8 = 0
+	NodeStatusRegistered   uint8 = 1
+	NodeStatusFinalized    uint8 = 2
 )
 
 // ContractClient wraps the DKG contract interaction.
@@ -133,7 +132,9 @@ func (c *ContractClient) FinalizeDKG(
 	ctx context.Context,
 	round uint32,
 	mrenclave []byte,
+	participantsRoot []byte,
 	globalPubKey []byte,
+	publicCoeffs [][]byte,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
@@ -145,7 +146,12 @@ func (c *ContractClient) FinalizeDKG(
 
 	mrenclave32, err := cast.ToBytes32(mrenclave)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
+		return nil, errors.Wrap(err, "failed to convert mrenclave to bytes32")
+	}
+
+	participants32, err := cast.ToBytes32(participantsRoot)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert participants root to bytes32")
 	}
 
 	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, mrenclave32, globalPubKey, signature)
@@ -154,39 +160,7 @@ func (c *ContractClient) FinalizeDKG(
 	}
 
 	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, globalPubKey, signature)
-	})
-}
-
-// SetNetwork calls the setNetwork contract method.
-func (c *ContractClient) SetNetwork(
-	ctx context.Context,
-	round uint32,
-	total uint32,
-	threshold uint32,
-	mrenclave []byte,
-	signature []byte,
-) (*types.Receipt, error) {
-	log.Info(ctx, "Calling setNetwork contract method",
-		"mrenclave", hex.EncodeToString(mrenclave),
-		"round", round,
-		"total", total,
-		"threshold", threshold,
-		"signature_len", len(signature),
-	)
-
-	mrenclave32, err := cast.ToBytes32(mrenclave)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	callData, err := c.dkgContractAbi.Pack("setNetwork", round, total, threshold, mrenclave32, signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack setNetwork call data")
-	}
-
-	return c.sendWithRetry(ctx, "SetNetwork", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.SetNetwork(auth, round, total, threshold, mrenclave32, signature)
+		return c.dkgContract.FinalizeDKG(auth, round, mrenclave32, participants32, globalPubKey, publicCoeffs, signature)
 	})
 }
 
@@ -347,15 +321,6 @@ func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, mrencl
 	}
 
 	return nodeInfo.NodeStatus == NodeStatusRegistered, nil
-}
-
-func (c *ContractClient) IsNetworkSet(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {
-	nodeInfo, err := c.GetNodeInfo(ctx, mrenclave, round, validator)
-	if err != nil {
-		return false, err
-	}
-
-	return nodeInfo.NodeStatus == NodeStatusNetworkSetDone, nil
 }
 
 func (c *ContractClient) IsFinalized(ctx context.Context, round uint32, mrenclave []byte, validator common.Address) (bool, error) {

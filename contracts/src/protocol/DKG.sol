@@ -56,42 +56,33 @@ contract DKG is IDKG {
         emit DKGInitialized(msg.sender, mrenclave, round, dkgPubKey, commPubKey, rawQuote);
     }
 
-    function setNetwork(
-        uint32 round,
-        uint32 total,
-        uint32 threshold,
-        bytes32 mrenclave,
-        bytes calldata signature
-    ) external onlyValidMrenclave(mrenclave) {
-        NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
-
-        require(
-            _verifySetNetworkSignature(node.commPubKey, round, total, threshold, mrenclave, signature),
-            "Invalid set network signature"
-        );
-
-        node.nodeStatus = NodeStatus.NetworkSetDone;
-
-        emit DKGNetworkSet(msg.sender, round, total, threshold, mrenclave, signature);
-    }
-
     function finalizeDKG(
         uint32 round,
         bytes32 mrenclave,
+        bytes32 participantsRoot,
         bytes calldata globalPubKey,
+        bytes[] calldata publicCoeffs,
         bytes calldata signature
     ) external onlyValidMrenclave(mrenclave) {
         NodeInfo storage node = dkgNodeInfos[mrenclave][round][msg.sender];
 
         require(node.chalStatus != ChallengeStatus.Invalidated, "Node was invalidated");
         require(
-            _verifyFinalizationSignature(node.commPubKey, round, mrenclave, globalPubKey, signature),
+            _verifyFinalizationSignature(
+                node.commPubKey,
+                round,
+                mrenclave,
+                participantsRoot,
+                globalPubKey,
+                publicCoeffs,
+                signature
+            ),
             "Invalid finalization signature"
         );
 
         node.nodeStatus = NodeStatus.Finalized;
 
-        emit DKGFinalized(msg.sender, round, mrenclave, globalPubKey, signature);
+        emit DKGFinalized(msg.sender, round, mrenclave, participantsRoot, globalPubKey, publicCoeffs, signature);
     }
 
     function requestRemoteAttestationOnChain(
@@ -207,23 +198,18 @@ contract DKG is IDKG {
         bytes memory commPubKey,
         uint32 round,
         bytes32 mrenclave,
+        bytes32 participantsRoot,
         bytes calldata globalPubKey,
+        bytes[] calldata publicCoeffs,
         bytes calldata signature
     ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(mrenclave, round, globalPubKey));
-        address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
-        return signer == address(uint160(uint256(keccak256(commPubKey))));
-    }
+        bytes memory encoded = abi.encodePacked(mrenclave, round, participantsRoot, globalPubKey);
 
-    function _verifySetNetworkSignature(
-        bytes memory commPubKey,
-        uint32 round,
-        uint32 total,
-        uint32 threshold,
-        bytes32 mrenclave,
-        bytes calldata signature
-    ) internal pure returns (bool) {
-        bytes32 msgHash = keccak256(abi.encodePacked(mrenclave, round, total, threshold));
+        for (uint256 i = 0; i < publicCoeffs.length; i++) {
+            encoded = bytes.concat(encoded, publicCoeffs[i]);
+        }
+
+        bytes32 msgHash = keccak256(encoded);
         address signer = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(msgHash), signature);
         return signer == address(uint160(uint256(keccak256(commPubKey))));
     }

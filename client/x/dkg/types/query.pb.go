@@ -111,8 +111,8 @@ func (m *QueryParamsResponse) GetParams() Params {
 }
 
 type QueryGetDKGNetworkRequest struct {
-	Round     uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Mrenclave []byte `protobuf:"bytes,2,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	Round        uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	MrenclaveHex string `protobuf:"bytes,2,opt,name=mrenclave_hex,json=mrenclaveHex,proto3" json:"mrenclave_hex,omitempty" yaml:"mrenclave_hex"`
 }
 
 func (m *QueryGetDKGNetworkRequest) Reset()         { *m = QueryGetDKGNetworkRequest{} }
@@ -155,11 +155,11 @@ func (m *QueryGetDKGNetworkRequest) GetRound() uint32 {
 	return 0
 }
 
-func (m *QueryGetDKGNetworkRequest) GetMrenclave() []byte {
+func (m *QueryGetDKGNetworkRequest) GetMrenclaveHex() string {
 	if m != nil {
-		return m.Mrenclave
+		return m.MrenclaveHex
 	}
-	return nil
+	return ""
 }
 
 type QueryGetDKGNetworkResponse struct {
@@ -384,7 +384,7 @@ func (m *QueryGetAllDKGNetworksResponse) GetPagination() *query.PageResponse {
 
 type QueryGetDKGRegistrationRequest struct {
 	Round            uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Mrenclave        []byte `protobuf:"bytes,2,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+	MrenclaveHex     string `protobuf:"bytes,2,opt,name=mrenclave_hex,json=mrenclaveHex,proto3" json:"mrenclave_hex,omitempty" yaml:"mrenclave_hex"`
 	ValidatorAddress string `protobuf:"bytes,3,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
 }
 
@@ -428,11 +428,11 @@ func (m *QueryGetDKGRegistrationRequest) GetRound() uint32 {
 	return 0
 }
 
-func (m *QueryGetDKGRegistrationRequest) GetMrenclave() []byte {
+func (m *QueryGetDKGRegistrationRequest) GetMrenclaveHex() string {
 	if m != nil {
-		return m.Mrenclave
+		return m.MrenclaveHex
 	}
-	return nil
+	return ""
 }
 
 func (m *QueryGetDKGRegistrationRequest) GetValidatorAddress() string {
@@ -487,9 +487,9 @@ func (m *QueryGetDKGRegistrationResponse) GetRegistration() DKGRegistration {
 }
 
 type QueryGetAllDKGRegistrationsRequest struct {
-	Round      uint32             `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Mrenclave  []byte             `protobuf:"bytes,2,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
-	Pagination *query.PageRequest `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Round        uint32             `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	MrenclaveHex string             `protobuf:"bytes,2,opt,name=mrenclave_hex,json=mrenclaveHex,proto3" json:"mrenclave_hex,omitempty" yaml:"mrenclave_hex"`
+	Pagination   *query.PageRequest `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
 }
 
 func (m *QueryGetAllDKGRegistrationsRequest) Reset()         { *m = QueryGetAllDKGRegistrationsRequest{} }
@@ -532,11 +532,11 @@ func (m *QueryGetAllDKGRegistrationsRequest) GetRound() uint32 {
 	return 0
 }
 
-func (m *QueryGetAllDKGRegistrationsRequest) GetMrenclave() []byte {
+func (m *QueryGetAllDKGRegistrationsRequest) GetMrenclaveHex() string {
 	if m != nil {
-		return m.Mrenclave
+		return m.MrenclaveHex
 	}
-	return nil
+	return ""
 }
 
 func (m *QueryGetAllDKGRegistrationsRequest) GetPagination() *query.PageRequest {
@@ -598,25 +598,27 @@ func (m *QueryGetAllDKGRegistrationsResponse) GetPagination() *query.PageRespons
 	return nil
 }
 
-type QueryGetVerifiedDKGRegistrationsRequest struct {
-	Round     uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	Mrenclave []byte `protobuf:"bytes,2,opt,name=mrenclave,proto3" json:"mrenclave,omitempty" yaml:"mrenclave"`
+type QueryGetAllVerifiedDKGRegistrationsRequest struct {
+	Round        uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	MrenclaveHex string `protobuf:"bytes,2,opt,name=mrenclave_hex,json=mrenclaveHex,proto3" json:"mrenclave_hex,omitempty" yaml:"mrenclave_hex"`
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) Reset() {
-	*m = QueryGetVerifiedDKGRegistrationsRequest{}
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) Reset() {
+	*m = QueryGetAllVerifiedDKGRegistrationsRequest{}
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryGetVerifiedDKGRegistrationsRequest) ProtoMessage()    {}
-func (*QueryGetVerifiedDKGRegistrationsRequest) Descriptor() ([]byte, []int) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*QueryGetAllVerifiedDKGRegistrationsRequest) ProtoMessage() {}
+func (*QueryGetAllVerifiedDKGRegistrationsRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_a6fee99aab80cff3, []int{12}
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_Unmarshal(b []byte) error {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryGetVerifiedDKGRegistrationsRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -626,50 +628,52 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_Marshal(b []byte, determin
 		return b[:n], nil
 	}
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetVerifiedDKGRegistrationsRequest.Merge(m, src)
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsRequest.Merge(m, src)
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_Size() int {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetVerifiedDKGRegistrationsRequest.DiscardUnknown(m)
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryGetVerifiedDKGRegistrationsRequest proto.InternalMessageInfo
+var xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsRequest proto.InternalMessageInfo
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) GetRound() uint32 {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) GetMrenclave() []byte {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) GetMrenclaveHex() string {
 	if m != nil {
-		return m.Mrenclave
+		return m.MrenclaveHex
 	}
-	return nil
+	return ""
 }
 
-type QueryGetVerifiedDKGRegistrationsResponse struct {
+type QueryGetAllVerifiedDKGRegistrationsResponse struct {
 	Registrations []DKGRegistration `protobuf:"bytes,1,rep,name=registrations,proto3" json:"registrations" yaml:"registrations"`
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) Reset() {
-	*m = QueryGetVerifiedDKGRegistrationsResponse{}
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) Reset() {
+	*m = QueryGetAllVerifiedDKGRegistrationsResponse{}
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryGetVerifiedDKGRegistrationsResponse) ProtoMessage()    {}
-func (*QueryGetVerifiedDKGRegistrationsResponse) Descriptor() ([]byte, []int) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) String() string {
+	return proto.CompactTextString(m)
+}
+func (*QueryGetAllVerifiedDKGRegistrationsResponse) ProtoMessage() {}
+func (*QueryGetAllVerifiedDKGRegistrationsResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_a6fee99aab80cff3, []int{13}
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_Unmarshal(b []byte) error {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_QueryGetVerifiedDKGRegistrationsResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -679,23 +683,105 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_Marshal(b []byte, determi
 		return b[:n], nil
 	}
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetVerifiedDKGRegistrationsResponse.Merge(m, src)
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsResponse.Merge(m, src)
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_Size() int {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetVerifiedDKGRegistrationsResponse.DiscardUnknown(m)
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QueryGetVerifiedDKGRegistrationsResponse proto.InternalMessageInfo
+var xxx_messageInfo_QueryGetAllVerifiedDKGRegistrationsResponse proto.InternalMessageInfo
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) GetRegistrations() []DKGRegistration {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) GetRegistrations() []DKGRegistration {
 	if m != nil {
 		return m.Registrations
 	}
 	return nil
+}
+
+type QueryGetLatestActiveDKGNetworkRequest struct {
+}
+
+func (m *QueryGetLatestActiveDKGNetworkRequest) Reset()         { *m = QueryGetLatestActiveDKGNetworkRequest{} }
+func (m *QueryGetLatestActiveDKGNetworkRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetLatestActiveDKGNetworkRequest) ProtoMessage()    {}
+func (*QueryGetLatestActiveDKGNetworkRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a6fee99aab80cff3, []int{14}
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetLatestActiveDKGNetworkRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetLatestActiveDKGNetworkRequest.Merge(m, src)
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetLatestActiveDKGNetworkRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetLatestActiveDKGNetworkRequest proto.InternalMessageInfo
+
+type QueryGetLatestActiveDKGNetworkResponse struct {
+	Network DKGNetwork `protobuf:"bytes,1,opt,name=network,proto3" json:"network" yaml:"network"`
+}
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) Reset() {
+	*m = QueryGetLatestActiveDKGNetworkResponse{}
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetLatestActiveDKGNetworkResponse) ProtoMessage()    {}
+func (*QueryGetLatestActiveDKGNetworkResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a6fee99aab80cff3, []int{15}
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetLatestActiveDKGNetworkResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetLatestActiveDKGNetworkResponse.Merge(m, src)
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetLatestActiveDKGNetworkResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetLatestActiveDKGNetworkResponse proto.InternalMessageInfo
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) GetNetwork() DKGNetwork {
+	if m != nil {
+		return m.Network
+	}
+	return DKGNetwork{}
 }
 
 func init() {
@@ -711,72 +797,78 @@ func init() {
 	proto.RegisterType((*QueryGetDKGRegistrationResponse)(nil), "story.dkg.v1.types.QueryGetDKGRegistrationResponse")
 	proto.RegisterType((*QueryGetAllDKGRegistrationsRequest)(nil), "story.dkg.v1.types.QueryGetAllDKGRegistrationsRequest")
 	proto.RegisterType((*QueryGetAllDKGRegistrationsResponse)(nil), "story.dkg.v1.types.QueryGetAllDKGRegistrationsResponse")
-	proto.RegisterType((*QueryGetVerifiedDKGRegistrationsRequest)(nil), "story.dkg.v1.types.QueryGetVerifiedDKGRegistrationsRequest")
-	proto.RegisterType((*QueryGetVerifiedDKGRegistrationsResponse)(nil), "story.dkg.v1.types.QueryGetVerifiedDKGRegistrationsResponse")
+	proto.RegisterType((*QueryGetAllVerifiedDKGRegistrationsRequest)(nil), "story.dkg.v1.types.QueryGetAllVerifiedDKGRegistrationsRequest")
+	proto.RegisterType((*QueryGetAllVerifiedDKGRegistrationsResponse)(nil), "story.dkg.v1.types.QueryGetAllVerifiedDKGRegistrationsResponse")
+	proto.RegisterType((*QueryGetLatestActiveDKGNetworkRequest)(nil), "story.dkg.v1.types.QueryGetLatestActiveDKGNetworkRequest")
+	proto.RegisterType((*QueryGetLatestActiveDKGNetworkResponse)(nil), "story.dkg.v1.types.QueryGetLatestActiveDKGNetworkResponse")
 }
 
 func init() { proto.RegisterFile("story/dkg/v1/types/query.proto", fileDescriptor_a6fee99aab80cff3) }
 
 var fileDescriptor_a6fee99aab80cff3 = []byte{
-	// 926 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x57, 0x41, 0x6f, 0xe3, 0x44,
-	0x14, 0xee, 0xb4, 0x6c, 0xa1, 0x43, 0x0b, 0xdd, 0x69, 0x54, 0x82, 0x37, 0x38, 0x65, 0x16, 0xb5,
-	0x85, 0x15, 0x1e, 0x25, 0x45, 0xec, 0x6a, 0xe1, 0xc0, 0x5a, 0x85, 0x0a, 0x16, 0x41, 0x31, 0x12,
-	0x07, 0x2e, 0xd5, 0xa4, 0x1e, 0x8c, 0x55, 0xc7, 0xe3, 0xf5, 0x38, 0x29, 0x51, 0xd5, 0x0b, 0x12,
-	0xe2, 0x8a, 0xb4, 0x37, 0x6e, 0x5c, 0xf8, 0x19, 0x1c, 0xb8, 0x50, 0x6e, 0x2b, 0x71, 0x60, 0xc5,
-	0x21, 0x42, 0x2d, 0xbf, 0x20, 0xbf, 0x00, 0x65, 0x66, 0x92, 0xd8, 0xb2, 0x93, 0x34, 0x2b, 0xe8,
-	0x5e, 0x2a, 0xeb, 0xbd, 0xf7, 0xbd, 0xf7, 0x7d, 0xef, 0xbd, 0xce, 0x53, 0xa0, 0x29, 0x12, 0x1e,
-	0x77, 0x88, 0x7b, 0xe4, 0x91, 0x76, 0x8d, 0x24, 0x9d, 0x88, 0x09, 0xf2, 0xa0, 0xc5, 0xe2, 0x8e,
-	0x15, 0xc5, 0x3c, 0xe1, 0x08, 0x49, 0xbf, 0xe5, 0x1e, 0x79, 0x56, 0xbb, 0x66, 0x49, 0xbf, 0xf1,
-	0xc6, 0x21, 0x17, 0x4d, 0x2e, 0x48, 0x83, 0x0a, 0xa6, 0x82, 0x49, 0xbb, 0xd6, 0x60, 0x09, 0xad,
-	0x91, 0x88, 0x7a, 0x7e, 0x48, 0x13, 0x9f, 0x87, 0x0a, 0x6f, 0x94, 0x3c, 0xee, 0x71, 0xf9, 0x49,
-	0xfa, 0x5f, 0xda, 0x5a, 0xf1, 0x38, 0xf7, 0x02, 0x46, 0x68, 0xe4, 0x13, 0x1a, 0x86, 0x3c, 0x91,
-	0x10, 0xa1, 0xbd, 0xd5, 0x02, 0x4e, 0x11, 0x8d, 0x69, 0x73, 0x10, 0x50, 0x44, 0x5a, 0xfe, 0x55,
-	0x7e, 0x5c, 0x82, 0xe8, 0xb3, 0x3e, 0xad, 0x7d, 0x09, 0x72, 0xd8, 0x83, 0x16, 0x13, 0x09, 0xfe,
-	0x14, 0xae, 0x65, 0xac, 0x22, 0xe2, 0xa1, 0x60, 0xe8, 0x0e, 0x5c, 0x54, 0xc9, 0xcb, 0x60, 0x03,
-	0x6c, 0x3f, 0x5f, 0x37, 0xac, 0xbc, 0x64, 0x4b, 0x61, 0xec, 0x67, 0xce, 0xba, 0xd5, 0x39, 0x47,
-	0xc7, 0xe3, 0x63, 0xf8, 0xb2, 0x4c, 0xb8, 0xc7, 0x92, 0xdd, 0xfb, 0x7b, 0x9f, 0xb0, 0xe4, 0x98,
-	0xc7, 0x47, 0xba, 0x1a, 0xda, 0x84, 0xd7, 0x62, 0xde, 0x0a, 0x5d, 0x99, 0x75, 0xc5, 0x5e, 0xed,
-	0x75, 0xab, 0xcb, 0x1d, 0xda, 0x0c, 0xee, 0x62, 0x69, 0xc6, 0x8e, 0x72, 0xa3, 0x3a, 0x5c, 0x6a,
-	0xc6, 0x2c, 0x3c, 0x0c, 0x68, 0x9b, 0x95, 0xe7, 0x37, 0xc0, 0xf6, 0xb2, 0x5d, 0xea, 0x75, 0xab,
-	0xab, 0x2a, 0x76, 0xe8, 0xc2, 0xce, 0x28, 0x0c, 0x87, 0xd0, 0x28, 0x2a, 0xac, 0x05, 0xed, 0xc3,
-	0x67, 0x43, 0x65, 0xd2, 0x8a, 0xcc, 0x22, 0x45, 0x23, 0xa0, 0xbd, 0xde, 0x57, 0xd5, 0xeb, 0x56,
-	0x5f, 0x50, 0x35, 0x35, 0x18, 0x3b, 0x83, 0x34, 0xf8, 0x55, 0x58, 0x1d, 0xd4, 0xfb, 0x98, 0x26,
-	0x4c, 0xe4, 0xe5, 0xe2, 0x04, 0x6e, 0x8c, 0x0f, 0xf9, 0xdf, 0x88, 0x79, 0xf0, 0x95, 0x41, 0xd5,
-	0x7b, 0x41, 0x30, 0x42, 0x0e, 0x66, 0x8e, 0x3e, 0x80, 0x70, 0xb4, 0x92, 0xba, 0xea, 0xa6, 0xa5,
-	0xf6, 0xd7, 0xea, 0xef, 0xaf, 0xa5, 0x96, 0x5d, 0xef, 0xaf, 0xb5, 0x4f, 0x3d, 0xa6, 0xb1, 0x4e,
-	0x0a, 0x89, 0x7f, 0x01, 0xd0, 0x1c, 0x57, 0x49, 0xab, 0xfb, 0x1c, 0x3e, 0xa7, 0x69, 0xf5, 0x37,
-	0x69, 0xe1, 0x12, 0xf2, 0x5e, 0xd2, 0xf2, 0x5e, 0xcc, 0xc8, 0x13, 0xd8, 0x19, 0x26, 0x42, 0x7b,
-	0x19, 0xfe, 0xf3, 0x92, 0xff, 0xd6, 0x54, 0xfe, 0x8a, 0x51, 0x46, 0xc0, 0x6f, 0x29, 0x01, 0xbb,
-	0xf7, 0xf7, 0x1c, 0xe6, 0xf9, 0x22, 0x89, 0xa5, 0xef, 0x0a, 0x36, 0x16, 0x7d, 0x08, 0xaf, 0xb7,
-	0x69, 0xe0, 0xbb, 0x34, 0xe1, 0xf1, 0x01, 0x75, 0xdd, 0x98, 0x09, 0x51, 0x5e, 0xd8, 0x00, 0xdb,
-	0x4b, 0x76, 0xa5, 0xd7, 0xad, 0x96, 0x15, 0x36, 0x17, 0x82, 0x9d, 0xd5, 0xa1, 0xed, 0x9e, 0x36,
-	0x7d, 0x0f, 0x46, 0xdb, 0x98, 0x53, 0xa2, 0x67, 0xe1, 0xc2, 0xe5, 0x38, 0x65, 0xd7, 0x83, 0xbf,
-	0x39, 0x66, 0x1e, 0xe9, 0x14, 0xf6, 0x0d, 0x3d, 0x94, 0x35, 0x2d, 0x3d, 0xe5, 0xc3, 0x4e, 0x26,
-	0x2b, 0x3e, 0x03, 0x10, 0x67, 0x97, 0x22, 0x9d, 0x49, 0x5c, 0x45, 0x5f, 0xb3, 0xfb, 0xbd, 0xf0,
-	0xc4, 0xfb, 0xfd, 0x27, 0x80, 0x37, 0x27, 0x4a, 0xd1, 0x8d, 0xf5, 0xe0, 0x4a, 0xba, 0x05, 0x83,
-	0x4d, 0xbf, 0x54, 0x67, 0x2b, 0xba, 0xb3, 0xa5, 0x7c, 0x67, 0x05, 0x76, 0xb2, 0x79, 0xff, 0xbb,
-	0xc5, 0xff, 0x0e, 0xc0, 0xad, 0x81, 0xb2, 0x2f, 0x58, 0xec, 0x7f, 0xe5, 0x33, 0xf7, 0x29, 0x4c,
-	0x0a, 0x3f, 0x04, 0x70, 0x7b, 0x3a, 0x8f, 0x2b, 0x6e, 0x73, 0xfd, 0xf1, 0x12, 0xbc, 0x26, 0x59,
-	0xa1, 0x63, 0xb8, 0xa8, 0x8e, 0x1c, 0xda, 0x2c, 0xaa, 0x92, 0xbf, 0xa7, 0xc6, 0xd6, 0xd4, 0x38,
-	0xa5, 0x06, 0x57, 0xbe, 0xfd, 0xe3, 0x9f, 0x87, 0xf3, 0xeb, 0xa8, 0x44, 0x32, 0x77, 0x5b, 0x5d,
-	0x51, 0xf4, 0x13, 0x80, 0x2b, 0x99, 0x43, 0x86, 0xde, 0x1c, 0x9b, 0xb8, 0xe8, 0xd2, 0x1a, 0xd6,
-	0x65, 0xc3, 0x35, 0x9d, 0x9a, 0xa4, 0x73, 0x0b, 0xbd, 0x9e, 0xa5, 0xa3, 0xdf, 0x5c, 0x72, 0x22,
-	0x67, 0x7c, 0x4a, 0x4e, 0x86, 0xb3, 0x3b, 0x45, 0x3f, 0x03, 0xb8, 0x56, 0x70, 0xd9, 0xd0, 0xce,
-	0xa4, 0xd2, 0x63, 0x4e, 0xa5, 0xf1, 0xd6, 0x6c, 0x20, 0xcd, 0xfa, 0x35, 0xc9, 0xda, 0x44, 0x95,
-	0x2c, 0xeb, 0x40, 0xc6, 0x1f, 0x68, 0xf2, 0xe8, 0x47, 0x00, 0xaf, 0xe7, 0x4e, 0x14, 0xaa, 0x4d,
-	0xaa, 0x58, 0x78, 0x38, 0x8d, 0xfa, 0x2c, 0x10, 0x4d, 0xd1, 0x94, 0x14, 0xcb, 0x68, 0xbd, 0xb0,
-	0xb1, 0x02, 0xfd, 0x0e, 0x20, 0xca, 0x3f, 0xda, 0xa8, 0x3e, 0x65, 0x7e, 0x05, 0xb7, 0xca, 0xd8,
-	0x99, 0x09, 0xa3, 0xf9, 0x7d, 0x24, 0xf9, 0xed, 0x22, 0x3b, 0xcb, 0x2f, 0xfd, 0x1f, 0x51, 0x34,
-	0x7d, 0x72, 0x92, 0xbb, 0x4b, 0xa7, 0xe8, 0x57, 0x00, 0xd7, 0x8b, 0xdf, 0x4a, 0xf4, 0xf6, 0xf4,
-	0xd6, 0x15, 0xbd, 0x3e, 0xc6, 0xed, 0x99, 0x71, 0x5a, 0xd7, 0x6d, 0xa9, 0xab, 0x86, 0xc8, 0x78,
-	0x5d, 0xa2, 0x70, 0xad, 0xff, 0x02, 0xf0, 0xc6, 0x84, 0xe7, 0x08, 0xbd, 0x33, 0x89, 0xd1, 0x94,
-	0xc7, 0xd4, 0x78, 0xf7, 0xc9, 0xc0, 0x5a, 0xd3, 0x7b, 0x52, 0xd3, 0x5d, 0x74, 0x27, 0xab, 0xa9,
-	0xad, 0x71, 0x07, 0x53, 0xc5, 0xd9, 0xef, 0x9f, 0x9d, 0x9b, 0xe0, 0xd1, 0xb9, 0x09, 0xfe, 0x3e,
-	0x37, 0xc1, 0x0f, 0x17, 0xe6, 0xdc, 0xa3, 0x0b, 0x73, 0xee, 0xf1, 0x85, 0x39, 0xf7, 0xe5, 0x2d,
-	0xcf, 0x4f, 0xbe, 0x6e, 0x35, 0xac, 0x43, 0xde, 0x24, 0x91, 0x1f, 0x05, 0xb4, 0x21, 0x74, 0x95,
-	0xc3, 0xc0, 0x67, 0x61, 0x42, 0xbe, 0x91, 0xe5, 0x24, 0xe3, 0xc6, 0xa2, 0xfc, 0x49, 0xb1, 0xf3,
-	0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x42, 0x13, 0x17, 0x4d, 0x29, 0x0d, 0x00, 0x00,
+	// 991 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x57, 0xcf, 0x6f, 0xdc, 0x44,
+	0x14, 0xce, 0x24, 0x34, 0xc0, 0x6b, 0x02, 0xed, 0x64, 0x15, 0xb6, 0xee, 0xd6, 0x1b, 0x26, 0x90,
+	0x54, 0xad, 0xea, 0xd1, 0x26, 0x94, 0x1f, 0x05, 0x8a, 0xb2, 0x0a, 0x4d, 0x51, 0x51, 0x09, 0x46,
+	0xe2, 0xc0, 0x25, 0x9a, 0xdd, 0x1d, 0x5c, 0x2b, 0x5e, 0x7b, 0xeb, 0x71, 0xb6, 0x09, 0x51, 0x2e,
+	0xbd, 0x70, 0x45, 0xaa, 0xc4, 0x81, 0x3b, 0x5c, 0xf8, 0x03, 0xb8, 0x71, 0x44, 0xbd, 0x20, 0x55,
+	0xf4, 0x00, 0xa7, 0x15, 0x4a, 0x90, 0xb8, 0xe7, 0x2f, 0x40, 0x3b, 0x9e, 0x4d, 0x3c, 0xb2, 0x1d,
+	0x6f, 0x22, 0x9a, 0x5e, 0xaa, 0xed, 0xcc, 0xfb, 0xde, 0xfb, 0xbe, 0x37, 0x9f, 0xe7, 0x4d, 0xc0,
+	0x14, 0x51, 0x10, 0x6e, 0xd1, 0xd6, 0xba, 0x43, 0xbb, 0x35, 0x1a, 0x6d, 0x75, 0xb8, 0xa0, 0xf7,
+	0x37, 0x78, 0xb8, 0x65, 0x75, 0xc2, 0x20, 0x0a, 0x30, 0x96, 0xfb, 0x56, 0x6b, 0xdd, 0xb1, 0xba,
+	0x35, 0x4b, 0xee, 0x1b, 0x57, 0x9a, 0x81, 0x68, 0x07, 0x82, 0x36, 0x98, 0xe0, 0x71, 0x30, 0xed,
+	0xd6, 0x1a, 0x3c, 0x62, 0x35, 0xda, 0x61, 0x8e, 0xeb, 0xb3, 0xc8, 0x0d, 0xfc, 0x18, 0x6f, 0x94,
+	0x9c, 0xc0, 0x09, 0xe4, 0x4f, 0xda, 0xff, 0xa5, 0x56, 0x2b, 0x4e, 0x10, 0x38, 0x1e, 0xa7, 0xac,
+	0xe3, 0x52, 0xe6, 0xfb, 0x41, 0x24, 0x21, 0x42, 0xed, 0x56, 0x33, 0x38, 0x75, 0x58, 0xc8, 0xda,
+	0x83, 0x80, 0x2c, 0xd2, 0xf2, 0xdf, 0x78, 0x9f, 0x94, 0x00, 0x7f, 0xde, 0xa7, 0xb5, 0x2a, 0x41,
+	0x36, 0xbf, 0xbf, 0xc1, 0x45, 0x44, 0x3e, 0x83, 0x29, 0x6d, 0x55, 0x74, 0x02, 0x5f, 0x70, 0xfc,
+	0x2e, 0x8c, 0xc7, 0xc9, 0xcb, 0x68, 0x06, 0x5d, 0x3e, 0xbb, 0x60, 0x58, 0x69, 0xc9, 0x56, 0x8c,
+	0xa9, 0xbf, 0xf0, 0xb8, 0x57, 0x1d, 0xb1, 0x55, 0x3c, 0x79, 0x88, 0xe0, 0x82, 0xcc, 0xb8, 0xc2,
+	0xa3, 0xe5, 0x3b, 0x2b, 0x77, 0x79, 0xf4, 0x20, 0x08, 0xd7, 0x55, 0x39, 0x3c, 0x07, 0x67, 0xc2,
+	0x60, 0xc3, 0x6f, 0xc9, 0xb4, 0x93, 0xf5, 0x73, 0xfb, 0xbd, 0xea, 0xc4, 0x16, 0x6b, 0x7b, 0x37,
+	0x88, 0x5c, 0x26, 0x76, 0xbc, 0x8d, 0x3f, 0x84, 0xc9, 0x76, 0xc8, 0xfd, 0xa6, 0xc7, 0xba, 0x7c,
+	0xed, 0x1e, 0xdf, 0x2c, 0x8f, 0xce, 0xa0, 0xcb, 0x2f, 0xd7, 0xcb, 0xfb, 0xbd, 0x6a, 0x29, 0x8e,
+	0xd7, 0xb6, 0x89, 0x3d, 0x71, 0xf0, 0xff, 0xdb, 0x7c, 0x93, 0xf8, 0x60, 0x64, 0x71, 0x50, 0xe2,
+	0x56, 0xe1, 0x45, 0x3f, 0x5e, 0x52, 0xea, 0xcc, 0x2c, 0x75, 0x87, 0xc0, 0xfa, 0x74, 0x5f, 0xe1,
+	0x7e, 0xaf, 0xfa, 0x4a, 0x5c, 0x5a, 0x81, 0x89, 0x3d, 0x48, 0x43, 0x5e, 0x87, 0xea, 0xa0, 0xde,
+	0xa7, 0x2c, 0xe2, 0x22, 0xad, 0x9c, 0x44, 0x30, 0x93, 0x1f, 0xf2, 0xcc, 0x88, 0x39, 0x70, 0x69,
+	0x50, 0x75, 0xc9, 0xf3, 0x0e, 0x91, 0x83, 0xf3, 0xc7, 0xb7, 0x00, 0x0e, 0xed, 0xa9, 0xaa, 0xce,
+	0x59, 0xb1, 0x97, 0xad, 0xbe, 0x97, 0xad, 0xd8, 0xf8, 0xca, 0xcb, 0xd6, 0x2a, 0x73, 0xb8, 0xc2,
+	0xda, 0x09, 0x24, 0xf9, 0x15, 0x81, 0x99, 0x57, 0x49, 0xa9, 0xfb, 0x02, 0x5e, 0x52, 0xb4, 0xfa,
+	0xae, 0x1a, 0x1b, 0x42, 0xde, 0x6b, 0x4a, 0xde, 0xab, 0x9a, 0x3c, 0x41, 0xec, 0x83, 0x44, 0x78,
+	0x45, 0xe3, 0x3f, 0x2a, 0xf9, 0xcf, 0x17, 0xf2, 0x8f, 0x19, 0x69, 0x02, 0xfe, 0x48, 0x08, 0x58,
+	0xbe, 0xb3, 0x62, 0x73, 0xc7, 0x15, 0x51, 0x28, 0xf7, 0x4e, 0xd7, 0xbc, 0xf8, 0x13, 0x38, 0xdf,
+	0x65, 0x9e, 0xdb, 0x62, 0x51, 0x10, 0xae, 0xb1, 0x56, 0x2b, 0xe4, 0x42, 0x94, 0xc7, 0x64, 0x8a,
+	0xca, 0x7e, 0xaf, 0x5a, 0x8e, 0x53, 0xa4, 0x42, 0x88, 0x7d, 0xee, 0x60, 0x6d, 0x49, 0x2d, 0x7d,
+	0x8b, 0x0e, 0x8d, 0x99, 0x12, 0xa5, 0x8e, 0xa5, 0x05, 0x13, 0x61, 0x62, 0x5d, 0x79, 0x60, 0x36,
+	0xe7, 0x68, 0x92, 0x29, 0xea, 0x17, 0xd5, 0xf9, 0x4c, 0xa9, 0x2e, 0x24, 0xf6, 0x88, 0xad, 0x65,
+	0x25, 0x4f, 0x11, 0x10, 0xdd, 0x1f, 0xc9, 0x4c, 0xe2, 0x94, 0x5b, 0xac, 0xbb, 0x7e, 0xec, 0xc4,
+	0xae, 0xff, 0x13, 0xc1, 0xec, 0x91, 0xaa, 0x54, 0x8f, 0x1d, 0x98, 0x4c, 0x76, 0x63, 0xe0, 0xff,
+	0xa1, 0x9a, 0x5c, 0x51, 0x4d, 0x2e, 0xa5, 0x9b, 0x2c, 0x88, 0xad, 0xe7, 0xfd, 0xff, 0x3e, 0x87,
+	0x47, 0x08, 0xae, 0x24, 0x94, 0x7d, 0xc9, 0x43, 0xf7, 0x6b, 0x97, 0xb7, 0x9e, 0xef, 0xb9, 0x91,
+	0xef, 0x11, 0x5c, 0x1d, 0x8a, 0xd5, 0x29, 0xf7, 0x9d, 0xcc, 0xc3, 0x9b, 0xfa, 0xed, 0xbe, 0xd4,
+	0x8c, 0xdc, 0x2e, 0x4f, 0x8f, 0x81, 0x6f, 0x60, 0xae, 0x28, 0xf0, 0x59, 0x0d, 0x83, 0x85, 0x9f,
+	0xcf, 0xc2, 0x19, 0x59, 0x1c, 0x3f, 0x80, 0xf1, 0x78, 0x78, 0xe3, 0xb9, 0xac, 0xa4, 0xe9, 0x77,
+	0x82, 0x31, 0x5f, 0x18, 0x17, 0xd3, 0x26, 0x95, 0x87, 0x4f, 0xff, 0x79, 0x34, 0x3a, 0x8d, 0x4b,
+	0x54, 0x7b, 0x8f, 0xc4, 0xaf, 0x03, 0xfc, 0x23, 0x82, 0x49, 0x6d, 0x28, 0xe3, 0x6b, 0xb9, 0x89,
+	0xb3, 0x1e, 0x10, 0x86, 0x35, 0x6c, 0xb8, 0xa2, 0x73, 0x5d, 0xd2, 0xa1, 0xf8, 0x9a, 0x4e, 0x47,
+	0xb5, 0x84, 0x6e, 0x4b, 0x5b, 0xee, 0xd0, 0x6d, 0xcd, 0x76, 0x3b, 0xf8, 0x27, 0x04, 0x53, 0x19,
+	0x93, 0x1a, 0x2f, 0x1e, 0x55, 0x3e, 0x67, 0xf4, 0x1b, 0x6f, 0x1d, 0x0f, 0xa4, 0x98, 0xbf, 0x21,
+	0x99, 0x9b, 0xb8, 0xa2, 0x33, 0xf7, 0x64, 0xfc, 0x9a, 0x12, 0x80, 0x7f, 0x40, 0x70, 0x3e, 0x35,
+	0x72, 0x71, 0xed, 0xa8, 0x8a, 0x99, 0x0f, 0x01, 0x63, 0xe1, 0x38, 0x10, 0x45, 0xd1, 0x94, 0x14,
+	0xcb, 0x78, 0x3a, 0xb3, 0xb9, 0x02, 0xff, 0x8e, 0x00, 0xa7, 0x27, 0x0f, 0x5e, 0x28, 0x38, 0xc3,
+	0x8c, 0xd9, 0x6b, 0x2c, 0x1e, 0x0b, 0xa3, 0xf8, 0xdd, 0x95, 0xfc, 0x6e, 0xe3, 0x5b, 0x3a, 0xbf,
+	0xe4, 0xa7, 0x9b, 0xe7, 0x00, 0xba, 0x9d, 0x1a, 0xb0, 0x3b, 0xf8, 0x37, 0x04, 0xd3, 0xd9, 0x37,
+	0x3d, 0x7e, 0xbb, 0xb8, 0x7d, 0x59, 0x17, 0xa7, 0xf1, 0xce, 0xb1, 0x71, 0x4a, 0xdb, 0xfb, 0x52,
+	0xdb, 0x75, 0xbc, 0x98, 0xaf, 0x4d, 0xe4, 0xda, 0xfb, 0x5f, 0x04, 0xe6, 0xd1, 0x57, 0x28, 0xbe,
+	0x59, 0x40, 0xac, 0x60, 0x22, 0x18, 0x1f, 0x9d, 0x18, 0xaf, 0x04, 0x2e, 0x4b, 0x81, 0x37, 0xf1,
+	0x07, 0xba, 0xc0, 0xae, 0xc2, 0xad, 0x0d, 0xa7, 0xf4, 0x17, 0x04, 0x17, 0x72, 0xef, 0x5a, 0xfc,
+	0x5e, 0xf1, 0x97, 0x99, 0x73, 0x91, 0x1b, 0x37, 0x4e, 0x02, 0x55, 0xd2, 0x66, 0xa5, 0xb4, 0x4b,
+	0xf8, 0x62, 0xe6, 0xa7, 0xcd, 0x24, 0xac, 0xfe, 0xf1, 0xe3, 0x5d, 0x13, 0x3d, 0xd9, 0x35, 0xd1,
+	0xdf, 0xbb, 0x26, 0xfa, 0x6e, 0xcf, 0x1c, 0x79, 0xb2, 0x67, 0x8e, 0xfc, 0xb5, 0x67, 0x8e, 0x7c,
+	0x75, 0xd5, 0x71, 0xa3, 0x7b, 0x1b, 0x0d, 0xab, 0x19, 0xb4, 0x69, 0xc7, 0xed, 0x78, 0xac, 0x21,
+	0x54, 0xa2, 0xa6, 0xe7, 0x72, 0x3f, 0xa2, 0x9b, 0x32, 0xa3, 0xa4, 0xd4, 0x18, 0x97, 0x7f, 0xfd,
+	0x2d, 0xfe, 0x17, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x53, 0xc0, 0x2f, 0xd4, 0x0e, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -797,7 +889,8 @@ type QueryClient interface {
 	GetAllDKGNetworks(ctx context.Context, in *QueryGetAllDKGNetworksRequest, opts ...grpc.CallOption) (*QueryGetAllDKGNetworksResponse, error)
 	GetDKGRegistration(ctx context.Context, in *QueryGetDKGRegistrationRequest, opts ...grpc.CallOption) (*QueryGetDKGRegistrationResponse, error)
 	GetAllDKGRegistrations(ctx context.Context, in *QueryGetAllDKGRegistrationsRequest, opts ...grpc.CallOption) (*QueryGetAllDKGRegistrationsResponse, error)
-	GetVerifiedDKGRegistrations(ctx context.Context, in *QueryGetVerifiedDKGRegistrationsRequest, opts ...grpc.CallOption) (*QueryGetVerifiedDKGRegistrationsResponse, error)
+	GetAllVerifiedDKGRegistrations(ctx context.Context, in *QueryGetAllVerifiedDKGRegistrationsRequest, opts ...grpc.CallOption) (*QueryGetAllVerifiedDKGRegistrationsResponse, error)
+	GetLatestActiveDKGNetwork(ctx context.Context, in *QueryGetLatestActiveDKGNetworkRequest, opts ...grpc.CallOption) (*QueryGetLatestActiveDKGNetworkResponse, error)
 }
 
 type queryClient struct {
@@ -862,9 +955,18 @@ func (c *queryClient) GetAllDKGRegistrations(ctx context.Context, in *QueryGetAl
 	return out, nil
 }
 
-func (c *queryClient) GetVerifiedDKGRegistrations(ctx context.Context, in *QueryGetVerifiedDKGRegistrationsRequest, opts ...grpc.CallOption) (*QueryGetVerifiedDKGRegistrationsResponse, error) {
-	out := new(QueryGetVerifiedDKGRegistrationsResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.Query/GetVerifiedDKGRegistrations", in, out, opts...)
+func (c *queryClient) GetAllVerifiedDKGRegistrations(ctx context.Context, in *QueryGetAllVerifiedDKGRegistrationsRequest, opts ...grpc.CallOption) (*QueryGetAllVerifiedDKGRegistrationsResponse, error) {
+	out := new(QueryGetAllVerifiedDKGRegistrationsResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.Query/GetAllVerifiedDKGRegistrations", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) GetLatestActiveDKGNetwork(ctx context.Context, in *QueryGetLatestActiveDKGNetworkRequest, opts ...grpc.CallOption) (*QueryGetLatestActiveDKGNetworkResponse, error) {
+	out := new(QueryGetLatestActiveDKGNetworkResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.Query/GetLatestActiveDKGNetwork", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -879,7 +981,8 @@ type QueryServer interface {
 	GetAllDKGNetworks(context.Context, *QueryGetAllDKGNetworksRequest) (*QueryGetAllDKGNetworksResponse, error)
 	GetDKGRegistration(context.Context, *QueryGetDKGRegistrationRequest) (*QueryGetDKGRegistrationResponse, error)
 	GetAllDKGRegistrations(context.Context, *QueryGetAllDKGRegistrationsRequest) (*QueryGetAllDKGRegistrationsResponse, error)
-	GetVerifiedDKGRegistrations(context.Context, *QueryGetVerifiedDKGRegistrationsRequest) (*QueryGetVerifiedDKGRegistrationsResponse, error)
+	GetAllVerifiedDKGRegistrations(context.Context, *QueryGetAllVerifiedDKGRegistrationsRequest) (*QueryGetAllVerifiedDKGRegistrationsResponse, error)
+	GetLatestActiveDKGNetwork(context.Context, *QueryGetLatestActiveDKGNetworkRequest) (*QueryGetLatestActiveDKGNetworkResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -904,8 +1007,11 @@ func (*UnimplementedQueryServer) GetDKGRegistration(ctx context.Context, req *Qu
 func (*UnimplementedQueryServer) GetAllDKGRegistrations(ctx context.Context, req *QueryGetAllDKGRegistrationsRequest) (*QueryGetAllDKGRegistrationsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllDKGRegistrations not implemented")
 }
-func (*UnimplementedQueryServer) GetVerifiedDKGRegistrations(ctx context.Context, req *QueryGetVerifiedDKGRegistrationsRequest) (*QueryGetVerifiedDKGRegistrationsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetVerifiedDKGRegistrations not implemented")
+func (*UnimplementedQueryServer) GetAllVerifiedDKGRegistrations(ctx context.Context, req *QueryGetAllVerifiedDKGRegistrationsRequest) (*QueryGetAllVerifiedDKGRegistrationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllVerifiedDKGRegistrations not implemented")
+}
+func (*UnimplementedQueryServer) GetLatestActiveDKGNetwork(ctx context.Context, req *QueryGetLatestActiveDKGNetworkRequest) (*QueryGetLatestActiveDKGNetworkResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLatestActiveDKGNetwork not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -1020,20 +1126,38 @@ func _Query_GetAllDKGRegistrations_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_GetVerifiedDKGRegistrations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGetVerifiedDKGRegistrationsRequest)
+func _Query_GetAllVerifiedDKGRegistrations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetAllVerifiedDKGRegistrationsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).GetVerifiedDKGRegistrations(ctx, in)
+		return srv.(QueryServer).GetAllVerifiedDKGRegistrations(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.Query/GetVerifiedDKGRegistrations",
+		FullMethod: "/story.dkg.v1.types.Query/GetAllVerifiedDKGRegistrations",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetVerifiedDKGRegistrations(ctx, req.(*QueryGetVerifiedDKGRegistrationsRequest))
+		return srv.(QueryServer).GetAllVerifiedDKGRegistrations(ctx, req.(*QueryGetAllVerifiedDKGRegistrationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_GetLatestActiveDKGNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetLatestActiveDKGNetworkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetLatestActiveDKGNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.dkg.v1.types.Query/GetLatestActiveDKGNetwork",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetLatestActiveDKGNetwork(ctx, req.(*QueryGetLatestActiveDKGNetworkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1068,8 +1192,12 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_GetAllDKGRegistrations_Handler,
 		},
 		{
-			MethodName: "GetVerifiedDKGRegistrations",
-			Handler:    _Query_GetVerifiedDKGRegistrations_Handler,
+			MethodName: "GetAllVerifiedDKGRegistrations",
+			Handler:    _Query_GetAllVerifiedDKGRegistrations_Handler,
+		},
+		{
+			MethodName: "GetLatestActiveDKGNetwork",
+			Handler:    _Query_GetLatestActiveDKGNetwork_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1152,10 +1280,10 @@ func (m *QueryGetDKGNetworkRequest) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	_ = i
 	var l int
 	_ = l
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.MrenclaveHex) > 0 {
+		i -= len(m.MrenclaveHex)
+		copy(dAtA[i:], m.MrenclaveHex)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.MrenclaveHex)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1367,10 +1495,10 @@ func (m *QueryGetDKGRegistrationRequest) MarshalToSizedBuffer(dAtA []byte) (int,
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.MrenclaveHex) > 0 {
+		i -= len(m.MrenclaveHex)
+		copy(dAtA[i:], m.MrenclaveHex)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.MrenclaveHex)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1447,10 +1575,10 @@ func (m *QueryGetAllDKGRegistrationsRequest) MarshalToSizedBuffer(dAtA []byte) (
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.MrenclaveHex) > 0 {
+		i -= len(m.MrenclaveHex)
+		copy(dAtA[i:], m.MrenclaveHex)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.MrenclaveHex)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1511,7 +1639,7 @@ func (m *QueryGetAllDKGRegistrationsResponse) MarshalToSizedBuffer(dAtA []byte) 
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) Marshal() (dAtA []byte, err error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -1521,20 +1649,20 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Marshal() (dAtA []byte, err er
 	return dAtA[:n], nil
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.MrenclaveHex) > 0 {
+		i -= len(m.MrenclaveHex)
+		copy(dAtA[i:], m.MrenclaveHex)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.MrenclaveHex)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1546,7 +1674,7 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) MarshalToSizedBuffer(dAtA []by
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) Marshal() (dAtA []byte, err error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -1556,12 +1684,12 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) Marshal() (dAtA []byte, err e
 	return dAtA[:n], nil
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -1580,6 +1708,62 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) MarshalToSizedBuffer(dAtA []b
 			dAtA[i] = 0xa
 		}
 	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetLatestActiveDKGNetworkRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetLatestActiveDKGNetworkRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetLatestActiveDKGNetworkRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size, err := m.Network.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintQuery(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -1623,7 +1807,7 @@ func (m *QueryGetDKGNetworkRequest) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovQuery(uint64(m.Round))
 	}
-	l = len(m.Mrenclave)
+	l = len(m.MrenclaveHex)
 	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
@@ -1702,7 +1886,7 @@ func (m *QueryGetDKGRegistrationRequest) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovQuery(uint64(m.Round))
 	}
-	l = len(m.Mrenclave)
+	l = len(m.MrenclaveHex)
 	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
@@ -1733,7 +1917,7 @@ func (m *QueryGetAllDKGRegistrationsRequest) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovQuery(uint64(m.Round))
 	}
-	l = len(m.Mrenclave)
+	l = len(m.MrenclaveHex)
 	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
@@ -1763,7 +1947,7 @@ func (m *QueryGetAllDKGRegistrationsResponse) Size() (n int) {
 	return n
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsRequest) Size() (n int) {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1772,14 +1956,14 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Size() (n int) {
 	if m.Round != 0 {
 		n += 1 + sovQuery(uint64(m.Round))
 	}
-	l = len(m.Mrenclave)
+	l = len(m.MrenclaveHex)
 	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
 	return n
 }
 
-func (m *QueryGetVerifiedDKGRegistrationsResponse) Size() (n int) {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1791,6 +1975,26 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) Size() (n int) {
 			n += 1 + l + sovQuery(uint64(l))
 		}
 	}
+	return n
+}
+
+func (m *QueryGetLatestActiveDKGNetworkRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *QueryGetLatestActiveDKGNetworkResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Network.Size()
+	n += 1 + l + sovQuery(uint64(l))
 	return n
 }
 
@@ -1983,9 +2187,9 @@ func (m *QueryGetDKGNetworkRequest) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MrenclaveHex", wireType)
 			}
-			var byteLen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowQuery
@@ -1995,25 +2199,23 @@ func (m *QueryGetDKGNetworkRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthQuery
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthQuery
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
+			m.MrenclaveHex = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2508,9 +2710,9 @@ func (m *QueryGetDKGRegistrationRequest) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MrenclaveHex", wireType)
 			}
-			var byteLen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowQuery
@@ -2520,25 +2722,23 @@ func (m *QueryGetDKGRegistrationRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthQuery
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthQuery
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
+			m.MrenclaveHex = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2726,9 +2926,9 @@ func (m *QueryGetAllDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MrenclaveHex", wireType)
 			}
-			var byteLen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowQuery
@@ -2738,25 +2938,23 @@ func (m *QueryGetAllDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthQuery
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthQuery
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
+			m.MrenclaveHex = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2935,7 +3133,7 @@ func (m *QueryGetAllDKGRegistrationsResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *QueryGetVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
+func (m *QueryGetAllVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2958,10 +3156,10 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetVerifiedDKGRegistrationsRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: QueryGetAllVerifiedDKGRegistrationsRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetVerifiedDKGRegistrationsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: QueryGetAllVerifiedDKGRegistrationsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2985,9 +3183,9 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MrenclaveHex", wireType)
 			}
-			var byteLen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowQuery
@@ -2997,25 +3195,23 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthQuery
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthQuery
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
-			}
+			m.MrenclaveHex = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3038,7 +3234,7 @@ func (m *QueryGetVerifiedDKGRegistrationsRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *QueryGetVerifiedDKGRegistrationsResponse) Unmarshal(dAtA []byte) error {
+func (m *QueryGetAllVerifiedDKGRegistrationsResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3061,10 +3257,10 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) Unmarshal(dAtA []byte) error 
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetVerifiedDKGRegistrationsResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: QueryGetAllVerifiedDKGRegistrationsResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetVerifiedDKGRegistrationsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: QueryGetAllVerifiedDKGRegistrationsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3098,6 +3294,139 @@ func (m *QueryGetVerifiedDKGRegistrationsResponse) Unmarshal(dAtA []byte) error 
 			}
 			m.Registrations = append(m.Registrations, DKGRegistration{})
 			if err := m.Registrations[len(m.Registrations)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetLatestActiveDKGNetworkRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetLatestActiveDKGNetworkRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetLatestActiveDKGNetworkRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetLatestActiveDKGNetworkResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetLatestActiveDKGNetworkResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetLatestActiveDKGNetworkResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Network", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Network.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

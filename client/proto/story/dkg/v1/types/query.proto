@@ -16,7 +16,7 @@ service Query {
   }
 
   rpc GetDKGNetwork(QueryGetDKGNetworkRequest) returns (QueryGetDKGNetworkResponse) {
-    option (google.api.http).get = "/story/dkg/v1/network/{round}/{mrenclave}";
+    option (google.api.http).get = "/story/dkg/v1/network/{round}/{mrenclave_hex}";
   }
 
   rpc GetLatestDKGNetwork(QueryGetLatestDKGNetworkRequest) returns (QueryGetLatestDKGNetworkResponse) {
@@ -28,15 +28,19 @@ service Query {
   }
 
   rpc GetDKGRegistration(QueryGetDKGRegistrationRequest) returns (QueryGetDKGRegistrationResponse) {
-    option (google.api.http).get = "/story/dkg/v1/registration/{round}/{mrenclave}/{validator_address}";
+    option (google.api.http).get = "/story/dkg/v1/registration/{round}/{mrenclave_hex}/{validator_address}";
   }
 
   rpc GetAllDKGRegistrations(QueryGetAllDKGRegistrationsRequest) returns (QueryGetAllDKGRegistrationsResponse) {
-    option (google.api.http).get = "/story/dkg/v1/registrations/{round}/{mrenclave}";
+    option (google.api.http).get = "/story/dkg/v1/registrations/{round}/{mrenclave_hex}";
   }
 
-  rpc GetVerifiedDKGRegistrations(QueryGetVerifiedDKGRegistrationsRequest) returns (QueryGetVerifiedDKGRegistrationsResponse) {
-    option (google.api.http).get = "/story/dkg/v1/verified_registrations/{round}/{mrenclave}";
+  rpc GetAllVerifiedDKGRegistrations(QueryGetAllVerifiedDKGRegistrationsRequest) returns (QueryGetAllVerifiedDKGRegistrationsResponse) {
+    option (google.api.http).get = "/story/dkg/v1/verified_registrations/{round}/{mrenclave_hex}";
+  }
+
+  rpc GetLatestActiveDKGNetwork(QueryGetLatestActiveDKGNetworkRequest) returns (QueryGetLatestActiveDKGNetworkResponse) {
+    option (google.api.http).get = "/story/dkg/v1/latest_active";
   }
 }
 
@@ -51,8 +55,8 @@ message QueryGetDKGNetworkRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes mrenclave = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  string mrenclave_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
   ];
 }
 
@@ -90,8 +94,8 @@ message QueryGetDKGRegistrationRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes mrenclave = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  string mrenclave_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
   ];
 
   string validator_address = 3 [
@@ -111,8 +115,8 @@ message QueryGetAllDKGRegistrationsRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes mrenclave = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  string mrenclave_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
   ];
 
   cosmos.base.query.v1beta1.PageRequest pagination = 3;
@@ -127,19 +131,28 @@ message QueryGetAllDKGRegistrationsResponse {
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
 }
 
-message QueryGetVerifiedDKGRegistrationsRequest {
+message QueryGetAllVerifiedDKGRegistrationsRequest {
   uint32 round = 1 [
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes mrenclave = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  string mrenclave_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
   ];
 }
 
-message QueryGetVerifiedDKGRegistrationsResponse {
+message QueryGetAllVerifiedDKGRegistrationsResponse {
   repeated DKGRegistration registrations = 1 [
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"registrations\""
+  ];
+}
+
+message QueryGetLatestActiveDKGNetworkRequest {}
+
+message QueryGetLatestActiveDKGNetworkResponse {
+  types.DKGNetwork network = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"network\""
   ];
 }

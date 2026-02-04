@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"cosmossdk.io/collections"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -17,7 +18,7 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 		return nil, errors.Wrap(err, "failed to get all validators")
 	}
 
-	var bondedValidators []string
+	bondedValidators := make([]string, 0, len(validators))
 	for _, val := range validators {
 		if val.IsBonded() && !val.IsJailed() {
 			evmOperatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(val.OperatorAddress)
@@ -47,6 +48,11 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 
 	roundNum := k.getNextRoundNumber(ctx)
 
+	isResharing, err := k.shouldReshare(ctx)
+	if err != nil {
+		return err
+	}
+
 	dkgNetwork := types.DKGNetwork{
 		Round:        roundNum,
 		StartBlock:   currentHeight,
@@ -55,6 +61,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 		Total:        0,
 		Threshold:    0,
 		Stage:        types.DKGStageRegistration,
+		IsResharing:  isResharing,
 	}
 
 	if err := k.setDKGNetwork(ctx, &dkgNetwork); err != nil {
@@ -75,4 +82,16 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (k *Keeper) shouldReshare(ctx context.Context) (bool, error) {
+	_, err := k.getLatestActiveDKGNetwork(ctx)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, collections.ErrNotFound) {
+		return false, nil
+	}
+
+	return false, errors.Wrap(err, "failed to get latest active DKG network")
 }
