@@ -94,5 +94,5 @@ interface IDKG {
         bytes globalPubKey,
         bytes[] publicCoeffs,
         bytes signature
-	);
+    );
 }

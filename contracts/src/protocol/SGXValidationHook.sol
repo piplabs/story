@@ -38,13 +38,11 @@ contract SGXValidationHook is IAttestationReportValidator, AccessManaged {
         bytes calldata enclaveReport,
         bytes calldata validationContext
     ) external override returns (bool) {
-        (uint32 tcbEvaluationDataNumber) = abi.decode(validationContext, (uint32));
+        uint32 tcbEvaluationDataNumber = abi.decode(validationContext, (uint32));
 
         // see verifyAndAttestOnChain  https://github.com/automata-network/automata-dcap-attestation/blob/4e7ab275ca8c358895a83fb6d51c9bd40ba1cf68/evm/contracts/AutomataDcapAttestationFee.sol#L23
-        (bool success, bytes memory output) = IAutomataDcapAttestationFee(automataValidationAddr).verifyAndAttestOnChain(
-            enclaveReport,
-            tcbEvaluationDataNumber
-        );
+        (bool success, bytes memory output) = IAutomataDcapAttestationFee(automataValidationAddr)
+            .verifyAndAttestOnChain(enclaveReport, tcbEvaluationDataNumber);
         require(success, "SGXAttestationReportValidator: Attestation failed");
 
         // check report code commitment against expectedCodeCommitment
