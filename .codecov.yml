@@ -8,6 +8,12 @@ coverage:
       default:
         threshold: 1% # allow this much decrease on project
 
+    patch:
+      default:
+        target: 80%
+        threshold: 0%
+        only_pulls: true
+
 comment:
   layout: "reach, diff, files"
   behavior: default  # update if exists else create new
