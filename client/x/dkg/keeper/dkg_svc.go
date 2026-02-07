@@ -16,7 +16,7 @@ var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
 
@@ -24,7 +24,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	if session.Phase != types.PhaseFailed {
-		log.Debug(ctx, "No failed DKG session found; skipping resume process", "mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave), "round", dkgNetwork.Round)
+		log.Debug(ctx, "No failed DKG session found; skipping resume process", "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "round", dkgNetwork.Round)
 
 		return
 	}
@@ -146,7 +146,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 	}
 
 	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
-		Mrenclave:       session.Mrenclave,
+		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
@@ -161,7 +161,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 	if _, err := k.contractClient.SubmitPartialDecryption(
 		ctx,
 		session.Round,
-		session.Mrenclave,
+		session.CodeCommitment,
 		pid,
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,

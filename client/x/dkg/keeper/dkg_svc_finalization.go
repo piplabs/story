@@ -13,7 +13,7 @@ import (
 // handleDKGFinalization handles the finalization phase event.
 func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG finalization",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -37,7 +37,7 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -76,7 +76,7 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	log.Info(ctx, "DKG finalization phase complete",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -85,7 +85,7 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 
 func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "FinalizeDKG call to TEE client",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -101,9 +101,9 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	)
 	if err := retry(ctx, func(ctx context.Context) error {
 		req := &types.FinalizeDKGRequest{
-			Mrenclave:   session.Mrenclave,
-			Round:       session.Round,
-			IsResharing: session.IsResharing,
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
+			IsResharing:    session.IsResharing,
 		}
 
 		resp, err = k.teeClient.FinalizeDKG(ctx, req)
@@ -129,14 +129,14 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "FinalizeDKG contract call",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
 		"signature_len", len(session.SigFinalizeNetwork),
 	)
 
 	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
-	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.Mrenclave, validatorAddr)
+	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.CodeCommitment, validatorAddr)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 	if _, err := k.contractClient.FinalizeDKG(
 		ctx,
 		session.Round,
-		session.Mrenclave,
+		session.CodeCommitment,
 		session.ParticipantsRoot,
 		session.GlobalPubKey,
 		session.PublicCoeffs,

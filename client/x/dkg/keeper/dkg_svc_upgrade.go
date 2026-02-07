@@ -11,7 +11,7 @@ import (
 // handleTEEUpgrade handles TEE client upgrade events.
 func (k *Keeper) handleTEEUpgrade(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
 	log.Info(ctx, "Handling TEE upgrade event",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		//"activation_height", dkgNetwork.BlockHeight,
 	)
 
@@ -23,7 +23,7 @@ func (k *Keeper) handleTEEUpgrade(ctx context.Context, dkgNetwork *types.DKGNetw
 	// For now, we'll log the upgrade event
 	// In a full implementation, this would handle the binary upgrade process
 	log.Info(ctx, "TEE upgrade scheduled",
-		"tee_binary_id", dkgNetwork.Mrenclave,
+		"tee_binary_id", dkgNetwork.CodeCommitment,
 		//"activation_height", event.BlockHeight,
 		"validator_evm_addr", k.validatorEVMAddr,
 	)

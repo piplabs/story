@@ -339,13 +339,13 @@ contract GenerateAlloc is Script {
     }
 
     function setDKG() internal {
-        // temp value of MRENCLAVE
-        bytes32 initialMrenclave = hex"4d53ef0428afd0bc343e4c0ca19efd05ad5d5747b4b230491c5e1237ca294739";
+        // temp value of codeCommitment
+        bytes32 initialCodeCommitment = hex"4d53ef0428afd0bc343e4c0ca19efd05ad5d5747b4b230491c5e1237ca294739";
 
         address impl = Predeploys.getImplAddress(Predeploys.DKG);
-        address tmp = address(new DKG(initialMrenclave)); // initial MRENCLAVE
+        address tmp = address(new DKG(initialCodeCommitment)); // initial code commitment
         vm.etch(impl, tmp.code);
-        vm.store(Predeploys.DKG, bytes32(uint256(0)), initialMrenclave);
+        vm.store(Predeploys.DKG, bytes32(uint256(0)), initialCodeCommitment);
 
         // reset tmp
         vm.etch(tmp, "");

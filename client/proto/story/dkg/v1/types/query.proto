@@ -16,7 +16,7 @@ service Query {
   }
 
   rpc GetDKGNetwork(QueryGetDKGNetworkRequest) returns (QueryGetDKGNetworkResponse) {
-    option (google.api.http).get = "/story/dkg/v1/network/{round}/{mrenclave_hex}";
+    option (google.api.http).get = "/story/dkg/v1/network/{round}/{code_commitment_hex}";
   }
 
   rpc GetLatestDKGNetwork(QueryGetLatestDKGNetworkRequest) returns (QueryGetLatestDKGNetworkResponse) {
@@ -28,15 +28,15 @@ service Query {
   }
 
   rpc GetDKGRegistration(QueryGetDKGRegistrationRequest) returns (QueryGetDKGRegistrationResponse) {
-    option (google.api.http).get = "/story/dkg/v1/registration/{round}/{mrenclave_hex}/{validator_address}";
+    option (google.api.http).get = "/story/dkg/v1/registration/{round}/{code_commitment_hex}/{validator_address}";
   }
 
   rpc GetAllDKGRegistrations(QueryGetAllDKGRegistrationsRequest) returns (QueryGetAllDKGRegistrationsResponse) {
-    option (google.api.http).get = "/story/dkg/v1/registrations/{round}/{mrenclave_hex}";
+    option (google.api.http).get = "/story/dkg/v1/registrations/{round}/{code_commitment_hex}";
   }
 
   rpc GetAllVerifiedDKGRegistrations(QueryGetAllVerifiedDKGRegistrationsRequest) returns (QueryGetAllVerifiedDKGRegistrationsResponse) {
-    option (google.api.http).get = "/story/dkg/v1/verified_registrations/{round}/{mrenclave_hex}";
+    option (google.api.http).get = "/story/dkg/v1/verified_registrations/{round}/{code_commitment_hex}";
   }
 
   rpc GetLatestActiveDKGNetwork(QueryGetLatestActiveDKGNetworkRequest) returns (QueryGetLatestActiveDKGNetworkResponse) {
@@ -55,8 +55,8 @@ message QueryGetDKGNetworkRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string mrenclave_hex = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
+  string code_commitment_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 }
 
@@ -94,8 +94,8 @@ message QueryGetDKGRegistrationRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string mrenclave_hex = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
+  string code_commitment_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 
   string validator_address = 3 [
@@ -115,8 +115,8 @@ message QueryGetAllDKGRegistrationsRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string mrenclave_hex = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
+  string code_commitment_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 
   cosmos.base.query.v1beta1.PageRequest pagination = 3;
@@ -136,8 +136,8 @@ message QueryGetAllVerifiedDKGRegistrationsRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  string mrenclave_hex = 2 [
-    (gogoproto.moretags) = "yaml:\"mrenclave_hex\""
+  string code_commitment_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 }
 

@@ -48,7 +48,7 @@ const (
 	AttributeKeyDKGIndex            = "dkg_index"
 	AttributeKeyDKGCommitments      = "dkg_commitments"
 	AttributeKeyDKGSignature        = "dkg_signature"
-	AttributeKeyDKGMrenclave        = "dkg_mrenclave"
+	AttributeKeyDKGCodeCommitment   = "dkg_code_commitment"
 	AttributeKeyDKGDkgPubKey        = "dkg_dkg_pub_key"
 	AttributeKeyDKGCommPubKey       = "dkg_comm_pub_key"
 	AttributeKeyDKGRawQuote         = "dkg_raw_quote"

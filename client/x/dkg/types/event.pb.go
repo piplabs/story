@@ -64,7 +64,7 @@ func (EventType) EnumDescriptor() ([]byte, []int) {
 }
 
 type EventBeginInitialization struct {
-	Mrenclave        []byte   `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
+	CodeCommitment   []byte   `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
 	Round            uint32   `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 	StartBlockHeight uint32   `protobuf:"varint,3,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty"`
 	ActiveValidators []string `protobuf:"bytes,4,rep,name=active_validators,json=activeValidators,proto3" json:"active_validators,omitempty"`
@@ -103,9 +103,9 @@ func (m *EventBeginInitialization) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventBeginInitialization proto.InternalMessageInfo
 
-func (m *EventBeginInitialization) GetMrenclave() []byte {
+func (m *EventBeginInitialization) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -132,8 +132,8 @@ func (m *EventBeginInitialization) GetActiveValidators() []string {
 }
 
 type EventBeginDealing struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
+	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 }
 
 func (m *EventBeginDealing) Reset()         { *m = EventBeginDealing{} }
@@ -169,9 +169,9 @@ func (m *EventBeginDealing) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventBeginDealing proto.InternalMessageInfo
 
-func (m *EventBeginDealing) GetMrenclave() []byte {
+func (m *EventBeginDealing) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -184,9 +184,9 @@ func (m *EventBeginDealing) GetRound() uint32 {
 }
 
 type EventBeginProcessDeals struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
-	Deals     []Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals"`
+	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
+	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Deals          []Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals"`
 }
 
 func (m *EventBeginProcessDeals) Reset()         { *m = EventBeginProcessDeals{} }
@@ -222,9 +222,9 @@ func (m *EventBeginProcessDeals) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventBeginProcessDeals proto.InternalMessageInfo
 
-func (m *EventBeginProcessDeals) GetMrenclave() []byte {
+func (m *EventBeginProcessDeals) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -244,9 +244,9 @@ func (m *EventBeginProcessDeals) GetDeals() []Deal {
 }
 
 type EventBeginProcessResponses struct {
-	Mrenclave []byte     `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
-	Round     uint32     `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
-	Responses []Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses"`
+	CodeCommitment []byte     `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
+	Round          uint32     `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Responses      []Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses"`
 }
 
 func (m *EventBeginProcessResponses) Reset()         { *m = EventBeginProcessResponses{} }
@@ -282,9 +282,9 @@ func (m *EventBeginProcessResponses) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventBeginProcessResponses proto.InternalMessageInfo
 
-func (m *EventBeginProcessResponses) GetMrenclave() []byte {
+func (m *EventBeginProcessResponses) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -304,8 +304,8 @@ func (m *EventBeginProcessResponses) GetResponses() []Response {
 }
 
 type EventBeginFinalization struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
+	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 }
 
 func (m *EventBeginFinalization) Reset()         { *m = EventBeginFinalization{} }
@@ -341,9 +341,9 @@ func (m *EventBeginFinalization) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventBeginFinalization proto.InternalMessageInfo
 
-func (m *EventBeginFinalization) GetMrenclave() []byte {
+func (m *EventBeginFinalization) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -356,8 +356,8 @@ func (m *EventBeginFinalization) GetRound() uint32 {
 }
 
 type EventDKGFinalized struct {
-	Mrenclave []byte `protobuf:"bytes,1,opt,name=mrenclave,proto3" json:"mrenclave,omitempty"`
-	Round     uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty"`
+	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
 }
 
 func (m *EventDKGFinalized) Reset()         { *m = EventDKGFinalized{} }
@@ -393,9 +393,9 @@ func (m *EventDKGFinalized) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EventDKGFinalized proto.InternalMessageInfo
 
-func (m *EventDKGFinalized) GetMrenclave() []byte {
+func (m *EventDKGFinalized) GetCodeCommitment() []byte {
 	if m != nil {
-		return m.Mrenclave
+		return m.CodeCommitment
 	}
 	return nil
 }
@@ -420,41 +420,42 @@ func init() {
 func init() { proto.RegisterFile("story/dkg/v1/types/event.proto", fileDescriptor_801f42319f883aee) }
 
 var fileDescriptor_801f42319f883aee = []byte{
-	// 535 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0x41, 0x6a, 0xdb, 0x40,
-	0x14, 0x86, 0xad, 0x38, 0x09, 0x78, 0xda, 0x82, 0x32, 0x84, 0x20, 0x8c, 0xab, 0xb8, 0x2a, 0x14,
-	0xd3, 0x14, 0x89, 0xb4, 0x3d, 0x40, 0xed, 0x68, 0xec, 0x0e, 0x31, 0xb2, 0x91, 0xdc, 0x40, 0xb3,
-	0x11, 0xb2, 0x34, 0xc8, 0x83, 0x15, 0x8d, 0x90, 0x26, 0xa2, 0xee, 0xb2, 0x27, 0x28, 0xbd, 0x45,
-	0x6f, 0x92, 0x65, 0x96, 0x5d, 0x95, 0x62, 0x1f, 0xa2, 0xdb, 0xa2, 0x91, 0x1d, 0x87, 0x3a, 0xdd,
-	0xb8, 0x1b, 0x21, 0xbd, 0xff, 0x7f, 0xbf, 0x3e, 0xe9, 0xcd, 0x03, 0x6a, 0xc6, 0x59, 0x3a, 0x33,
-	0x82, 0x69, 0x68, 0xe4, 0xa7, 0x06, 0x9f, 0x25, 0x24, 0x33, 0x48, 0x4e, 0x62, 0xae, 0x27, 0x29,
-	0xe3, 0x0c, 0x42, 0xa1, 0xeb, 0xc1, 0x34, 0xd4, 0xf3, 0x53, 0x5d, 0xe8, 0xf5, 0xc3, 0x90, 0x85,
-	0x4c, 0xc8, 0x46, 0x71, 0x57, 0x3a, 0xeb, 0x0f, 0x25, 0x89, 0x6b, 0xa9, 0x6b, 0xdf, 0x25, 0xa0,
-	0xa0, 0x22, 0xb9, 0x43, 0x42, 0x1a, 0xe3, 0x98, 0x72, 0xea, 0x45, 0xf4, 0xb3, 0xc7, 0x29, 0x8b,
-	0x61, 0x03, 0xd4, 0xae, 0x52, 0x12, 0xfb, 0x91, 0x97, 0x13, 0x45, 0x6a, 0x4a, 0xad, 0xc7, 0xf6,
-	0xba, 0x00, 0x0f, 0xc1, 0x5e, 0xca, 0xae, 0xe3, 0x40, 0xd9, 0x69, 0x4a, 0xad, 0x27, 0x76, 0xf9,
-	0x00, 0x5f, 0x01, 0x98, 0x71, 0x2f, 0xe5, 0xee, 0x38, 0x62, 0xfe, 0xd4, 0x9d, 0x10, 0x1a, 0x4e,
-	0xb8, 0x52, 0x15, 0x16, 0x59, 0x28, 0x9d, 0x42, 0x78, 0x2f, 0xea, 0xf0, 0x04, 0x1c, 0x78, 0x3e,
-	0xa7, 0x39, 0x71, 0x73, 0x2f, 0xa2, 0x81, 0xc7, 0x59, 0x9a, 0x29, 0xbb, 0xcd, 0x6a, 0xab, 0x66,
-	0xcb, 0xa5, 0x70, 0x71, 0x57, 0xd7, 0x7a, 0xe0, 0x60, 0x8d, 0x6a, 0x12, 0x2f, 0xa2, 0x71, 0xb8,
-	0x0d, 0xa3, 0xf6, 0x45, 0x02, 0x47, 0xeb, 0xa4, 0x61, 0xca, 0x7c, 0x92, 0x65, 0x45, 0x60, 0xb6,
-	0xd5, 0x27, 0xbf, 0x05, 0x7b, 0x41, 0xd1, 0xac, 0x54, 0x9b, 0xd5, 0xd6, 0xa3, 0xd7, 0x8a, 0xbe,
-	0x39, 0x1d, 0xbd, 0x48, 0xef, 0xec, 0xde, 0xfc, 0x3c, 0xae, 0xd8, 0xa5, 0x59, 0xfb, 0x26, 0x81,
-	0xfa, 0x06, 0x84, 0x4d, 0xb2, 0x84, 0xc5, 0x19, 0xd9, 0x0e, 0xe4, 0x1d, 0xa8, 0xa5, 0xab, 0x80,
-	0x25, 0x4c, 0xe3, 0x21, 0x98, 0xd5, 0x5b, 0x96, 0x40, 0xeb, 0x26, 0xad, 0x7f, 0xff, 0xc7, 0x74,
-	0x69, 0xfc, 0x5f, 0x67, 0xe1, 0x6e, 0x60, 0xe6, 0x79, 0x6f, 0x99, 0x45, 0x82, 0x6d, 0x82, 0x5e,
-	0xfe, 0x96, 0x40, 0x4d, 0x24, 0x8d, 0x66, 0x09, 0x81, 0x75, 0x70, 0x84, 0x2e, 0x90, 0x35, 0x72,
-	0x47, 0x1f, 0x87, 0xc8, 0xfd, 0x60, 0x39, 0x43, 0x74, 0x86, 0xbb, 0x18, 0x99, 0x72, 0x05, 0x3e,
-	0x07, 0xc7, 0xf7, 0xb4, 0x0e, 0xea, 0x61, 0xcb, 0xc5, 0x16, 0x1e, 0xe1, 0x76, 0x1f, 0x5f, 0xb6,
-	0x47, 0x78, 0x60, 0xc9, 0x12, 0x6c, 0x00, 0x65, 0xc3, 0x64, 0xa2, 0x76, 0x1f, 0x5b, 0x3d, 0x79,
-	0x07, 0x6a, 0x40, 0xdd, 0x50, 0x87, 0xf6, 0xe0, 0x0c, 0x39, 0x8e, 0x70, 0x39, 0x72, 0x15, 0xbe,
-	0x00, 0xda, 0x3f, 0x3d, 0x36, 0x72, 0x86, 0x03, 0xcb, 0x41, 0x8e, 0xbc, 0x0b, 0x9f, 0x81, 0xa7,
-	0x1b, 0xbe, 0x2e, 0xb6, 0xd6, 0x30, 0x7b, 0x7f, 0xc1, 0x98, 0xe7, 0xbd, 0x95, 0x01, 0x99, 0xf2,
-	0x7e, 0x07, 0xdd, 0xcc, 0x55, 0xe9, 0x76, 0xae, 0x4a, 0xbf, 0xe6, 0xaa, 0xf4, 0x75, 0xa1, 0x56,
-	0x6e, 0x17, 0x6a, 0xe5, 0xc7, 0x42, 0xad, 0x5c, 0x9e, 0x84, 0x94, 0x4f, 0xae, 0xc7, 0xba, 0xcf,
-	0xae, 0x8c, 0x84, 0x26, 0x91, 0x37, 0xce, 0x8c, 0x72, 0xd9, 0xfd, 0x88, 0x92, 0x98, 0x1b, 0x9f,
-	0xc4, 0xd6, 0x8b, 0x89, 0x8f, 0xf7, 0xc5, 0xb6, 0xbf, 0xf9, 0x13, 0x00, 0x00, 0xff, 0xff, 0x14,
-	0x1b, 0xd0, 0x1a, 0x59, 0x04, 0x00, 0x00,
+	// 546 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xdd, 0x6e, 0xd3, 0x30,
+	0x1c, 0xc5, 0x9b, 0x75, 0x9b, 0x34, 0xf3, 0x95, 0x59, 0xd3, 0x14, 0x55, 0x23, 0x2b, 0x41, 0x82,
+	0x8a, 0xa1, 0x44, 0x03, 0x1e, 0x80, 0xb6, 0x71, 0x8b, 0xb5, 0x29, 0xad, 0x92, 0x32, 0xc4, 0x6e,
+	0xa2, 0x34, 0xb1, 0x52, 0xab, 0x69, 0x1c, 0x25, 0x5e, 0x45, 0x79, 0x07, 0x24, 0x5e, 0x80, 0xb7,
+	0xe0, 0x21, 0x76, 0xb9, 0x4b, 0xae, 0x10, 0x6a, 0x1f, 0x82, 0x5b, 0x14, 0xa7, 0x1f, 0x13, 0x1d,
+	0x57, 0xe5, 0x26, 0x4a, 0xce, 0x39, 0x39, 0xfe, 0xc9, 0xb6, 0xfe, 0x40, 0xcd, 0x38, 0x4b, 0x27,
+	0x46, 0x30, 0x0c, 0x8d, 0xf1, 0xa9, 0xc1, 0x27, 0x09, 0xc9, 0x0c, 0x32, 0x26, 0x31, 0xd7, 0x93,
+	0x94, 0x71, 0x06, 0xa1, 0xf0, 0xf5, 0x60, 0x18, 0xea, 0xe3, 0x53, 0x5d, 0xf8, 0x95, 0x83, 0x90,
+	0x85, 0x4c, 0xd8, 0x46, 0xfe, 0x56, 0x24, 0x2b, 0x77, 0x35, 0x89, 0x67, 0xe1, 0x6b, 0xdf, 0x25,
+	0xa0, 0xa0, 0xbc, 0xb9, 0x41, 0x42, 0x1a, 0xe3, 0x98, 0x72, 0xea, 0x45, 0xf4, 0xb3, 0xc7, 0x29,
+	0x8b, 0xe1, 0x73, 0xf0, 0xc8, 0x67, 0x01, 0x71, 0x7d, 0x36, 0x1a, 0x51, 0x3e, 0x22, 0x31, 0x57,
+	0xa4, 0xaa, 0x54, 0xbb, 0x6f, 0x3f, 0xcc, 0xe5, 0xe6, 0x52, 0x85, 0x07, 0x60, 0x27, 0x65, 0x57,
+	0x71, 0xa0, 0x6c, 0x55, 0xa5, 0xda, 0x03, 0xbb, 0xf8, 0x80, 0x2f, 0x01, 0xcc, 0xb8, 0x97, 0x72,
+	0xb7, 0x1f, 0x31, 0x7f, 0xe8, 0x0e, 0x08, 0x0d, 0x07, 0x5c, 0x29, 0x8b, 0x88, 0x2c, 0x9c, 0x46,
+	0x6e, 0xbc, 0x13, 0x3a, 0x3c, 0x01, 0xfb, 0x9e, 0xcf, 0xe9, 0x98, 0xb8, 0x63, 0x2f, 0xa2, 0x81,
+	0xc7, 0x59, 0x9a, 0x29, 0xdb, 0xd5, 0x72, 0x6d, 0xcf, 0x96, 0x0b, 0xe3, 0x62, 0xa9, 0x6b, 0x36,
+	0xd8, 0x5f, 0x51, 0x9b, 0xc4, 0x8b, 0x68, 0x1c, 0x6e, 0x88, 0xab, 0x7d, 0x91, 0xc0, 0xe1, 0xaa,
+	0xb4, 0x9b, 0x32, 0x9f, 0x64, 0x59, 0xde, 0x9d, 0x6d, 0xba, 0x11, 0x6f, 0xc0, 0x4e, 0x90, 0xf7,
+	0x28, 0xe5, 0x6a, 0xb9, 0x76, 0xef, 0x95, 0xa2, 0xaf, 0x1f, 0x9f, 0x9e, 0x2f, 0xd4, 0xd8, 0xbe,
+	0xfe, 0x79, 0x5c, 0xb2, 0x8b, 0xb0, 0xf6, 0x4d, 0x02, 0x95, 0x35, 0x1e, 0x9b, 0x64, 0x09, 0x8b,
+	0x33, 0xb2, 0x31, 0xd3, 0x5b, 0xb0, 0x97, 0x2e, 0xba, 0xe6, 0x5c, 0x47, 0x77, 0x71, 0x2d, 0x16,
+	0x9c, 0xb3, 0xad, 0x7e, 0xd2, 0x3e, 0xdc, 0xde, 0xae, 0x16, 0x8d, 0xff, 0xd7, 0xbd, 0x59, 0x1e,
+	0xae, 0x79, 0xd6, 0x9e, 0xd7, 0x92, 0x60, 0xc3, 0xce, 0x17, 0xbf, 0x25, 0xb0, 0x27, 0x4a, 0x7b,
+	0x93, 0x84, 0xc0, 0x0a, 0x38, 0x44, 0x17, 0xc8, 0xea, 0xb9, 0xbd, 0x8f, 0x5d, 0xe4, 0xbe, 0xb7,
+	0x9c, 0x2e, 0x6a, 0xe2, 0x16, 0x46, 0xa6, 0x5c, 0x82, 0x4f, 0xc1, 0xf1, 0x2d, 0xaf, 0x81, 0xda,
+	0xd8, 0x72, 0xb1, 0x85, 0x7b, 0xb8, 0x7e, 0x8e, 0x2f, 0xeb, 0x3d, 0xdc, 0xb1, 0x64, 0x09, 0x1e,
+	0x01, 0x65, 0x2d, 0x64, 0xa2, 0xfa, 0x39, 0xb6, 0xda, 0xf2, 0x16, 0xd4, 0x80, 0xba, 0xe6, 0x76,
+	0xed, 0x4e, 0x13, 0x39, 0x8e, 0x48, 0x39, 0x72, 0x19, 0x3e, 0x03, 0xda, 0x3f, 0x33, 0x36, 0x72,
+	0xba, 0x1d, 0xcb, 0x41, 0x8e, 0xbc, 0x0d, 0x9f, 0x80, 0xc7, 0x6b, 0xb9, 0x16, 0xb6, 0x56, 0x30,
+	0x3b, 0x7f, 0xc1, 0x98, 0x67, 0xed, 0x45, 0x00, 0x99, 0xf2, 0x6e, 0x03, 0x5d, 0x4f, 0x55, 0xe9,
+	0x66, 0xaa, 0x4a, 0xbf, 0xa6, 0xaa, 0xf4, 0x75, 0xa6, 0x96, 0x6e, 0x66, 0x6a, 0xe9, 0xc7, 0x4c,
+	0x2d, 0x5d, 0x9e, 0x84, 0x94, 0x0f, 0xae, 0xfa, 0xba, 0xcf, 0x46, 0x46, 0x42, 0x93, 0xc8, 0xeb,
+	0x67, 0x46, 0x31, 0x2e, 0xfc, 0x88, 0x92, 0x98, 0x1b, 0x9f, 0xc4, 0xdc, 0x10, 0xf7, 0xa0, 0xbf,
+	0x2b, 0xe6, 0xc5, 0xeb, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x35, 0xd2, 0x6e, 0x6e, 0x9b, 0x04,
+	0x00, 0x00,
 }
 
 func (m *EventBeginInitialization) Marshal() (dAtA []byte, err error) {
@@ -496,10 +497,10 @@ func (m *EventBeginInitialization) MarshalToSizedBuffer(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -531,10 +532,10 @@ func (m *EventBeginDealing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -580,10 +581,10 @@ func (m *EventBeginProcessDeals) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -629,10 +630,10 @@ func (m *EventBeginProcessResponses) MarshalToSizedBuffer(dAtA []byte) (int, err
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -664,10 +665,10 @@ func (m *EventBeginFinalization) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -699,10 +700,10 @@ func (m *EventDKGFinalized) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.Mrenclave) > 0 {
-		i -= len(m.Mrenclave)
-		copy(dAtA[i:], m.Mrenclave)
-		i = encodeVarintEvent(dAtA, i, uint64(len(m.Mrenclave)))
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintEvent(dAtA, i, uint64(len(m.CodeCommitment)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -726,7 +727,7 @@ func (m *EventBeginInitialization) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -751,7 +752,7 @@ func (m *EventBeginDealing) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -767,7 +768,7 @@ func (m *EventBeginProcessDeals) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -789,7 +790,7 @@ func (m *EventBeginProcessResponses) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -811,7 +812,7 @@ func (m *EventBeginFinalization) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -827,7 +828,7 @@ func (m *EventDKGFinalized) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Mrenclave)
+	l = len(m.CodeCommitment)
 	if l > 0 {
 		n += 1 + l + sovEvent(uint64(l))
 	}
@@ -874,7 +875,7 @@ func (m *EventBeginInitialization) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -901,9 +902,9 @@ func (m *EventBeginInitialization) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1028,7 +1029,7 @@ func (m *EventBeginDealing) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1055,9 +1056,9 @@ func (m *EventBeginDealing) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1131,7 +1132,7 @@ func (m *EventBeginProcessDeals) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1158,9 +1159,9 @@ func (m *EventBeginProcessDeals) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1268,7 +1269,7 @@ func (m *EventBeginProcessResponses) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1295,9 +1296,9 @@ func (m *EventBeginProcessResponses) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1405,7 +1406,7 @@ func (m *EventBeginFinalization) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1432,9 +1433,9 @@ func (m *EventBeginFinalization) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1508,7 +1509,7 @@ func (m *EventDKGFinalized) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mrenclave", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1535,9 +1536,9 @@ func (m *EventDKGFinalized) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Mrenclave = append(m.Mrenclave[:0], dAtA[iNdEx:postIndex]...)
-			if m.Mrenclave == nil {
-				m.Mrenclave = []byte{}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:

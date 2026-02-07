@@ -13,7 +13,7 @@ import (
 // handleDKGDealing handles the dealing phase event.
 func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG dealing",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -43,7 +43,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -62,14 +62,14 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	var resp *types.GenerateDealsResponse
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "GenerateDeals call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
+			"code_commitment", session.GetCodeCommitmentString(),
 			"round", session.Round,
 		)
 
 		req := &types.GenerateDealsRequest{
-			Mrenclave:   session.Mrenclave,
-			Round:       session.Round,
-			IsResharing: session.IsResharing,
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
+			IsResharing:    session.IsResharing,
 		}
 		resp, err = k.teeClient.GenerateDeals(ctx, req)
 		if err != nil {
@@ -99,7 +99,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	k.EnqueueDeals(resp.GetDeals())
 
 	log.Info(ctx, "DKG deals are generated successfully",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -109,7 +109,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 // handleDKGProcessDeals handles the deals from other committee members.
 func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []types.Deal) {
 	log.Info(ctx, "Handling DKG process deals",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 		"num_deals", len(deals),
 	)
@@ -120,7 +120,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 
@@ -138,16 +138,16 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	var resp *types.ProcessDealResponse
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
+			"code_commitment", session.GetCodeCommitmentString(),
 			"round", session.Round,
 			"num_deals", len(deals),
 		)
 
 		req := &types.ProcessDealRequest{
-			Mrenclave:   session.Mrenclave,
-			Round:       session.Round,
-			Deals:       []types.Deal{},
-			IsResharing: session.IsResharing,
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
+			Deals:          []types.Deal{},
+			IsResharing:    session.IsResharing,
 		}
 
 		for _, deal := range deals {
@@ -177,7 +177,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	k.EnqueueResponses(resp.GetResponses())
 
 	log.Info(ctx, "Process deals complete",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -187,7 +187,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 // handleDKGProcessResponses handles the responses of processDeals from other committee members.
 func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response) {
 	log.Info(ctx, "Handling DKG process responses",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 		"num_responses", len(responses),
 	)
@@ -205,7 +205,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
-	session, err := k.stateManager.GetSession(dkgNetwork.Mrenclave, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 
@@ -222,16 +222,16 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessResponses call to TEE client",
-			"mrenclave", session.GetMrenclaveString(),
+			"code_commitment", session.GetCodeCommitmentString(),
 			"round", session.Round,
 			"num_deals", len(responses),
 		)
 
 		req := &types.ProcessResponsesRequest{
-			Mrenclave:   session.Mrenclave,
-			Round:       session.Round,
-			Responses:   []types.Response{},
-			IsResharing: session.IsResharing,
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
+			Responses:      []types.Response{},
+			IsResharing:    session.IsResharing,
 		}
 
 		for _, resp := range responses {
@@ -258,7 +258,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	}
 
 	log.Info(ctx, "Process responses complete",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 

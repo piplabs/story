@@ -11,10 +11,10 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// setDKGNetwork stores a DKG network in the store using the mrenclave as the key
+// setDKGNetwork stores a DKG network in the store using the code commitment as the key
 // If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
 func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.Mrenclave), dkgNetwork.Round)
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.CodeCommitment), dkgNetwork.Round)
 	if err := k.DKGNetworks.Set(ctx, key, *dkgNetwork); err != nil {
 		return err
 	}
@@ -32,9 +32,9 @@ func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 	return nil
 }
 
-// GetDKGNetworkByKey retrieves a DKG network by mrenclave.
-func (k *Keeper) getDKGNetwork(ctx context.Context, mrenclave [32]byte, round uint32) (*types.DKGNetwork, error) {
-	key := fmt.Sprintf("%s_%d", hex.EncodeToString(mrenclave[:]), round)
+// GetDKGNetworkByKey retrieves a DKG network by code commitment.
+func (k *Keeper) getDKGNetwork(ctx context.Context, codeCommitment [32]byte, round uint32) (*types.DKGNetwork, error) {
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(codeCommitment[:]), round)
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -132,8 +132,8 @@ func (k *Keeper) getAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, err
 }
 
 // DeleteDKGNetwork removes a DKG network from the store.
-func (k *Keeper) DeleteDKGNetwork(ctx context.Context, mrenclave []byte, round uint32) error {
-	key := fmt.Sprintf("%s_%d", hex.EncodeToString(mrenclave), round)
+func (k *Keeper) DeleteDKGNetwork(ctx context.Context, codeCommitment []byte, round uint32) error {
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(codeCommitment), round)
 	return k.DKGNetworks.Remove(ctx, key)
 }
 
@@ -175,7 +175,7 @@ func (k *Keeper) getNextRoundNumber(ctx context.Context) uint32 {
 }
 
 func (k *Keeper) setLatestActiveRound(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.Mrenclave), dkgNetwork.Round)
+	key := fmt.Sprintf("%s_%d", hex.EncodeToString(dkgNetwork.CodeCommitment), dkgNetwork.Round)
 	if err := k.LatestActiveRound.Set(ctx, key); err != nil {
 		return errors.Wrap(err, "failed to update latest active round of DKG network pointer")
 	}

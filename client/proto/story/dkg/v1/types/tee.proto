@@ -17,8 +17,8 @@ service TEE {
 
 // GenerateAndSealKeyRequest is sent to TEE client to generate and seal a key
 message GenerateAndSealKeyRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -32,8 +32,8 @@ message GenerateAndSealKeyRequest {
 
 // GenerateAndSealKeyResponse is returned from TEE client after key generation
 message GenerateAndSealKeyResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -55,8 +55,8 @@ message GenerateAndSealKeyResponse {
 
 // GenerateDealsRequest is sent to TEE client to generate deals
 message GenerateDealsRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -70,8 +70,8 @@ message GenerateDealsRequest {
 
 // GenerateDealsResponse is returned from TEE client with generated deals
 message GenerateDealsResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -86,8 +86,8 @@ message GenerateDealsResponse {
 
 // ProcessDealRequest is sent to TEE client to process deals
 message ProcessDealRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -106,8 +106,8 @@ message ProcessDealRequest {
 
 // ProcessDealResponse is returned from TEE client after processing deals
 message ProcessDealResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -121,8 +121,8 @@ message ProcessDealResponse {
 }
 
 message ProcessResponsesRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -147,8 +147,8 @@ message ProcessResponsesResponse {
 
 // FinalizeDKGRequest is sent to TEE client to finalize DKG
 message FinalizeDKGRequest {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -162,8 +162,8 @@ message FinalizeDKGRequest {
 
 // FinalizeDKGResponse is returned from TEE client after DKG finalization
 message FinalizeDKGResponse {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [
@@ -188,8 +188,8 @@ message FinalizeDKGResponse {
 }
 
 message PartialDecryptTDH2Request {
-  bytes mrenclave = 1 [
-    (gogoproto.moretags) = "yaml:\"mrenclave\""
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
 
   uint32 round = 2 [

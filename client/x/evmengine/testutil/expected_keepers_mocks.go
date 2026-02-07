@@ -332,113 +332,113 @@ func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
 }
 
 // DealComplaintsSubmitted mocks base method.
-func (m *MockDKGKeeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, mrenclave [32]byte) error {
+func (m *MockDKGKeeper) DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, codeCommitment [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DealComplaintsSubmitted", ctx, index, complainIndexes, round, mrenclave)
+	ret := m.ctrl.Call(m, "DealComplaintsSubmitted", ctx, index, complainIndexes, round, codeCommitment)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DealComplaintsSubmitted indicates an expected call of DealComplaintsSubmitted.
-func (mr *MockDKGKeeperMockRecorder) DealComplaintsSubmitted(ctx, index, complainIndexes, round, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) DealComplaintsSubmitted(ctx, index, complainIndexes, round, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DealComplaintsSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).DealComplaintsSubmitted), ctx, index, complainIndexes, round, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DealComplaintsSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).DealComplaintsSubmitted), ctx, index, complainIndexes, round, codeCommitment)
 }
 
 // DealVerified mocks base method.
-func (m *MockDKGKeeper) DealVerified(ctx context.Context, index, recipientIndex, round uint32, mrenclave [32]byte) error {
+func (m *MockDKGKeeper) DealVerified(ctx context.Context, index, recipientIndex, round uint32, codeCommitment [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DealVerified", ctx, index, recipientIndex, round, mrenclave)
+	ret := m.ctrl.Call(m, "DealVerified", ctx, index, recipientIndex, round, codeCommitment)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DealVerified indicates an expected call of DealVerified.
-func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, round, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, round, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DealVerified", reflect.TypeOf((*MockDKGKeeper)(nil).DealVerified), ctx, index, recipientIndex, round, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DealVerified", reflect.TypeOf((*MockDKGKeeper)(nil).DealVerified), ctx, index, recipientIndex, round, codeCommitment)
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, mrenclave, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, mrenclave, participantsRoot, signature, globalPubKey, publicCoeffs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
 }
 
 // InvalidDeal mocks base method.
-func (m *MockDKGKeeper) InvalidDeal(ctx context.Context, index, round uint32, mrenclave [32]byte) error {
+func (m *MockDKGKeeper) InvalidDeal(ctx context.Context, index, round uint32, codeCommitment [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InvalidDeal", ctx, index, round, mrenclave)
+	ret := m.ctrl.Call(m, "InvalidDeal", ctx, index, round, codeCommitment)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InvalidDeal indicates an expected call of InvalidDeal.
-func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDeal", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDeal), ctx, index, round, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDeal", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDeal), ctx, index, round, codeCommitment)
 }
 
 // RegistrationInitialized mocks base method.
-func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, mrenclave [32]byte, round uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
+func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, dkgPubKey, commPubKey, rawQuote []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote)
+	ret := m.ctrl.Call(m, "RegistrationInitialized", ctx, msgSender, codeCommitment, round, dkgPubKey, commPubKey, rawQuote)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegistrationInitialized indicates an expected call of RegistrationInitialized.
-func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, codeCommitment, round, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, mrenclave, round, dkgPubKey, commPubKey, rawQuote)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegistrationInitialized", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, codeCommitment, round, dkgPubKey, commPubKey, rawQuote)
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.
-func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, mrenclave [32]byte) error {
+func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, codeCommitment [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoteAttestationProcessedOnChain", ctx, validator, chalStatus, round, mrenclave)
+	ret := m.ctrl.Call(m, "RemoteAttestationProcessedOnChain", ctx, validator, chalStatus, round, codeCommitment)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RemoteAttestationProcessedOnChain indicates an expected call of RemoteAttestationProcessedOnChain.
-func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, validator, chalStatus, round, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, validator, chalStatus, round, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, codeCommitment)
 }
 
 // ThresholdDecryptRequested mocks base method.
-func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, mrenclave [32]byte, requesterPubKey, ciphertext, label []byte) error {
+func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey, ciphertext, label []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label)
+	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, requester, round, codeCommitment, requesterPubKey, ciphertext, label)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ThresholdDecryptRequested indicates an expected call of ThresholdDecryptRequested.
-func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, requester, round, codeCommitment, requesterPubKey, ciphertext, label any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, requester, round, mrenclave, requesterPubKey, ciphertext, label)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, requester, round, codeCommitment, requesterPubKey, ciphertext, label)
 }
 
 // UpgradeScheduled mocks base method.
-func (m *MockDKGKeeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, mrenclave [32]byte) error {
+func (m *MockDKGKeeper) UpgradeScheduled(ctx context.Context, activationHeight uint32, codeCommitment [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpgradeScheduled", ctx, activationHeight, mrenclave)
+	ret := m.ctrl.Call(m, "UpgradeScheduled", ctx, activationHeight, codeCommitment)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpgradeScheduled indicates an expected call of UpgradeScheduled.
-func (mr *MockDKGKeeperMockRecorder) UpgradeScheduled(ctx, activationHeight, mrenclave any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) UpgradeScheduled(ctx, activationHeight, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeScheduled", reflect.TypeOf((*MockDKGKeeper)(nil).UpgradeScheduled), ctx, activationHeight, mrenclave)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeScheduled", reflect.TypeOf((*MockDKGKeeper)(nil).UpgradeScheduled), ctx, activationHeight, codeCommitment)
 }

@@ -24,27 +24,27 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testRawQuote := []byte("test-raw-quote")
 
 	validDKGNetwork := &types.DKGNetwork{
-		Mrenclave:    testMrenclave[:],
-		Round:        testRound,
-		StartBlock:   100,
-		ActiveValSet: []string{testValidator.Hex()},
-		Total:        5,
-		Threshold:    3,
-		Stage:        types.DKGStageRegistration,
+		CodeCommitment:   testCodeCommitment[:],
+		Round:            testRound,
+		StartBlockHeight: 100,
+		ActiveValSet:     []string{testValidator.Hex()},
+		Total:            5,
+		Threshold:        3,
+		Stage:            types.DKGStageRegistration,
 	}
 	require.NoError(t, k.setDKGNetwork(ctx, validDKGNetwork))
 
 	tcs := []struct {
 		name            string
 		msgSender       common.Address
-		mrenclave       [32]byte
+		codeCommitment  [32]byte
 		round           uint32
 		dkgPubKey       []byte
 		commPubKey      []byte
@@ -54,13 +54,13 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		expectedRegData *types.DKGRegistration
 	}{
 		{
-			name:       "pass: successful registration initialization",
-			msgSender:  testValidator,
-			mrenclave:  testMrenclave,
-			round:      testRound,
-			dkgPubKey:  testDkgPubKey,
-			commPubKey: testCommPubKey,
-			rawQuote:   testRawQuote,
+			name:           "pass: successful registration initialization",
+			msgSender:      testValidator,
+			codeCommitment: testCodeCommitment,
+			round:          testRound,
+			dkgPubKey:      testDkgPubKey,
+			commPubKey:     testCommPubKey,
+			rawQuote:       testRawQuote,
 			setupNetwork: func() {
 				// Network already set up in test setup
 			},
@@ -75,77 +75,77 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			},
 		},
 		{
-			name:        "fail: DKG network not found",
-			msgSender:   testValidator,
-			mrenclave:   [32]byte{0x99, 0x99, 0x99, 0x99},
-			round:       testRound,
-			dkgPubKey:   testDkgPubKey,
-			commPubKey:  testCommPubKey,
-			rawQuote:    testRawQuote,
-			expectedErr: "dkg network not found",
+			name:           "fail: DKG network not found",
+			msgSender:      testValidator,
+			codeCommitment: [32]byte{0x99, 0x99, 0x99, 0x99},
+			round:          testRound,
+			dkgPubKey:      testDkgPubKey,
+			commPubKey:     testCommPubKey,
+			rawQuote:       testRawQuote,
+			expectedErr:    "dkg network not found",
 		},
 		{
-			name:       "fail: round not in registration stage",
-			msgSender:  testValidator,
-			mrenclave:  testMrenclave,
-			round:      testRound,
-			dkgPubKey:  testDkgPubKey,
-			commPubKey: testCommPubKey,
-			rawQuote:   testRawQuote,
+			name:           "fail: round not in registration stage",
+			msgSender:      testValidator,
+			codeCommitment: testCodeCommitment,
+			round:          testRound,
+			dkgPubKey:      testDkgPubKey,
+			commPubKey:     testCommPubKey,
+			rawQuote:       testRawQuote,
 			setupNetwork: func() {
 				networkWithDifferentStage := &types.DKGNetwork{
-					Mrenclave:    testMrenclave[:],
-					Round:        testRound,
-					StartBlock:   100,
-					ActiveValSet: []string{testValidator.Hex()},
-					Total:        5,
-					Threshold:    3,
-					Stage:        types.DKGStageDealing,
+					CodeCommitment:   testCodeCommitment[:],
+					Round:            testRound,
+					StartBlockHeight: 100,
+					ActiveValSet:     []string{testValidator.Hex()},
+					Total:            5,
+					Threshold:        3,
+					Stage:            types.DKGStageDealing,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, networkWithDifferentStage))
 			},
 			expectedErr: "round is not in registration stage",
 		},
 		{
-			name:       "fail: validator not in active set",
-			msgSender:  common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			mrenclave:  testMrenclave,
-			round:      testRound,
-			dkgPubKey:  testDkgPubKey,
-			commPubKey: testCommPubKey,
-			rawQuote:   testRawQuote,
+			name:           "fail: validator not in active set",
+			msgSender:      common.HexToAddress("0x9999999999999999999999999999999999999999"),
+			codeCommitment: testCodeCommitment,
+			round:          testRound,
+			dkgPubKey:      testDkgPubKey,
+			commPubKey:     testCommPubKey,
+			rawQuote:       testRawQuote,
 			setupNetwork: func() {
 				networkInRegistrationStage := &types.DKGNetwork{
-					Mrenclave:    testMrenclave[:],
-					Round:        testRound,
-					StartBlock:   100,
-					ActiveValSet: []string{testValidator.Hex()},
-					Total:        5,
-					Threshold:    3,
-					Stage:        types.DKGStageRegistration,
+					CodeCommitment:   testCodeCommitment[:],
+					Round:            testRound,
+					StartBlockHeight: 100,
+					ActiveValSet:     []string{testValidator.Hex()},
+					Total:            5,
+					Threshold:        3,
+					Stage:            types.DKGStageRegistration,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, networkInRegistrationStage))
 			},
 			expectedErr: "msg sender is not in the active validator set",
 		},
 		{
-			name:       "pass: second registration gets incremented index",
-			msgSender:  testValidator,
-			mrenclave:  testMrenclave,
-			round:      testRound,
-			dkgPubKey:  []byte("second-dkg-pubkey"),
-			commPubKey: []byte("second-comm-pubkey"),
-			rawQuote:   []byte("second-raw-quote"),
+			name:           "pass: second registration gets incremented index",
+			msgSender:      testValidator,
+			codeCommitment: testCodeCommitment,
+			round:          testRound,
+			dkgPubKey:      []byte("second-dkg-pubkey"),
+			commPubKey:     []byte("second-comm-pubkey"),
+			rawQuote:       []byte("second-raw-quote"),
 			setupNetwork: func() {
 				anotherValidator := common.HexToAddress("0xAABBCCDDEEFF112233445566778899AABBCCDDEE")
 				networkWithMultipleValidators := &types.DKGNetwork{
-					Mrenclave:    testMrenclave[:],
-					Round:        testRound,
-					StartBlock:   100,
-					ActiveValSet: []string{testValidator.Hex(), anotherValidator.Hex()},
-					Total:        5,
-					Threshold:    3,
-					Stage:        types.DKGStageRegistration,
+					CodeCommitment:   testCodeCommitment[:],
+					Round:            testRound,
+					StartBlockHeight: 100,
+					ActiveValSet:     []string{testValidator.Hex(), anotherValidator.Hex()},
+					Total:            5,
+					Threshold:        3,
+					Stage:            types.DKGStageRegistration,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, networkWithMultipleValidators))
 
@@ -158,7 +158,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					RawQuote:      []byte("first-raw-quote"),
 					Status:        types.DKGRegStatusVerified,
 				}
-				require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, anotherValidator, firstReg))
+				require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, anotherValidator, firstReg))
 			},
 			expectedRegData: &types.DKGRegistration{
 				Round:         testRound,
@@ -178,7 +178,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				tc.setupNetwork()
 			}
 
-			err := k.RegistrationInitialized(ctx, tc.msgSender, tc.mrenclave, tc.round, tc.dkgPubKey, tc.commPubKey, tc.rawQuote)
+			err := k.RegistrationInitialized(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.dkgPubKey, tc.commPubKey, tc.rawQuote)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -187,7 +187,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				require.NoError(t, err)
 
 				if tc.expectedRegData != nil {
-					storedReg, err := k.getDKGRegistration(ctx, tc.mrenclave, tc.round, tc.msgSender)
+					storedReg, err := k.getDKGRegistration(ctx, tc.codeCommitment, tc.round, tc.msgSender)
 					require.NoError(t, err)
 					require.Equal(t, tc.expectedRegData.Round, storedReg.Round)
 					require.Equal(t, tc.expectedRegData.ValidatorAddr, storedReg.ValidatorAddr)
@@ -206,7 +206,7 @@ func TestKeeper_Finalized(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testParticipantsRoot := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 	testSignature := []byte("test-signature")
@@ -220,13 +220,13 @@ func TestKeeper_Finalized(t *testing.T) {
 		RawQuote:      []byte("test-raw-quote"),
 		Status:        types.DKGRegStatusVerified,
 	}
-	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
+	require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, testValidator, testReg))
 
 	tcs := []struct {
 		name             string
 		round            uint32
 		msgSender        common.Address
-		mrenclave        [32]byte
+		codeCommitment   [32]byte
 		participantsRoot [32]byte
 		globalPubKey     []byte
 		signature        []byte
@@ -236,7 +236,7 @@ func TestKeeper_Finalized(t *testing.T) {
 			name:             "pass: successful finalization",
 			round:            testRound,
 			msgSender:        testValidator,
-			mrenclave:        testMrenclave,
+			codeCommitment:   testCodeCommitment,
 			participantsRoot: testParticipantsRoot,
 			signature:        testSignature,
 		},
@@ -244,7 +244,7 @@ func TestKeeper_Finalized(t *testing.T) {
 			name:             "fail: registration not found",
 			round:            testRound,
 			msgSender:        common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			mrenclave:        testMrenclave,
+			codeCommitment:   testCodeCommitment,
 			participantsRoot: testParticipantsRoot,
 			signature:        testSignature,
 			expectedErr:      "dkg registration not found",
@@ -254,7 +254,7 @@ func TestKeeper_Finalized(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.mrenclave, tc.participantsRoot, tc.signature, tc.globalPubKey, [][]byte{}) // TODO mock public coeffs
+			err := k.Finalized(ctx, tc.round, tc.msgSender, tc.codeCommitment, tc.participantsRoot, tc.signature, tc.globalPubKey, [][]byte{}) // TODO mock public coeffs
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -262,7 +262,7 @@ func TestKeeper_Finalized(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				updatedReg, err := k.getDKGRegistration(ctx, tc.mrenclave, tc.round, tc.msgSender)
+				updatedReg, err := k.getDKGRegistration(ctx, tc.codeCommitment, tc.round, tc.msgSender)
 				require.NoError(t, err)
 				require.Equal(t, types.DKGRegStatusFinalized, updatedReg.Status)
 			}
@@ -274,24 +274,24 @@ func TestKeeper_UpgradeScheduled(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testActivationHeight := uint32(1000)
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 
 	tcs := []struct {
 		name             string
 		activationHeight uint32
-		mrenclave        [32]byte
+		codeCommitment   [32]byte
 		expectedErr      string
 	}{
 		{
 			name:             "pass: successful upgrade scheduling",
 			activationHeight: testActivationHeight,
-			mrenclave:        testMrenclave,
+			codeCommitment:   testCodeCommitment,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.UpgradeScheduled(ctx, tc.activationHeight, tc.mrenclave)
+			err := k.UpgradeScheduled(ctx, tc.activationHeight, tc.codeCommitment)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -307,7 +307,7 @@ func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 	testChalStatus := 1 // ChallengeStatus.Invalidated
 
@@ -320,36 +320,36 @@ func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
 		RawQuote:      []byte("test-raw-quote"),
 		Status:        types.DKGRegStatusVerified,
 	}
-	require.NoError(t, k.setDKGRegistration(ctx, testMrenclave, testValidator, testReg))
+	require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, testValidator, testReg))
 
 	tcs := []struct {
-		name        string
-		validator   common.Address
-		chalStatus  int
-		round       uint32
-		mrenclave   [32]byte
-		expectedErr string
+		name           string
+		validator      common.Address
+		chalStatus     int
+		round          uint32
+		codeCommitment [32]byte
+		expectedErr    string
 	}{
 		{
-			name:       "pass: successful remote attestation processing",
-			validator:  testValidator,
-			chalStatus: testChalStatus,
-			round:      testRound,
-			mrenclave:  testMrenclave,
+			name:           "pass: successful remote attestation processing",
+			validator:      testValidator,
+			chalStatus:     testChalStatus,
+			round:          testRound,
+			codeCommitment: testCodeCommitment,
 		},
 		{
-			name:        "fail: registration not found",
-			validator:   common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			chalStatus:  testChalStatus,
-			round:       testRound,
-			mrenclave:   testMrenclave,
-			expectedErr: "dkg registration not found",
+			name:           "fail: registration not found",
+			validator:      common.HexToAddress("0x9999999999999999999999999999999999999999"),
+			chalStatus:     testChalStatus,
+			round:          testRound,
+			codeCommitment: testCodeCommitment,
+			expectedErr:    "dkg registration not found",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.RemoteAttestationProcessedOnChain(ctx, tc.validator, tc.chalStatus, tc.round, tc.mrenclave)
+			err := k.RemoteAttestationProcessedOnChain(ctx, tc.validator, tc.chalStatus, tc.round, tc.codeCommitment)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -367,14 +367,14 @@ func TestKeeper_DealComplaintsSubmitted(t *testing.T) {
 	testIndex := uint32(1)
 	testComplainIndexes := []uint32{1, 2, 3}
 	testRound := uint32(1)
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 
 	tcs := []struct {
 		name            string
 		index           uint32
 		complainIndexes []uint32
 		round           uint32
-		mrenclave       [32]byte
+		codeCommitment  [32]byte
 		expectedErr     string
 	}{
 		{
@@ -382,13 +382,13 @@ func TestKeeper_DealComplaintsSubmitted(t *testing.T) {
 			index:           testIndex,
 			complainIndexes: testComplainIndexes,
 			round:           testRound,
-			mrenclave:       testMrenclave,
+			codeCommitment:  testCodeCommitment,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.DealComplaintsSubmitted(ctx, tc.index, tc.complainIndexes, tc.round, tc.mrenclave)
+			err := k.DealComplaintsSubmitted(ctx, tc.index, tc.complainIndexes, tc.round, tc.codeCommitment)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -406,14 +406,14 @@ func TestKeeper_DealVerified(t *testing.T) {
 	testIndex := uint32(1)
 	testRecipientIndex := uint32(2)
 	testRound := uint32(1)
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 
 	tcs := []struct {
 		name           string
 		index          uint32
 		recipientIndex uint32
 		round          uint32
-		mrenclave      [32]byte
+		codeCommitment [32]byte
 		expectedErr    string
 	}{
 		{
@@ -421,13 +421,13 @@ func TestKeeper_DealVerified(t *testing.T) {
 			index:          testIndex,
 			recipientIndex: testRecipientIndex,
 			round:          testRound,
-			mrenclave:      testMrenclave,
+			codeCommitment: testCodeCommitment,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.DealVerified(ctx, tc.index, tc.recipientIndex, tc.round, tc.mrenclave)
+			err := k.DealVerified(ctx, tc.index, tc.recipientIndex, tc.round, tc.codeCommitment)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -444,26 +444,26 @@ func TestKeeper_InvalidDeal(t *testing.T) {
 
 	testIndex := uint32(1)
 	testRound := uint32(1)
-	testMrenclave := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 
 	tcs := []struct {
-		name        string
-		index       uint32
-		round       uint32
-		mrenclave   [32]byte
-		expectedErr string
+		name           string
+		index          uint32
+		round          uint32
+		codeCommitment [32]byte
+		expectedErr    string
 	}{
 		{
-			name:      "pass: successful invalid deal processing",
-			index:     testIndex,
-			round:     testRound,
-			mrenclave: testMrenclave,
+			name:           "pass: successful invalid deal processing",
+			index:          testIndex,
+			round:          testRound,
+			codeCommitment: testCodeCommitment,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.InvalidDeal(ctx, tc.index, tc.round, tc.mrenclave)
+			err := k.InvalidDeal(ctx, tc.index, tc.round, tc.codeCommitment)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)

@@ -19,7 +19,7 @@ import (
 type StateManager struct {
 	dataDir  string
 	mu       sync.RWMutex
-	sessions map[string]*types.DKGSession // keyed by session key (mrenclave_round)
+	sessions map[string]*types.DKGSession // keyed by session key (codeCommitment_round)
 }
 
 // NewStateManager creates a new state manager.
@@ -53,7 +53,7 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	sessionKey := session.GetSessionKey()
 
 	if _, exists := sm.sessions[sessionKey]; exists {
-		log.Info(ctx, "session already exists with the mrenclave and round. skip creating a new session", "mrenclave", session.GetMrenclaveString(), "round", session.Round)
+		log.Info(ctx, "session already exists with the code commitment and round. skip creating a new session", "code_commitment", session.GetCodeCommitmentString(), "round", session.Round)
 
 		return nil
 	} else {
@@ -64,7 +64,7 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 		}
 
 		log.Info(ctx, "Created DKG session",
-			"mrenclave", session.GetMrenclaveString(),
+			"code_commitment", session.GetCodeCommitmentString(),
 			"round", session.Round,
 			"phase", session.Phase.String(),
 		)
@@ -73,12 +73,12 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	}
 }
 
-// GetSession retrieves a DKG session by its mrenclave and round.
-func (sm *StateManager) GetSession(mrenclave []byte, round uint32) (*types.DKGSession, error) {
+// GetSession retrieves a DKG session by its code_commitment and round.
+func (sm *StateManager) GetSession(codeCommitment []byte, round uint32) (*types.DKGSession, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
-	sessionKey := fmt.Sprintf("%x_%d", mrenclave, round)
+	sessionKey := fmt.Sprintf("%x_%d", codeCommitment, round)
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
 		return nil, errors.New("session not found", "session_key", sessionKey)
@@ -105,7 +105,7 @@ func (sm *StateManager) UpdateSession(ctx context.Context, session *types.DKGSes
 	}
 
 	log.Debug(ctx, "Updated DKG session",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"phase", session.Phase.String(),
 	)
@@ -134,11 +134,11 @@ func (sm *StateManager) ListSessions() []*types.DKGSession {
 }
 
 // DeleteSession removes a DKG session.
-func (sm *StateManager) DeleteSession(ctx context.Context, mrenclave []byte, round uint32) error {
+func (sm *StateManager) DeleteSession(ctx context.Context, codeCommitment []byte, round uint32) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	sessionKey := fmt.Sprintf("%x_%d", mrenclave, round)
+	sessionKey := fmt.Sprintf("%x_%d", codeCommitment, round)
 
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
@@ -154,7 +154,7 @@ func (sm *StateManager) DeleteSession(ctx context.Context, mrenclave []byte, rou
 	}
 
 	log.Info(ctx, "Deleted DKG session",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -198,7 +198,7 @@ func (sm *StateManager) CleanupExpiredSessions(ctx context.Context) {
 			log.Error(ctx, "Failed to delete expired session file", err, "filename", filename)
 		} else {
 			log.Info(ctx, "Cleaned up expired DKG session",
-				"mrenclave", session.GetMrenclaveString(),
+				"code_commitment", session.GetCodeCommitmentString(),
 				"round", session.Round,
 				"phase", session.Phase.String(),
 			)

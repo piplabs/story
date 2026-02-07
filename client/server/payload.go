@@ -124,11 +124,11 @@ type QueryTotalRewardsTokenByDelegatorAddressResponse struct {
 }
 
 type getDKGNetworkRequest struct {
-	Round        uint32 `mapstructure:"round"`
-	MrenclaveHex string `mapstructure:"mrenclave_hex"`
+	Round             uint32 `mapstructure:"round"`
+	CodeCommitmentHex string `mapstructure:"code_commitment_hex"`
 }
 
 type getVerifiedDKGRegistrationsRequest struct {
-	Round        uint32 `mapstructure:"round"`
-	MrenclaveHex string `mapstructure:"mrenclave_hex"`
+	Round             uint32 `mapstructure:"round"`
+	CodeCommitmentHex string `mapstructure:"code_commitment_hex"`
 }

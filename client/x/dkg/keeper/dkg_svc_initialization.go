@@ -13,7 +13,7 @@ import (
 // handleDKGInitialization handles the DKG initialization event.
 func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG initialization",
-		"mrenclave", hex.EncodeToString(dkgNetwork.Mrenclave),
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -37,7 +37,7 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 	// we still create a session. Old members do not generate new keys, but they still
 	// participate in later stages (especially dealing, and finalization).
 	// Therefore, a session must exist regardless of key generation eligibility.
-	session := types.NewDKGSession(dkgNetwork.Mrenclave, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing)
+	session := types.NewDKGSession(dkgNetwork.CodeCommitment, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing)
 	if err := k.stateManager.CreateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to create DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -83,7 +83,7 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 	}
 
 	log.Info(ctx, "DKG initialization complete",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -92,7 +92,7 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 
 func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "GenerateAndSealKey call to TEE client",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"validator", k.validatorEVMAddr,
 	)
@@ -109,9 +109,9 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	)
 	if err := retry(ctx, func(ctx context.Context) error {
 		req := &types.GenerateAndSealKeyRequest{
-			Address:   k.validatorEVMAddr,
-			Mrenclave: session.Mrenclave,
-			Round:     session.Round,
+			Address:        k.validatorEVMAddr,
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
 		}
 
 		resp, err = k.teeClient.GenerateAndSealKey(ctx, req)
@@ -136,7 +136,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 
 func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "InitializeDKG contract call",
-		"mrenclave", session.GetMrenclaveString(),
+		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"dkg_pub_key", hex.EncodeToString(session.DKGPubKey),
 		"comm_pub_key", hex.EncodeToString(session.CommPubKey),
@@ -144,7 +144,7 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 	)
 
 	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
-	isInitialized, err := k.contractClient.IsInitialized(ctx, session.Round, session.Mrenclave, validatorAddr)
+	isInitialized, err := k.contractClient.IsInitialized(ctx, session.Round, session.CodeCommitment, validatorAddr)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 	if _, err := k.contractClient.InitializeDKG(
 		ctx,
 		session.Round,
-		session.Mrenclave,
+		session.CodeCommitment,
 		session.DKGPubKey,
 		session.CommPubKey,
 		session.RawQuote,
