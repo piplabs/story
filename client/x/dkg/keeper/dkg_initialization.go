@@ -34,7 +34,7 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 }
 
 func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
-	currentHeight := sdk.UnwrapSDKContext(ctx).BlockHeight()
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	activeValidators, err := k.GetActiveValidators(ctx)
 	if err != nil {
@@ -54,14 +54,15 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 	}
 
 	dkgNetwork := types.DKGNetwork{
-		Round:        roundNum,
-		StartBlock:   currentHeight,
-		Mrenclave:    params.Mrenclave, // latest TEE mrenclave
-		ActiveValSet: activeValidators, // list of active validators' EVM addresses
-		Total:        0,
-		Threshold:    0,
-		Stage:        types.DKGStageRegistration,
-		IsResharing:  isResharing,
+		Round:            roundNum,
+		StartBlockHeight: sdkCtx.BlockHeight(),
+		StartBlockHash:   sdkCtx.HeaderHash(),
+		Mrenclave:        params.Mrenclave, // latest TEE mrenclave
+		ActiveValSet:     activeValidators, // list of active validators' EVM addresses
+		Total:            0,
+		Threshold:        0,
+		Stage:            types.DKGStageRegistration,
+		IsResharing:      isResharing,
 	}
 
 	if err := k.setDKGNetwork(ctx, &dkgNetwork); err != nil {
@@ -70,7 +71,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 
 	log.Info(ctx, "Initiated new DKG round",
 		"round", roundNum,
-		"start_block", currentHeight,
+		"start_block", sdkCtx.BlockHeight(),
 	)
 
 	if err := k.emitBeginDKGInitialization(ctx, &dkgNetwork); err != nil {

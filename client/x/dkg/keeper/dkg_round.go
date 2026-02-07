@@ -8,7 +8,7 @@ import (
 
 func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGNetwork, params types.Params) (types.DKGStage, bool) {
 	currentStage := dkgNetwork.Stage
-	elapsed := currentHeight - dkgNetwork.StartBlock
+	elapsed := currentHeight - dkgNetwork.StartBlockHeight
 
 	registrationEnd := int64(params.RegistrationPeriod)
 	dealingEnd := registrationEnd + int64(params.DealingPeriod)

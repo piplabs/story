@@ -158,7 +158,7 @@ func (k *Keeper) isLatestDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNe
 	if dkgNetwork.Round > currentLatest.Round {
 		return true, nil
 	}
-	if dkgNetwork.Round == currentLatest.Round && dkgNetwork.StartBlock > currentLatest.StartBlock {
+	if dkgNetwork.Round == currentLatest.Round && dkgNetwork.StartBlockHeight > currentLatest.StartBlockHeight {
 		return true, nil
 	}
 
