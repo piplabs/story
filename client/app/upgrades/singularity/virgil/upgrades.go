@@ -72,8 +72,7 @@ func CreateUpgradeHandler(
 				log.Info(ctx, "Change long period rewards multiplier", "new_multiplier", newRewardsMultiplier.Long.String())
 				stakingParams.Periods[i].RewardsMultiplier = newRewardsMultiplier.Long
 			default:
-				log.Error(ctx, "Unexpected type", nil)
-				return vm, errors.New("unexpected type of period for staking module")
+				log.Debug(ctx, "Skip other types", nil)
 			}
 		}
 
@@ -115,8 +114,7 @@ func CreateUpgradeHandler(
 					return vm, errors.New("new long period rewards multiplier is not correct")
 				}
 			default:
-				log.Error(ctx, "Unexpected type", nil)
-				return vm, errors.New("unexpected type of period for staking module")
+				log.Debug(ctx, "Skip other types", nil)
 			}
 		}
 
