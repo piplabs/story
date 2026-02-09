@@ -75,7 +75,7 @@ interface IDKG {
     /// @param validatorAddr The address of the validator
     /// @param enclaveType The type of the enclave
     /// @param codeCommitment The code commitment
-    /// @param valSetRoot The value set root
+    /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
     /// @param signature The signature
@@ -84,7 +84,7 @@ interface IDKG {
         address indexed validatorAddr,
         bytes32 enclaveType,
         bytes32 codeCommitment,
-        bytes32 valSetRoot,
+        bytes32 participantsRoot,
         bytes globalPubKey,
         bytes[] publicCoeffs,
         bytes signature

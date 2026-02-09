@@ -169,7 +169,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
     /// @param round The round
     /// @param validatorAddr The address of the validator
     /// @param enclaveType The type of the enclave
-    /// @param valSetRoot The value set root
+    /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
     /// @param signature The signature
@@ -177,7 +177,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         uint32 round,
         address validatorAddr,
         bytes32 enclaveType,
-        bytes32 valSetRoot,
+        bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
         bytes calldata signature
@@ -186,7 +186,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         require(round != 0, "DKG: Round cannot be zero");
         require(validatorAddr != address(0), "DKG: Validator address cannot be empty");
         require($.isEnclaveTypeWhitelisted[enclaveType], "DKG: Enclave type is not whitelisted");
-        require(valSetRoot != bytes32(0), "DKG: Val set root cannot be empty");
+        require(participantsRoot != bytes32(0), "DKG: Participants root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
         require(publicCoeffs.length != 0, "DKG: Public coefficients cannot be empty");
         require(signature.length != 0, "DKG: Signature cannot be empty");
@@ -196,7 +196,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
             validatorAddr,
             enclaveType,
             $.enclaveTypeData[enclaveType].codeCommitment,
-            valSetRoot,
+            participantsRoot,
             globalPubKey,
             publicCoeffs,
             signature
