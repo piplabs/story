@@ -103,7 +103,6 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         require(enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
         require(enclaveTypeData.codeCommitment != bytes32(0), "DKG: Code commitment cannot be empty");
         require(enclaveTypeData.validationHookAddr != address(0), "DKG: Validation hook cannot be empty");
-        require(enclaveTypeData.enclaveAddr != address(0), "DKG: Enclave address cannot be empty");
         DKGStorage storage $ = _getDKGStorage();
 
         $.enclaveTypeData[enclaveType] = enclaveTypeData;
@@ -113,7 +112,6 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
             enclaveType,
             enclaveTypeData.codeCommitment,
             enclaveTypeData.validationHookAddr,
-            enclaveTypeData.enclaveAddr,
             isWhitelisted
         );
     }

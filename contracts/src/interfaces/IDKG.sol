@@ -5,11 +5,9 @@ interface IDKG {
     /// @notice Struct for the enclave type data unique to each enclave type
     /// @param codeCommitment The code commitment
     /// @param validationHookAddr The address of the validation hook
-    /// @param enclaveAddr The address of the enclave
     struct EnclaveTypeData {
         bytes32 codeCommitment;
         address validationHookAddr;
-        address enclaveAddr;
     }
 
     /// @notice Struct for the enclave instance data unique to each instance
@@ -46,13 +44,11 @@ interface IDKG {
     /// @param enclaveType The type of the enclave
     /// @param codeCommitment The code commitment
     /// @param validationHookAddr The address of the validation hook
-    /// @param enclaveAddr The address of the enclave
     /// @param isWhitelisted Whether the enclave type is whitelisted
     event EnclaveTypeWhitelisted(
         bytes32 enclaveType,
         bytes32 codeCommitment,
         address validationHookAddr,
-        address enclaveAddr,
         bool isWhitelisted
     );
 
