@@ -78,8 +78,7 @@ interface IDKG {
     /// @param round The round
     /// @param validatorAddr The address of the validator
     /// @param enclaveType The type of the enclave
-    /// @param enclaveCommKey The communication key of the enclave
-    /// @param dkgPubKey The DKG public key
+    /// @param codeCommitment The code commitment
     /// @param valSetRoot The value set root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
@@ -88,8 +87,7 @@ interface IDKG {
         uint32 round,
         address indexed validatorAddr,
         bytes32 enclaveType,
-        bytes enclaveCommKey,
-        bytes dkgPubKey,
+        bytes32 codeCommitment,
         bytes32 valSetRoot,
         bytes globalPubKey,
         bytes[] publicCoeffs,

@@ -168,34 +168,36 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
     }
 
     /// @notice Finalizes an enclave instance
-    /// @param enclaveInstanceData The data of the enclave instance
+    /// @param round The round
+    /// @param validatorAddr The address of the validator
+    /// @param enclaveType The type of the enclave
     /// @param valSetRoot The value set root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
     /// @param signature The signature
     function finalize(
-        EnclaveInstanceData calldata enclaveInstanceData,
+        uint32 round,
+        address validatorAddr,
+        bytes32 enclaveType,
         bytes32 valSetRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
         bytes calldata signature
     ) external payable chargesFee {
-        require(enclaveInstanceData.round != 0, "DKG: Round cannot be zero");
-        require(enclaveInstanceData.validatorAddr != address(0), "DKG: Validator address cannot be empty");
-        require(enclaveInstanceData.enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
-        require(enclaveInstanceData.enclaveCommKey.length != 0, "DKG: Enclave communication key cannot be empty");
-        require(enclaveInstanceData.dkgPubKey.length != 0, "DKG: DKG public key cannot be empty");
+        DKGStorage storage $ = _getDKGStorage();
+        require(round != 0, "DKG: Round cannot be zero");
+        require(validatorAddr != address(0), "DKG: Validator address cannot be empty");
+        require($.isEnclaveTypeWhitelisted[enclaveType], "DKG: Enclave type is not whitelisted");
         require(valSetRoot != bytes32(0), "DKG: Val set root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
         require(publicCoeffs.length != 0, "DKG: Public coefficients cannot be empty");
         require(signature.length != 0, "DKG: Signature cannot be empty");
 
         emit Finalized(
-            enclaveInstanceData.round,
-            enclaveInstanceData.validatorAddr,
-            enclaveInstanceData.enclaveType,
-            enclaveInstanceData.enclaveCommKey,
-            enclaveInstanceData.dkgPubKey,
+            round,
+            validatorAddr,
+            enclaveType,
+            $.enclaveTypeData[enclaveType].codeCommitment,
             valSetRoot,
             globalPubKey,
             publicCoeffs,
