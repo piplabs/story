@@ -12,14 +12,27 @@ contract SGXValidationHook is IAttestationReportValidator, AccessManaged {
     using BytesUtils for bytes;
 
     address automataValidationAddr;
+    uint32 tcbEvaluationDataNumber;
 
-    constructor(address accessManager) AccessManaged(accessManager) {}
+    constructor(address accessManager, uint32 tcbEvalNumber) AccessManaged(accessManager) {
+        tcbEvaluationDataNumber = tcbEvalNumber;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                             Admin Setters                              //
+    //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Sets the address of the automata validation contract
     /// @param newAutomataValidationAddr The address of the automata validation contract
     function setAutomataValidationAddr(address newAutomataValidationAddr) external restricted {
         require(newAutomataValidationAddr != address(0), "SGXValidationHook: Automata Validation cannot be empty");
         automataValidationAddr = newAutomataValidationAddr;
+    }
+
+    /// @notice Sets the TCB evaluation data number
+    /// @param newTcbEvaluationDataNumber The TCB evaluation data number
+    function setTcbEvaluationDataNumber(uint32 newTcbEvaluationDataNumber) external restricted {
+        tcbEvaluationDataNumber = newTcbEvaluationDataNumber;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -38,7 +51,8 @@ contract SGXValidationHook is IAttestationReportValidator, AccessManaged {
         bytes calldata enclaveReport,
         bytes calldata validationContext
     ) external override returns (bool) {
-        uint32 tcbEvaluationDataNumber = abi.decode(validationContext, (uint32));
+        uint32 tcbEvalNumber = abi.decode(validationContext, (uint32));
+        require(tcbEvalNumber == tcbEvaluationDataNumber, "SGXValidationHook: TCB evaluation data number does not match");
 
         // see verifyAndAttestOnChain  https://github.com/automata-network/automata-dcap-attestation/blob/4e7ab275ca8c358895a83fb6d51c9bd40ba1cf68/evm/contracts/AutomataDcapAttestationFee.sol#L23
         (bool success, bytes memory output) = IAutomataDcapAttestationFee(automataValidationAddr)
