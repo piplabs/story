@@ -59,6 +59,7 @@ interface IDKG {
     /// @param enclaveType The type of the enclave
     /// @param enclaveCommKey The communication key of the enclave
     /// @param dkgPubKey The DKG public key
+    /// @param codeCommitment The code commitment
     /// @param validationContext The validation context
     event Registered(
         bytes enclaveReport,
@@ -67,6 +68,7 @@ interface IDKG {
         bytes32 enclaveType,
         bytes enclaveCommKey,
         bytes dkgPubKey,
+        bytes32 codeCommitment,
         bytes validationContext
     );
 

@@ -161,6 +161,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
             enclaveInstanceData.enclaveType,
             enclaveInstanceData.enclaveCommKey,
             enclaveInstanceData.dkgPubKey,
+            _getDKGStorage().enclaveTypeData[enclaveInstanceData.enclaveType].codeCommitment,
             validationContext
         );
     }
