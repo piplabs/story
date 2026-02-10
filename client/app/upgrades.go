@@ -12,9 +12,9 @@ import (
 
 	"github.com/piplabs/story/client/app/upgrades"
 	"github.com/piplabs/story/client/app/upgrades/polybius"
-	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
+	"github.com/piplabs/story/client/app/upgrades/virgil"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
