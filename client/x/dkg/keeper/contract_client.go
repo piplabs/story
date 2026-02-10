@@ -103,10 +103,12 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 }
 
 // InitializeDKG calls the initializeDKG contract method.
-func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCommitment []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
+func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCommitment []byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling initializeDKG contract method",
 		"round", round,
 		"code_commitment", hex.EncodeToString(codeCommitment),
+		"start_block_height", startBlockHeight,
+		"start_block_hash", hex.EncodeToString(startBlockHash),
 		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
 		"comm_pub_key", hex.EncodeToString(commPubKey),
 		"raw_quote_len", len(rawQuote),
@@ -114,16 +116,21 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCo
 
 	codeCommitment32, err := cast.ToBytes32(codeCommitment)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
+		return nil, errors.Wrap(err, "failed to convert codeCommitment to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, dkgPubKey, commPubKey, rawQuote)
+	startBlockHash32, err := cast.ToBytes32(startBlockHash)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert startBlockHash to bytes32")
+	}
+
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, rawQuote)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
 	}
 
 	return c.sendWithRetry(ctx, "InitializeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.InitializeDKG(auth, round, codeCommitment32, dkgPubKey, commPubKey, rawQuote)
+		return c.dkgContract.InitializeDKG(auth, round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, rawQuote)
 	})
 }
 
@@ -162,54 +169,6 @@ func (c *ContractClient) FinalizeDKG(
 	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.dkgContract.FinalizeDKG(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, signature)
 	})
-}
-
-// RequestRemoteAttestationOnChain calls the requestRemoteAttestationOnChain contract method.
-func (c *ContractClient) RequestRemoteAttestationOnChain(
-	ctx context.Context,
-	targetValidatorAddr common.Address,
-	round uint32,
-	codeCommitment []byte,
-) (*types.Receipt, error) {
-	log.Info(ctx, "Calling requestRemoteAttestationOnChain contract method",
-		"code_commitment", string(codeCommitment),
-		"round", round,
-		"target_validator_addr", targetValidatorAddr.Hex(),
-	)
-
-	callData, err := c.dkgContractAbi.Pack("requestRemoteAttestationOnChain", targetValidatorAddr, round, codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack requestRemoteAttestationOnChain call data")
-	}
-
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for requestRemoteAttestationOnChain")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	tx, err := c.dkgContract.RequestRemoteAttestationOnChain(auth, targetValidatorAddr, round, codeCommitment32)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call request remote attestation on chain")
-	}
-
-	log.Info(ctx, "RequestRemoteAttestationOnChain transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for request remote attestation on chain transaction")
-	}
-
-	return receipt, nil
 }
 
 // ComplainDeals calls the complainDeals contract method.

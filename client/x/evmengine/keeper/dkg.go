@@ -109,6 +109,8 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
+				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHeight, strconv.FormatUint(ev.StartBlockHeight, 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHash, hex.EncodeToString(ev.StartBlockHash[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGDkgPubKey, hex.EncodeToString(ev.DkgPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.CommPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGRawQuote, hex.EncodeToString(ev.RawQuote)),
@@ -117,7 +119,7 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 		})
 	}()
 
-	if err = k.dkgKeeper.RegistrationInitialized(cachedCtx, ev.MsgSender, ev.CodeCommitment, ev.Round, ev.DkgPubKey, ev.CommPubKey, ev.RawQuote); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.RegistrationInitialized(cachedCtx, ev.MsgSender, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.CommPubKey, ev.RawQuote); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")

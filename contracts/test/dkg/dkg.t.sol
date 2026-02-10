@@ -12,6 +12,8 @@ contract DKGTest is Test {
     uint32 index = 0;
     uint32 total = 3;
     uint32 threshold = 2;
+    uint64 startBlockHeight = 1000;
+    bytes32 startBlockHash = hex"abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
     bytes rawQuote =
         hex"beefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef";
     bytes dkgPubKey = hex"dead";
@@ -61,7 +63,7 @@ contract DKGTest is Test {
         // 1.initialize DKG
         // 1.1 validator 0
         vm.prank(validator1);
-        dkg.initializeDKG(round, codeCommitment, dkgPubKey, commPubKey1, rawQuote);
+        dkg.initializeDKG(round, codeCommitment, startBlockHeight, startBlockHash, dkgPubKey, commPubKey1, rawQuote);
         DKG.NodeInfo memory info = dkg.getNodeInfo(codeCommitment, round, validator1);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey1);
@@ -69,7 +71,7 @@ contract DKGTest is Test {
         assertEq(uint8(info.nodeStatus), 1); // Registered
         // 1.2 validator 1
         vm.prank(validator2);
-        dkg.initializeDKG(round, codeCommitment, dkgPubKey, commPubKey2, rawQuote);
+        dkg.initializeDKG(round, codeCommitment, startBlockHeight, startBlockHash, dkgPubKey, commPubKey2, rawQuote);
         info = dkg.getNodeInfo(codeCommitment, round, validator2);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey2);
@@ -77,7 +79,7 @@ contract DKGTest is Test {
         assertEq(uint8(info.nodeStatus), 1); // Registered
         // 1.3 validator 2
         vm.prank(validator3);
-        dkg.initializeDKG(round, codeCommitment, dkgPubKey, commPubKey3, rawQuote);
+        dkg.initializeDKG(round, codeCommitment, startBlockHeight, startBlockHash, dkgPubKey, commPubKey3, rawQuote);
         info = dkg.getNodeInfo(codeCommitment, round, validator3);
         assertEq(info.dkgPubKey, dkgPubKey);
         assertEq(info.commPubKey, commPubKey3);
@@ -109,7 +111,7 @@ contract DKGTest is Test {
 
         // initialize DKG
         vm.prank(validator);
-        dkg.initializeDKG(round, codeCommitment, dkgPubKey, commPubKey, rawQuote);
+        dkg.initializeDKG(round, codeCommitment, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote);
 
         // finalize DKG with wrong signature
         vm.prank(validator);

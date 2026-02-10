@@ -127,6 +127,8 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	session.DKGPubKey = resp.GetDkgPubKey()
 	session.CommPubKey = resp.GetCommPubKey()
 	session.RawQuote = resp.GetRawQuote()
+	session.StartBlockHeight = resp.GetStartBlockHeight()
+	session.StartBlockHash = resp.GetStartBlockHash()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling GenerateAndSealKey on the TEE client")
 	}
@@ -138,6 +140,8 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 	log.Info(ctx, "InitializeDKG contract call",
 		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
+		"start_block_height", session.StartBlockHeight,
+		"start_block_hash", hex.EncodeToString(session.StartBlockHash),
 		"dkg_pub_key", hex.EncodeToString(session.DKGPubKey),
 		"comm_pub_key", hex.EncodeToString(session.CommPubKey),
 		"raw_quote_len", len(session.RawQuote),
@@ -159,6 +163,8 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 		ctx,
 		session.Round,
 		session.CodeCommitment,
+		uint64(session.StartBlockHeight),
+		session.StartBlockHash,
 		session.DKGPubKey,
 		session.CommPubKey,
 		session.RawQuote,

@@ -36,12 +36,14 @@ contract DKG is IDKG {
     function initializeDKG(
         uint32 round,
         bytes32 codeCommitment,
+        uint64 startBlockHeight,
+        bytes32 startBlockHash,
         bytes calldata dkgPubKey,
         bytes calldata commPubKey,
         bytes calldata rawQuote
     ) external onlyValidCodeCommitment(codeCommitment) {
         require(
-            _verifyRemoteAttestation(rawQuote, msg.sender, round, dkgPubKey, commPubKey),
+            _verifyRemoteAttestation(rawQuote, msg.sender, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey),
             "Invalid remote attestation"
         );
 
@@ -53,7 +55,7 @@ contract DKG is IDKG {
             nodeStatus: NodeStatus.Registered
         });
 
-        emit DKGInitialized(msg.sender, codeCommitment, round, dkgPubKey, commPubKey, rawQuote);
+        emit DKGInitialized(msg.sender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote);
     }
 
     function finalizeDKG(
@@ -83,31 +85,6 @@ contract DKG is IDKG {
         node.nodeStatus = NodeStatus.Finalized;
 
         emit DKGFinalized(msg.sender, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, signature);
-    }
-
-    function requestRemoteAttestationOnChain(
-        address targetValidatorAddr,
-        uint32 round,
-        bytes32 codeCommitment
-    ) external onlyValidCodeCommitment(codeCommitment) {
-        NodeInfo storage node = dkgNodeInfos[codeCommitment][round][targetValidatorAddr];
-        require(node.dkgPubKey.length != 0, "Node does not exist");
-        require(node.chalStatus == ChallengeStatus.NotChallenged, "Node already challenged");
-
-        bool isValid = _verifyRemoteAttestation(
-            node.rawQuote,
-            targetValidatorAddr,
-            round,
-            node.dkgPubKey,
-            node.commPubKey
-        );
-        if (isValid) {
-            node.chalStatus = ChallengeStatus.Resolved;
-        } else {
-            node.chalStatus = ChallengeStatus.Invalidated;
-        }
-
-        emit RemoteAttestationProcessedOnChain(targetValidatorAddr, node.chalStatus, round, codeCommitment);
     }
 
     function complainDeals(
@@ -218,6 +195,8 @@ contract DKG is IDKG {
         bytes memory rawQuote,
         address validator,
         uint32 round,
+        uint64 startBlockHeight,
+        bytes32 startBlockHash,
         bytes memory dkgPubKey,
         bytes memory commPubKey
     ) internal pure returns (bool) {
@@ -227,9 +206,11 @@ contract DKG is IDKG {
         require(round > 0, "Invalid round of DKG");
         require(dkgPubKey.length > 0, "Invalid DKG public key");
         require(commPubKey.length > 0, "Invalid communication public key");
+        require(startBlockHeight > 0, "Invalid start block height");
+        require(startBlockHash != bytes32(0), "Invalid start block hash");
 
         bytes32 expectedReportData = _extractReportData(rawQuote);
-        return _validateReportData(validator, round, dkgPubKey, commPubKey, expectedReportData);
+        return _validateReportData(validator, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, expectedReportData);
     }
 
     function _extractReportData(bytes memory rawQuote) internal pure returns (bytes32) {
@@ -250,14 +231,23 @@ contract DKG is IDKG {
     function _validateReportData(
         address validator,
         uint32 round,
+        uint64 startBlockHeight,
+        bytes32 startBlockHash,
         bytes memory dkgPubKey,
         bytes memory commPubKey,
         bytes32 expectedReportData
     ) internal pure returns (bool) {
-        bytes32 reportData = keccak256(abi.encodePacked(validator, round, dkgPubKey, commPubKey));
-        if (reportData != expectedReportData) {
-            return false;
-        }
-        return true;
+        bytes32 reportData = keccak256(
+            abi.encodePacked(
+                validator,
+                round,
+                startBlockHeight,
+                startBlockHash,
+                dkgPubKey,
+                commPubKey
+            )
+        );
+        
+        return reportData == expectedReportData;
     }
 }

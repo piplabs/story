@@ -26,6 +26,8 @@ contract IDKG {
         address indexed msgSender,
         bytes32 codeCommitment,
         uint32 round,
+        uint64 startBlockHeight,
+        bytes32 startBlockHash,
         bytes dkgPubKey,
         bytes commPubKey,
         bytes rawQuote
