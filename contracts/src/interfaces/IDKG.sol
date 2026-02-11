@@ -91,4 +91,92 @@ interface IDKG {
         bytes[] publicCoeffs,
         bytes signature
     );
+
+    /// @notice Sets the minimum number of participants needed to be registered for each round
+    /// @param newMinReqRegisteredParticipants The minimum number of participants needed to be registered for each round
+    function setMinReqRegisteredParticipants(uint256 newMinReqRegisteredParticipants) external;
+
+    /// @notice Sets the minimum number of participants needed to finish dkg for each round
+    /// @param newMinReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
+    function setMinReqFinalizedParticipants(uint256 newMinReqFinalizedParticipants) external;
+
+    /// @notice Sets the operational threshold
+    /// @param newOperationalThreshold The operational threshold
+    function setOperationalThreshold(uint256 newOperationalThreshold) external;
+
+    /// @notice Sets the fee paid to request DKG registration (register and finalize)
+    /// @param newFee The fee paid to request DKG registration (register and finalize)
+    function setFee(uint256 newFee) external;
+
+    /// @notice Whitelists an enclave type
+    /// @param enclaveType The type of the enclave
+    /// @param enclaveTypeData The data of the enclave type
+    /// @param isWhitelisted Whether the enclave type is whitelisted
+    function whitelistEnclaveType(
+        bytes32 enclaveType,
+        EnclaveTypeData memory enclaveTypeData,
+        bool isWhitelisted
+    ) external;
+
+    /// @notice Authenticates an enclave report
+    /// @param enclaveReport The enclave report
+    /// @param enclaveInstanceData The data of the enclave instance
+    /// @param validationContext The validation context
+    function authenticateEnclaveReport(
+        bytes calldata enclaveReport,
+        EnclaveInstanceData calldata enclaveInstanceData,
+        bytes calldata validationContext
+    ) external payable;
+
+    /// @notice Registers an enclave instance
+    /// @param enclaveReport The enclave report
+    /// @param enclaveInstanceData The data of the enclave instance
+    /// @param validationContext The validation context
+    function register(
+        bytes calldata enclaveReport,
+        EnclaveInstanceData calldata enclaveInstanceData,
+        bytes calldata validationContext
+    ) external payable;
+
+    /// @notice Finalizes an enclave instance
+    /// @param round The round
+    /// @param validatorAddr The address of the validator
+    /// @param enclaveType The type of the enclave
+    /// @param participantsRoot The participants root
+    /// @param globalPubKey The global public key
+    /// @param publicCoeffs The public coefficients
+    /// @param signature The signature
+    function finalize(
+        uint32 round,
+        address validatorAddr,
+        bytes32 enclaveType,
+        bytes32 participantsRoot,
+        bytes calldata globalPubKey,
+        bytes[] calldata publicCoeffs,
+        bytes calldata signature
+    ) external payable;
+
+    /// @notice Gets the minimum number of participants needed to be registered for each round
+    /// @return The minimum number of participants needed to be registered for each round
+    function minReqRegisteredParticipants() external view returns (uint256);
+
+    /// @notice Gets the minimum number of participants needed to finish dkg for each round
+    /// @return The minimum number of participants needed to finish dkg for each round
+    function minReqFinalizedParticipants() external view returns (uint256);
+
+    /// @notice Gets the operational threshold
+    /// @return The operational threshold
+    function operationalThreshold() external view returns (uint256);
+
+    /// @notice Gets the fee paid to request DKG registration (register and finalize)
+    /// @return The fee paid to request DKG registration (register and finalize)
+    function fee() external view returns (uint256);
+
+    /// @notice Gets the enclave type data
+    /// @param enclaveType The type of the enclave
+    function enclaveTypeData(bytes32 enclaveType) external view returns (EnclaveTypeData memory);
+
+    /// @notice Gets the is enclave type whitelisted
+    /// @param enclaveType The type of the enclave
+    function isEnclaveTypeWhitelisted(bytes32 enclaveType) external view returns (bool);
 }
