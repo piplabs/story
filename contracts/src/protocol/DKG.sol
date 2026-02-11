@@ -2,14 +2,13 @@
 pragma solidity 0.8.23;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { AccessManagedUpgradeable } from "@openzeppelin/contracts-upgradeable/access/manager/AccessManagedUpgradeable.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IDKG } from "../interfaces/IDKG.sol";
 import { IAttestationReportValidator } from "../interfaces/IAttestationReportValidator.sol";
 
-contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgradeable {
+contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     /// @dev Storage structure for the DKG
-    /// @param automataDcapAttestationFeeAddr The address of the automata dcap attestation fee contract
     /// @param minReqRegisteredParticipants The minimum number of participants needed to be registered for each round
     /// @param minReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
     /// @param operationalThreshold The operational threshold
@@ -18,7 +17,6 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
     /// @param isEnclaveTypeWhitelisted The whitelist of enclave types
     /// @custom:storage-location erc7201:story.DKG
     struct DKGStorage {
-        address automataDcapAttestationFeeAddr;
         uint256 minReqRegisteredParticipants;
         uint256 minReqFinalizedParticipants;
         uint256 operationalThreshold;
@@ -43,13 +41,27 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         _disableInitializers();
     }
 
-    /// @notice Initializer for this implementation contract
-    /// @param accessManager The address of the access manager of the contract
-    function initialize(address accessManager) external initializer {
+    /// @notice Initializes the contract
+    /// @param owner The address of the owner of the contract
+    /// @param minReqRegisteredParticipants The minimum number of participants needed to be registered for each round
+    /// @param minReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
+    /// @param operationalThreshold The operational threshold
+    /// @param fee The fee to pay for operations
+    function initialize(
+        address owner,
+        uint256 minReqRegisteredParticipants,
+        uint256 minReqFinalizedParticipants,
+        uint256 operationalThreshold,
+        uint256 fee
+    ) external initializer {
+        __Ownable_init(owner);
         __Pausable_init();
-        __AccessManaged_init(accessManager);
         __UUPSUpgradeable_init();
-        // TODO: add from admin setters the variables to be set at initialization
+
+        _setMinReqRegisteredParticipants(minReqRegisteredParticipants);
+        _setMinReqFinalizedParticipants(minReqFinalizedParticipants);
+        _setOperationalThreshold(operationalThreshold);
+        _setFee(fee);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -58,37 +70,26 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
 
     /// @notice Sets the minimum number of participants needed to be registered for each round
     /// @param newMinReqRegisteredParticipants The minimum number of participants needed to be registered for each round
-    function setMinReqRegisteredParticipants(uint256 newMinReqRegisteredParticipants) external restricted {
-        require(newMinReqRegisteredParticipants > 0, "DKG: MinReqRegisteredParticipants cannot be zero");
-        _getDKGStorage().minReqRegisteredParticipants = newMinReqRegisteredParticipants;
-        emit MinReqRegisteredParticipantsSet(newMinReqRegisteredParticipants);
+    function setMinReqRegisteredParticipants(uint256 newMinReqRegisteredParticipants) external onlyOwner {
+        _setMinReqRegisteredParticipants(newMinReqRegisteredParticipants);
     }
 
     /// @notice Sets the minimum number of participants needed to finish dkg for each round
     /// @param newMinReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
-    function setMinReqFinalizedParticipants(uint256 newMinReqFinalizedParticipants) external restricted {
-        require(newMinReqFinalizedParticipants > 0, "DKG: MinReqFinalizedParticipants cannot be zero");
-        _getDKGStorage().minReqFinalizedParticipants = newMinReqFinalizedParticipants;
-        emit MinReqFinalizedParticipantsSet(newMinReqFinalizedParticipants);
+    function setMinReqFinalizedParticipants(uint256 newMinReqFinalizedParticipants) external onlyOwner {
+        _setMinReqFinalizedParticipants(newMinReqFinalizedParticipants);
     }
 
     /// @notice Sets the operational threshold
     /// @param newOperationalThreshold The operational threshold
-    function setOperationalThreshold(uint256 newOperationalThreshold) external restricted {
-        require(newOperationalThreshold > 0, "DKG: Operational threshold cannot be zero");
-        require(
-            newOperationalThreshold <= operationalThresholdBasis,
-            "DKG: Operational threshold cannot be greater than 1000"
-        );
-        _getDKGStorage().operationalThreshold = newOperationalThreshold;
-        emit OperationalThresholdSet(newOperationalThreshold);
+    function setOperationalThreshold(uint256 newOperationalThreshold) external onlyOwner {
+        _setOperationalThreshold(newOperationalThreshold);
     }
 
     /// @notice Sets the fee paid to request DKG registration (register and finalize)
     /// @param newFee The fee paid to request DKG registration (register and finalize)
-    function setFee(uint256 newFee) external restricted {
-        _getDKGStorage().fee = newFee;
-        emit FeeSet(newFee);
+    function setFee(uint256 newFee) external onlyOwner {
+        _setFee(newFee);
     }
 
     /// @notice Whitelists an enclave type
@@ -99,7 +100,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         bytes32 enclaveType,
         EnclaveTypeData memory enclaveTypeData,
         bool isWhitelisted
-    ) external restricted {
+    ) external onlyOwner {
         require(enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
         require(enclaveTypeData.codeCommitment != bytes32(0), "DKG: Code commitment cannot be empty");
         require(enclaveTypeData.validationHookAddr != address(0), "DKG: Validation hook cannot be empty");
@@ -128,7 +129,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
         bytes calldata validationContext
-    ) external {
+    ) external payable chargesFee whenNotPaused {
         _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, validationContext);
     }
 
@@ -144,7 +145,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
         bytes calldata validationContext
-    ) external payable chargesFee {
+    ) external payable chargesFee whenNotPaused {
         require(enclaveReport.length != 0, "DKG: Enclave report cannot be empty");
         require(enclaveInstanceData.round != 0, "DKG: Round cannot be zero");
         require(enclaveInstanceData.validatorAddr != address(0), "DKG: Validator address cannot be empty");
@@ -182,7 +183,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
         bytes calldata signature
-    ) external payable chargesFee {
+    ) external payable chargesFee whenNotPaused {
         DKGStorage storage $ = _getDKGStorage();
         require(round != 0, "DKG: Round cannot be zero");
         require(validatorAddr != address(0), "DKG: Validator address cannot be empty");
@@ -205,8 +206,83 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
     }
 
     /*//////////////////////////////////////////////////////////////////////////
+    //                              Get Functions                             //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Gets the minimum number of participants needed to be registered for each round
+    /// @return The minimum number of participants needed to be registered for each round
+    function minReqRegisteredParticipants() external view returns (uint256) {
+        return _getDKGStorage().minReqRegisteredParticipants;
+    }
+
+    /// @notice Gets the minimum number of participants needed to finish dkg for each round
+    /// @return The minimum number of participants needed to finish dkg for each round
+    function minReqFinalizedParticipants() external view returns (uint256) {
+        return _getDKGStorage().minReqFinalizedParticipants;
+    }
+
+    /// @notice Gets the operational threshold
+    /// @return The operational threshold
+    function operationalThreshold() external view returns (uint256) {
+        return _getDKGStorage().operationalThreshold;
+    }
+
+    /// @notice Gets the fee paid to request DKG registration (register and finalize)
+    /// @return The fee paid to request DKG registration (register and finalize)
+    function fee() external view returns (uint256) {
+        return _getDKGStorage().fee;
+    }
+
+    /// @notice Gets the enclave type data
+    /// @param enclaveType The type of the enclave
+    function enclaveTypeData(bytes32 enclaveType) external view returns (EnclaveTypeData memory) {
+        return _getDKGStorage().enclaveTypeData[enclaveType];
+    }
+
+    /// @notice Gets the is enclave type whitelisted
+    /// @param enclaveType The type of the enclave
+    function isEnclaveTypeWhitelisted(bytes32 enclaveType) external view returns (bool) {
+        return _getDKGStorage().isEnclaveTypeWhitelisted[enclaveType];
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
     //                           Internal Functions                           //
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Sets the minimum number of participants needed to be registered for each round
+    /// @param newMinReqRegisteredParticipants The minimum number of participants needed to be registered for each round
+    function _setMinReqRegisteredParticipants(uint256 newMinReqRegisteredParticipants) internal {
+        require(newMinReqRegisteredParticipants > 0, "DKG: MinReqRegisteredParticipants cannot be zero");
+        _getDKGStorage().minReqRegisteredParticipants = newMinReqRegisteredParticipants;
+        emit MinReqRegisteredParticipantsSet(newMinReqRegisteredParticipants);
+    }
+
+    /// @notice Sets the minimum number of participants needed to finish dkg for each round
+    /// @param newMinReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
+    function _setMinReqFinalizedParticipants(uint256 newMinReqFinalizedParticipants) internal {
+        require(newMinReqFinalizedParticipants > 0, "DKG: MinReqFinalizedParticipants cannot be zero");
+        _getDKGStorage().minReqFinalizedParticipants = newMinReqFinalizedParticipants;
+        emit MinReqFinalizedParticipantsSet(newMinReqFinalizedParticipants);
+    }
+
+    /// @notice Sets the operational threshold
+    /// @param newOperationalThreshold The operational threshold
+    function _setOperationalThreshold(uint256 newOperationalThreshold) internal {
+        require(newOperationalThreshold > 0, "DKG: Operational threshold cannot be zero");
+        require(
+            newOperationalThreshold <= operationalThresholdBasis,
+            "DKG: Operational threshold cannot be greater than 1000"
+        );
+        _getDKGStorage().operationalThreshold = newOperationalThreshold;
+        emit OperationalThresholdSet(newOperationalThreshold);
+    }
+
+    /// @notice Sets the fee paid to request DKG registration (register and finalize)
+    /// @param newFee The fee paid to request DKG registration (register and finalize)
+    function _setFee(uint256 newFee) internal {
+        _getDKGStorage().fee = newFee;
+        emit FeeSet(newFee);
+    }
 
     /// @dev Authenticates an enclave report
     /// @param enclaveReport The enclave report
@@ -232,7 +308,7 @@ contract DKG is IDKG, PausableUpgradeable, AccessManagedUpgradeable, UUPSUpgrade
 
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override restricted {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of DKG.
     function _getDKGStorage() private pure returns (DKGStorage storage $) {
