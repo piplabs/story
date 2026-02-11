@@ -25,6 +25,8 @@ library Predeploys {
     address internal constant UBIPool = 0xCccCCC0000000000000000000000000000000002;
     /// @dev UpgradeEntryPoint proxy address
     address internal constant Upgrades = 0xccCCcc0000000000000000000000000000000003;
+    /// @dev DKG proxy address
+    address internal constant DKG = 0xCcCcCC0000000000000000000000000000000004;
 
     /// @notice Create3 factory address https://github.com/ZeframLou/create3-factory
     /// @dev Since Create3 is deployed using Create2, which is deterministic but depends on the deployer's wallet,
