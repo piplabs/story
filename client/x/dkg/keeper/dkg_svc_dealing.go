@@ -2,12 +2,13 @@ package keeper
 
 import (
 	"context"
-	"cosmossdk.io/collections"
 	"encoding/hex"
+	"slices"
+
+	"cosmossdk.io/collections"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"slices"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -82,11 +83,6 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
-	}
-
-	for _, deal := range resp.GetDeals() {
-		session.Deals[deal.Index] = deal
-		session.Index = deal.Index // same for all deals
 	}
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
