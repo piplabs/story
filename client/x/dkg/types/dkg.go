@@ -51,6 +51,8 @@ type DKGSession struct {
 	DKGPubKey          []byte    `json:"dkg_pub_key"`
 	CommPubKey         []byte    `json:"comm_pub_key"`
 	RawQuote           []byte    `json:"raw_quote"`
+	StartBlockHeight   int64     `json:"start_block_height"`
+	StartBlockHash     []byte    `json:"start_block_hash"`
 	Phase              DKGPhase  `json:"phase"`
 	StartTime          time.Time `json:"start_time"`
 	LastUpdate         time.Time `json:"last_update"`

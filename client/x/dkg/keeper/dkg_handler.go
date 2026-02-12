@@ -18,7 +18,7 @@ import (
 
 // RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, startBlockHeight uint64, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -30,6 +30,15 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 
 	if !bytes.Equal(latest.CodeCommitment, codeCommitment[:]) {
 		return errors.New(fmt.Sprintf("codeCommitment mismatch: expected %s, got %s)", hex.EncodeToString(latest.CodeCommitment), hex.EncodeToString(codeCommitment[:])))
+	}
+
+	// Verify that startBlockHeight and startBlockHash match the latest DKG network's start block
+	if latest.StartBlockHeight != int64(startBlockHeight) {
+		return errors.New(fmt.Sprintf("start block height mismatch: expected %d, got %d", latest.StartBlockHeight, startBlockHeight))
+	}
+
+	if !bytes.Equal(latest.StartBlockHash, startBlockHash[:]) {
+		return errors.New(fmt.Sprintf("start block hash mismatch: expected %s, got %s", hex.EncodeToString(latest.StartBlockHash), hex.EncodeToString(startBlockHash[:])))
 	}
 
 	if latest.Stage != types.DKGStageRegistration {
@@ -71,6 +80,8 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		"round", round,
 		"validator_address", validator.Hex(),
 		"index", index,
+		"start_block_height", startBlockHeight,
+		"start_block_hash", hex.EncodeToString(startBlockHash[:]),
 		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusVerified)],
 		"dkg_pubkey", hex.EncodeToString(dkgPubKey),
 		"comm_pubkey", hex.EncodeToString(commPubKey),

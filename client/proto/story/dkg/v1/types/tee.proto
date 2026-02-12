@@ -40,15 +40,23 @@ message GenerateAndSealKeyResponse {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes dkg_pub_key = 3 [
+  int64 start_block_height = 3 [
+    (gogoproto.moretags) = "yaml:\"start_block_height\""
+  ];
+
+  bytes start_block_hash = 4 [
+    (gogoproto.moretags) = "yaml:\"start_block_hash\""
+  ];
+
+  bytes dkg_pub_key = 5 [
     (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
   ];
 
-  bytes comm_pub_key = 4 [
+  bytes comm_pub_key = 6 [
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes raw_quote = 5 [
+  bytes raw_quote = 7 [
     (gogoproto.moretags) = "yaml:\"raw_quote\""
   ];
 }

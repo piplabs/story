@@ -40,7 +40,7 @@ type DistrKeeper interface {
 
 type DKGKeeper interface {
 	// NOTE: completed
-	RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
+	RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight uint64, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
 	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error
 
 	// TODO: complete these functions

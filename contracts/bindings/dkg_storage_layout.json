@@ -1,7 +1,7 @@
 {
   "storage": [
     {
-      "astId": 1999,
+      "astId": 2003,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "curCodeCommitment",
       "offset": 0,
@@ -9,7 +9,7 @@
       "type": "t_bytes32"
     },
     {
-      "astId": 2008,
+      "astId": 2012,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dkgNodeInfos",
       "offset": 0,
@@ -17,7 +17,7 @@
       "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1858_storage)))"
     },
     {
-      "astId": 2018,
+      "astId": 2022,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "dealComplaints",
       "offset": 0,
@@ -25,12 +25,12 @@
       "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool))))"
     },
     {
-      "astId": 2029,
+      "astId": 2033,
       "contract": "src/protocol/DKG.sol:DKG",
       "label": "partialDecrypts",
       "offset": 0,
       "slot": "3",
-      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage))))"
+      "type": "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage))))"
     }
   ],
   "types": {
@@ -85,12 +85,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_address,t_struct(NodeInfo)1858_storage))"
     },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage))))": {
+    "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage))))": {
       "encoding": "mapping",
       "key": "t_bytes32",
       "label": "mapping(bytes32 => mapping(uint32 => mapping(bytes32 => mapping(uint32 => struct IDKG.PartialDecryptSubmission))))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage)))"
+      "value": "t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage)))"
     },
     "t_mapping(t_bytes32,t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool))))": {
       "encoding": "mapping",
@@ -99,12 +99,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))"
     },
-    "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage))": {
+    "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage))": {
       "encoding": "mapping",
       "key": "t_bytes32",
       "label": "mapping(bytes32 => mapping(uint32 => struct IDKG.PartialDecryptSubmission))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage)"
+      "value": "t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage)"
     },
     "t_mapping(t_uint32,t_mapping(t_address,t_bool))": {
       "encoding": "mapping",
@@ -120,12 +120,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_address,t_struct(NodeInfo)1858_storage)"
     },
-    "t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage)))": {
+    "t_mapping(t_uint32,t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage)))": {
       "encoding": "mapping",
       "key": "t_uint32",
       "label": "mapping(uint32 => mapping(bytes32 => mapping(uint32 => struct IDKG.PartialDecryptSubmission)))",
       "numberOfBytes": "32",
-      "value": "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage))"
+      "value": "t_mapping(t_bytes32,t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage))"
     },
     "t_mapping(t_uint32,t_mapping(t_uint32,t_mapping(t_address,t_bool)))": {
       "encoding": "mapping",
@@ -134,12 +134,12 @@
       "numberOfBytes": "32",
       "value": "t_mapping(t_uint32,t_mapping(t_address,t_bool))"
     },
-    "t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1978_storage)": {
+    "t_mapping(t_uint32,t_struct(PartialDecryptSubmission)1982_storage)": {
       "encoding": "mapping",
       "key": "t_uint32",
       "label": "mapping(uint32 => struct IDKG.PartialDecryptSubmission)",
       "numberOfBytes": "32",
-      "value": "t_struct(PartialDecryptSubmission)1978_storage"
+      "value": "t_struct(PartialDecryptSubmission)1982_storage"
     },
     "t_struct(NodeInfo)1858_storage": {
       "encoding": "inplace",
@@ -188,13 +188,13 @@
         }
       ]
     },
-    "t_struct(PartialDecryptSubmission)1978_storage": {
+    "t_struct(PartialDecryptSubmission)1982_storage": {
       "encoding": "inplace",
       "label": "struct IDKG.PartialDecryptSubmission",
       "numberOfBytes": "160",
       "members": [
         {
-          "astId": 1969,
+          "astId": 1973,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "validator",
           "offset": 0,
@@ -202,7 +202,7 @@
           "type": "t_address"
         },
         {
-          "astId": 1971,
+          "astId": 1975,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "partialDecryption",
           "offset": 0,
@@ -210,7 +210,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1973,
+          "astId": 1977,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "pubShare",
           "offset": 0,
@@ -218,7 +218,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1975,
+          "astId": 1979,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "label",
           "offset": 0,
@@ -226,7 +226,7 @@
           "type": "t_bytes_storage"
         },
         {
-          "astId": 1977,
+          "astId": 1981,
           "contract": "src/protocol/DKG.sol:DKG",
           "label": "exists",
           "offset": 0,

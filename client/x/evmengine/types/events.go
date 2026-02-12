@@ -52,6 +52,8 @@ const (
 	AttributeKeyDKGDkgPubKey        = "dkg_dkg_pub_key"
 	AttributeKeyDKGCommPubKey       = "dkg_comm_pub_key"
 	AttributeKeyDKGRawQuote         = "dkg_raw_quote"
+	AttributeKeyDKGStartBlockHeight = "dkg_start_block_height"
+	AttributeKeyDKGStartBlockHash   = "dkg_start_block_hash"
 	AttributeKeyDKGActivationHeight = "dkg_activation_height"
 	AttributeKeyDKGParticipantsRoot = "dkg_participants_root"
 	AttributeKeyDKGChallenger       = "dkg_challenger"
