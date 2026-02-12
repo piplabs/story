@@ -140,10 +140,14 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @notice Registers an enclave instance
     /// @param enclaveReport The enclave report
     /// @param enclaveInstanceData The data of the enclave instance
+    /// @param startBlockHeight The start block height
+    /// @param startBlockHash The start block hash
     /// @param validationContext The validation context
     function register(
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
+        uint256 startBlockHeight,
+        bytes32 startBlockHash,
         bytes calldata validationContext
     ) external payable chargesFee whenNotPaused {
         require(enclaveReport.length != 0, "DKG: Enclave report cannot be empty");
@@ -163,6 +167,8 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
             enclaveInstanceData.enclaveCommKey,
             enclaveInstanceData.dkgPubKey,
             _getDKGStorage().enclaveTypeData[enclaveInstanceData.enclaveType].codeCommitment,
+            startBlockHeight,
+            startBlockHash,
             validationContext
         );
     }

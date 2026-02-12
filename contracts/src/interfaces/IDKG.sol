@@ -60,6 +60,8 @@ interface IDKG {
     /// @param enclaveCommKey The communication key of the enclave
     /// @param dkgPubKey The DKG public key
     /// @param codeCommitment The code commitment
+    /// @param startBlockHeight The start block height
+    /// @param startBlockHash The start block hash
     /// @param validationContext The validation context
     event Registered(
         bytes enclaveReport,
@@ -69,6 +71,8 @@ interface IDKG {
         bytes enclaveCommKey,
         bytes dkgPubKey,
         bytes32 codeCommitment,
+        uint256 startBlockHeight,
+        bytes32 startBlockHash,
         bytes validationContext
     );
 
@@ -131,10 +135,14 @@ interface IDKG {
     /// @notice Registers an enclave instance
     /// @param enclaveReport The enclave report
     /// @param enclaveInstanceData The data of the enclave instance
+    /// @param startBlockHeight The start block height
+    /// @param startBlockHash The start block hash
     /// @param validationContext The validation context
     function register(
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
+        uint256 startBlockHeight,
+        bytes32 startBlockHash,
         bytes calldata validationContext
     ) external payable;
 
