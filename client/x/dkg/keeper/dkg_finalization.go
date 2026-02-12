@@ -37,6 +37,12 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to emit DKG finalized event")
 	}
 
+	// Distribute DKG committee rewards before updating the active round,
+	// so that getLatestActiveDKGNetwork still returns the previous active round.
+	if err := k.settleRewardsForPreviousCommittee(ctx); err != nil {
+		return errors.Wrap(err, "failed to distribute DKG committee rewards")
+	}
+
 	if err := k.setLatestActiveRound(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to set the latest active round of DKG")
 	}

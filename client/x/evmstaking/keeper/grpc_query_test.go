@@ -14,7 +14,7 @@ import (
 
 func TestParams(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.SetParams(ctx, types.DefaultParams()))
 
 	queryClient := createQueryClient(ctx, esk)
@@ -27,7 +27,7 @@ func TestParams(t *testing.T) {
 
 func TestGetWithdrawalQueue(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.WithdrawalQueue.Initialize(ctx))
 
 	queryClient := createQueryClient(ctx, esk)
@@ -82,7 +82,7 @@ func TestGetWithdrawalQueue(t *testing.T) {
 
 func TestGetRewardWithdrawalQueue(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.WithdrawalQueue.Initialize(ctx))
 
 	queryClient := createQueryClient(ctx, esk)
@@ -125,7 +125,7 @@ func TestGetRewardWithdrawalQueue(t *testing.T) {
 
 func TestGetOperatorAddress(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.WithdrawalQueue.Initialize(ctx))
 
 	queryClient := createQueryClient(ctx, esk)
@@ -154,7 +154,7 @@ func TestGetOperatorAddress(t *testing.T) {
 
 func TestGetWithdrawAddress(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.WithdrawalQueue.Initialize(ctx))
 
 	queryClient := createQueryClient(ctx, esk)
@@ -183,7 +183,7 @@ func TestGetWithdrawAddress(t *testing.T) {
 
 func TestGetRewardAddress(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	require.NoError(t, esk.WithdrawalQueue.Initialize(ctx))
 
 	queryClient := createQueryClient(ctx, esk)

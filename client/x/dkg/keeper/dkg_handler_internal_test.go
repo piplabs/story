@@ -527,6 +527,15 @@ func TestKeeper_InvalidDeal(t *testing.T) {
 func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 	t.Helper()
 
+	k, _, _, testCtx := setupDKGKeeperWithMocks(t)
+
+	return k, testCtx
+}
+
+// setupDKGKeeperWithMocks creates a test DKG keeper and returns the mock keepers for fine-grained control.
+func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper, *dkgtestutil.MockDistributionKeeper, context.Context) {
+	t.Helper()
+
 	encCfg := moduletestutil.MakeTestEncodingConfig()
 
 	key := storetypes.NewKVStoreKey(types.StoreKey)
@@ -538,6 +547,8 @@ func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 
 	ak := dkgtestutil.NewMockAccountKeeper(ctrl)
 	sk := dkgtestutil.NewMockStakingKeeper(ctrl)
+	bk := dkgtestutil.NewMockBankKeeper(ctrl)
+	dk := dkgtestutil.NewMockDistributionKeeper(ctrl)
 
 	ak.EXPECT().AddressCodec().Return(authcodec.NewBech32Codec("story")).AnyTimes()
 	ak.EXPECT().GetModuleAddress(types.ModuleName).Return(sdk.AccAddress{}).AnyTimes()
@@ -550,6 +561,8 @@ func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 		encCfg.Codec,
 		storeService,
 		ak,
+		bk,
+		dk,
 		sk,
 		valStore,
 		mockTEEClient,
@@ -559,5 +572,5 @@ func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 
 	require.NoError(t, k.SetParams(testCtx.Ctx, types.DefaultParams()))
 
-	return k, testCtx.Ctx
+	return k, bk, dk, testCtx.Ctx
 }

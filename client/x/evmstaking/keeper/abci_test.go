@@ -203,7 +203,7 @@ func TestEndBlock(t *testing.T) {
 				sk.EXPECT().EndBlockerWithUnbondedEntries(gomock.Any()).Return([]abci.ValidatorUpdate{}, []stypes.UnbondedEntry{}, nil)
 				sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stypes.Validator{}, nil)
 				dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), gomock.Any()).Return(math.NewInt(10), nil)
-				dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(0)}, nil)
+				dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), gomock.Any(), gomock.Any()).Return(sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(10)}, nil)
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			setup: func(ctx sdk.Context, esk *keeper.Keeper) sdk.Context {
@@ -235,7 +235,11 @@ func TestEndBlock(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, ak, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
+			ctx, ak, bk, dk, sk, _, dkgk, esk := createKeeperWithMockStaking(t)
+
+			// Set default DKG keeper expectations for EndBlock → ProcessUbiWithdrawal path.
+			dkgk.EXPECT().ClaimSettlementBalance(gomock.Any(), gomock.Any()).Return(math.ZeroInt(), nil).AnyTimes()
+			dkgk.EXPECT().DistributeRewardsToActiveCommittee(gomock.Any(), gomock.Any(), gomock.Any()).Return(math.ZeroInt(), nil).AnyTimes()
 
 			if tc.setupMocks != nil {
 				tc.setupMocks(ak, bk, dk, sk)

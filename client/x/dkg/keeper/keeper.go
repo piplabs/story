@@ -37,6 +37,9 @@ type Keeper struct {
 	contractClient *ContractClient
 	stateManager   *StateManager
 
+	bankKeeper         types.BankKeeper
+	distributionKeeper types.DistributionKeeper
+
 	isDKGSvcEnabled  bool
 	validatorEVMAddr string // EVM address of the validator
 
@@ -48,6 +51,7 @@ type Keeper struct {
 	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: codeCommitment_round_address
 	GlobalPubKeyVotes collections.Map[string, uint32]                // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
 	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: codeCommitment
+	SettlementBalance collections.Item[string]                       // remaining UBI after committee distribution during FinalizeDKGRound
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -55,6 +59,8 @@ func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeService storetypes.KVStoreService,
 	ak types.AccountKeeper,
+	bk types.BankKeeper,
+	dk types.DistributionKeeper,
 	sk types.StakingKeeper,
 	valStore baseapp.ValidatorStore,
 	teeClient types.TEEClient,
@@ -71,19 +77,22 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:               cdc,
-		storeService:      storeService,
-		stakingKeeper:     sk,
-		valStore:          valStore,
-		teeClient:         teeClient,
-		contractClient:    contractClient,
-		ParamsStore:       collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
-		DKGNetworks:       collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
-		LatestDKGNetwork:  collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
-		LatestActiveRound: collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
-		DKGRegistrations:  collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
-		GlobalPubKeyVotes: collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
-		TEEUpgradeInfos:   collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
+		cdc:                cdc,
+		storeService:       storeService,
+		stakingKeeper:      sk,
+		bankKeeper:         bk,
+		distributionKeeper: dk,
+		valStore:           valStore,
+		teeClient:          teeClient,
+		contractClient:     contractClient,
+		ParamsStore:        collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		DKGNetworks:        collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
+		LatestDKGNetwork:   collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
+		LatestActiveRound:  collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
+		DKGRegistrations:   collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
+		GlobalPubKeyVotes:  collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
+		TEEUpgradeInfos:    collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
+		SettlementBalance:  collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
 	}
 
 	schema, err := sb.Build()

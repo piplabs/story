@@ -34,7 +34,7 @@ func addRewardWithdrawals(t *testing.T, ctx sdk.Context, esk *keeper.Keeper, wit
 
 func TestAddRewardWithdrawalToQueue(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	// initialize reward withdrawal queue
 	initRewardWithdrawalQueue(t, ctx, esk)
@@ -85,7 +85,7 @@ func TestDequeueEligibleRewardWithdrawals(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			initRewardWithdrawalQueue(t, ctx, esk)
 
 			if !strings.Contains(tc.name, "Dequeue with empty queue") {
@@ -149,7 +149,7 @@ func TestPeekEligibleRewardWithdrawals(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			initRewardWithdrawalQueue(t, ctx, esk)
 			if !strings.Contains(tc.name, "Peek with empty queue") {
 				addRewardWithdrawals(t, ctx, esk, rewardWithdrawals)
@@ -209,7 +209,7 @@ func TestGetAllRewardWithdrawals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			initRewardWithdrawalQueue(t, ctx, esk)
 
 			cachedCtx, _ := ctx.CacheContext()
@@ -258,7 +258,7 @@ func TestGetRewardWithdrawals(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			initRewardWithdrawalQueue(t, ctx, esk)
 			addRewardWithdrawals(t, ctx, esk, rewardWithdrawals)

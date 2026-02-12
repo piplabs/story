@@ -1,6 +1,7 @@
 syntax = "proto3";
 package story.dkg.v1.types;
 
+import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";
 
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
@@ -35,5 +36,13 @@ message Params {
   // latest TEE code commitment
   bytes code_commitment = 8 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
+  ];
+
+  // portion of UBI rewards allocated to the DKG committee (e.g. "0.10" = 10%)
+  string dkg_committee_reward_portion = 9 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false,
+    (gogoproto.moretags)   = "yaml:\"dkg_committee_reward_portion\""
   ];
 }

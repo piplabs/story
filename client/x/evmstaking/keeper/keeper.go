@@ -35,6 +35,7 @@ type Keeper struct {
 	slashingKeeper     types.SlashingKeeper
 	stakingKeeper      types.StakingKeeper
 	distributionKeeper types.DistributionKeeper
+	dkgKeeper          types.DKGKeeper
 
 	ipTokenStakingContract *bindings.IPTokenStaking
 
@@ -54,6 +55,7 @@ func NewKeeper(
 	slk types.SlashingKeeper,
 	stk types.StakingKeeper,
 	dk types.DistributionKeeper,
+	dkgk types.DKGKeeper,
 	authority string,
 	ethCl ethclient.Client,
 	validatorAddressCodec addresscodec.Codec,
@@ -83,6 +85,7 @@ func NewKeeper(
 		slashingKeeper:           slk,
 		stakingKeeper:            stk,
 		distributionKeeper:       dk,
+		dkgKeeper:                dkgk,
 		authority:                authority,
 		validatorAddressCodec:    validatorAddressCodec,
 		ipTokenStakingContract:   ipTokenStakingContract,

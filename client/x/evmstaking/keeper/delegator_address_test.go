@@ -51,7 +51,7 @@ func TestProcessSetWithdrawalAddress(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			evmAddr := execAddr
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
@@ -111,7 +111,7 @@ func TestProcessSetRewardAddress(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			evmAddr := execAddr
 			if !tc.sameAddr {
 				evmAddr = anotherExecAddr
@@ -169,7 +169,7 @@ func TestProcessSetOperatorAddress(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			evmAddr := execAddr
 			if !tc.sameAddr {
@@ -223,7 +223,7 @@ func TestProcessUnsetOperatorAddress(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			ev := tc.input(common.Address(accAddrs[0]))
 			cachedCtx, _ := ctx.CacheContext()

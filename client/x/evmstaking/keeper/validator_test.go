@@ -234,7 +234,7 @@ func TestProcessCreateValidator(t *testing.T) {
 			)
 
 			if tc.mockStakingKeeper {
-				ctx, ak, bk, _, _, _, esk = createKeeperWithMockStaking(t)
+				ctx, ak, bk, _, _, _, _, esk = createKeeperWithMockStaking(t)
 			} else {
 				ctx, ak, bk, sk, _, esk = createKeeperWithRealStaking(t)
 			}
@@ -294,7 +294,7 @@ func TestParseCreateValidatorLog(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			_, err := esk.ParseCreateValidatorLog(tc.log)
 			if tc.expectErr {
