@@ -151,7 +151,7 @@ func TestProcessUnjail(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, slk, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, slk, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 
@@ -197,7 +197,7 @@ func TestParseUnjailLog(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			_, err := esk.ParseUnjailLog(tc.log)
 			if tc.expectErr {

@@ -10,7 +10,7 @@ import (
 
 func TestGetParams(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	params, err := esk.GetParams(ctx)
 	require.NoError(t, err)
@@ -19,7 +19,7 @@ func TestGetParams(t *testing.T) {
 
 func TestSetParams(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	newMaxWithdrawalPerBlock := uint32(10)
 	newMaxSweepPerBlock := uint32(100)
@@ -48,7 +48,7 @@ func TestSetParams(t *testing.T) {
 
 func TestMaxWithdrawalPerBlock(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	// MaxWithdrawalPerBlock check
 	maxWithdrawalPerBlock, err := esk.MaxWithdrawalPerBlock(ctx)
@@ -58,7 +58,7 @@ func TestMaxWithdrawalPerBlock(t *testing.T) {
 
 func TestMaxSweepPerBlock(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	// MaxSweepPerBlock check
 	maxSweepPerBlock, err := esk.MaxSweepPerBlock(ctx)
@@ -68,7 +68,7 @@ func TestMaxSweepPerBlock(t *testing.T) {
 
 func TestMinPartialWithdrawalAmount(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	// MinPartialWithdrawalAmount check
 	minPartialWithdrawalAmount, err := esk.MinPartialWithdrawalAmount(ctx)
@@ -78,7 +78,7 @@ func TestMinPartialWithdrawalAmount(t *testing.T) {
 
 func TestSetValidatorSweepIndex(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 	existingSweepIndex, err := esk.GetValidatorSweepIndex(ctx)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), existingSweepIndex.NextValIndex)
@@ -101,7 +101,7 @@ func TestSetValidatorSweepIndex(t *testing.T) {
 
 func TestGetOldValidatorSweepIndex(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	nextValIndex, err := esk.GetOldValidatorSweepIndex(ctx)
 	require.NoError(t, err)

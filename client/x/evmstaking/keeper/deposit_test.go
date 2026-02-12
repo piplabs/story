@@ -247,7 +247,7 @@ func TestProcessDeposit(t *testing.T) {
 			)
 
 			if tc.mockStakingKeeper {
-				ctx, ak, bk, _, mockSK, _, esk = createKeeperWithMockStaking(t)
+				ctx, ak, bk, _, mockSK, _, _, esk = createKeeperWithMockStaking(t)
 			} else {
 				ctx, ak, bk, sk, _, esk = createKeeperWithRealStaking(t)
 			}
@@ -305,7 +305,7 @@ func TestParseDepositLog(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 			_, err := esk.ParseDepositLog(tc.log)
 			if tc.expectErr {
 				require.Error(t, err, "should return error for %s", tc.name)
