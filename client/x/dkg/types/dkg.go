@@ -68,7 +68,6 @@ type DKGSession struct {
 	// DKG state
 	Registrations []DKGRegistration `json:"registrations,omitempty"`
 	Commitments   []byte            `json:"commitments,omitempty"`
-	Deals         map[uint32]Deal   `json:"deals,omitempty"` // deals by dealer index
 	Complaints    []Complaint       `json:"complaints,omitempty"`
 	IsFinalized   bool              `json:"is_finalized"`
 	IsResharing   bool              `json:"is_resharing"`
@@ -92,7 +91,6 @@ func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []strin
 		ActiveValidators: activeValidators,
 		Total:            0,
 		Threshold:        0,
-		Deals:            make(map[uint32]Deal),
 		IsFinalized:      false,
 		IsResharing:      isResharing,
 
