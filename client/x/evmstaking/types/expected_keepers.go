@@ -82,6 +82,17 @@ type SlashingKeeper interface {
 	Unjail(ctx context.Context, validatorAddr sdk.ValAddress) error
 }
 
+// DKGKeeper defines the expected interface for the DKG module.
+type DKGKeeper interface {
+	// DistributeRewardsToActiveCommittee distributes the configured portion of UBI
+	// to active DKG committee members. The senderModule must hold totalAmount coins.
+	// Returns the total amount distributed to committee members (0 if no active committee).
+	DistributeRewardsToActiveCommittee(ctx context.Context, senderModule string, totalAmount math.Int) (math.Int, error)
+	// ClaimSettlementBalance transfers any remaining UBI settlement balance from the
+	// DKG module to the specified recipient module. Returns the amount transferred.
+	ClaimSettlementBalance(ctx context.Context, recipientModule string) (math.Int, error)
+}
+
 // DistributionKeeper defines the expected interface needed to calculate validator commission and delegator rewards.
 type DistributionKeeper interface {
 	GetValidatorCurrentRewards(ctx context.Context, val sdk.ValAddress) (rewards distributiontypes.ValidatorCurrentRewards, err error)

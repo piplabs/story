@@ -1,6 +1,8 @@
 package types
 
 import (
+	"cosmossdk.io/math"
+
 	"github.com/piplabs/story/lib/errors"
 )
 
@@ -18,6 +20,10 @@ const (
 	ExpectedCodeCommitmentSize int    = 32 // 256-bit digest (32 bytes)
 )
 
+// DefaultDkgCommitteeRewardPortion is the default portion of UBI rewards
+// allocated to the DKG committee (10%).
+var DefaultDkgCommitteeRewardPortion = math.LegacyMustNewDecFromStr("0.10")
+
 // NewParams creates a new Params instance.
 func NewParams(
 	registrationPeriod uint32,
@@ -26,14 +32,16 @@ func NewParams(
 	activePeriod uint32,
 	complaintPeriod uint32,
 	minCommitteeSize uint32,
+	dkgCommitteeRewardPortion math.LegacyDec,
 ) Params {
 	return Params{
-		RegistrationPeriod: registrationPeriod,
-		DealingPeriod:      dealingPeriod,
-		FinalizationPeriod: finalizationPeriod,
-		ActivePeriod:       activePeriod,
-		ComplaintPeriod:    complaintPeriod,
-		MinCommitteeSize:   minCommitteeSize,
+		RegistrationPeriod:        registrationPeriod,
+		DealingPeriod:             dealingPeriod,
+		FinalizationPeriod:        finalizationPeriod,
+		ActivePeriod:              activePeriod,
+		ComplaintPeriod:           complaintPeriod,
+		MinCommitteeSize:          minCommitteeSize,
+		DkgCommitteeRewardPortion: dkgCommitteeRewardPortion,
 	}
 }
 
@@ -46,6 +54,7 @@ func DefaultParams() Params {
 		DefaultDkgActivePeriod,
 		DefaultDkgComplaintPeriod,
 		DefaultMinCommitteeSize,
+		DefaultDkgCommitteeRewardPortion,
 		// no default for code commitment
 	)
 }
@@ -72,6 +81,10 @@ func (p Params) Validate() error {
 	}
 
 	if err := ValidateMinCommitteeSize(p.MinCommitteeSize); err != nil {
+		return err
+	}
+
+	if err := ValidateDkgCommitteeRewardPortion(p.DkgCommitteeRewardPortion); err != nil {
 		return err
 	}
 
@@ -139,6 +152,18 @@ func ValidateComplaintPeriod(complaintPeriod uint32) error {
 func ValidateMinCommitteeSize(minCommitteeSize uint32) error {
 	if minCommitteeSize == 0 {
 		return errors.New("invalid min committee size", "size", minCommitteeSize)
+	}
+
+	return nil
+}
+
+func ValidateDkgCommitteeRewardPortion(portion math.LegacyDec) error {
+	if portion.IsNegative() {
+		return errors.New("dkg committee reward portion must not be negative", "portion", portion.String())
+	}
+
+	if portion.GT(math.LegacyOneDec()) {
+		return errors.New("dkg committee reward portion must not exceed 1.0", "portion", portion.String())
 	}
 
 	return nil

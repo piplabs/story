@@ -53,21 +53,21 @@ var (
 
 func TestLogger(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	ctx, _, _, _, _, _, _ := createKeeperWithMockStaking(t)
+	ctx, _, _, _, _, _, _, _ := createKeeperWithMockStaking(t)
 	logger := keeper.Logger(ctx)
 	require.NotNil(t, logger)
 }
 
 func TestGetAuthority(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	require.Equal(t, authtypes.NewModuleAddress(types.ModuleName).String(), esk.GetAuthority())
 }
 
 func TestValidatorAddressCodec(t *testing.T) {
 	//nolint:dogsled // This is common helper function
-	_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+	_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 	require.NotNil(t, esk.ValidatorAddressCodec())
 	_, err := esk.ValidatorAddressCodec().StringToBytes("storyvaloper1hmjw3pvkjtndpg8wqppwdn8udd835qpaa6r6y0")
@@ -1097,6 +1097,7 @@ func createKeeperWithRealStaking(t *testing.T) (sdk.Context, *estestutil.MockAcc
 	bk := estestutil.NewMockBankKeeper(ctrl)
 	dk := estestutil.NewMockDistributionKeeper(ctrl)
 	slk := estestutil.NewMockSlashingKeeper(ctrl)
+	dkgk := estestutil.NewMockDKGKeeper(ctrl)
 
 	// mock keeper funcs
 	ak.EXPECT().AddressCodec().Return(authcodec.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix())).AnyTimes()
@@ -1140,6 +1141,7 @@ func createKeeperWithRealStaking(t *testing.T) (sdk.Context, *estestutil.MockAcc
 		slk,
 		sk,
 		dk,
+		dkgk,
 		authtypes.NewModuleAddress(types.ModuleName).String(),
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),
@@ -1149,7 +1151,7 @@ func createKeeperWithRealStaking(t *testing.T) (sdk.Context, *estestutil.MockAcc
 	return ctx, ak, bk, sk, slk, esk
 }
 
-func createKeeperWithMockStaking(t *testing.T) (sdk.Context, *estestutil.MockAccountKeeper, *estestutil.MockBankKeeper, *estestutil.MockDistributionKeeper, *estestutil.MockStakingKeeper, *estestutil.MockSlashingKeeper, *keeper.Keeper) {
+func createKeeperWithMockStaking(t *testing.T) (sdk.Context, *estestutil.MockAccountKeeper, *estestutil.MockBankKeeper, *estestutil.MockDistributionKeeper, *estestutil.MockStakingKeeper, *estestutil.MockSlashingKeeper, *estestutil.MockDKGKeeper, *keeper.Keeper) {
 	t.Helper()
 
 	ctx, storeKey, storeService := setupCtxStore(t, nil)
@@ -1162,6 +1164,7 @@ func createKeeperWithMockStaking(t *testing.T) (sdk.Context, *estestutil.MockAcc
 	dk := estestutil.NewMockDistributionKeeper(ctrl)
 	slk := estestutil.NewMockSlashingKeeper(ctrl)
 	stk := estestutil.NewMockStakingKeeper(ctrl)
+	dkgk := estestutil.NewMockDKGKeeper(ctrl)
 
 	// mock keeper funcs
 	ak.EXPECT().AddressCodec().Return(authcodec.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix())).AnyTimes()
@@ -1178,13 +1181,14 @@ func createKeeperWithMockStaking(t *testing.T) (sdk.Context, *estestutil.MockAcc
 		slk,
 		stk,
 		dk,
+		dkgk,
 		authtypes.NewModuleAddress(types.ModuleName).String(),
 		ethCl,
 		address.NewBech32Codec("storyvaloper"),
 	)
 	require.NoError(t, esk.SetParams(ctx, types.DefaultParams()))
 
-	return ctx, ak, bk, dk, stk, slk, esk
+	return ctx, ak, bk, dk, stk, slk, dkgk, esk
 }
 
 func createQueryClient(ctx sdk.Context, esk *keeper.Keeper) types.QueryClient {

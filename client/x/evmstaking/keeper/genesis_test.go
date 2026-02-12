@@ -114,7 +114,7 @@ func TestInitGenesis(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, sk, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, sk, _, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 
@@ -191,7 +191,7 @@ func TestExportGenesis(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 			if tc.setup != nil {

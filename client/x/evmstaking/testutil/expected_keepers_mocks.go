@@ -735,6 +735,60 @@ func (mr *MockSlashingKeeperMockRecorder) Unjail(ctx, validatorAddr any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unjail", reflect.TypeOf((*MockSlashingKeeper)(nil).Unjail), ctx, validatorAddr)
 }
 
+// MockDKGKeeper is a mock of DKGKeeper interface.
+type MockDKGKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockDKGKeeperMockRecorder
+	isgomock struct{}
+}
+
+// MockDKGKeeperMockRecorder is the mock recorder for MockDKGKeeper.
+type MockDKGKeeperMockRecorder struct {
+	mock *MockDKGKeeper
+}
+
+// NewMockDKGKeeper creates a new mock instance.
+func NewMockDKGKeeper(ctrl *gomock.Controller) *MockDKGKeeper {
+	mock := &MockDKGKeeper{ctrl: ctrl}
+	mock.recorder = &MockDKGKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
+	return m.recorder
+}
+
+// ClaimSettlementBalance mocks base method.
+func (m *MockDKGKeeper) ClaimSettlementBalance(ctx context.Context, recipientModule string) (math.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimSettlementBalance", ctx, recipientModule)
+	ret0, _ := ret[0].(math.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimSettlementBalance indicates an expected call of ClaimSettlementBalance.
+func (mr *MockDKGKeeperMockRecorder) ClaimSettlementBalance(ctx, recipientModule any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimSettlementBalance", reflect.TypeOf((*MockDKGKeeper)(nil).ClaimSettlementBalance), ctx, recipientModule)
+}
+
+// DistributeRewardsToActiveCommittee mocks base method.
+func (m *MockDKGKeeper) DistributeRewardsToActiveCommittee(ctx context.Context, senderModule string, totalAmount math.Int) (math.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DistributeRewardsToActiveCommittee", ctx, senderModule, totalAmount)
+	ret0, _ := ret[0].(math.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DistributeRewardsToActiveCommittee indicates an expected call of DistributeRewardsToActiveCommittee.
+func (mr *MockDKGKeeperMockRecorder) DistributeRewardsToActiveCommittee(ctx, senderModule, totalAmount any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DistributeRewardsToActiveCommittee", reflect.TypeOf((*MockDKGKeeper)(nil).DistributeRewardsToActiveCommittee), ctx, senderModule, totalAmount)
+}
+
 // MockDistributionKeeper is a mock of DistributionKeeper interface.
 type MockDistributionKeeper struct {
 	ctrl     *gomock.Controller

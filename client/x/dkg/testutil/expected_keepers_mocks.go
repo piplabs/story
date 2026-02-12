@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	address "cosmossdk.io/core/address"
+	math "cosmossdk.io/math"
 	types "github.com/cosmos/cosmos-sdk/types"
 	types0 "github.com/cosmos/cosmos-sdk/x/staking/types"
 	gomock "go.uber.org/mock/gomock"
@@ -108,4 +109,110 @@ func (m *MockStakingKeeper) GetAllValidators(ctx context.Context) ([]types0.Vali
 func (mr *MockStakingKeeperMockRecorder) GetAllValidators(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllValidators", reflect.TypeOf((*MockStakingKeeper)(nil).GetAllValidators), ctx)
+}
+
+// MockBankKeeper is a mock of BankKeeper interface.
+type MockBankKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockBankKeeperMockRecorder
+	isgomock struct{}
+}
+
+// MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
+type MockBankKeeperMockRecorder struct {
+	mock *MockBankKeeper
+}
+
+// NewMockBankKeeper creates a new mock instance.
+func NewMockBankKeeper(ctrl *gomock.Controller) *MockBankKeeper {
+	mock := &MockBankKeeper{ctrl: ctrl}
+	mock.recorder = &MockBankKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBankKeeper) EXPECT() *MockBankKeeperMockRecorder {
+	return m.recorder
+}
+
+// SendCoinsFromModuleToAccount mocks base method.
+func (m *MockBankKeeper) SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr types.AccAddress, amt types.Coins) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendCoinsFromModuleToAccount", ctx, senderModule, recipientAddr, amt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendCoinsFromModuleToAccount indicates an expected call of SendCoinsFromModuleToAccount.
+func (mr *MockBankKeeperMockRecorder) SendCoinsFromModuleToAccount(ctx, senderModule, recipientAddr, amt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCoinsFromModuleToAccount", reflect.TypeOf((*MockBankKeeper)(nil).SendCoinsFromModuleToAccount), ctx, senderModule, recipientAddr, amt)
+}
+
+// SendCoinsFromModuleToModule mocks base method.
+func (m *MockBankKeeper) SendCoinsFromModuleToModule(ctx context.Context, senderModule, recipientModule string, amt types.Coins) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendCoinsFromModuleToModule", ctx, senderModule, recipientModule, amt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendCoinsFromModuleToModule indicates an expected call of SendCoinsFromModuleToModule.
+func (mr *MockBankKeeperMockRecorder) SendCoinsFromModuleToModule(ctx, senderModule, recipientModule, amt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCoinsFromModuleToModule", reflect.TypeOf((*MockBankKeeper)(nil).SendCoinsFromModuleToModule), ctx, senderModule, recipientModule, amt)
+}
+
+// MockDistributionKeeper is a mock of DistributionKeeper interface.
+type MockDistributionKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockDistributionKeeperMockRecorder
+	isgomock struct{}
+}
+
+// MockDistributionKeeperMockRecorder is the mock recorder for MockDistributionKeeper.
+type MockDistributionKeeperMockRecorder struct {
+	mock *MockDistributionKeeper
+}
+
+// NewMockDistributionKeeper creates a new mock instance.
+func NewMockDistributionKeeper(ctrl *gomock.Controller) *MockDistributionKeeper {
+	mock := &MockDistributionKeeper{ctrl: ctrl}
+	mock.recorder = &MockDistributionKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDistributionKeeper) EXPECT() *MockDistributionKeeperMockRecorder {
+	return m.recorder
+}
+
+// GetUbiBalanceByDenom mocks base method.
+func (m *MockDistributionKeeper) GetUbiBalanceByDenom(ctx context.Context, denom string) (math.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUbiBalanceByDenom", ctx, denom)
+	ret0, _ := ret[0].(math.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUbiBalanceByDenom indicates an expected call of GetUbiBalanceByDenom.
+func (mr *MockDistributionKeeperMockRecorder) GetUbiBalanceByDenom(ctx, denom any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUbiBalanceByDenom", reflect.TypeOf((*MockDistributionKeeper)(nil).GetUbiBalanceByDenom), ctx, denom)
+}
+
+// WithdrawUbiByDenomToModule mocks base method.
+func (m *MockDistributionKeeper) WithdrawUbiByDenomToModule(ctx context.Context, denom, recipientModule string) (types.Coin, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithdrawUbiByDenomToModule", ctx, denom, recipientModule)
+	ret0, _ := ret[0].(types.Coin)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithdrawUbiByDenomToModule indicates an expected call of WithdrawUbiByDenomToModule.
+func (mr *MockDistributionKeeperMockRecorder) WithdrawUbiByDenomToModule(ctx, denom, recipientModule any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithdrawUbiByDenomToModule", reflect.TypeOf((*MockDistributionKeeper)(nil).WithdrawUbiByDenomToModule), ctx, denom, recipientModule)
 }
