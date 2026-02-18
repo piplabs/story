@@ -21,6 +21,8 @@ import (
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	types2 "github.com/cosmos/cosmos-sdk/x/staking/types"
+	common "github.com/ethereum/go-ethereum/common"
+	types3 "github.com/piplabs/story/client/x/dkg/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -787,6 +789,36 @@ func (m *MockDKGKeeper) DistributeRewardsToActiveCommittee(ctx context.Context, 
 func (mr *MockDKGKeeperMockRecorder) DistributeRewardsToActiveCommittee(ctx, senderModule, totalAmount any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DistributeRewardsToActiveCommittee", reflect.TypeOf((*MockDKGKeeper)(nil).DistributeRewardsToActiveCommittee), ctx, senderModule, totalAmount)
+}
+
+// GetLatestActiveRound mocks base method.
+func (m *MockDKGKeeper) GetLatestActiveRound(ctx context.Context) (*types3.DKGNetwork, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLatestActiveRound", ctx)
+	ret0, _ := ret[0].(*types3.DKGNetwork)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLatestActiveRound indicates an expected call of GetLatestActiveRound.
+func (mr *MockDKGKeeperMockRecorder) GetLatestActiveRound(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestActiveRound", reflect.TypeOf((*MockDKGKeeper)(nil).GetLatestActiveRound), ctx)
+}
+
+// HasFinalizedRegistration mocks base method.
+func (m *MockDKGKeeper) HasFinalizedRegistration(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasFinalizedRegistration", ctx, codeCommitment, round, validatorAddr)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasFinalizedRegistration indicates an expected call of HasFinalizedRegistration.
+func (mr *MockDKGKeeperMockRecorder) HasFinalizedRegistration(ctx, codeCommitment, round, validatorAddr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalizedRegistration", reflect.TypeOf((*MockDKGKeeper)(nil).HasFinalizedRegistration), ctx, codeCommitment, round, validatorAddr)
 }
 
 // MockDistributionKeeper is a mock of DistributionKeeper interface.

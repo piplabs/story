@@ -118,6 +118,25 @@ func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, codeCommitment
 	return filteredRegs, nil
 }
 
+// HasFinalizedRegistration checks if a validator has a finalized DKG registration for a given code commitment and round.
+func (k *Keeper) HasFinalizedRegistration(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (bool, error) {
+	codeCommitment32, err := cast.ToBytes32(codeCommitment)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to cast code commitment to bytes32")
+	}
+
+	reg, err := k.getDKGRegistration(ctx, codeCommitment32, round, validatorAddr)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return reg.Status == types.DKGRegStatusFinalized, nil
+}
+
 // countDKGRegistrationsByStatus returns the count of DKG registrations in the status
 func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, codeCommitment []byte, round uint32, status types.DKGRegStatus) (uint32, error) {
 	codeCommitment32, err := cast.ToBytes32(codeCommitment)
@@ -125,7 +144,7 @@ func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, codeCommitme
 		return 0, errors.Wrap(err, "failed to cast to bytes32")
 	}
 
-	// Get registrations with status VERIFIED
+	// Get registrations with status of registration
 	regs, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment32, round, status)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get verified registrations")

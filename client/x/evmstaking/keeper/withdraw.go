@@ -514,6 +514,20 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 		return errors.New("depositor account not found")
 	}
 
+	// Block self-unstaking if the validator has a finalized registration in the active DKG round
+	if ev.Delegator == valEvmAddr {
+		activeRound, err := k.dkgKeeper.GetLatestActiveRound(cachedCtx)
+		if err == nil && activeRound != nil {
+			hasFinalized, err := k.dkgKeeper.HasFinalizedRegistration(cachedCtx, activeRound.CodeCommitment, activeRound.Round, valEvmAddr)
+			if err == nil && hasFinalized {
+				return errors.WrapErrWithCode(
+					errors.ActiveDKGMemberSelfUnstake,
+					errors.New("validator is a finalized member of the active DKG round and cannot self-unstake"),
+				)
+			}
+		}
+	}
+
 	lockedTokenType, err := k.stakingKeeper.GetLockedTokenType(cachedCtx)
 	if err != nil {
 		return errors.Wrap(err, "get locked token type")

@@ -7,72 +7,75 @@ import (
 type ErrCode uint32
 
 const (
-	Unspecified              ErrCode = 0
-	UnexpectedCondition      ErrCode = 1
-	InvalidCmpPubKey         ErrCode = 2
-	ValidatorNotFound        ErrCode = 3
-	ValidatorAlreadyExists   ErrCode = 4
-	InvalidTokenType         ErrCode = 5
-	InvalidOperator          ErrCode = 6
-	InvalidCommissionRate    ErrCode = 7
-	InvalidMinSelfDelegation ErrCode = 8
-	InvalidPeriodType        ErrCode = 9
-	InvalidDelegationAmount  ErrCode = 10
-	DelegationNotFound       ErrCode = 11
-	PeriodDelegationNotFound ErrCode = 12
-	InvalidRequest           ErrCode = 13
-	SelfRedelegation         ErrCode = 14
-	TokenTypeMismatch        ErrCode = 15
-	MissingSelfDelegation    ErrCode = 16
-	ValidatorNotJailed       ErrCode = 17
-	ValidatorStillJailed     ErrCode = 18
-	PendingUpgradeExists     ErrCode = 19
+	Unspecified                ErrCode = 0
+	UnexpectedCondition        ErrCode = 1
+	InvalidCmpPubKey           ErrCode = 2
+	ValidatorNotFound          ErrCode = 3
+	ValidatorAlreadyExists     ErrCode = 4
+	InvalidTokenType           ErrCode = 5
+	InvalidOperator            ErrCode = 6
+	InvalidCommissionRate      ErrCode = 7
+	InvalidMinSelfDelegation   ErrCode = 8
+	InvalidPeriodType          ErrCode = 9
+	InvalidDelegationAmount    ErrCode = 10
+	DelegationNotFound         ErrCode = 11
+	PeriodDelegationNotFound   ErrCode = 12
+	InvalidRequest             ErrCode = 13
+	SelfRedelegation           ErrCode = 14
+	TokenTypeMismatch          ErrCode = 15
+	MissingSelfDelegation      ErrCode = 16
+	ValidatorNotJailed         ErrCode = 17
+	ValidatorStillJailed       ErrCode = 18
+	PendingUpgradeExists       ErrCode = 19
+	ActiveDKGMemberSelfUnstake ErrCode = 20
 )
 
 var (
-	ErrUnspecified              = stderrors.New("unspecified")
-	ErrUnexpectedCondition      = stderrors.New("unexpected_condition")
-	ErrInvalidCmpPubKey         = stderrors.New("invalid_compressed_pubkey")
-	ErrValidatorNotFound        = stderrors.New("validator_not_found")
-	ErrValidatorAlreadyExists   = stderrors.New("validator_already_exists")
-	ErrInvalidTokenType         = stderrors.New("invalid_token_type")
-	ErrInvalidOperator          = stderrors.New("invalid_operator")
-	ErrInvalidCommissionRate    = stderrors.New("invalid_commission_rate")
-	ErrInvalidMinSelfDelegation = stderrors.New("invalid_min_self_delegation")
-	ErrInvalidPeriodType        = stderrors.New("invalid_period_type")
-	ErrInvalidDelegationAmount  = stderrors.New("invalid_delegation_amount")
-	ErrDelegationNotFound       = stderrors.New("delegation_not_found")
-	ErrPeriodDelegationNotFound = stderrors.New("period_delegation_not_found")
-	ErrInvalidRequest           = stderrors.New("invalid_request")
-	ErrSelfRedelegation         = stderrors.New("self_redelegation")
-	ErrTokenTypeMismatch        = stderrors.New("token_type_mismatch")
-	ErrMissingSelfDelegation    = stderrors.New("missing_self_delegation")
-	ErrValidatorNotJailed       = stderrors.New("validator_not_jailed")
-	ErrValidatorStillJailed     = stderrors.New("validator_still_jailed")
-	ErrPendingUpgradeExists     = stderrors.New("pending_upgrade_exists")
+	ErrUnspecified                = stderrors.New("unspecified")
+	ErrUnexpectedCondition        = stderrors.New("unexpected_condition")
+	ErrInvalidCmpPubKey           = stderrors.New("invalid_compressed_pubkey")
+	ErrValidatorNotFound          = stderrors.New("validator_not_found")
+	ErrValidatorAlreadyExists     = stderrors.New("validator_already_exists")
+	ErrInvalidTokenType           = stderrors.New("invalid_token_type")
+	ErrInvalidOperator            = stderrors.New("invalid_operator")
+	ErrInvalidCommissionRate      = stderrors.New("invalid_commission_rate")
+	ErrInvalidMinSelfDelegation   = stderrors.New("invalid_min_self_delegation")
+	ErrInvalidPeriodType          = stderrors.New("invalid_period_type")
+	ErrInvalidDelegationAmount    = stderrors.New("invalid_delegation_amount")
+	ErrDelegationNotFound         = stderrors.New("delegation_not_found")
+	ErrPeriodDelegationNotFound   = stderrors.New("period_delegation_not_found")
+	ErrInvalidRequest             = stderrors.New("invalid_request")
+	ErrSelfRedelegation           = stderrors.New("self_redelegation")
+	ErrTokenTypeMismatch          = stderrors.New("token_type_mismatch")
+	ErrMissingSelfDelegation      = stderrors.New("missing_self_delegation")
+	ErrValidatorNotJailed         = stderrors.New("validator_not_jailed")
+	ErrValidatorStillJailed       = stderrors.New("validator_still_jailed")
+	ErrPendingUpgradeExists       = stderrors.New("pending_upgrade_exists")
+	ErrActiveDKGMemberSelfUnstake = stderrors.New("active_dkg_member_self_unstake")
 )
 
 var codeToErr = map[ErrCode]error{
-	Unspecified:              ErrUnspecified,
-	UnexpectedCondition:      ErrUnexpectedCondition,
-	InvalidCmpPubKey:         ErrInvalidCmpPubKey,
-	ValidatorNotFound:        ErrValidatorNotFound,
-	ValidatorAlreadyExists:   ErrValidatorAlreadyExists,
-	InvalidTokenType:         ErrInvalidTokenType,
-	InvalidOperator:          ErrInvalidOperator,
-	InvalidCommissionRate:    ErrInvalidCommissionRate,
-	InvalidMinSelfDelegation: ErrInvalidMinSelfDelegation,
-	InvalidPeriodType:        ErrInvalidPeriodType,
-	InvalidDelegationAmount:  ErrInvalidDelegationAmount,
-	DelegationNotFound:       ErrDelegationNotFound,
-	PeriodDelegationNotFound: ErrPeriodDelegationNotFound,
-	InvalidRequest:           ErrInvalidRequest,
-	SelfRedelegation:         ErrSelfRedelegation,
-	TokenTypeMismatch:        ErrTokenTypeMismatch,
-	MissingSelfDelegation:    ErrMissingSelfDelegation,
-	ValidatorNotJailed:       ErrValidatorNotJailed,
-	ValidatorStillJailed:     ErrValidatorStillJailed,
-	PendingUpgradeExists:     ErrPendingUpgradeExists,
+	Unspecified:                ErrUnspecified,
+	UnexpectedCondition:        ErrUnexpectedCondition,
+	InvalidCmpPubKey:           ErrInvalidCmpPubKey,
+	ValidatorNotFound:          ErrValidatorNotFound,
+	ValidatorAlreadyExists:     ErrValidatorAlreadyExists,
+	InvalidTokenType:           ErrInvalidTokenType,
+	InvalidOperator:            ErrInvalidOperator,
+	InvalidCommissionRate:      ErrInvalidCommissionRate,
+	InvalidMinSelfDelegation:   ErrInvalidMinSelfDelegation,
+	InvalidPeriodType:          ErrInvalidPeriodType,
+	InvalidDelegationAmount:    ErrInvalidDelegationAmount,
+	DelegationNotFound:         ErrDelegationNotFound,
+	PeriodDelegationNotFound:   ErrPeriodDelegationNotFound,
+	InvalidRequest:             ErrInvalidRequest,
+	SelfRedelegation:           ErrSelfRedelegation,
+	TokenTypeMismatch:          ErrTokenTypeMismatch,
+	MissingSelfDelegation:      ErrMissingSelfDelegation,
+	ValidatorNotJailed:         ErrValidatorNotJailed,
+	ValidatorStillJailed:       ErrValidatorStillJailed,
+	PendingUpgradeExists:       ErrPendingUpgradeExists,
+	ActiveDKGMemberSelfUnstake: ErrActiveDKGMemberSelfUnstake,
 }
 
 func (c ErrCode) String() string {
@@ -134,6 +137,8 @@ func UnwrapErrCode(err error) ErrCode {
 		return ValidatorStillJailed
 	case stderrors.Is(err, ErrPendingUpgradeExists):
 		return PendingUpgradeExists
+	case stderrors.Is(err, ErrActiveDKGMemberSelfUnstake):
+		return ActiveDKGMemberSelfUnstake
 	default:
 		return Unspecified
 	}

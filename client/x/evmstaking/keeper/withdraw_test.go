@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/client/server/utils"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/client/x/evmstaking/keeper"
 	moduletestutil "github.com/piplabs/story/client/x/evmstaking/testutil"
 	"github.com/piplabs/story/client/x/evmstaking/types"
@@ -1894,6 +1895,136 @@ func TestProcessWithdraw(t *testing.T) {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestProcessWithdrawDKGBlocking(t *testing.T) {
+	pubKeys, _, _ := createAddresses(2)
+
+	// validator
+	valPubKey := pubKeys[0]
+	valEvmAddr, err := keeper.CmpPubKeyToEVMAddress(valPubKey.Bytes())
+	require.NoError(t, err)
+
+	// separate delegator (non-self unstake)
+	delPubKey := pubKeys[1]
+	delEvmAddr, err := keeper.CmpPubKeyToEVMAddress(delPubKey.Bytes())
+	require.NoError(t, err)
+
+	activeRound := &dkgtypes.DKGNetwork{
+		CodeCommitment: []byte("test-commitment"),
+		Round:          1,
+	}
+
+	// createSelfUnstake creates a withdraw event where Delegator == validator EVM address (self-unstake)
+	createSelfUnstake := func() *bindings.IPTokenStakingWithdraw {
+		return &bindings.IPTokenStakingWithdraw{
+			Delegator:          valEvmAddr,
+			ValidatorCmpPubkey: valPubKey.Bytes(),
+			StakeAmount:        new(big.Int).SetUint64(1),
+			DelegationId:       big.NewInt(0),
+			OperatorAddress:    valEvmAddr,
+		}
+	}
+
+	// createNonSelfUnstake creates a withdraw event where Delegator != validator EVM address
+	createNonSelfUnstake := func() *bindings.IPTokenStakingWithdraw {
+		return &bindings.IPTokenStakingWithdraw{
+			Delegator:          delEvmAddr,
+			ValidatorCmpPubkey: valPubKey.Bytes(),
+			StakeAmount:        new(big.Int).SetUint64(1),
+			DelegationId:       big.NewInt(0),
+			OperatorAddress:    delEvmAddr,
+		}
+	}
+
+	tcs := []struct {
+		name       string
+		setupMocks func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper)
+		withdraw   *bindings.IPTokenStakingWithdraw
+		expectErr  string
+	}{
+		{
+			name: "fail: self-unstake blocked when validator has finalized DKG registration",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(true, nil)
+			},
+			withdraw:  createSelfUnstake(),
+			expectErr: "finalized member of the active DKG round",
+		},
+		{
+			name: "pass: self-unstake allowed when no active DKG round",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(nil, nil)
+				// No HasFinalizedRegistration mock needed; DKG check is skipped
+				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
+			},
+			withdraw:  createSelfUnstake(),
+			expectErr: "stop: past DKG check",
+		},
+		{
+			name: "pass: self-unstake allowed when validator is not a finalized DKG member",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(false, nil)
+				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
+			},
+			withdraw:  createSelfUnstake(),
+			expectErr: "stop: past DKG check",
+		},
+		{
+			name: "pass: self-unstake allowed when GetLatestActiveRound errors",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(nil, errors.New("dkg error"))
+				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
+			},
+			withdraw:  createSelfUnstake(),
+			expectErr: "stop: past DKG check",
+		},
+		{
+			name: "pass: self-unstake allowed when HasFinalizedRegistration errors",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(false, errors.New("dkg error"))
+				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
+			},
+			withdraw:  createSelfUnstake(),
+			expectErr: "stop: past DKG check",
+		},
+		{
+			name: "pass: non-self unstake not blocked even with DKG active round",
+			setupMocks: func(ak *moduletestutil.MockAccountKeeper, mockSK *moduletestutil.MockStakingKeeper, dkgk *moduletestutil.MockDKGKeeper) {
+				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
+				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
+				// No DKG keeper mock expectations: DKG check is not entered for non-self unstake
+				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
+			},
+			withdraw:  createNonSelfUnstake(),
+			expectErr: "stop: past DKG check",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, ak, _, _, mockSK, _, dkgk, esk := createKeeperWithMockStaking(t)
+
+			tc.setupMocks(ak, mockSK, dkgk)
+
+			cachedCtx, _ := ctx.CacheContext()
+			err := esk.ProcessWithdraw(cachedCtx, tc.withdraw)
+			require.ErrorContains(t, err, tc.expectErr)
 		})
 	}
 }

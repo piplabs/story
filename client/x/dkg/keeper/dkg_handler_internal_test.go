@@ -523,6 +523,107 @@ func TestKeeper_InvalidDeal(t *testing.T) {
 	}
 }
 
+func TestKeeper_HasFinalizedRegistration(t *testing.T) {
+	k, ctx := setupDKGKeeper(t)
+
+	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
+	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
+	testRound := uint32(1)
+
+	tcs := []struct {
+		name           string
+		setup          func()
+		codeCommitment []byte
+		round          uint32
+		validatorAddr  common.Address
+		expectedResult bool
+		expectedErr    string
+	}{
+		{
+			name: "pass: returns true when registration is finalized",
+			setup: func() {
+				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+					Round:         testRound,
+					ValidatorAddr: testValidator.Hex(),
+					Index:         1,
+					Status:        types.DKGRegStatusFinalized,
+				})
+				require.NoError(t, err)
+			},
+			codeCommitment: testCodeCommitment[:],
+			round:          testRound,
+			validatorAddr:  testValidator,
+			expectedResult: true,
+		},
+		{
+			name: "pass: returns false when registration is verified (not finalized)",
+			setup: func() {
+				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+					Round:         testRound,
+					ValidatorAddr: testValidator.Hex(),
+					Index:         1,
+					Status:        types.DKGRegStatusVerified,
+				})
+				require.NoError(t, err)
+			},
+			codeCommitment: testCodeCommitment[:],
+			round:          testRound,
+			validatorAddr:  testValidator,
+			expectedResult: false,
+		},
+		{
+			name: "pass: returns false when registration is unspecified",
+			setup: func() {
+				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+					Round:         testRound,
+					ValidatorAddr: testValidator.Hex(),
+					Index:         1,
+					Status:        types.DKGRegStatusUnspecified,
+				})
+				require.NoError(t, err)
+			},
+			codeCommitment: testCodeCommitment[:],
+			round:          testRound,
+			validatorAddr:  testValidator,
+			expectedResult: false,
+		},
+		{
+			name:           "pass: returns false when no registration exists",
+			setup:          func() {},
+			codeCommitment: testCodeCommitment[:],
+			round:          uint32(999), // non-existent round
+			validatorAddr:  common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			expectedResult: false,
+		},
+		{
+			name:           "fail: returns error when code commitment has wrong length",
+			setup:          func() {},
+			codeCommitment: []byte{0x01, 0x02}, // too short
+			round:          testRound,
+			validatorAddr:  testValidator,
+			expectedResult: false,
+			expectedErr:    "failed to cast code commitment to bytes32",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.setup()
+
+			result, err := k.HasFinalizedRegistration(ctx, tc.codeCommitment, tc.round, tc.validatorAddr)
+
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+				require.False(t, result)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expectedResult, result)
+			}
+		})
+	}
+}
+
 // setupDKGKeeper creates a test DKG keeper with necessary dependencies.
 func setupDKGKeeper(t *testing.T) (*Keeper, context.Context) {
 	t.Helper()
