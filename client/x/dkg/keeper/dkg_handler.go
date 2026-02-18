@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"slices"
@@ -11,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -113,6 +113,21 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 
 	if latest.Stage != types.DKGStageFinalization {
 		return errors.New("round is not in network set stage")
+	}
+
+	// Retrieve the validator's DKG registration to get commPubKey
+	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, msgSender)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG registration for signature verification")
+	}
+
+	// Prevent double-finalization: reject if this validator already finalized for this round
+	if reg.Status == types.DKGRegStatusFinalized {
+		return errors.New("validator has already finalized for this round")
+	}
+
+	if err := verifyFinalizationSignature(reg.CommPubKey, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare, signature); err != nil {
+		return errors.Wrap(err, "finalization signature verification failed")
 	}
 
 	voteCount, err := k.AddGlobalPubKeyVote(ctx, codeCommitment, round, globalPubKey, publicCoeffs)
@@ -243,6 +258,76 @@ func (*Keeper) InvalidDeal(ctx context.Context, index uint32, round uint32, code
 		"code_commitment", hex.EncodeToString(codeCommitment[:]),
 	)
 	// TODO: Implement actual invalid deal handling logic
+	return nil
+}
+
+// verifyFinalizationSignature verifies the TEE's ECDSA signature over the DKG finalization data.
+// It reproduces the message hash signed by the TEE, recovers the signer, and checks it matches
+// the expected address derived from the validator's commPubKey.
+func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment, participantsRoot [32]byte, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte, signature []byte) error {
+	// commPubKey must be 64 bytes (uncompressed secp256k1 public key without 0x04 prefix)
+	if len(commPubKey) != 64 {
+		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
+	}
+
+	// Compute total size of publicCoeffs for accurate capacity hint
+	coeffsLen := 0
+	for _, coeff := range publicCoeffs {
+		if len(coeff) == 0 {
+			return errors.New("empty public coefficient")
+		}
+		coeffsLen += len(coeff)
+	}
+
+	// Construct encoded message: codeCommitment(32B) + round(4B big-endian) + participantsRoot(32B) + globalPubKey + publicCoeffs...
+	encoded := make([]byte, 0, 32+4+32+len(globalPubKey)+coeffsLen)
+	encoded = append(encoded, codeCommitment[:]...)
+	roundBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(roundBytes, round)
+	encoded = append(encoded, roundBytes...)
+	encoded = append(encoded, participantsRoot[:]...)
+	encoded = append(encoded, globalPubKey...)
+	for _, coeff := range publicCoeffs {
+		encoded = append(encoded, coeff...)
+	}
+	encoded = append(encoded, pubKeyShare...)
+
+	msgHash := crypto.Keccak256(encoded)
+
+	// Compute Ethereum signed message hash: keccak256("\x19Ethereum Signed Message:\n32" + msgHash)
+	prefix := []byte("\x19Ethereum Signed Message:\n32")
+	ethHash := crypto.Keccak256(append(prefix, msgHash...))
+
+	if len(signature) != 65 {
+		return errors.New("invalid signature length", "expected", 65, "got", len(signature))
+	}
+
+	// Make a copy to avoid mutating the original signature
+	sig := make([]byte, 65)
+	copy(sig, signature)
+
+	// Adjust V value: convert Ethereum V (27/28) to recovery ID (0/1)
+	if sig[64] >= 27 {
+		sig[64] -= 27
+	}
+
+	recoveredPub, err := crypto.SigToPub(ethHash, sig)
+	if err != nil {
+		return errors.Wrap(err, "failed to recover public key from signature")
+	}
+
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPub)
+
+	// Expected address: address(uint160(uint256(keccak256(commPubKey))))
+	expectedAddr := common.BytesToAddress(crypto.Keccak256(commPubKey))
+
+	if recoveredAddr != expectedAddr {
+		return errors.New("finalization signature address mismatch",
+			"recovered", recoveredAddr.Hex(),
+			"expected", expectedAddr.Hex(),
+		)
+	}
+
 	return nil
 }
 
