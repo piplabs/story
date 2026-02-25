@@ -128,7 +128,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		}
 	}
 
-	if err := k.updateDKGRegistrationStatus(ctx, codeCommitment, round, msgSender, pubKeyShare, types.DKGRegStatusFinalized); err != nil {
+	if err := k.finalizeDKGRegistration(ctx, codeCommitment, round, msgSender, pubKeyShare, types.DKGRegStatusFinalized); err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}
 

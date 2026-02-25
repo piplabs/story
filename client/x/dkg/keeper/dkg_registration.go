@@ -88,8 +88,8 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, codeCommitment 
 	return registrations, nil
 }
 
-// updateDKGRegistrationStatus updates the status of a specific DKG registration.
-func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address, pubKeyShare []byte, status types.DKGRegStatus) error {
+// finalizeDKGRegistration updates the status of a specific DKG registration and sets the pub key share.
+func (k *Keeper) finalizeDKGRegistration(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address, pubKeyShare []byte, status types.DKGRegStatus) error {
 	dkgReg, err := k.getDKGRegistration(ctx, codeCommitment, round, validatorAddr)
 	if err != nil {
 		return err
