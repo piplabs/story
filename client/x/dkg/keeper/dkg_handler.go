@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
 	"slices"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -92,7 +93,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 }
 
 // Finalized handles DKG finalization event.
-func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -127,7 +128,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		}
 	}
 
-	if err := k.updateDKGRegistrationStatus(ctx, codeCommitment, round, msgSender, types.DKGRegStatusFinalized); err != nil {
+	if err := k.updateDKGRegistrationStatus(ctx, codeCommitment, round, msgSender, pubKeyShare, types.DKGRegStatusFinalized); err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}
 

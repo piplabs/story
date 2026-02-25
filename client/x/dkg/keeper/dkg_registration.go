@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/piplabs/story/lib/cast"
 
 	"cosmossdk.io/collections"
@@ -88,12 +89,13 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, codeCommitment 
 }
 
 // updateDKGRegistrationStatus updates the status of a specific DKG registration.
-func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address, status types.DKGRegStatus) error {
+func (k *Keeper) updateDKGRegistrationStatus(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address, pubKeyShare []byte, status types.DKGRegStatus) error {
 	dkgReg, err := k.getDKGRegistration(ctx, codeCommitment, round, validatorAddr)
 	if err != nil {
 		return err
 	}
 
+	dkgReg.PubKeyShare = pubKeyShare
 	dkgReg.Status = status
 
 	return k.setDKGRegistration(ctx, codeCommitment, validatorAddr, dkgReg)

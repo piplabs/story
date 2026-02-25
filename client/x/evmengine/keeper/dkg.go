@@ -168,7 +168,7 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 		})
 	}()
 
-	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.MsgSender, ev.CodeCommitment, ev.ParticipantsRoot, ev.Signature, ev.GlobalPubKey, ev.PublicCoeffs); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.MsgSender, ev.CodeCommitment, ev.ParticipantsRoot, ev.Signature, ev.GlobalPubKey, ev.PublicCoeffs, ev.PubKeyShare); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "finalize DKG")

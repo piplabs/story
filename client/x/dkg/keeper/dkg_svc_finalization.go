@@ -3,11 +3,12 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
+	"slices"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"slices"
 )
 
 // handleDKGFinalization handles the finalization phase event.
@@ -120,6 +121,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	session.GlobalPubKey = resp.GetGlobalPubKey()
 	session.SigFinalizeNetwork = resp.GetSignature()
 	session.PublicCoeffs = resp.GetPublicCoeffs()
+	session.PubKeyShare = resp.GetPubKeyShare()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling FinalizeDKG on the TEE client")
 	}
@@ -154,6 +156,7 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 		session.ParticipantsRoot,
 		session.GlobalPubKey,
 		session.PublicCoeffs,
+		session.PubKeyShare,
 		session.SigFinalizeNetwork,
 	); err != nil {
 		return err

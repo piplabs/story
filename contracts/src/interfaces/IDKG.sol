@@ -93,6 +93,7 @@ interface IDKG {
         bytes32 participantsRoot,
         bytes globalPubKey,
         bytes[] publicCoeffs,
+        bytes pubKeyShare,
         bytes signature
     );
 

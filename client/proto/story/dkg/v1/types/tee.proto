@@ -190,7 +190,11 @@ message FinalizeDKGResponse {
     (gogoproto.moretags) = "yaml:\"public_coeffs\""
   ];
 
-  bytes signature = 6 [
+  bytes pub_key_share = 6 [
+    (gogoproto.moretags) = "yaml:\"pub_key_share\""
+  ];
+
+  bytes signature = 7 [
     (gogoproto.moretags) = "yaml:\"signature\""
   ];
 }

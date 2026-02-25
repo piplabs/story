@@ -142,12 +142,14 @@ func (c *ContractClient) FinalizeDKG(
 	participantsRoot []byte,
 	globalPubKey []byte,
 	publicCoeffs [][]byte,
+	pubKeyShare []byte,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalizeDKG contract method",
 		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
+		"pub_key_share", hex.EncodeToString(pubKeyShare),
 		"signature_len", len(signature),
 	)
 
@@ -161,13 +163,13 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to convert participants root to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, codeCommitment32, globalPubKey, signature)
+	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
 
 	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.FinalizeDKG(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, signature)
+		return c.dkgContract.FinalizeDKG(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	})
 }
 
