@@ -1,8 +1,10 @@
 package server
 
 import (
+	"encoding/hex"
 	"github.com/piplabs/story/client/server/utils"
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 	"net/http"
 )
 
@@ -10,6 +12,7 @@ func (s *Server) initDKGRoute() {
 	s.httpMux.HandleFunc("/dkg/dkg_network", utils.AutoWrap(s.aminoCodec, s.GetDKGNetwork))
 	s.httpMux.HandleFunc("/dkg/registrations/verified", utils.AutoWrap(s.aminoCodec, s.GetVerifiedDKGRegistrations))
 	s.httpMux.HandleFunc("/dkg/latest_active", utils.SimpleWrap(s.aminoCodec, s.GetLatestActiveDKGNetwork))
+	s.httpMux.HandleFunc("/dkg/global_public_key", utils.SimpleWrap(s.aminoCodec, s.GetDKGGlobalPubKey))
 }
 
 func (s *Server) GetDKGNetwork(req *getDKGNetworkRequest, r *http.Request) (resp any, err error) {
@@ -58,4 +61,24 @@ func (s *Server) GetLatestActiveDKGNetwork(r *http.Request) (resp any, err error
 	}
 
 	return queryResp, nil
+}
+
+func (s *Server) GetDKGGlobalPubKey(r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := s.store.GetDKGKeeper().GetLatestActiveDKGNetwork(queryContext, &dkgtypes.QueryGetLatestActiveDKGNetworkRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(queryResp.Network.GlobalPublicKey) == 0 {
+		return nil, errors.New("global public key is not set yet")
+	}
+
+	return QueryDKGGlobalPublicKeyResponse{
+		PublicKeyHex: hex.EncodeToString(queryResp.Network.GlobalPublicKey),
+	}, nil
 }

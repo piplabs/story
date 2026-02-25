@@ -132,3 +132,7 @@ type getVerifiedDKGRegistrationsRequest struct {
 	Round             uint32 `mapstructure:"round"`
 	CodeCommitmentHex string `mapstructure:"code_commitment_hex"`
 }
+
+type QueryDKGGlobalPublicKeyResponse struct {
+	PublicKeyHex string `json:"public_key"`
+}
