@@ -660,7 +660,7 @@ func TestProcessUnstakeWithdrawals(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, bk, dk, sk, _, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 			cachedCtx = cachedCtx.WithBlockHeight(20) // activate v1.2.1 by default in test
@@ -973,7 +973,7 @@ func TestProcessRewardWithdrawals(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, bk, dk, sk, _, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 
@@ -1228,7 +1228,7 @@ func TestProcessEligibleRewardWithdrawal(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, bk, dk, sk, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, bk, dk, sk, _, _, esk := createKeeperWithMockStaking(t)
 
 			cachedCtx, _ := ctx.CacheContext()
 
@@ -1486,7 +1486,7 @@ func TestEnqueueRewardWithdrawal(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, _, bk, dk, _, _, esk := createKeeperWithMockStaking(t)
+			ctx, _, bk, dk, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			if tc.setupMocks != nil {
 				tc.setupMocks(bk, dk)
@@ -1860,7 +1860,7 @@ func TestProcessWithdraw(t *testing.T) {
 			)
 
 			if tc.mockStakingKeeper {
-				ctx, ak, bk, _, mockSK, _, esk = createKeeperWithMockStaking(t)
+				ctx, ak, bk, _, mockSK, _, _, esk = createKeeperWithMockStaking(t)
 			} else {
 				ctx, ak, bk, sk, _, esk = createKeeperWithRealStaking(t)
 			}
@@ -1922,7 +1922,7 @@ func TestParseWithdraw(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
+			_, _, _, _, _, _, _, esk := createKeeperWithMockStaking(t)
 
 			_, err := esk.ParseWithdrawLog(tc.log)
 			if tc.expectErr {

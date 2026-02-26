@@ -53,3 +53,12 @@ message EventDKGFinalized {
   bytes code_commitment = 1;
   uint32 round = 2;
 }
+
+message EventDKGCommitteeRewarded {
+  bytes code_commitment = 1;
+  uint32 round = 2;
+  uint32 member_count = 3;
+  string total_reward = 4;
+  string per_member_reward = 5;
+  string remaining_ubi = 6;
+}

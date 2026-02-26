@@ -160,7 +160,7 @@ func TestProcessUpdateValidatorCommission(t *testing.T) {
 			)
 
 			if tc.mockStakingKeeper {
-				ctx, _, bk, _, mockSK, _, esk = createKeeperWithMockStaking(t)
+				ctx, _, bk, _, mockSK, _, _, esk = createKeeperWithMockStaking(t)
 			} else {
 				ctx, _, bk, sk, _, esk = createKeeperWithRealStaking(t)
 			}

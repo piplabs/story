@@ -31,6 +31,8 @@ type ModuleInputs struct {
 	StoreService store.KVStoreService
 
 	AccountKeeper types.AccountKeeper
+	BankKeeper    types.BankKeeper
+	DistKeeper    types.DistributionKeeper
 	StakingKeeper types.StakingKeeper
 	ValStore      *skeeper.Keeper
 
@@ -57,6 +59,8 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.Cdc,
 		in.StoreService,
 		in.AccountKeeper,
+		in.BankKeeper,
+		in.DistKeeper,
 		in.StakingKeeper,
 		in.ValStore,
 		in.DKGTEEClient,

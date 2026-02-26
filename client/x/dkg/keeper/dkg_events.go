@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -109,6 +111,30 @@ func (*Keeper) emitDKGFinalized(ctx context.Context, dkgNetwork *types.DKGNetwor
 	}
 
 	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment))
+
+	return nil
+}
+
+func (*Keeper) emitDKGCommitteeRewarded(ctx context.Context, dkgNetwork *types.DKGNetwork, memberCount uint32, totalReward, perMemberReward, remainingUbi math.Int) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventDKGCommitteeRewarded{
+		CodeCommitment:  dkgNetwork.CodeCommitment,
+		Round:           dkgNetwork.Round,
+		MemberCount:     memberCount,
+		TotalReward:     totalReward.String(),
+		PerMemberReward: perMemberReward.String(),
+		RemainingUbi:    remainingUbi.String(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to emit dkg_committee_rewarded event")
+	}
+
+	log.Info(ctx, "Emitted DKGCommitteeRewarded event",
+		"round", dkgNetwork.Round,
+		"member_count", memberCount,
+		"total_reward", totalReward.String(),
+	)
 
 	return nil
 }
