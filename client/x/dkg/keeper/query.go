@@ -151,6 +151,9 @@ func (k *Keeper) GetLatestActiveDKGNetwork(ctx context.Context, request *types.Q
 	if err != nil {
 		return nil, err
 	}
+	if latest == nil {
+		return nil, status.Error(codes.NotFound, "no active DKG network")
+	}
 
 	return &types.QueryGetLatestActiveDKGNetworkResponse{Network: *latest}, nil
 }

@@ -2,13 +2,14 @@ package keeper
 
 import (
 	"context"
-	"cosmossdk.io/collections"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"strings"
 )
 
 // GetActiveValidators returns the bonded validators' EVM addresses excluding jailed validators.
@@ -86,13 +87,10 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 }
 
 func (k *Keeper) shouldReshare(ctx context.Context) (bool, error) {
-	_, err := k.getLatestActiveDKGNetwork(ctx)
-	if err == nil {
-		return true, nil
-	}
-	if errors.Is(err, collections.ErrNotFound) {
-		return false, nil
+	activeNetwork, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get latest active DKG network")
 	}
 
-	return false, errors.Wrap(err, "failed to get latest active DKG network")
+	return activeNetwork != nil, nil
 }

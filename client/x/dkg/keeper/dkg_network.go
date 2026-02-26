@@ -183,16 +183,26 @@ func (k *Keeper) setLatestActiveRound(ctx context.Context, dkgNetwork *types.DKG
 	return nil
 }
 
+// GetLatestActiveRound retrieves the latest active DKG round.
+// Returns nil, nil if no active round has been set yet.
+func (k *Keeper) GetLatestActiveRound(ctx context.Context) (*types.DKGNetwork, error) {
+	return k.getLatestActiveDKGNetwork(ctx)
+}
+
 func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwork, error) {
 	key, err := k.LatestActiveRound.Get(ctx)
 	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, nil
+		}
+
 		return nil, errors.Wrap(err, "failed to get latest active round of DKG network key")
 	}
 
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return nil, errors.Wrap(err, "no active round of dkg network")
+			return nil, nil
 		}
 
 		return nil, errors.Wrap(err, "failed to get latest active round of dkg network")
@@ -205,6 +215,9 @@ func (k *Keeper) isInPrevActiveValSet(ctx context.Context) (bool, error) {
 	latestActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
 		return false, err
+	}
+	if latestActive == nil {
+		return false, nil
 	}
 
 	return slices.Contains(latestActive.ActiveValSet, k.validatorEVMAddr), nil

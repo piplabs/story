@@ -30,12 +30,11 @@ func (k *Keeper) DistributeRewardsToActiveCommittee(ctx context.Context, senderM
 	// Get the latest active DKG network (current serving committee).
 	activeRound, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// No active DKG round — no committee to reward.
-			return math.ZeroInt(), nil
-		}
-
 		return math.ZeroInt(), errors.Wrap(err, "get latest active DKG network")
+	}
+	if activeRound == nil {
+		// No active DKG round — no committee to reward.
+		return math.ZeroInt(), nil
 	}
 
 	return k.distributeRewardsFromModule(ctx, activeRound, senderModule, totalAmount)
@@ -180,12 +179,11 @@ func (k *Keeper) settleRewardsForPreviousCommittee(ctx context.Context) error {
 	// Get the previous active round (the one whose committee served).
 	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// First round ever — no previous committee to reward.
-			return nil
-		}
-
 		return errors.Wrap(err, "failed to get previous active DKG network")
+	}
+	if prevActive == nil {
+		// First round ever — no previous committee to reward.
+		return nil
 	}
 
 	// Read the DKG committee reward portion from params.
