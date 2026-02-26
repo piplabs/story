@@ -92,11 +92,15 @@ message DKGRegistration {
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes raw_quote = 6 [
+  bytes pub_key_share = 6 [
+    (gogoproto.moretags) = "yaml:\"pub_key_share\""
+  ]; 
+
+  bytes raw_quote = 7 [
     (gogoproto.moretags) = "yaml:\"raw_quote\""
   ];
 
-  DKGRegStatus status = 7 [
+  DKGRegStatus status = 8 [
     (gogoproto.moretags) = "yaml:\"status\""
   ];
 }

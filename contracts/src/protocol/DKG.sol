@@ -188,6 +188,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
+        bytes calldata pubKeyShare,
         bytes calldata signature
     ) external payable chargesFee whenNotPaused {
         DKGStorage storage $ = _getDKGStorage();
