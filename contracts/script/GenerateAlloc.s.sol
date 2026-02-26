@@ -340,7 +340,7 @@ contract GenerateAlloc is Script {
 
     function setDKG() internal {
         // temp value of MRENCLAVE
-        bytes32 initialMrenclave = hex"4d53ef0428afd0bc343e4c0ca19efd05ad5d5747b4b230491c5e1237ca294739";
+        bytes32 initialMrenclave = hex"549d73150827be007e8923ed346fab353d01e0a1482350e95eb6bbaa07f1500d";
 
         address impl = Predeploys.getImplAddress(Predeploys.DKG);
         address tmp = address(new DKG(initialMrenclave)); // initial MRENCLAVE
@@ -449,6 +449,9 @@ contract GenerateAlloc is Script {
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
+            vm.deal(0xdb8E606AD7c02F37E43D10A10126791DC94b0434, 100000000 ether);
+            vm.deal(0xcd5faabCA5bea3c5fc5e2371c7B397604720c2C2, 100000000 ether);
+            vm.deal(0xcd29b70ff04C0aa386F7b3453dF0E5eD3d4F67bb, 100000000 ether);
         }
         if (ALLOCATE_1K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
