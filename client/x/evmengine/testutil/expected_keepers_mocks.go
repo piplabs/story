@@ -360,17 +360,17 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare)
 }
 
 // InvalidDeal mocks base method.
@@ -413,6 +413,20 @@ func (m *MockDKGKeeper) RemoteAttestationProcessedOnChain(ctx context.Context, v
 func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, validator, chalStatus, round, codeCommitment any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, codeCommitment)
+}
+
+// PartialDecryptionSubmitted mocks base method.
+func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, codeCommitment [32]byte, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, label []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
+func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 }
 
 // ThresholdDecryptRequested mocks base method.

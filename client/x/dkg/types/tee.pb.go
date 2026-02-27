@@ -6,15 +6,16 @@ package types
 import (
 	context "context"
 	fmt "fmt"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	grpc1 "github.com/cosmos/gogoproto/grpc"
 	proto "github.com/cosmos/gogoproto/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	io "io"
-	math "math"
-	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -706,7 +707,7 @@ type PartialDecryptTDH2Request struct {
 	Ciphertext     []byte `protobuf:"bytes,3,opt,name=ciphertext,proto3" json:"ciphertext,omitempty" yaml:"ciphertext"`
 	Label          []byte `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty" yaml:"label"`
 	Pid            uint32 `protobuf:"varint,5,opt,name=pid,proto3" json:"pid,omitempty" yaml:"pid"`
-	DkgPubKey      []byte `protobuf:"bytes,6,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
+	GlobalPubKey   []byte `protobuf:"bytes,6,opt,name=global_pub_key,json=globalPubKey,proto3" json:"global_pub_key,omitempty" yaml:"global_pub_key"`
 	SealedShareId  string `protobuf:"bytes,7,opt,name=sealed_share_id,json=sealedShareId,proto3" json:"sealed_share_id,omitempty" yaml:"sealed_share_id"`
 	// secp256k1 uncompressed requester pubkey (65 bytes)
 	RequesterPubKey []byte `protobuf:"bytes,8,opt,name=requester_pub_key,json=requesterPubKey,proto3" json:"requester_pub_key,omitempty" yaml:"requester_pub_key"`
@@ -780,9 +781,9 @@ func (m *PartialDecryptTDH2Request) GetPid() uint32 {
 	return 0
 }
 
-func (m *PartialDecryptTDH2Request) GetDkgPubKey() []byte {
+func (m *PartialDecryptTDH2Request) GetGlobalPubKey() []byte {
 	if m != nil {
-		return m.DkgPubKey
+		return m.GlobalPubKey
 	}
 	return nil
 }
@@ -2045,10 +2046,10 @@ func (m *PartialDecryptTDH2Request) MarshalToSizedBuffer(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0x3a
 	}
-	if len(m.DkgPubKey) > 0 {
-		i -= len(m.DkgPubKey)
-		copy(dAtA[i:], m.DkgPubKey)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.DkgPubKey)))
+	if len(m.GlobalPubKey) > 0 {
+		i -= len(m.GlobalPubKey)
+		copy(dAtA[i:], m.GlobalPubKey)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.GlobalPubKey)))
 		i--
 		dAtA[i] = 0x32
 	}
@@ -2607,7 +2608,7 @@ func (m *PartialDecryptTDH2Request) Size() (n int) {
 	if m.Pid != 0 {
 		n += 1 + sovTee(uint64(m.Pid))
 	}
-	l = len(m.DkgPubKey)
+	l = len(m.GlobalPubKey)
 	if l > 0 {
 		n += 1 + l + sovTee(uint64(l))
 	}
@@ -4488,7 +4489,7 @@ func (m *PartialDecryptTDH2Request) Unmarshal(dAtA []byte) error {
 			}
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DkgPubKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GlobalPubKey", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -4515,9 +4516,9 @@ func (m *PartialDecryptTDH2Request) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DkgPubKey = append(m.DkgPubKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.DkgPubKey == nil {
-				m.DkgPubKey = []byte{}
+			m.GlobalPubKey = append(m.GlobalPubKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.GlobalPubKey == nil {
+				m.GlobalPubKey = []byte{}
 			}
 			iNdEx = postIndex
 		case 7:

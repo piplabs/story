@@ -730,6 +730,153 @@ func signFinalizationData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [3
 	return sig
 }
 
+func TestVerifyPartialDecryptionSignature(t *testing.T) {
+	sigKey, err := crypto.GenerateKey()
+	require.NoError(t, err)
+	commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:]
+
+	codeCommitment := [32]byte{0x0A, 0x0B, 0x0C, 0x0D}
+	round := uint32(7)
+	encryptedPartial := []byte("encrypted-partial")
+	ephemeralPubKey := []byte("ephemeral-pub-key")
+	pubShare := []byte("pub-share")
+
+	validSig := signPartialDecryptionData(t, sigKey, codeCommitment, round, encryptedPartial, ephemeralPubKey, pubShare)
+
+	tcs := []struct {
+		name             string
+		commPubKey       []byte
+		codeCommitment   [32]byte
+		round            uint32
+		encryptedPartial []byte
+		ephemeralPubKey  []byte
+		pubShare         []byte
+		signature        []byte
+		expectedErr      string
+	}{
+		{
+			name:             "pass: valid signature",
+			commPubKey:       commPubKey,
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+		},
+		{
+			name:             "fail: tampered encryptedPartial",
+			commPubKey:       commPubKey,
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: []byte("tampered-partial"),
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "partial decryption signature address mismatch",
+		},
+		{
+			name:             "fail: tampered ephemeralPubKey",
+			commPubKey:       commPubKey,
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  []byte("tampered-ephemeral"),
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "partial decryption signature address mismatch",
+		},
+		{
+			name:             "fail: wrong commPubKey (64 bytes but different key)",
+			commPubKey:       make([]byte, 64),
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "partial decryption signature address mismatch",
+		},
+		{
+			name:             "fail: commPubKey too short",
+			commPubKey:       []byte("short"),
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "invalid commPubKey length",
+		},
+		{
+			name:             "fail: commPubKey 65 bytes (with 0x04 prefix)",
+			commPubKey:       append([]byte{0x04}, commPubKey...),
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "invalid commPubKey length",
+		},
+		{
+			name:             "fail: invalid signature bytes",
+			commPubKey:       commPubKey,
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        []byte("too-short"),
+			expectedErr:      "invalid signature length",
+		},
+		{
+			name:             "fail: corrupted 65-byte signature",
+			commPubKey:       commPubKey,
+			codeCommitment:   codeCommitment,
+			round:            round,
+			encryptedPartial: encryptedPartial,
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        make([]byte, 65),
+			expectedErr:      "failed to recover public key from signature",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			err := verifyPartialDecryptionSignature(tc.commPubKey, tc.codeCommitment, tc.round, tc.encryptedPartial, tc.ephemeralPubKey, tc.pubShare, tc.signature)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [32]byte, round uint32, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
+	t.Helper()
+
+	encoded := make([]byte, 0, len(codeCommitment)+4+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
+	encoded = append(encoded, codeCommitment[:]...)
+	roundBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(roundBytes, round)
+	encoded = append(encoded, roundBytes...)
+	encoded = append(encoded, encryptedPartial...)
+	encoded = append(encoded, ephemeralPubKey...)
+	encoded = append(encoded, pubShare...)
+
+	respHash := crypto.Keccak256(encoded)
+	sig, err := crypto.Sign(respHash, key)
+	require.NoError(t, err)
+
+	sig[64] += 27
+
+	return sig
+}
+
 func TestKeeper_UpgradeScheduled(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 

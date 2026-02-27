@@ -50,4 +50,5 @@ type DKGKeeper interface {
 	DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, codeCommitment [32]byte) error
 	InvalidDeal(ctx context.Context, index uint32, round uint32, codeCommitment [32]byte) error
 	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error
+	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, codeCommitment [32]byte, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, label []byte, signature []byte) error
 }

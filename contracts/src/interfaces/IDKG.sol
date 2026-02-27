@@ -162,6 +162,7 @@ interface IDKG {
         bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
+        bytes calldata pubKeyShare,
         bytes calldata signature
     ) external payable;
 

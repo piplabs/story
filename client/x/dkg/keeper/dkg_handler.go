@@ -331,6 +331,56 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 	return nil
 }
 
+// verifyPartialDecryptionSignature verifies the TEE's ECDSA signature over the partial decryption response data.
+// It reproduces the message hash signed by signPartialDecryptResponse in the DKG server, recovers the signer,
+// and checks it matches the expected address derived from the validator's commPubKey.
+func verifyPartialDecryptionSignature(commPubKey []byte, codeCommitment [32]byte, round uint32, encryptedPartial, ephemeralPubKey, pubShare, signature []byte) error {
+	if len(commPubKey) != 64 {
+		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
+	}
+
+	// Reconstruct the message exactly as in signPartialDecryptResponse:
+	// encoded = codeCommitment || round(4B big-endian) || encryptedPartial || ephPubKey || pubShare
+	roundBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(roundBytes, round)
+
+	encoded := make([]byte, 0, len(codeCommitment)+4+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
+	encoded = append(encoded, codeCommitment[:]...)
+	encoded = append(encoded, roundBytes...)
+	encoded = append(encoded, encryptedPartial...)
+	encoded = append(encoded, ephemeralPubKey...)
+	encoded = append(encoded, pubShare...)
+
+	respHash := crypto.Keccak256(encoded)
+
+	if len(signature) != 65 {
+		return errors.New("invalid signature length", "expected", 65, "got", len(signature))
+	}
+
+	sig := make([]byte, 65)
+	copy(sig, signature)
+	if sig[64] >= 27 {
+		sig[64] -= 27
+	}
+
+	recoveredPub, err := crypto.SigToPub(respHash, sig)
+	if err != nil {
+		return errors.Wrap(err, "failed to recover public key from signature")
+	}
+
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPub)
+	expectedAddr := common.BytesToAddress(crypto.Keccak256(commPubKey))
+
+	if recoveredAddr != expectedAddr {
+		return errors.New("partial decryption signature address mismatch",
+			"recovered", recoveredAddr.Hex(),
+			"expected", expectedAddr.Hex(),
+		)
+	}
+
+	return nil
+}
+
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
 func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
@@ -395,5 +445,64 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		"session", session.GetSessionKey(),
 		"pending_requests", len(session.DecryptRequests),
 	)
+	return nil
+}
+
+// PartialDecryptionSubmitted handles TDH2 partial decrypt submissions emitted by the contract.
+// It stores submission payloads for later processing.
+func (k *Keeper) PartialDecryptionSubmitted(
+	ctx context.Context,
+	validator common.Address,
+	round uint32,
+	codeCommitment [32]byte,
+	pid uint32,
+	encryptedPartial []byte,
+	ephemeralPubKey []byte,
+	pubShare []byte,
+	label []byte,
+	signature []byte,
+) error {
+
+	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, validator)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG registration for signature verification")
+	}
+
+	if err := verifyPartialDecryptionSignature(reg.CommPubKey, codeCommitment, round, encryptedPartial, ephemeralPubKey, pubShare, signature); err != nil {
+		return errors.Wrap(err, "partial decryption signature verification failed")
+	}
+
+	if !bytes.Equal(pubShare, reg.PubKeyShare) {
+		return errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
+			"validator", validator.Hex(),
+			"round", round,
+		)
+	}
+
+	if err := k.setPartialDecryptionSubmission(
+		ctx,
+		validator,
+		round,
+		codeCommitment,
+		pid,
+		encryptedPartial,
+		ephemeralPubKey,
+		pubShare,
+		label,
+	); err != nil {
+		return errors.Wrap(err, "failed to store partial decryption submission")
+	}
+
+	log.Info(ctx, "DKG PartialDecryptionSubmitted event received",
+		"validator", validator.Hex(),
+		"round", round,
+		"code_commitment", hex.EncodeToString(codeCommitment[:]),
+		"pid", pid,
+		"encrypted_partial_len", len(encryptedPartial),
+		"ephemeral_pub_key_len", len(ephemeralPubKey),
+		"pub_share_len", len(pubShare),
+		"label_len", len(label),
+	)
+
 	return nil
 }

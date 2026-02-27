@@ -68,6 +68,12 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				clog.Error(ctx, "Failed to process DKGThresholdDecryptRequested", err)
 				continue
 			}
+
+		case types.DKGPartialDecryptionSubmittedEvent.ID:
+			if err := k.ProcessDKGPartialDecryptionSubmitted(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process DKGPartialDecryptionSubmitted", err)
+				continue
+			}
 		}
 	}
 
@@ -430,8 +436,7 @@ func (k *Keeper) ProcessDKGThresholdDecryptRequested(ctx context.Context, ethlog
 		return errors.Wrap(err, "parse ThresholdDecryptRequested log")
 	}
 
-	// requester is indexed address (topic[1])
-	requester := common.BytesToAddress(ethlog.Topics[1].Bytes()[12:])
+	requester := common.BytesToAddress(ev.Requester[:])
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -466,6 +471,68 @@ func (k *Keeper) ProcessDKGThresholdDecryptRequested(ctx context.Context, ethlog
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "handle ThresholdDecryptRequested")
+	}
+
+	return nil
+}
+
+// ProcessDKGPartialDecryptionSubmitted handles PartialDecryptionSubmitted events emitted by the DKG contract.
+func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlog *ethtypes.Log) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
+	ev, err := k.dkgContract.ParsePartialDecryptionSubmitted(*ethlog)
+	if err != nil {
+		return errors.Wrap(err, "parse PartialDecryptionSubmitted log")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
+
+		var e sdk.Event
+		if err == nil {
+			writeCache()
+			e = sdk.NewEvent(types.EventTypeDKGPartialDecryptionSubmittedSuccess)
+		} else {
+			e = sdk.NewEvent(
+				types.EventTypeDKGPartialDecryptionSubmittedFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
+				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.Validator.Hex()),
+				sdk.NewAttribute(types.AttributeKeyDKGPid, strconv.FormatUint(uint64(ev.Pid), 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGEncryptedPartLen, strconv.Itoa(len(ev.EncryptedPartial))),
+				sdk.NewAttribute(types.AttributeKeyDKGEphemeralKeyLen, strconv.Itoa(len(ev.EphemeralPubKey))),
+				sdk.NewAttribute(types.AttributeKeyDKGPubShareLen, strconv.Itoa(len(ev.PubShare))),
+				sdk.NewAttribute(types.AttributeKeyDKGLabelLen, strconv.Itoa(len(ev.Label))),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ethlog.TxHash.Bytes())),
+			),
+		})
+	}()
+
+	if err = k.dkgKeeper.PartialDecryptionSubmitted(
+		cachedCtx,
+		ev.Validator,
+		ev.Round,
+		ev.CodeCommitment,
+		ev.Pid,
+		ev.EncryptedPartial,
+		ev.EphemeralPubKey,
+		ev.PubShare,
+		ev.Label,
+		ev.Signature,
+	); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
+		return errors.Wrap(err, "handle PartialDecryptionSubmitted")
 	}
 
 	return nil

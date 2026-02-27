@@ -141,8 +141,8 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("session index not set")
 	}
 
-	if len(session.DKGPubKey) == 0 {
-		return errors.New("missing DKG public key for session")
+	if len(session.GlobalPubKey) == 0 {
+		return errors.New("missing global public key for session")
 	}
 
 	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
@@ -151,7 +151,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
 		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
-		DkgPubKey:       session.DKGPubKey,
+		GlobalPubKey:    session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	if err != nil {
@@ -167,6 +167,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		resp.EphemeralPubKey,
 		resp.PubShare,
 		req.Label,
+		resp.Signature,
 	); err != nil {
 		return errors.Wrap(err, "failed to submit partial decryption")
 	}

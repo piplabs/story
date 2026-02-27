@@ -180,6 +180,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
+    /// @param pubKeyShare The validator's public key share
     /// @param signature The signature
     function finalize(
         uint32 round,
@@ -208,6 +209,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
             participantsRoot,
             globalPubKey,
             publicCoeffs,
+            pubKeyShare,
             signature
         );
     }

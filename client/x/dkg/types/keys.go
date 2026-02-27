@@ -23,4 +23,5 @@ var (
 	GlobalPubKeyVotesKey = collections.NewPrefix(5)
 	TEEUpgradeInfoKey    = collections.NewPrefix(6)
 	SettlementBalanceKey = collections.NewPrefix(7)
+	DKGPartialDecryptKey = collections.NewPrefix(8)
 )

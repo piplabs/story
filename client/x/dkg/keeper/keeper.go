@@ -52,6 +52,7 @@ type Keeper struct {
 	GlobalPubKeyVotes collections.Map[string, uint32]                // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
 	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: codeCommitment
 	SettlementBalance collections.Item[string]                       // remaining UBI after committee distribution during FinalizeDKGRound
+	DKGPartialDecrypt collections.Map[string, []byte]                // key: codeCommitment_round_validator_pid_labelHash
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -93,6 +94,7 @@ func NewKeeper(
 		GlobalPubKeyVotes:  collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
 		TEEUpgradeInfos:    collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
 		SettlementBalance:  collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
+		DKGPartialDecrypt:  collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
 	}
 
 	schema, err := sb.Build()

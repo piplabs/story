@@ -14,4 +14,5 @@ var (
 	DKGDealVerifiedEvent                      = mustGetEvent(dkgContractABI, "DealVerified")
 	DKGInvalidDealEvent                       = mustGetEvent(dkgContractABI, "InvalidDeal")
 	DKGThresholdDecryptRequestedEvent         = mustGetEvent(dkgContractABI, "ThresholdDecryptRequested")
+	DKGPartialDecryptionSubmittedEvent        = mustGetEvent(dkgContractABI, "PartialDecryptionSubmitted")
 )
