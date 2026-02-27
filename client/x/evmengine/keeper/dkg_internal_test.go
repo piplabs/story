@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,12 +36,15 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testParticipantsRoot := [32]byte{0x56, 0x78}
 	testRound := uint32(1)
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testRawQuote := []byte("test-raw-quote")
 	testSignature := []byte("test-signature")
 	testGlobalPubKey := []byte("test-global-pubkey")
 	testPublicCoeffs := []byte("test-public-coeffs")
+	testPubKeyShare := []byte("test-pubkey-share")
 	testIndex := uint32(1)
 	testComplainIndexes := []uint32{1, 2, 3}
 	testRecipientIndex := uint32(2)
@@ -95,7 +99,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGInitializedSuccess event
@@ -137,7 +141,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs, testPubKeyShare).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGFinalizedSuccess event
@@ -401,8 +405,8 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs, testPubKeyShare).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit both DKGInitializedSuccess and DKGFinalizedSuccess events
@@ -510,6 +514,8 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testRound := uint32(1)
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testRawQuote := []byte("test-raw-quote")
@@ -546,13 +552,13 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 		{
 			name: "pass: successful DKG initialization",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
 			},
 		},
 		{
 			name: "fail: DKG keeper returns error",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(
 					sdkerrors.ErrInvalidRequest.Wrap("invalid request"))
 			},
 			expectedErr: "invalid request",

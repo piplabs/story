@@ -11,6 +11,7 @@ package testutil
 
 import (
 	context "context"
+	big "math/big"
 	reflect "reflect"
 
 	math "cosmossdk.io/math"
@@ -360,17 +361,17 @@ func (mr *MockDKGKeeperMockRecorder) DealVerified(ctx, index, recipientIndex, ro
 }
 
 // Finalized mocks base method.
-func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte) error {
+func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
+	ret := m.ctrl.Call(m, "Finalized", ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Finalized indicates an expected call of Finalized.
-func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare)
 }
 
 // InvalidDeal mocks base method.
@@ -387,18 +388,18 @@ func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, codeCommitme
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidDeal", reflect.TypeOf((*MockDKGKeeper)(nil).InvalidDeal), ctx, index, round, codeCommitment)
 }
 
-// RegistrationInitialized mocks base method.
-func (m *MockDKGKeeper) RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight uint64, startBlockHash [32]byte, dkgPubKey, commPubKey, rawQuote []byte) error {
+// Registered mocks base method.
+func (m *MockDKGKeeper) Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey, commPubKey, rawQuote []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Registered", ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RegistrationInitialized indicates an expected call of RegistrationInitialized.
-func (mr *MockDKGKeeperMockRecorder) RegistrationInitialized(ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
+// Registered indicates an expected call of Registered.
+func (mr *MockDKGKeeperMockRecorder) Registered(ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Registered", reflect.TypeOf((*MockDKGKeeper)(nil).RegistrationInitialized), ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Registered", reflect.TypeOf((*MockDKGKeeper)(nil).Registered), ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote)
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.
