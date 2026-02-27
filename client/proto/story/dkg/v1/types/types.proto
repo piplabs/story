@@ -96,8 +96,8 @@ message DKGRegistration {
     (gogoproto.moretags) = "yaml:\"pub_key_share\""
   ]; 
 
-  bytes raw_quote = 7 [
-    (gogoproto.moretags) = "yaml:\"raw_quote\""
+  bytes enclave_report = 7 [
+    (gogoproto.moretags) = "yaml:\"enclave_report\""
   ];
 
   DKGRegStatus status = 8 [

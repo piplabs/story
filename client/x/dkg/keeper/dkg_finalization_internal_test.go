@@ -37,7 +37,7 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 				Index:         uint32(i + 1),
 				DkgPubKey:     []byte("dkg-key"),
 				CommPubKey:    []byte("comm-key"),
-				RawQuote:      []byte("raw-quote"),
+				EnclaveReport: []byte("enclave-report"),
 				Status:        types.DKGRegStatusFinalized,
 			}
 			require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, validators[i], reg))

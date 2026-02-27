@@ -36,7 +36,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
-	testRawQuote := []byte("test-raw-quote")
+	testEnclaveReport := []byte("test-enclave-report")
 
 	validDKGNetwork := &types.DKGNetwork{
 		CodeCommitment:   testCodeCommitment[:],
@@ -59,7 +59,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		startBlockHash   [32]byte
 		dkgPubKey        []byte
 		commPubKey       []byte
-		rawQuote         []byte
+		enclaveReport    []byte
 		setupNetwork     func()
 		expectedErr      string
 		expectedRegData  *types.DKGRegistration
@@ -73,7 +73,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				// Network already set up in test setup
 			},
@@ -83,7 +83,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				Index:         1,
 				DkgPubKey:     testDkgPubKey,
 				CommPubKey:    testCommPubKey,
-				RawQuote:      testRawQuote,
+				EnclaveReport: testEnclaveReport,
 				Status:        types.DKGRegStatusVerified,
 			},
 		},
@@ -96,7 +96,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			expectedErr:      "codeCommitment mismatch",
 		},
 		{
@@ -108,7 +108,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				// Network already set up with height=100
 			},
@@ -123,7 +123,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   [32]byte{0xFF, 0xFF, 0xFF, 0xFF}, // Wrong hash
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				// Network already set up with different hash
 			},
@@ -138,7 +138,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				networkWithDifferentStage := &types.DKGNetwork{
 					CodeCommitment:   testCodeCommitment[:],
@@ -163,7 +163,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
-			rawQuote:         testRawQuote,
+			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				networkInRegistrationStage := &types.DKGNetwork{
 					CodeCommitment:   testCodeCommitment[:],
@@ -188,7 +188,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        []byte("second-dkg-pubkey"),
 			commPubKey:       []byte("second-comm-pubkey"),
-			rawQuote:         []byte("second-raw-quote"),
+			enclaveReport:    []byte("second-enclave-report"),
 			setupNetwork: func() {
 				anotherValidator := common.HexToAddress("0xAABBCCDDEEFF112233445566778899AABBCCDDEE")
 				networkWithMultipleValidators := &types.DKGNetwork{
@@ -209,7 +209,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					Index:         1,
 					DkgPubKey:     []byte("first-dkg-pubkey"),
 					CommPubKey:    []byte("first-comm-pubkey"),
-					RawQuote:      []byte("first-raw-quote"),
+					EnclaveReport: []byte("first-enclave-report"),
 					Status:        types.DKGRegStatusVerified,
 				}
 				require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, anotherValidator, firstReg))
@@ -222,7 +222,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				Index:         3,
 				DkgPubKey:     []byte("second-dkg-pubkey"),
 				CommPubKey:    []byte("second-comm-pubkey"),
-				RawQuote:      []byte("second-raw-quote"),
+				EnclaveReport: []byte("second-enclave-report"),
 				Status:        types.DKGRegStatusVerified,
 			},
 		},
@@ -234,7 +234,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				tc.setupNetwork()
 			}
 
-			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.dkgPubKey, tc.commPubKey, tc.rawQuote)
+			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.dkgPubKey, tc.commPubKey, tc.enclaveReport)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -250,7 +250,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					require.Equal(t, tc.expectedRegData.Index, storedReg.Index)
 					require.Equal(t, tc.expectedRegData.DkgPubKey, storedReg.DkgPubKey)
 					require.Equal(t, tc.expectedRegData.CommPubKey, storedReg.CommPubKey)
-					require.Equal(t, tc.expectedRegData.RawQuote, storedReg.RawQuote)
+					require.Equal(t, tc.expectedRegData.EnclaveReport, storedReg.EnclaveReport)
 					require.Equal(t, tc.expectedRegData.Status, storedReg.Status)
 				}
 			}
@@ -499,7 +499,7 @@ func setVerifiedRegistration(t *testing.T, k *Keeper, ctx context.Context, codeC
 	reg := &types.DKGRegistration{
 		Round: round, ValidatorAddr: validator.Hex(), Index: index,
 		DkgPubKey: []byte("dkg-key"), CommPubKey: commPubKey,
-		RawQuote: []byte("raw-quote"), Status: types.DKGRegStatusVerified,
+		EnclaveReport: []byte("enclave-report"), Status: types.DKGRegStatusVerified,
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, codeCommitment, validator, reg))
 }
@@ -778,7 +778,7 @@ func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
 		Index:         1,
 		DkgPubKey:     []byte("test-dkg-pubkey"),
 		CommPubKey:    []byte("test-comm-pubkey"),
-		RawQuote:      []byte("test-raw-quote"),
+		EnclaveReport: []byte("test-enclave-report"),
 		Status:        types.DKGRegStatusVerified,
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, testValidator, testReg))

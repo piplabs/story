@@ -20,7 +20,7 @@ import (
 
 // Registered handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
-func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -62,7 +62,7 @@ func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeC
 		Index:         uint32(index),
 		DkgPubKey:     dkgPubKey,
 		CommPubKey:    commPubKey,
-		RawQuote:      rawQuote,
+		EnclaveReport: enclaveReport,
 		Status:        types.DKGRegStatusVerified,
 	}
 
@@ -87,7 +87,7 @@ func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeC
 		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusVerified)],
 		"dkg_pubkey", hex.EncodeToString(dkgPubKey),
 		"comm_pubkey", hex.EncodeToString(commPubKey),
-		"raw_quote_len", len(rawQuote),
+		"raw_quote_len", len(enclaveReport),
 	)
 
 	return nil

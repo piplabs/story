@@ -80,7 +80,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGInitialization(ctx, &dkgNetwork)
+		go k.handleDKGRegistration(ctx, &dkgNetwork)
 	}
 
 	return nil

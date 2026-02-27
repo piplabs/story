@@ -26,11 +26,6 @@ import (
 
 const (
 	maxRetries = 3
-
-	// Node status in DKG contract
-	NodeStatusUnregistered uint8 = 0
-	NodeStatusRegistered   uint8 = 1
-	NodeStatusFinalized    uint8 = 2
 )
 
 // ContractClient wraps the DKG contract interaction.
@@ -102,16 +97,16 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	return client, nil
 }
 
-// InitializeDKG calls the initializeDKG contract method.
-func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCommitment []byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) (*types.Receipt, error) {
-	log.Info(ctx, "Calling initializeDKG contract method",
+// Register calls the register contract method.
+func (c *ContractClient) Register(ctx context.Context, round uint32, codeCommitment []byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) (*types.Receipt, error) {
+	log.Info(ctx, "Calling register contract method",
 		"round", round,
 		"code_commitment", hex.EncodeToString(codeCommitment),
 		"start_block_height", startBlockHeight,
 		"start_block_hash", hex.EncodeToString(startBlockHash),
 		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
 		"comm_pub_key", hex.EncodeToString(commPubKey),
-		"raw_quote_len", len(rawQuote),
+		"raw_quote_len", len(enclaveReport),
 	)
 
 	codeCommitment32, err := cast.ToBytes32(codeCommitment)
@@ -124,18 +119,18 @@ func (c *ContractClient) InitializeDKG(ctx context.Context, round uint32, codeCo
 		return nil, errors.Wrap(err, "failed to convert startBlockHash to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, rawQuote)
+	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, enclaveReport)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack initialize dkg call data")
+		return nil, errors.Wrap(err, "failed to pack register call data")
 	}
 
-	return c.sendWithRetry(ctx, "InitializeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.InitializeDKG(auth, round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, rawQuote)
+	return c.sendWithRetry(ctx, "Register", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.dkgContract.Register(auth, round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, enclaveReport)
 	})
 }
 
-// FinalizeDKG calls the finalizeDKG contract method.
-func (c *ContractClient) FinalizeDKG(
+// Finalize calls the finalize contract method.
+func (c *ContractClient) Finalize(
 	ctx context.Context,
 	round uint32,
 	codeCommitment []byte,
@@ -145,7 +140,7 @@ func (c *ContractClient) FinalizeDKG(
 	pubKeyShare []byte,
 	signature []byte,
 ) (*types.Receipt, error) {
-	log.Info(ctx, "Calling finalizeDKG contract method",
+	log.Info(ctx, "Calling finalize contract method",
 		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
@@ -168,59 +163,9 @@ func (c *ContractClient) FinalizeDKG(
 		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
 	}
 
-	return c.sendWithRetry(ctx, "FinalizeDKG", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.FinalizeDKG(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
+	return c.sendWithRetry(ctx, "Finalize", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.dkgContract.Finalize(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	})
-}
-
-// ComplainDeals calls the complainDeals contract method.
-func (c *ContractClient) ComplainDeals(
-	ctx context.Context,
-	round uint32,
-	index uint32,
-	complainIndexes []uint32,
-	codeCommitment []byte,
-) (*types.Receipt, error) {
-	log.Info(ctx, "Calling complainDeals contract method",
-		"code_commitment", string(codeCommitment),
-		"round", round,
-		"index", index,
-		"complain_indexes", complainIndexes,
-	)
-
-	callData, err := c.dkgContractAbi.Pack("complainDeals", round, index, complainIndexes, codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack complain deals call data")
-	}
-
-	gasLimit, err := c.estimateGasWithBuffer(ctx, callData)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas for complain deals")
-	}
-
-	auth, err := c.createTransactOpts(ctx, gasLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create transaction options")
-	}
-
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	tx, err := c.dkgContract.ComplainDeals(auth, round, index, complainIndexes, codeCommitment32)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to call complain deals")
-	}
-
-	log.Info(ctx, "Complain deals transaction sent", "tx_hash", tx.Hash().Hex())
-
-	receipt, err := c.waitForTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to wait for complain deals transaction")
-	}
-
-	return receipt, nil
 }
 
 // SubmitPartialDecryption calls the submitPartialDecryption contract method.
@@ -258,39 +203,6 @@ func (c *ContractClient) SubmitPartialDecryption(
 		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
 		return bound.Transact(auth, "submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 	})
-}
-
-// GetNodeInfo queries node information from the contract.
-func (c *ContractClient) GetNodeInfo(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (*bindings.IDKGNodeInfo, error) {
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	nodeInfo, err := c.dkgContract.GetNodeInfo(&bind.CallOpts{Context: ctx}, codeCommitment32, round, validatorAddr)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get node info")
-	}
-
-	return &nodeInfo, nil
-}
-
-func (c *ContractClient) IsInitialized(ctx context.Context, round uint32, codeCommitment []byte, validator common.Address) (bool, error) {
-	nodeInfo, err := c.GetNodeInfo(ctx, codeCommitment, round, validator)
-	if err != nil {
-		return false, err
-	}
-
-	return nodeInfo.NodeStatus == NodeStatusRegistered, nil
-}
-
-func (c *ContractClient) IsFinalized(ctx context.Context, round uint32, codeCommitment []byte, validator common.Address) (bool, error) {
-	nodeInfo, err := c.GetNodeInfo(ctx, codeCommitment, round, validator)
-	if err != nil {
-		return false, err
-	}
-
-	return nodeInfo.NodeStatus == NodeStatusFinalized, nil
 }
 
 // createTransactOpts creates transaction options for contract calls.

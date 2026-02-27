@@ -99,13 +99,13 @@ func (k *Keeper) ProcessDKGRegistered(ctx context.Context, ethlog *ethtypes.Log)
 				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHash, hex.EncodeToString(ev.StartBlockHash[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGDkgPubKey, hex.EncodeToString(ev.DkgPubKey)),
 				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.EnclaveCommKey)),
-				sdk.NewAttribute(types.AttributeKeyDKGRawQuote, hex.EncodeToString(ev.ValidationContext)),
+				sdk.NewAttribute(types.AttributeKeyDKGEnclaveReport, hex.EncodeToString(ev.ValidationContext)),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	if err = k.dkgKeeper.Registered(cachedCtx, ev.ValidatorAddr, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.EnclaveCommKey, ev.ValidationContext); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Registered(cachedCtx, ev.ValidatorAddr, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.EnclaveCommKey, ev.EnclaveReport); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")

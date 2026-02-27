@@ -389,17 +389,17 @@ func (mr *MockDKGKeeperMockRecorder) InvalidDeal(ctx, index, round, codeCommitme
 }
 
 // Registered mocks base method.
-func (m *MockDKGKeeper) Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey, commPubKey, rawQuote []byte) error {
+func (m *MockDKGKeeper) Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey, commPubKey, enclaveReport []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Registered", ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote)
+	ret := m.ctrl.Call(m, "Registered", ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, enclaveReport)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Registered indicates an expected call of Registered.
-func (mr *MockDKGKeeperMockRecorder) Registered(ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) Registered(ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, enclaveReport any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Registered", reflect.TypeOf((*MockDKGKeeper)(nil).Registered), ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, rawQuote)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Registered", reflect.TypeOf((*MockDKGKeeper)(nil).Registered), ctx, msgSender, codeCommitment, round, startBlockHeight, startBlockHash, dkgPubKey, commPubKey, enclaveReport)
 }
 
 // RemoteAttestationProcessedOnChain mocks base method.
