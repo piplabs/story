@@ -84,6 +84,7 @@ interface IDKG {
     /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
+    /// @param pubKeyShare The public key share
     /// @param signature The signature
     event Finalized(
         uint32 round,
@@ -154,6 +155,7 @@ interface IDKG {
     /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
+    /// @param pubKeyShare The public key share
     /// @param signature The signature
     function finalize(
         uint32 round,
@@ -162,6 +164,7 @@ interface IDKG {
         bytes32 participantsRoot,
         bytes calldata globalPubKey,
         bytes[] calldata publicCoeffs,
+        bytes calldata pubKeyShare,
         bytes calldata signature
     ) external payable;
 
