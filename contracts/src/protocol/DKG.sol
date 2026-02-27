@@ -180,6 +180,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
+    /// @param pubKeyShare The public key share
     /// @param signature The signature
     function finalize(
         uint32 round,
@@ -198,6 +199,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(participantsRoot != bytes32(0), "DKG: Participants root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
         require(publicCoeffs.length != 0, "DKG: Public coefficients cannot be empty");
+        require(pubKeyShare.length != 0, "DKG: Public key share cannot be empty");
         require(signature.length != 0, "DKG: Signature cannot be empty");
 
         emit Finalized(
@@ -208,6 +210,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
             participantsRoot,
             globalPubKey,
             publicCoeffs,
+            pubKeyShare,
             signature
         );
     }
