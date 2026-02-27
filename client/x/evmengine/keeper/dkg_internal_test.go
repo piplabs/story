@@ -86,7 +86,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32), // indexed msgSender
 						},
 						Data:   data,
@@ -383,7 +383,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   initData,
@@ -448,7 +448,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   []byte("invalid-data"), // Invalid data that will fail parsing
@@ -521,7 +521,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	mockLog := &ethtypes.Log{
 		Address: dummyContractAddress,
 		Topics: []common.Hash{
-			types.DKGInitializedEvent.ID,
+			types.DKGRegisteredEvent.ID,
 			common.BytesToHash(common.LeftPadBytes(testValidator.Bytes(), 32)),
 		},
 		Data:        []byte{}, // Will be filled by ABI packing
@@ -565,7 +565,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 				tc.setupMock()
 			}
 
-			err := keeper.ProcessDKGInitialized(ctx, mockLog)
+			err := keeper.ProcessDKGRegistered(ctx, mockLog)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)

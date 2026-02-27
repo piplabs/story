@@ -5,13 +5,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strconv"
-	"strings"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"strconv"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -21,8 +19,8 @@ import (
 func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
 	for _, ethlog := range logs {
 		switch ethlog.Topics[0] {
-		case types.DKGInitializedEvent.ID:
-			if err := k.ProcessDKGInitialized(ctx, ethlog); err != nil {
+		case types.DKGRegisteredEvent.ID:
+			if err := k.ProcessDKGRegistered(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGInitialized", err)
 				continue
 			}
@@ -30,36 +28,6 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 		case types.DKGFinalizedEvent.ID:
 			if err := k.ProcessDKGFinalized(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGFinalized", err)
-				continue
-			}
-
-		case types.DKGUpgradeScheduledEvent.ID:
-			if err := k.ProcessDKGUpgradeScheduled(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGUpgradeScheduled", err)
-				continue
-			}
-
-		case types.DKGRemoteAttestationProcessedOnChainEvent.ID:
-			if err := k.ProcessDKGRemoteAttestationProcessedOnChain(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGRemoteAttestationProcessedOnChain", err)
-				continue
-			}
-
-		case types.DKGDealComplaintsSubmittedEvent.ID:
-			if err := k.ProcessDKGDealComplaintsSubmitted(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGDealComplaintsSubmitted", err)
-				continue
-			}
-
-		case types.DKGDealVerifiedEvent.ID:
-			if err := k.ProcessDKGDealVerified(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGDealVerified", err)
-				continue
-			}
-
-		case types.DKGInvalidDealEvent.ID:
-			if err := k.ProcessDKGInvalidDeal(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGInvalidDeal", err)
 				continue
 			}
 
@@ -76,11 +44,11 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 	return nil
 }
 
-func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log) (err error) {
+func (k *Keeper) ProcessDKGRegistered(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDKGInitialized(*ethlog)
+	ev, err := k.dkgContract.ParseRegistered(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DKGInitialized log")
 	}
@@ -107,19 +75,19 @@ func (k *Keeper) ProcessDKGInitialized(ctx context.Context, ethlog *ethtypes.Log
 			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
+				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.ValidatorAddr.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHeight, strconv.FormatUint(ev.StartBlockHeight, 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHeight, ev.StartBlockHeight.String()),
 				sdk.NewAttribute(types.AttributeKeyDKGStartBlockHash, hex.EncodeToString(ev.StartBlockHash[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGDkgPubKey, hex.EncodeToString(ev.DkgPubKey)),
-				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.CommPubKey)),
-				sdk.NewAttribute(types.AttributeKeyDKGRawQuote, hex.EncodeToString(ev.RawQuote)),
+				sdk.NewAttribute(types.AttributeKeyDKGCommPubKey, hex.EncodeToString(ev.EnclaveCommKey)),
+				sdk.NewAttribute(types.AttributeKeyDKGRawQuote, hex.EncodeToString(ev.ValidationContext)),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
 			),
 		})
 	}()
 
-	if err = k.dkgKeeper.RegistrationInitialized(cachedCtx, ev.MsgSender, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.CommPubKey, ev.RawQuote); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Registered(cachedCtx, ev.ValidatorAddr, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.EnclaveCommKey, ev.ValidationContext); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")
@@ -132,7 +100,7 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()
 
-	ev, err := k.dkgContract.ParseDKGFinalized(*ethlog)
+	ev, err := k.dkgContract.ParseFinalized(*ethlog)
 	if err != nil {
 		return errors.Wrap(err, "parse DKGFinalized log")
 	}
@@ -159,7 +127,7 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.MsgSender.Hex()),
+				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.ValidatorAddr.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGParticipantsRoot, hex.EncodeToString(ev.ParticipantsRoot[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGSignature, hex.EncodeToString(ev.Signature)),
@@ -168,253 +136,10 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 		})
 	}()
 
-	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.MsgSender, ev.CodeCommitment, ev.ParticipantsRoot, ev.Signature, ev.GlobalPubKey, ev.PublicCoeffs, ev.PubKeyShare); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Finalized(cachedCtx, ev.Round, ev.ValidatorAddr, ev.CodeCommitment, ev.ParticipantsRoot, ev.Signature, ev.GlobalPubKey, ev.PublicCoeffs, ev.PubKeyShare); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "finalize DKG")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseUpgradeScheduled(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse UpgradeScheduled log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGUpgradeScheduledSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGUpgradeScheduledFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGActivationHeight, strconv.FormatUint(uint64(ev.ActivationHeight), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.UpgradeScheduled(cachedCtx, ev.ActivationHeight, ev.CodeCommitment); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "schedule DKG upgrade")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGRemoteAttestationProcessedOnChain(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseRemoteAttestationProcessedOnChain(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse RemoteAttestationProcessedOnChain log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGRemoteAttestationProcessedOnChainSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGRemoteAttestationProcessedOnChainFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGValidator, ev.Validator.Hex()),
-				sdk.NewAttribute(types.AttributeKeyDKGChalStatus, strconv.FormatUint(uint64(ev.ChalStatus), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.RemoteAttestationProcessedOnChain(cachedCtx, ev.Validator, int(ev.ChalStatus), ev.Round, ev.CodeCommitment); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "process remote attestation on chain")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGDealComplaintsSubmitted(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseDealComplaintsSubmitted(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse DealComplaintsSubmitted log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGDealComplaintsSubmittedSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGDealComplaintsSubmittedFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		// Convert uint32 slice to string slice for attribute
-		complainIndexesStr := make([]string, len(ev.ComplainIndexes))
-		for i, idx := range ev.ComplainIndexes {
-			complainIndexesStr[i] = strconv.FormatUint(uint64(idx), 10)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGComplainIndexes, strings.Join(complainIndexesStr, ",")),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.DealComplaintsSubmitted(cachedCtx, ev.Index, ev.ComplainIndexes, ev.Round, ev.CodeCommitment); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "submit deal complaints")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGDealVerified(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseDealVerified(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse DealVerified log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGDealVerifiedSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGDealVerifiedFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRecipientIndex, strconv.FormatUint(uint64(ev.RecipientIndex), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.DealVerified(cachedCtx, ev.Index, ev.RecipientIndex, ev.Round, ev.CodeCommitment); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "verify deal")
-	}
-
-	return nil
-}
-
-func (k *Keeper) ProcessDKGInvalidDeal(ctx context.Context, ethlog *ethtypes.Log) (err error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	cachedCtx, writeCache := sdkCtx.CacheContext()
-
-	ev, err := k.dkgContract.ParseInvalidDeal(*ethlog)
-	if err != nil {
-		return errors.Wrap(err, "parse InvalidDeal log")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
-		}
-
-		var e sdk.Event
-		if err == nil {
-			writeCache()
-			e = sdk.NewEvent(
-				types.EventTypeDKGInvalidDealSuccess,
-			)
-		} else {
-			e = sdk.NewEvent(
-				types.EventTypeDKGInvalidDealFailure,
-				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
-			)
-		}
-
-		sdkCtx.EventManager().EmitEvents(sdk.Events{
-			e.AppendAttributes(
-				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGIndex, strconv.FormatUint(uint64(ev.Index), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
-				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
-			),
-		})
-	}()
-
-	if err = k.dkgKeeper.InvalidDeal(cachedCtx, ev.Index, ev.Round, ev.CodeCommitment); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "process invalid deal")
 	}
 
 	return nil

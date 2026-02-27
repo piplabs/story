@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"math/big"
 	"slices"
 	"strings"
 	"testing"
@@ -31,7 +32,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
-	testStartBlockHeight := uint64(100)
+	testStartBlockHeight := big.NewInt(100)
 	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
@@ -40,7 +41,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	validDKGNetwork := &types.DKGNetwork{
 		CodeCommitment:   testCodeCommitment[:],
 		Round:            testRound,
-		StartBlockHeight: int64(testStartBlockHeight),
+		StartBlockHeight: testStartBlockHeight.Int64(),
 		StartBlockHash:   testStartBlockHash[:],
 		ActiveValSet:     []string{testValidator.Hex()},
 		Total:            5,
@@ -54,7 +55,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		msgSender        common.Address
 		codeCommitment   [32]byte
 		round            uint32
-		startBlockHeight uint64
+		startBlockHeight *big.Int
 		startBlockHash   [32]byte
 		dkgPubKey        []byte
 		commPubKey       []byte
@@ -103,7 +104,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			msgSender:        testValidator,
 			codeCommitment:   testCodeCommitment,
 			round:            testRound,
-			startBlockHeight: 999, // Wrong height
+			startBlockHeight: big.NewInt(999), // Wrong height
 			startBlockHash:   testStartBlockHash,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
@@ -142,7 +143,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				networkWithDifferentStage := &types.DKGNetwork{
 					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
-					StartBlockHeight: int64(testStartBlockHeight),
+					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
 					ActiveValSet:     []string{testValidator.Hex()},
 					Total:            5,
@@ -167,7 +168,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				networkInRegistrationStage := &types.DKGNetwork{
 					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
-					StartBlockHeight: int64(testStartBlockHeight),
+					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
 					ActiveValSet:     []string{testValidator.Hex()},
 					Total:            5,
@@ -193,7 +194,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				networkWithMultipleValidators := &types.DKGNetwork{
 					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
-					StartBlockHeight: int64(testStartBlockHeight),
+					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
 					ActiveValSet:     []string{testValidator.Hex(), anotherValidator.Hex()},
 					Total:            5,
@@ -233,7 +234,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				tc.setupNetwork()
 			}
 
-			err := k.RegistrationInitialized(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.dkgPubKey, tc.commPubKey, tc.rawQuote)
+			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.dkgPubKey, tc.commPubKey, tc.rawQuote)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
