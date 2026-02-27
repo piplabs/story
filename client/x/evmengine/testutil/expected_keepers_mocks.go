@@ -416,6 +416,48 @@ func (mr *MockDKGKeeperMockRecorder) RemoteAttestationProcessedOnChain(ctx, vali
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAttestationProcessedOnChain", reflect.TypeOf((*MockDKGKeeper)(nil).RemoteAttestationProcessedOnChain), ctx, validator, chalStatus, round, codeCommitment)
 }
 
+// SetMinReqFinalizedParticipants mocks base method.
+func (m *MockDKGKeeper) SetMinReqFinalizedParticipants(ctx context.Context, value uint32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMinReqFinalizedParticipants", ctx, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMinReqFinalizedParticipants indicates an expected call of SetMinReqFinalizedParticipants.
+func (mr *MockDKGKeeperMockRecorder) SetMinReqFinalizedParticipants(ctx, value any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMinReqFinalizedParticipants", reflect.TypeOf((*MockDKGKeeper)(nil).SetMinReqFinalizedParticipants), ctx, value)
+}
+
+// SetMinReqRegisteredParticipants mocks base method.
+func (m *MockDKGKeeper) SetMinReqRegisteredParticipants(ctx context.Context, value uint32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMinReqRegisteredParticipants", ctx, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMinReqRegisteredParticipants indicates an expected call of SetMinReqRegisteredParticipants.
+func (mr *MockDKGKeeperMockRecorder) SetMinReqRegisteredParticipants(ctx, value any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMinReqRegisteredParticipants", reflect.TypeOf((*MockDKGKeeper)(nil).SetMinReqRegisteredParticipants), ctx, value)
+}
+
+// SetOperationalThreshold mocks base method.
+func (m *MockDKGKeeper) SetOperationalThreshold(ctx context.Context, value uint32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetOperationalThreshold", ctx, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetOperationalThreshold indicates an expected call of SetOperationalThreshold.
+func (mr *MockDKGKeeperMockRecorder) SetOperationalThreshold(ctx, value any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOperationalThreshold", reflect.TypeOf((*MockDKGKeeper)(nil).SetOperationalThreshold), ctx, value)
+}
+
 // ThresholdDecryptRequested mocks base method.
 func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey, ciphertext, label []byte) error {
 	m.ctrl.T.Helper()

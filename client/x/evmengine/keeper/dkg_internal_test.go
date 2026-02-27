@@ -426,6 +426,117 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			},
 		},
 		{
+			name: "pass: MinReqRegisteredParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqRegisteredParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(5))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqRegisteredParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqRegisteredParticipants(gomock.Any(), uint32(5)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqRegisteredParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(5, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqRegisteredParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: MinReqFinalizedParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqFinalizedParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(4))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqFinalizedParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqFinalizedParticipants(gomock.Any(), uint32(4)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqFinalizedParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(4, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqFinalizedParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: OperationalThresholdSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["OperationalThresholdSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(750))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGOperationalThresholdSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetOperationalThreshold(gomock.Any(), uint32(750)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGOperationalThresholdSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(750, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGOperationalThresholdSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
 			name: "fail: invalid log data - unrecognized topic",
 			evmEvents: func() []*types.EVMEvent {
 				return []*types.EVMEvent{
