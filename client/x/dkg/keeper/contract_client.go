@@ -109,23 +109,32 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, codeCommitm
 		"raw_quote_len", len(enclaveReport),
 	)
 
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert codeCommitment to bytes32")
-	}
-
 	startBlockHash32, err := cast.ToBytes32(startBlockHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert startBlockHash to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("initializeDKG", round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, enclaveReport)
+	// TODO: retrieve enclaveType from session instead of hardcoding
+	var enclaveType [32]byte
+	enclaveType[31] = 1 // bytes32(1) for SGX
+
+	enclaveInstanceData := bindings.IDKGEnclaveInstanceData{
+		Round:          round,
+		ValidatorAddr:  c.fromAddress,
+		EnclaveType:    enclaveType,
+		EnclaveCommKey: commPubKey,
+		DkgPubKey:      dkgPubKey,
+	}
+
+	startBlockHeightBig := new(big.Int).SetUint64(startBlockHeight)
+
+	callData, err := c.dkgContractAbi.Pack("register", enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack register call data")
 	}
 
 	return c.sendWithRetry(ctx, "Register", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.Register(auth, round, codeCommitment32, startBlockHeight, startBlockHash32, dkgPubKey, commPubKey, enclaveReport)
+		return c.dkgContract.Register(auth, enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
 	})
 }
 
@@ -148,23 +157,22 @@ func (c *ContractClient) Finalize(
 		"signature_len", len(signature),
 	)
 
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert codeCommitment to bytes32")
-	}
+	// TODO: retrieve enclaveType from session instead of hardcoding
+	var enclaveType [32]byte
+	enclaveType[31] = 1 // bytes32(1) for SGX
 
-	participants32, err := cast.ToBytes32(participantsRoot)
+	participantsRoot32, err := cast.ToBytes32(participantsRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert participants root to bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("finalizeDKG", round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
+	callData, err := c.dkgContractAbi.Pack("finalize", round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack finalizeDKG call data")
+		return nil, errors.Wrap(err, "failed to pack finalize call data")
 	}
 
 	return c.sendWithRetry(ctx, "Finalize", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.Finalize(auth, round, codeCommitment32, participants32, globalPubKey, publicCoeffs, pubKeyShare, signature)
+		return c.dkgContract.Finalize(auth, round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	})
 }
 
