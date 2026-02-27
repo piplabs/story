@@ -62,6 +62,7 @@ type DKGSession struct {
 	PublicCoeffs       [][]byte  `json:"public_coeffs"`
 	PubKeyShare        []byte    `json:"pub_key_share"`
 	ParticipantsRoot   []byte    `json:"participants_root"`
+	EnclaveType        [32]byte  `json:"enclave_type"`
 
 	// Network information
 	ActiveValidators []string `json:"active_validators"`
@@ -80,7 +81,7 @@ type DKGSession struct {
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
-func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []string, isResharing bool) *DKGSession {
+func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []string, isResharing bool, enclaveType [32]byte) *DKGSession {
 	now := time.Now()
 
 	return &DKGSession{
@@ -96,6 +97,7 @@ func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []strin
 		Threshold:        0,
 		IsFinalized:      false,
 		IsResharing:      isResharing,
+		EnclaveType:      enclaveType,
 
 		DecryptRequests: make([]DecryptRequest, 0),
 	}

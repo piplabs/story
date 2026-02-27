@@ -136,3 +136,6 @@ tee-endpoint = "{{ .DKG.TEEEndpoint }}"
 
 # The RPC endpoint of execution layer
 engine-rpc-endpoint = "{{ .DKG.EngineRPCEndpoint }}"
+
+# TEE enclave type identifier (e.g. 1 for SGX)
+enc-type = {{ .DKG.EnclaveType }}

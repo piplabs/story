@@ -98,10 +98,10 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 }
 
 // Register calls the register contract method.
-func (c *ContractClient) Register(ctx context.Context, round uint32, codeCommitment []byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) (*types.Receipt, error) {
+func (c *ContractClient) Register(ctx context.Context, round uint32, enclaveType [32]byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) (*types.Receipt, error) {
 	log.Info(ctx, "Calling register contract method",
 		"round", round,
-		"code_commitment", hex.EncodeToString(codeCommitment),
+		"enclave_type", hex.EncodeToString(enclaveType[:]),
 		"start_block_height", startBlockHeight,
 		"start_block_hash", hex.EncodeToString(startBlockHash),
 		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
@@ -113,10 +113,6 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, codeCommitm
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert startBlockHash to bytes32")
 	}
-
-	// TODO: retrieve enclaveType from session instead of hardcoding
-	var enclaveType [32]byte
-	enclaveType[31] = 1 // bytes32(1) for SGX
 
 	enclaveInstanceData := bindings.IDKGEnclaveInstanceData{
 		Round:          round,
@@ -142,7 +138,7 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, codeCommitm
 func (c *ContractClient) Finalize(
 	ctx context.Context,
 	round uint32,
-	codeCommitment []byte,
+	enclaveType [32]byte,
 	participantsRoot []byte,
 	globalPubKey []byte,
 	publicCoeffs [][]byte,
@@ -150,16 +146,12 @@ func (c *ContractClient) Finalize(
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling finalize contract method",
-		"code_commitment", hex.EncodeToString(codeCommitment),
+		"enclave_type", hex.EncodeToString(enclaveType[:]),
 		"round", round,
 		"global_pub_key", hex.EncodeToString(globalPubKey),
 		"pub_key_share", hex.EncodeToString(pubKeyShare),
 		"signature_len", len(signature),
 	)
-
-	// TODO: retrieve enclaveType from session instead of hardcoding
-	var enclaveType [32]byte
-	enclaveType[31] = 1 // bytes32(1) for SGX
 
 	participantsRoot32, err := cast.ToBytes32(participantsRoot)
 	if err != nil {
