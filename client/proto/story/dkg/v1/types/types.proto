@@ -11,6 +11,7 @@ enum DKGRegStatus {
   DKG_REG_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "DKGRegStatusUnspecified"];
   DKG_REG_STATUS_VERIFIED = 1 [(gogoproto.enumvalue_customname) = "DKGRegStatusVerified"];
   DKG_REG_STATUS_FINALIZED = 2 [(gogoproto.enumvalue_customname) = "DKGRegStatusFinalized"];
+  DKG_REG_STATUS_INVALIDATED = 3 [(gogoproto.enumvalue_customname) = "DKGRegStatusInvalidated"];
 }
 
 enum DKGStage {

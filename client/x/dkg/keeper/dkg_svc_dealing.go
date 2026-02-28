@@ -6,6 +6,8 @@ import (
 	"slices"
 
 	"cosmossdk.io/collections"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -216,11 +218,12 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
+	var processResp *types.ProcessResponsesResponse
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessResponses call to TEE client",
 			"code_commitment", session.GetCodeCommitmentString(),
 			"round", session.Round,
-			"num_deals", len(responses),
+			"num_responses", len(responses),
 		)
 
 		req := &types.ProcessResponsesRequest{
@@ -242,7 +245,9 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 			return nil
 		}
 
-		if _, err := k.teeClient.ProcessResponses(ctx, req); err != nil {
+		var err error
+		processResp, err = k.teeClient.ProcessResponses(ctx, req)
+		if err != nil {
 			return err
 		}
 
@@ -251,6 +256,19 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		log.Error(ctx, "Failed to process responses", err)
 
 		return
+	}
+
+	// Enqueue any justifications returned by story-kernel for broadcast via Vote Extension.
+	// Justifications are produced when a complaint response (status=false) is processed
+	// and the dealer needs to reveal the plaintext deal to prove its validity.
+	if processResp != nil && len(processResp.GetJustifications()) > 0 {
+		k.EnqueueJustifications(processResp.GetJustifications())
+
+		log.Info(ctx, "Enqueued justifications for broadcast",
+			"code_commitment", session.GetCodeCommitmentString(),
+			"round", session.Round,
+			"num_justifications", len(processResp.GetJustifications()),
+		)
 	}
 
 	log.Info(ctx, "Process responses complete",
@@ -276,6 +294,144 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 
 	// Resharing round: only current set of validators deal
 	return inPrevSet, nil
+}
+
+// handleDKGProcessJustifications verifies and forwards valid justifications to story-kernel
+// for DKG state restoration. This is the off-chain (goroutine) handler that performs:
+//  1. Empty check and MaxJustificationsPerBlock cap
+//  2. ActiveValSet / session / phase check
+//  3. Schnorr signature verification → deduplication → Pedersen VSS verification
+//  4. Forward only valid justifications to story-kernel
+func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+	log.Info(ctx, "Handling DKG process justifications",
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
+		"round", dkgNetwork.Round,
+		"num_justifications", len(justifications),
+	)
+
+	if len(justifications) == 0 {
+		return
+	}
+
+	// Cap justifications per block to prevent resource exhaustion
+	if len(justifications) > MaxJustificationsPerBlock {
+		log.Warn(ctx, "Justification count exceeds max, truncating", nil,
+			"count", len(justifications),
+			"max", MaxJustificationsPerBlock,
+		)
+		justifications = justifications[:MaxJustificationsPerBlock]
+	}
+
+	if !slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr) {
+		log.Info(ctx, "Skip processing justifications as the validator is not in current round set")
+
+		return
+	}
+
+	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
+	if err != nil {
+		log.Error(ctx, "Failed to get DKG session", err)
+
+		return
+	}
+
+	if session.Phase != types.PhaseDealing {
+		log.Warn(ctx, "Session not in dealing phase, skipping process justifications", nil,
+			"current_phase", session.Phase.String(),
+		)
+
+		return
+	}
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// Build dealer public key map once for all justifications (avoids O(N) registration scan per justification).
+	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, dkgNetwork, suite)
+	if err != nil {
+		log.Error(ctx, "Failed to build dealer public key map", err)
+
+		return
+	}
+
+	// Step 1: Verify Schnorr signature FIRST, filter out unsigned/forged justifications.
+	// This MUST happen before deduplication so that an attacker cannot preempt a valid
+	// justification by broadcasting an unsigned one with the same (dealerIndex, recipientIndex).
+	var signatureVerified []types.Justification
+	for _, j := range justifications {
+		if err := verifyJustificationSignature(suite, j, dealerPubKeys); err != nil {
+			log.Debug(ctx, "Dropping justification with invalid signature",
+				"dealer_index", j.Index,
+				"error", err,
+			)
+
+			continue
+		}
+
+		signatureVerified = append(signatureVerified, j)
+	}
+
+	// Step 2: Deduplicate by (dealerIndex, recipientIndex) — now only signature-verified entries.
+	deduped := deduplicateJustifications(signatureVerified)
+
+	// Step 3: Perform Pedersen VSS verification on each deduplicated justification.
+	// Invalid justifications are silently dropped (not errors).
+	var validJustifications []types.Justification
+	for _, j := range deduped {
+		valid, err := verifyJustification(dkgNetwork, j)
+		if err != nil {
+			log.Warn(ctx, "Justification VSS verification error, dropping", err,
+				"dealer_index", j.Index,
+			)
+
+			continue
+		}
+
+		if !valid {
+			log.Info(ctx, "Justification VSS verification failed (deal was invalid), dropping",
+				"dealer_index", j.Index,
+			)
+
+			continue
+		}
+
+		validJustifications = append(validJustifications, j)
+	}
+
+	if len(validJustifications) == 0 {
+		log.Info(ctx, "No valid justifications after verification, skipping story-kernel call")
+
+		return
+	}
+
+	if err := retry(ctx, func(ctx context.Context) error {
+		log.Info(ctx, "ProcessJustification batch call to story-kernel client",
+			"code_commitment", session.GetCodeCommitmentString(),
+			"round", session.Round,
+			"num_justifications", len(validJustifications),
+		)
+
+		req := &types.ProcessJustificationRequest{
+			CodeCommitment: session.CodeCommitment,
+			Round:          session.Round,
+			Justifications: validJustifications,
+			IsResharing:    session.IsResharing,
+		}
+
+		if _, err := k.teeClient.ProcessJustification(ctx, req); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		log.Error(ctx, "Failed to process justifications", err)
+
+		return
+	}
+
+	log.Info(ctx, "Process justifications complete",
+		"code_commitment", session.GetCodeCommitmentString(),
+		"round", session.Round,
+	)
 }
 
 func (k *Keeper) shouldProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {

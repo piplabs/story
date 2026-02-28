@@ -14,7 +14,11 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGFinalization(ctx, latestRound)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGFinalization(asyncCtx, latestRound)
+		}()
 	}
 
 	return nil
@@ -70,7 +74,11 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGComplete(ctx, latestRound)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGComplete(asyncCtx, latestRound)
+		}()
 	}
 
 	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "code_commitment", hex.EncodeToString(latestRound.CodeCommitment))

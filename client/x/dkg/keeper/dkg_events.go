@@ -55,7 +55,7 @@ func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGN
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
 		CodeCommitment: dkgNetwork.CodeCommitment,
 		Round:          dkgNetwork.Round,
-		Deals:          deals,
+		NumDeals:       uint32(len(deals)),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_deals event")
@@ -72,13 +72,34 @@ func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{
 		CodeCommitment: dkgNetwork.CodeCommitment,
 		Round:          dkgNetwork.Round,
-		Responses:      responses,
+		NumResponses:   uint32(len(responses)),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_responses event")
 	}
 
 	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "num_responses", len(responses))
+
+	return nil
+}
+
+func (*Keeper) emitBeginProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessJustifications{
+		CodeCommitment:    dkgNetwork.CodeCommitment,
+		Round:             dkgNetwork.Round,
+		NumJustifications: uint32(len(justifications)),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to emit dkg_begin_process_justifications event")
+	}
+
+	log.Info(ctx, "Emitted BeginProcessJustifications event",
+		"round", dkgNetwork.Round,
+		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
+		"num_justifications", len(justifications),
+	)
 
 	return nil
 }

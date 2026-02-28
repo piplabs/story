@@ -1,9 +1,6 @@
 syntax = "proto3";
 package story.dkg.v1.types;
 
-import "gogoproto/gogo.proto";
-import "story/dkg/v1/types/types.proto";
-
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
 enum EventType {
@@ -14,6 +11,7 @@ enum EventType {
   EVENT_TYPE_BEGIN_PROCESS_RESPONSES = 4;
   EVENT_TYPE_BEGIN_FINALIZATION = 5;
   EVENT_TYPE_DKG_FINALIZED = 6;
+  EVENT_TYPE_BEGIN_PROCESS_JUSTIFICATIONS = 7;
 }
 
 message EventBeginInitialization {
@@ -31,17 +29,19 @@ message EventBeginDealing {
 message EventBeginProcessDeals {
   bytes code_commitment = 1;
   uint32 round = 2;
-  repeated types.Deal deals = 3 [
-    (gogoproto.nullable) = false
-  ];
+  uint32 num_deals = 3;
 }
 
 message EventBeginProcessResponses {
   bytes code_commitment = 1;
   uint32 round = 2;
-  repeated types.Response responses = 3 [
-    (gogoproto.nullable) = false
-  ];
+  uint32 num_responses = 3;
+}
+
+message EventBeginProcessJustifications {
+  bytes code_commitment = 1;
+  uint32 round = 2;
+  uint32 num_justifications = 3;
 }
 
 message EventBeginFinalization {

@@ -34,6 +34,13 @@ func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 				log.Error(ctx, "Error occurred while processing responses", err)
 			}
 		}
+
+		if len(msg.Vote.Justifications) > 0 {
+			if err := s.Keeper.ProcessJustifications(ctx, latestRound, msg.Vote.Justifications); err != nil {
+				// Note: no need to return error since no state changes in processing justifications
+				log.Error(ctx, "Error occurred while processing justifications", err)
+			}
+		}
 	}
 
 	return &types.AddDkgVoteResponse{}, nil

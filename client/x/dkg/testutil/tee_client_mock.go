@@ -142,6 +142,26 @@ func (mr *MockTEEClientMockRecorder) ProcessDeals(ctx, in any, opts ...any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEClient)(nil).ProcessDeals), varargs...)
 }
 
+// ProcessJustification mocks base method.
+func (m *MockTEEClient) ProcessJustification(ctx context.Context, in *types.ProcessJustificationRequest, opts ...grpc.CallOption) (*types.ProcessJustificationResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ProcessJustification", varargs...)
+	ret0, _ := ret[0].(*types.ProcessJustificationResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessJustification indicates an expected call of ProcessJustification.
+func (mr *MockTEEClientMockRecorder) ProcessJustification(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessJustification", reflect.TypeOf((*MockTEEClient)(nil).ProcessJustification), varargs...)
+}
+
 // ProcessResponses mocks base method.
 func (m *MockTEEClient) ProcessResponses(ctx context.Context, in *types.ProcessResponsesRequest, opts ...grpc.CallOption) (*types.ProcessResponsesResponse, error) {
 	m.ctrl.T.Helper()
@@ -259,6 +279,21 @@ func (m *MockTEEServer) ProcessDeals(arg0 context.Context, arg1 *types.ProcessDe
 func (mr *MockTEEServerMockRecorder) ProcessDeals(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEServer)(nil).ProcessDeals), arg0, arg1)
+}
+
+// ProcessJustification mocks base method.
+func (m *MockTEEServer) ProcessJustification(arg0 context.Context, arg1 *types.ProcessJustificationRequest) (*types.ProcessJustificationResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProcessJustification", arg0, arg1)
+	ret0, _ := ret[0].(*types.ProcessJustificationResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessJustification indicates an expected call of ProcessJustification.
+func (mr *MockTEEServerMockRecorder) ProcessJustification(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessJustification", reflect.TypeOf((*MockTEEServer)(nil).ProcessJustification), arg0, arg1)
 }
 
 // ProcessResponses mocks base method.

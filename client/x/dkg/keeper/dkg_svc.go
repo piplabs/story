@@ -11,6 +11,18 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// dkgAsyncTimeout is the maximum duration for async DKG goroutines that
+// communicate with the story-kernel. These goroutines must NOT use the CometBFT
+// consensus context because it gets cancelled when block processing completes,
+// which can abort in-flight gRPC calls to the story-kernel.
+const dkgAsyncTimeout = 1 * time.Minute
+
+// dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
+// This replaces the consensus context that would otherwise be cancelled after block processing.
+func dkgAsyncContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), dkgAsyncTimeout)
+}
+
 var dkgSvcRunning atomic.Bool
 var decryptWorkerRunning atomic.Bool
 
@@ -38,7 +50,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGRegistration(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGRegistration(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -47,7 +63,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGDealing(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGDealing(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -56,7 +76,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGFinalization(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGFinalization(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageActive:
 		session.UpdatePhase(types.PhaseFinalized)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -65,7 +89,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGComplete(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGComplete(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageUnspecified:
 		return
 	}
