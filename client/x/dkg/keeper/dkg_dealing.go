@@ -13,12 +13,37 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 		return errors.Wrap(err, "failed to fetch verified DKG registrations")
 	}
 
-	// TODO: compare with minReqRegistered
-	if verifiedRegCount < latestRound.Threshold {
-		log.Info(ctx, "The number of DKG registrations verified is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG params")
+	}
+
+	// Check if verified registrations meet the minimum required threshold
+	if verifiedRegCount < params.MinReqRegisteredParticipants {
+		log.Info(ctx, "Verified registration count below minimum required. Skipping current round.",
+			"verified_count", verifiedRegCount,
+			"min_req_registered", params.MinReqRegisteredParticipants,
+			"current", latestRound.Round,
+			"next", latestRound.Round+1,
+		)
 
 		return k.SkipToNextRound(ctx, latestRound)
 	}
+
+	// Update total and threshold based on actual verified registrations
+	latestRound.Total = verifiedRegCount
+	latestRound.Threshold = types.CalculateThreshold(verifiedRegCount, params.OperationalThreshold)
+
+	if err := k.setDKGNetwork(ctx, latestRound); err != nil {
+		return errors.Wrap(err, "failed to update DKG network with total and threshold")
+	}
+
+	log.Info(ctx, "DKG dealing phase started",
+		"round", latestRound.Round,
+		"total", latestRound.Total,
+		"threshold", latestRound.Threshold,
+		"operational_threshold_bps", params.OperationalThreshold,
+	)
 
 	if err := k.emitBeginDKGDealing(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit begin DKG dealing event")

@@ -3,29 +3,28 @@ package keeper
 import (
 	"context"
 	"encoding/hex"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 	"slices"
 )
 
-// handleDKGInitialization handles the DKG initialization event.
-func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.DKGNetwork) {
-	log.Info(ctx, "Handling DKG initialization",
+// handleDKGRegistration handles the DKG registration.
+func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+	log.Info(ctx, "Handling DKG registration",
 		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
 	if !dkgSvcRunning.CompareAndSwap(false, true) {
-		log.Info(ctx, "DKG service already running; skipping initialization")
+		log.Info(ctx, "DKG service already running; skipping registration")
 
 		return
 	}
 	defer dkgSvcRunning.Store(false)
 
 	if dkgNetwork.Stage != types.DKGStageRegistration {
-		log.Info(ctx, "DKG initialization is skipped because the current network stage is not in the registration stage")
+		log.Info(ctx, "DKG registration is skipped because the current network stage is not in the registration stage")
 
 		return
 	}
@@ -67,8 +66,8 @@ func (k *Keeper) handleDKGInitialization(ctx context.Context, dkgNetwork *types.
 		return
 	}
 
-	if err := k.callContractInitializeDKG(ctx, session); err != nil {
-		log.Error(ctx, "Failed to call initializeDKG method", err)
+	if err := k.callContractRegister(ctx, session); err != nil {
+		log.Error(ctx, "Failed to call register method", err)
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
@@ -97,7 +96,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 		"validator", k.validatorEVMAddr,
 	)
 
-	if len(session.DKGPubKey) > 0 && len(session.CommPubKey) > 0 && len(session.RawQuote) > 0 {
+	if len(session.DKGPubKey) > 0 && len(session.CommPubKey) > 0 && len(session.EnclaveReport) > 0 {
 		log.Info(ctx, "Already generated and sealed the key, skipping call GenerateAndSealKey request")
 
 		return nil
@@ -126,7 +125,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 
 	session.DKGPubKey = resp.GetDkgPubKey()
 	session.CommPubKey = resp.GetCommPubKey()
-	session.RawQuote = resp.GetRawQuote()
+	session.EnclaveReport = resp.GetEnclaveReport()
 	session.StartBlockHeight = resp.GetStartBlockHeight()
 	session.StartBlockHash = resp.GetStartBlockHash()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -136,30 +135,18 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	return nil
 }
 
-func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.DKGSession) error {
-	log.Info(ctx, "InitializeDKG contract call",
+func (k *Keeper) callContractRegister(ctx context.Context, session *types.DKGSession) error {
+	log.Info(ctx, "register contract call",
 		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"start_block_height", session.StartBlockHeight,
 		"start_block_hash", hex.EncodeToString(session.StartBlockHash),
 		"dkg_pub_key", hex.EncodeToString(session.DKGPubKey),
 		"comm_pub_key", hex.EncodeToString(session.CommPubKey),
-		"raw_quote_len", len(session.RawQuote),
+		"raw_quote_len", len(session.EnclaveReport),
 	)
 
-	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
-	isInitialized, err := k.contractClient.IsInitialized(ctx, session.Round, session.CodeCommitment, validatorAddr)
-	if err != nil {
-		return err
-	}
-
-	if isInitialized {
-		log.Info(ctx, "Already initialized DKG on chain, skipping call initializeDKG method")
-
-		return nil
-	}
-
-	if _, err := k.contractClient.InitializeDKG(
+	if _, err := k.contractClient.Register(
 		ctx,
 		session.Round,
 		session.CodeCommitment,
@@ -167,7 +154,7 @@ func (k *Keeper) callContractInitializeDKG(ctx context.Context, session *types.D
 		session.StartBlockHash,
 		session.DKGPubKey,
 		session.CommPubKey,
-		session.RawQuote,
+		session.EnclaveReport,
 	); err != nil {
 		return err
 	}

@@ -50,7 +50,7 @@ type DKGSession struct {
 	GlobalPubKey       []byte    `json:"global_pub_key"`
 	DKGPubKey          []byte    `json:"dkg_pub_key"`
 	CommPubKey         []byte    `json:"comm_pub_key"`
-	RawQuote           []byte    `json:"raw_quote"`
+	EnclaveReport      []byte    `json:"enclave_report"`
 	StartBlockHeight   int64     `json:"start_block_height"`
 	StartBlockHash     []byte    `json:"start_block_hash"`
 	Phase              DKGPhase  `json:"phase"`

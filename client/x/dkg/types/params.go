@@ -15,9 +15,13 @@ const (
 	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
 	DefaultDkgComplaintPeriod    uint32 = 2 * 60 * 60       // 2 hours
 
-	// other parameters.
-	DefaultMinCommitteeSize    uint32 = 3
-	ExpectedCodeCommitmentSize int    = 32 // 256-bit digest (32 bytes)
+	ExpectedCodeCommitmentSize int = 32 // 256-bit digest (32 bytes)
+
+	// DKG committee size parameters (sourced from DKG.sol contract events).
+	DefaultMinReqRegisteredParticipants uint32 = 3
+	DefaultMinReqFinalizedParticipants  uint32 = 3
+	DefaultOperationalThreshold         uint32 = 667 // 66.7% in basis points (out of 1000)
+	OperationalThresholdBasis           uint32 = 1000
 )
 
 // DefaultDkgCommitteeRewardPortion is the default portion of UBI rewards
@@ -31,17 +35,21 @@ func NewParams(
 	finalizationPeriod uint32,
 	activePeriod uint32,
 	complaintPeriod uint32,
-	minCommitteeSize uint32,
 	dkgCommitteeRewardPortion math.LegacyDec,
+	minReqRegisteredParticipants uint32,
+	minReqFinalizedParticipants uint32,
+	operationalThreshold uint32,
 ) Params {
 	return Params{
-		RegistrationPeriod:        registrationPeriod,
-		DealingPeriod:             dealingPeriod,
-		FinalizationPeriod:        finalizationPeriod,
-		ActivePeriod:              activePeriod,
-		ComplaintPeriod:           complaintPeriod,
-		MinCommitteeSize:          minCommitteeSize,
-		DkgCommitteeRewardPortion: dkgCommitteeRewardPortion,
+		RegistrationPeriod:           registrationPeriod,
+		DealingPeriod:                dealingPeriod,
+		FinalizationPeriod:           finalizationPeriod,
+		ActivePeriod:                 activePeriod,
+		ComplaintPeriod:              complaintPeriod,
+		DkgCommitteeRewardPortion:    dkgCommitteeRewardPortion,
+		MinReqRegisteredParticipants: minReqRegisteredParticipants,
+		MinReqFinalizedParticipants:  minReqFinalizedParticipants,
+		OperationalThreshold:         operationalThreshold,
 	}
 }
 
@@ -53,8 +61,10 @@ func DefaultParams() Params {
 		DefaultDkgFinalizationPeriod,
 		DefaultDkgActivePeriod,
 		DefaultDkgComplaintPeriod,
-		DefaultMinCommitteeSize,
 		DefaultDkgCommitteeRewardPortion,
+		DefaultMinReqRegisteredParticipants,
+		DefaultMinReqFinalizedParticipants,
+		DefaultOperationalThreshold,
 		// no default for code commitment
 	)
 }
@@ -80,11 +90,19 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if err := ValidateMinCommitteeSize(p.MinCommitteeSize); err != nil {
+	if err := ValidateDkgCommitteeRewardPortion(p.DkgCommitteeRewardPortion); err != nil {
 		return err
 	}
 
-	if err := ValidateDkgCommitteeRewardPortion(p.DkgCommitteeRewardPortion); err != nil {
+	if err := ValidateMinReqRegisteredParticipants(p.MinReqRegisteredParticipants); err != nil {
+		return err
+	}
+
+	if err := ValidateMinReqFinalizedParticipants(p.MinReqFinalizedParticipants); err != nil {
+		return err
+	}
+
+	if err := ValidateOperationalThreshold(p.OperationalThreshold); err != nil {
 		return err
 	}
 
@@ -149,9 +167,29 @@ func ValidateComplaintPeriod(complaintPeriod uint32) error {
 	return nil
 }
 
-func ValidateMinCommitteeSize(minCommitteeSize uint32) error {
-	if minCommitteeSize == 0 {
-		return errors.New("invalid min committee size", "size", minCommitteeSize)
+func ValidateMinReqRegisteredParticipants(v uint32) error {
+	if v == 0 {
+		return errors.New("min_req_registered_participants must be greater than zero", "value", v)
+	}
+
+	return nil
+}
+
+func ValidateMinReqFinalizedParticipants(v uint32) error {
+	if v == 0 {
+		return errors.New("min_req_finalized_participants must be greater than zero", "value", v)
+	}
+
+	return nil
+}
+
+func ValidateOperationalThreshold(v uint32) error {
+	if v == 0 {
+		return errors.New("operational_threshold must be greater than zero", "value", v)
+	}
+
+	if v > OperationalThresholdBasis {
+		return errors.New("operational_threshold must not exceed basis (1000)", "value", v, "basis", OperationalThresholdBasis)
 	}
 
 	return nil
@@ -167,6 +205,26 @@ func ValidateDkgCommitteeRewardPortion(portion math.LegacyDec) error {
 	}
 
 	return nil
+}
+
+// CalculateThreshold computes the operational threshold from total participants
+// and a basis-point threshold value (out of OperationalThresholdBasis = 1000).
+// Returns ceil(total * operationalThresholdBps / 1000).
+func CalculateThreshold(total, operationalThresholdBps uint32) uint32 {
+	if total == 0 || operationalThresholdBps == 0 {
+		return 0
+	}
+
+	// Use uint64 to avoid overflow: total * operationalThresholdBps could exceed uint32 max
+	product := uint64(total) * uint64(operationalThresholdBps)
+	threshold := uint32(product / uint64(OperationalThresholdBasis))
+
+	// Round up if there is a remainder (ceiling division)
+	if product%uint64(OperationalThresholdBasis) != 0 {
+		threshold++
+	}
+
+	return threshold
 }
 
 func ValidateCodeCommitment(codeCommitment []byte) error {

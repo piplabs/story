@@ -26,9 +26,31 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
 	}
 
-	// TODO: compare with minReqFinalized
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG params")
+	}
+
+	// Check if finalized count meets the minimum required participants
+	if finalizedCount < params.MinReqFinalizedParticipants {
+		log.Info(ctx, "Finalized registration count below minimum required. Skipping current round.",
+			"finalized_count", finalizedCount,
+			"min_req_finalized", params.MinReqFinalizedParticipants,
+			"current", latestRound.Round,
+			"next", latestRound.Round+1,
+		)
+
+		return k.SkipToNextRound(ctx, latestRound)
+	}
+
+	// Check if finalized count meets the operational threshold
 	if finalizedCount < latestRound.Threshold {
-		log.Info(ctx, "The number of DKG registrations in Finalized status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+		log.Info(ctx, "Finalized registration count below operational threshold. Skipping current round.",
+			"finalized_count", finalizedCount,
+			"threshold", latestRound.Threshold,
+			"current", latestRound.Round,
+			"next", latestRound.Round+1,
+		)
 
 		return k.SkipToNextRound(ctx, latestRound)
 	}

@@ -38,7 +38,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGInitialization(ctx, dkgNetwork)
+		go k.handleDKGRegistration(ctx, dkgNetwork)
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {

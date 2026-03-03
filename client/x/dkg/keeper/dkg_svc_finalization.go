@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"slices"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -85,13 +84,13 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 }
 
 func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
-	log.Info(ctx, "FinalizeDKG call to TEE client",
+	log.Info(ctx, "Finalize call to TEE client",
 		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
 	if len(session.GlobalPubKey) > 0 && len(session.SigFinalizeNetwork) > 0 {
-		log.Info(ctx, "DKG network already finalized in TEE client, skipping call FinalizeDKG request")
+		log.Info(ctx, "DKG network already finalized in TEE client, skipping call Finalize request")
 
 		return nil
 	}
@@ -114,7 +113,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "TEE client FinalizeDKG request failed")
+		return errors.Wrap(err, "TEE client Finalize request failed")
 	}
 
 	session.ParticipantsRoot = resp.GetParticipantsRoot()
@@ -123,33 +122,21 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	session.PublicCoeffs = resp.GetPublicCoeffs()
 	session.PubKeyShare = resp.GetPubKeyShare()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to update session after calling FinalizeDKG on the TEE client")
+		return errors.Wrap(err, "failed to update session after calling Finalize on the TEE client")
 	}
 
 	return nil
 }
 
 func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
-	log.Info(ctx, "FinalizeDKG contract call",
+	log.Info(ctx, "Finalize contract call",
 		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
 		"signature_len", len(session.SigFinalizeNetwork),
 	)
 
-	validatorAddr := common.HexToAddress(k.validatorEVMAddr)
-	isFinalized, err := k.contractClient.IsFinalized(ctx, session.Round, session.CodeCommitment, validatorAddr)
-	if err != nil {
-		return err
-	}
-
-	if isFinalized {
-		log.Info(ctx, "Already finalized DKG on chain, skipping call finalizeDKG method")
-
-		return nil
-	}
-
-	if _, err := k.contractClient.FinalizeDKG(
+	if _, err := k.contractClient.Finalize(
 		ctx,
 		session.Round,
 		session.CodeCommitment,

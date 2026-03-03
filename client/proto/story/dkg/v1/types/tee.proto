@@ -56,8 +56,8 @@ message GenerateAndSealKeyResponse {
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes raw_quote = 7 [
-    (gogoproto.moretags) = "yaml:\"raw_quote\""
+  bytes enclave_report = 7 [
+    (gogoproto.moretags) = "yaml:\"enclave_report\""
   ];
 }
 

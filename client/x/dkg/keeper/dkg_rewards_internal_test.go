@@ -543,7 +543,7 @@ func setRegistration(t *testing.T, k *Keeper, ctx context.Context, network *type
 		Index:         1,
 		DkgPubKey:     []byte("test-dkg-pubkey"),
 		CommPubKey:    []byte("test-comm-pubkey"),
-		RawQuote:      []byte("test-raw-quote"),
+		EnclaveReport: []byte("test-enclave-report"),
 		Status:        status,
 	}
 

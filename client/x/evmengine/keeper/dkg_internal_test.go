@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,12 +36,15 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testParticipantsRoot := [32]byte{0x56, 0x78}
 	testRound := uint32(1)
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
-	testRawQuote := []byte("test-raw-quote")
+	testEnclaveReport := []byte("test-enclave-report")
 	testSignature := []byte("test-signature")
 	testGlobalPubKey := []byte("test-global-pubkey")
 	testPublicCoeffs := []byte("test-public-coeffs")
+	testPubKeyShare := []byte("test-pubkey-share")
 	testIndex := uint32(1)
 	testComplainIndexes := []uint32{1, 2, 3}
 	testRecipientIndex := uint32(2)
@@ -79,14 +83,14 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DKGInitialized event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testEnclaveReport)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32), // indexed msgSender
 						},
 						Data:   data,
@@ -95,7 +99,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGInitializedSuccess event
@@ -137,7 +141,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs, testPubKeyShare).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGFinalizedSuccess event
@@ -371,7 +375,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			evmEvents: func() []*types.EVMEvent {
 				// DKGInitialized event
 				initData, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+					testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testEnclaveReport)
 				require.NoError(t, err)
 
 				// DKGFinalized event
@@ -383,7 +387,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   initData,
@@ -401,8 +405,8 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
-				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
+				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs, testPubKeyShare).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit both DKGInitializedSuccess and DKGFinalizedSuccess events
@@ -419,6 +423,117 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 				require.True(t, foundInit, "Expected DKGInitializedSuccess event to be emitted for %s", testName)
 				require.True(t, foundFinalized, "Expected DKGFinalizedSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: MinReqRegisteredParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqRegisteredParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(5))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqRegisteredParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqRegisteredParticipants(gomock.Any(), uint32(5)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqRegisteredParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(5, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqRegisteredParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: MinReqFinalizedParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqFinalizedParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(4))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqFinalizedParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqFinalizedParticipants(gomock.Any(), uint32(4)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqFinalizedParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(4, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqFinalizedParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: OperationalThresholdSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["OperationalThresholdSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(750))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGOperationalThresholdSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetOperationalThreshold(gomock.Any(), uint32(750)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGOperationalThresholdSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(750, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGOperationalThresholdSetSuccess event to be emitted for %s", testName)
 			},
 		},
 		{
@@ -448,7 +563,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   []byte("invalid-data"), // Invalid data that will fail parsing
@@ -510,9 +625,11 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testRound := uint32(1)
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
-	testRawQuote := []byte("test-raw-quote")
+	testEnclaveReport := []byte("test-enclave-report")
 
 	dkgContract := &bindings.DKG{}
 	keeper.dkgContract = dkgContract
@@ -521,7 +638,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	mockLog := &ethtypes.Log{
 		Address: dummyContractAddress,
 		Topics: []common.Hash{
-			types.DKGInitializedEvent.ID,
+			types.DKGRegisteredEvent.ID,
 			common.BytesToHash(common.LeftPadBytes(testValidator.Bytes(), 32)),
 		},
 		Data:        []byte{}, // Will be filled by ABI packing
@@ -534,7 +651,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	dkgAbi, err := bindings.DKGMetaData.GetAbi()
 	require.NoError(t, err)
 	data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-		testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote)
+		testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testEnclaveReport)
 	require.NoError(t, err)
 	mockLog.Data = data
 
@@ -546,13 +663,13 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 		{
 			name: "pass: successful DKG initialization",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
 			},
 		},
 		{
 			name: "fail: DKG keeper returns error",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testDkgPubKey, testCommPubKey, testRawQuote).Return(
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(
 					sdkerrors.ErrInvalidRequest.Wrap("invalid request"))
 			},
 			expectedErr: "invalid request",
@@ -565,7 +682,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 				tc.setupMock()
 			}
 
-			err := keeper.ProcessDKGInitialized(ctx, mockLog)
+			err := keeper.ProcessDKGRegistered(ctx, mockLog)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
@@ -606,7 +723,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
 						require.Equal(t, hex.EncodeToString(testDkgPubKey), attrs[4].Value)
 						require.Equal(t, hex.EncodeToString(testCommPubKey), attrs[5].Value)
-						require.Equal(t, hex.EncodeToString(testRawQuote), attrs[6].Value)
+						require.Equal(t, hex.EncodeToString(testEnclaveReport), attrs[6].Value)
 
 						break
 					}

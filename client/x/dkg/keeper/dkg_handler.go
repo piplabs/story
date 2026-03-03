@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"slices"
 	"strings"
 
@@ -17,9 +18,9 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// RegistrationInitialized handles DKG registration initialization event. These verified DKG registrations will be used
+// Registered handles DKG registration initialization event. These verified DKG registrations will be used
 // by the DKG module & service to set the DKG network and perform further steps such as dealing.
-func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, startBlockHeight uint64, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error {
+func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) error {
 	latest, err := k.getLatestDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the latest dkg network")
@@ -34,7 +35,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 	}
 
 	// Verify that startBlockHeight and startBlockHash match the latest DKG network's start block
-	if latest.StartBlockHeight != int64(startBlockHeight) {
+	if latest.StartBlockHeight != startBlockHeight.Int64() {
 		return errors.New(fmt.Sprintf("start block height mismatch: expected %d, got %d", latest.StartBlockHeight, startBlockHeight))
 	}
 
@@ -61,7 +62,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		Index:         uint32(index),
 		DkgPubKey:     dkgPubKey,
 		CommPubKey:    commPubKey,
-		RawQuote:      rawQuote,
+		EnclaveReport: enclaveReport,
 		Status:        types.DKGRegStatusVerified,
 	}
 
@@ -86,7 +87,7 @@ func (k *Keeper) RegistrationInitialized(ctx context.Context, validator common.A
 		"status", types.DKGRegStatus_name[int32(types.DKGRegStatusVerified)],
 		"dkg_pubkey", hex.EncodeToString(dkgPubKey),
 		"comm_pubkey", hex.EncodeToString(commPubKey),
-		"raw_quote_len", len(rawQuote),
+		"raw_quote_len", len(enclaveReport),
 	)
 
 	return nil
