@@ -139,7 +139,7 @@ func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKG
 	if _, err := k.contractClient.Finalize(
 		ctx,
 		session.Round,
-		session.CodeCommitment,
+		session.EnclaveType,
 		session.ParticipantsRoot,
 		session.GlobalPubKey,
 		session.PublicCoeffs,

@@ -224,7 +224,8 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
 
 	if cfg.DKG.Enable {
-		if err := app.Keepers.DKGKeeper.InitDKGService(cfg.DKGStateDir(), addr); err != nil {
+		enclaveType := storycfg.EnclaveTypeToBytes32(cfg.DKG.EnclaveType)
+		if err := app.Keepers.DKGKeeper.InitDKGService(cfg.DKGStateDir(), addr, enclaveType); err != nil {
 			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
 		}
 	}

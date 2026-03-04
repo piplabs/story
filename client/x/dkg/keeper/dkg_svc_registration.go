@@ -36,7 +36,7 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 	// we still create a session. Old members do not generate new keys, but they still
 	// participate in later stages (especially dealing, and finalization).
 	// Therefore, a session must exist regardless of key generation eligibility.
-	session := types.NewDKGSession(dkgNetwork.CodeCommitment, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing)
+	session := types.NewDKGSession(dkgNetwork.CodeCommitment, dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing, k.enclaveType)
 	if err := k.stateManager.CreateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to create DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -149,7 +149,7 @@ func (k *Keeper) callContractRegister(ctx context.Context, session *types.DKGSes
 	if _, err := k.contractClient.Register(
 		ctx,
 		session.Round,
-		session.CodeCommitment,
+		session.EnclaveType,
 		uint64(session.StartBlockHeight),
 		session.StartBlockHash,
 		session.DKGPubKey,

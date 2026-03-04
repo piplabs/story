@@ -132,3 +132,6 @@ tee-endpoint = "127.0.0.1:50051"
 
 # The RPC endpoint of execution layer
 engine-rpc-endpoint = "http://127.0.0.1:8545"
+
+# TEE enclave type identifier (e.g. 1 for SGX)
+enc-type = 1

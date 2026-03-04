@@ -41,7 +41,8 @@ type Keeper struct {
 	distributionKeeper types.DistributionKeeper
 
 	isDKGSvcEnabled  bool
-	validatorEVMAddr string // EVM address of the validator
+	validatorEVMAddr string   // EVM address of the validator
+	enclaveType      [32]byte // TEE enclave type identifier
 
 	Schema            collections.Schema
 	ParamsStore       collections.Item[types.Params]
@@ -108,9 +109,10 @@ func (k *Keeper) RegisterProposalService(server grpc.Server) {
 	types.RegisterMsgServiceServer(server, NewProposalServer(k))
 }
 
-func (k *Keeper) InitDKGService(stateDir string, addr common.Address) error {
+func (k *Keeper) InitDKGService(stateDir string, addr common.Address, enclaveType [32]byte) error {
 	k.setIsDKGSvcEnabled()
 	k.setValidatorAddress(addr)
+	k.enclaveType = enclaveType
 
 	stateManager, err := NewStateManager(stateDir)
 	if err != nil {
