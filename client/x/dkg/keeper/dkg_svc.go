@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 	"sync/atomic"
 	"time"
 
@@ -28,7 +27,7 @@ var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
-	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
 
@@ -36,7 +35,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	if session.Phase != types.PhaseFailed {
-		log.Debug(ctx, "No failed DKG session found; skipping resume process", "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "round", dkgNetwork.Round)
+		log.Debug(ctx, "No failed DKG session found; skipping resume process", "round", dkgNetwork.Round)
 
 		return
 	}
@@ -129,12 +128,13 @@ func (k *Keeper) StartDecryptWorker(ctx context.Context) {
 func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
-		if len(session.DecryptRequests) == 0 {
+		requests := session.GetDecryptRequests()
+		if len(requests) == 0 {
 			continue
 		}
 
-		remaining := make([]types.DecryptRequest, 0, len(session.DecryptRequests))
-		for _, req := range session.DecryptRequests {
+		remaining := make([]types.DecryptRequest, 0, len(requests))
+		for _, req := range requests {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
 				log.Error(ctx, "Failed to process decrypt request", err,
 					"session", session.GetSessionKey(),
@@ -148,11 +148,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			}
 		}
 
-		session.DecryptRequests = remaining
+		session.SetDecryptRequests(remaining)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
 				"session", session.GetSessionKey(),
-				"remaining_requests", len(session.DecryptRequests),
+				"remaining_requests", len(remaining),
 			)
 		}
 	}
@@ -160,8 +160,8 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 // handleDecryptRequest attempts TDH2 partial decrypt for a single request.
 func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.teeClient == nil {
-		return errors.New("tee client not configured")
+	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
+		return errors.New("kernel client not configured")
 	}
 
 	pid := session.Index
@@ -173,7 +173,12 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("missing DKG public key for session")
 	}
 
-	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
+	client, err := k.kernelRouter.GetClient(session.CodeCommitment)
+	if err != nil {
+		return errors.Wrap(err, "no kernel client for session")
+	}
+
+	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
 		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,

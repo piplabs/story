@@ -12,7 +12,6 @@ import (
 )
 
 func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 	validators := []common.Address{
 		common.HexToAddress("0x1111111111111111111111111111111111111111"),
@@ -40,7 +39,7 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 				EnclaveReport: []byte("enclave-report"),
 				Status:        types.DKGRegStatusFinalized,
 			}
-			require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, validators[i], reg))
+			require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
 		}
 	}
 
@@ -102,17 +101,15 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 			// Set params
 			params := types.DefaultParams()
 			params.MinReqFinalizedParticipants = tc.minReqFinalized
-			params.CodeCommitment = testCodeCommitment[:]
 			require.NoError(t, k.SetParams(ctx, params))
 
 			// Set up DKG network
 			latestRound := &types.DKGNetwork{
-				CodeCommitment: testCodeCommitment[:],
-				Round:          testRound,
-				ActiveValSet:   activeValSet,
-				Total:          tc.total,
-				Threshold:      tc.threshold,
-				Stage:          types.DKGStageFinalization,
+				Round:        testRound,
+				ActiveValSet: activeValSet,
+				Total:        tc.total,
+				Threshold:    tc.threshold,
+				Stage:        types.DKGStageFinalization,
 			}
 			require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 

@@ -35,7 +35,27 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		// No active DKG round, start the first round
 		log.Info(ctx, "No active DKG round, starting the first round")
 
-		return k.InitiateDKGRound(ctx)
+		return k.InitiateDKGRound(ctx, false)
+	}
+
+	// Check for pending kernel upgrade activation before normal stage transitions.
+	// If an upgrade is pending and ready to activate, delete the upgrade info and
+	// initiate an upgrade resharing round.
+	upgradeInfo, err := k.hasPendingUpgradeActivation(ctx, currentHeight)
+	if err != nil {
+		return err
+	}
+	if upgradeInfo != nil {
+		log.Info(ctx, "Kernel upgrade activated, initiating upgrade resharing round",
+			"upgrade_version", upgradeInfo.UpgradeVersion,
+			"activation_height", upgradeInfo.ActivationHeight,
+		)
+
+		if err := k.DeleteKernelUpgradeInfo(ctx, upgradeInfo.UpgradeVersion); err != nil {
+			return errors.Wrap(err, "failed to delete kernel upgrade info after activation")
+		}
+
+		return k.InitiateDKGRound(ctx, true)
 	}
 
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)
@@ -52,7 +72,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// round = DKGStageRegistration if either
 			// 1. it's the initial (first) round, OR
 			// 2. the active stage of the previous round has ended, so DKG needs to reshare deals
-			return k.InitiateDKGRound(ctx)
+			return k.InitiateDKGRound(ctx, false)
 		case types.DKGStageDealing:
 			return k.BeginDealing(ctx, latestRound)
 		case types.DKGStageFinalization:
@@ -66,4 +86,20 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// hasPendingUpgradeActivation checks if there is a pending kernel upgrade that should be
+// activated at the current block height. Returns the upgrade info if activation is due,
+// or nil if no upgrade needs activation.
+func (k *Keeper) hasPendingUpgradeActivation(ctx context.Context, currentHeight int64) (*types.KernelUpgradeInfo, error) {
+	upgradeInfo, err := k.GetPendingUpgrade(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check pending upgrade")
+	}
+
+	if upgradeInfo == nil || currentHeight < upgradeInfo.ActivationHeight {
+		return nil, nil
+	}
+
+	return upgradeInfo, nil
 }

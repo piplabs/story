@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 
 	"cosmossdk.io/math"
 
@@ -21,7 +20,6 @@ func (*Keeper) emitBeginDKGInitialization(ctx context.Context, dkgNetwork *types
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginInitialization{
-		CodeCommitment:   dkgNetwork.CodeCommitment,
 		Round:            dkgNetwork.Round,
 		ActiveValidators: dkgNetwork.ActiveValSet,
 		StartBlockHeight: uint32(dkgNetwork.StartBlockHeight),
@@ -37,8 +35,7 @@ func (*Keeper) emitBeginDKGDealing(ctx context.Context, dkgNetwork *types.DKGNet
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginDealing{
-		CodeCommitment: dkgNetwork.CodeCommitment,
-		Round:          dkgNetwork.Round,
+		Round: dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_dealing event")
@@ -53,15 +50,14 @@ func (*Keeper) emitBeginProcessDeals(ctx context.Context, dkgNetwork *types.DKGN
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessDeals{
-		CodeCommitment: dkgNetwork.CodeCommitment,
-		Round:          dkgNetwork.Round,
-		NumDeals:       uint32(len(deals)),
+		Round:    dkgNetwork.Round,
+		NumDeals: uint32(len(deals)),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_deals event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessDeals event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "num_deals", len(deals))
+	log.Info(ctx, "Emitted BeginProcessDeals event", "round", dkgNetwork.Round, "num_deals", len(deals))
 
 	return nil
 }
@@ -70,15 +66,14 @@ func (*Keeper) emitBeginProcessResponses(ctx context.Context, dkgNetwork *types.
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessResponses{
-		CodeCommitment: dkgNetwork.CodeCommitment,
-		Round:          dkgNetwork.Round,
-		NumResponses:   uint32(len(responses)),
+		Round:        dkgNetwork.Round,
+		NumResponses: uint32(len(responses)),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_process_responses event")
 	}
 
-	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "num_responses", len(responses))
+	log.Info(ctx, "Emitted BeginProcessResponses event", "round", dkgNetwork.Round, "num_responses", len(responses))
 
 	return nil
 }
@@ -87,7 +82,6 @@ func (*Keeper) emitBeginProcessJustifications(ctx context.Context, dkgNetwork *t
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginProcessJustifications{
-		CodeCommitment:    dkgNetwork.CodeCommitment,
 		Round:             dkgNetwork.Round,
 		NumJustifications: uint32(len(justifications)),
 	})
@@ -97,7 +91,6 @@ func (*Keeper) emitBeginProcessJustifications(ctx context.Context, dkgNetwork *t
 
 	log.Info(ctx, "Emitted BeginProcessJustifications event",
 		"round", dkgNetwork.Round,
-		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"num_justifications", len(justifications),
 	)
 
@@ -108,14 +101,13 @@ func (*Keeper) emitBeginDKGFinalization(ctx context.Context, dkgNetwork *types.D
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventBeginFinalization{
-		CodeCommitment: dkgNetwork.CodeCommitment,
-		Round:          dkgNetwork.Round,
+		Round: dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_begin_finalization event")
 	}
 
-	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment))
+	log.Info(ctx, "Emitted BeginDKGFinalization event", "round", dkgNetwork.Round)
 
 	return nil
 }
@@ -124,14 +116,13 @@ func (*Keeper) emitDKGFinalized(ctx context.Context, dkgNetwork *types.DKGNetwor
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventDKGFinalized{
-		CodeCommitment: dkgNetwork.CodeCommitment,
-		Round:          dkgNetwork.Round,
+		Round: dkgNetwork.Round,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to emit dkg_finalized_event")
 	}
 
-	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round, "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment))
+	log.Info(ctx, "Emitted DKGFinalized event", "round", dkgNetwork.Round)
 
 	return nil
 }
@@ -140,7 +131,6 @@ func (*Keeper) emitDKGCommitteeRewarded(ctx context.Context, dkgNetwork *types.D
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	err := sdkCtx.EventManager().EmitTypedEvent(&types.EventDKGCommitteeRewarded{
-		CodeCommitment:  dkgNetwork.CodeCommitment,
 		Round:           dkgNetwork.Round,
 		MemberCount:     memberCount,
 		TotalReward:     totalReward.String(),

@@ -35,7 +35,7 @@ type Keeper struct {
 	storeService   storetypes.KVStoreService
 	stakingKeeper  types.StakingKeeper
 	valStore       baseapp.ValidatorStore
-	teeClient      types.TEEClient
+	kernelRouter   *KernelRouter
 	contractClient *ContractClient
 	stateManager   *StateManager
 
@@ -46,15 +46,15 @@ type Keeper struct {
 	validatorEVMAddr string   // EVM address of the validator
 	enclaveType      [32]byte // TEE enclave type identifier
 
-	Schema            collections.Schema
-	ParamsStore       collections.Item[types.Params]
-	DKGNetworks       collections.Map[string, types.DKGNetwork]      // key: codeCommitment_round
-	LatestDKGNetwork  collections.Item[string]                       // stores codeCommitment key of latest DKG network
-	LatestActiveRound collections.Item[string]                       // stores latest active round of DKG network
-	DKGRegistrations  collections.Map[string, types.DKGRegistration] // key: codeCommitment_round_address
-	GlobalPubKeyVotes collections.Map[string, uint32]                // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
-	TEEUpgradeInfos   collections.Map[string, types.TEEUpgradeInfo]  // key: codeCommitment
-	SettlementBalance collections.Item[string]                       // remaining UBI after committee distribution during FinalizeDKGRound
+	Schema             collections.Schema
+	ParamsStore        collections.Item[types.Params]
+	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
+	LatestDKGNetwork   collections.Item[string]                         // stores key of latest DKG network
+	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
+	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: round_address
+	GlobalPubKeyVotes  collections.Map[string, uint32]                  // key: round_globalPubKey_hash(publicCoeffs)
+	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
+	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -66,7 +66,7 @@ func NewKeeper(
 	dk types.DistributionKeeper,
 	sk types.StakingKeeper,
 	valStore baseapp.ValidatorStore,
-	teeClient types.TEEClient,
+	kernelRouter *KernelRouter,
 	contractClient *ContractClient,
 	authority string,
 ) *Keeper {
@@ -86,7 +86,7 @@ func NewKeeper(
 		bankKeeper:         bk,
 		distributionKeeper: dk,
 		valStore:           valStore,
-		teeClient:          teeClient,
+		kernelRouter:       kernelRouter,
 		contractClient:     contractClient,
 		ParamsStore:        collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:        collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
@@ -94,7 +94,7 @@ func NewKeeper(
 		LatestActiveRound:  collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
 		DKGRegistrations:   collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
 		GlobalPubKeyVotes:  collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
-		TEEUpgradeInfos:    collections.NewMap(sb, types.TEEUpgradeInfoKey, "tee_upgrade_infos", collections.StringKey, codec.CollValue[types.TEEUpgradeInfo](cdc)),
+		KernelUpgradeInfos: collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
 		SettlementBalance:  collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
 	}
 

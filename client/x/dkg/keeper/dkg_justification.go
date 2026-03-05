@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -14,7 +13,6 @@ import (
 	"go.dedis.ch/kyber/v4/sign/schnorr"
 
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 	"github.com/piplabs/story/lib/vss"
@@ -202,12 +200,7 @@ func verifyJustification(latestRound *types.DKGNetwork, j types.Justification) (
 // buildDealerPubKeyMap builds a map from dealer index to their dkgPubKey for the round.
 // This is built once per ProcessJustifications call to avoid O(N) registration scan per justification.
 func (k *Keeper) buildDealerPubKeyMap(ctx context.Context, latestRound *types.DKGNetwork, suite kyber.Group) (map[uint32]kyber.Point, error) {
-	codeCommitment32, err := cast32(latestRound.CodeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "convert code commitment")
-	}
-
-	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment32, latestRound.Round)
+	registrations, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
 	if err != nil {
 		return nil, errors.Wrap(err, "get registrations")
 	}
@@ -233,18 +226,6 @@ func (k *Keeper) buildDealerPubKeyMap(ctx context.Context, latestRound *types.DK
 	return pubKeys, nil
 }
 
-// cast32 converts a byte slice to [32]byte.
-func cast32(bz []byte) ([32]byte, error) {
-	if len(bz) != 32 {
-		return [32]byte{}, fmt.Errorf("expected 32 bytes, got %d", len(bz))
-	}
-
-	var out [32]byte
-	copy(out[:], bz)
-
-	return out, nil
-}
-
 // invalidateDealerRegistration marks a dealer's DKG registration as Invalidated.
 // The dealer is identified by their DKG index within the current round.
 // Invalidated dealers cannot finalize. This is idempotent — re-invalidating
@@ -254,13 +235,8 @@ func cast32(bz []byte) ([32]byte, error) {
 // processing must not affect on-chain state. It is retained as a utility for
 // potential future use (e.g., explicit slashing proposals).
 func (k *Keeper) invalidateDealerRegistration(ctx context.Context, latestRound *types.DKGNetwork, dealerIndex uint32) error {
-	codeCommitment32, err := cast.ToBytes32(latestRound.CodeCommitment)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert code commitment to bytes32")
-	}
-
 	// Find the registration with this index
-	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment32, latestRound.Round)
+	registrations, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get DKG registrations")
 	}
@@ -284,14 +260,13 @@ func (k *Keeper) invalidateDealerRegistration(ctx context.Context, latestRound *
 
 			reg.Status = types.DKGRegStatusInvalidated
 			validatorAddr := common.HexToAddress(strings.TrimSpace(reg.ValidatorAddr))
-			if err := k.setDKGRegistration(ctx, codeCommitment32, validatorAddr, &reg); err != nil {
+			if err := k.setDKGRegistration(ctx, validatorAddr, &reg); err != nil {
 				return errors.Wrap(err, "failed to update registration status to invalidated")
 			}
 
 			log.Info(ctx, "Dealer registration invalidated",
 				"dealer_index", dealerIndex,
 				"validator_addr", reg.ValidatorAddr,
-				"code_commitment", hex.EncodeToString(latestRound.CodeCommitment),
 				"round", latestRound.Round,
 			)
 

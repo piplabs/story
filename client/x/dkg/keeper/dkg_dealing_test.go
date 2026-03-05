@@ -187,7 +187,7 @@ func (dtc *dealerTestContext) makeInvalidDealJustification(t *testing.T, dealerI
 
 // setupDealerRegistrationWithKey creates a Verified DKG registration with the given
 // dkgPubKey (as raw bytes from a real Edwards25519 point).
-func setupDealerRegistrationWithKey(t *testing.T, k *Keeper, ctx context.Context, codeCommitment [32]byte, round uint32, dealerAddr common.Address, dealerIndex uint32, dkgPubKey []byte) {
+func setupDealerRegistrationWithKey(t *testing.T, k *Keeper, ctx context.Context, round uint32, dealerAddr common.Address, dealerIndex uint32, dkgPubKey []byte) {
 	t.Helper()
 
 	reg := &types.DKGRegistration{
@@ -198,7 +198,7 @@ func setupDealerRegistrationWithKey(t *testing.T, k *Keeper, ctx context.Context
 		CommPubKey:    []byte("comm-pub"),
 		Status:        types.DKGRegStatusVerified,
 	}
-	require.NoError(t, k.setDKGRegistration(ctx, codeCommitment, dealerAddr, reg))
+	require.NoError(t, k.setDKGRegistration(ctx, dealerAddr, reg))
 }
 
 // TestProcessJustifications_EmptyList verifies that ProcessJustifications returns
@@ -207,10 +207,9 @@ func TestProcessJustifications_EmptyList(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
-		Total:          3,
-		Threshold:      dealingTestThreshold,
+		Round:     1,
+		Total:     3,
+		Threshold: dealingTestThreshold,
 	}
 
 	err := k.ProcessJustifications(ctx, network, []types.Justification{})
@@ -223,10 +222,9 @@ func TestProcessJustifications_NilList(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
-		Total:          3,
-		Threshold:      dealingTestThreshold,
+		Round:     1,
+		Total:     3,
+		Threshold: dealingTestThreshold,
 	}
 
 	err := k.ProcessJustifications(ctx, network, nil)
@@ -322,9 +320,8 @@ func TestVerifyJustification_ValidShare(t *testing.T) {
 	dtc := newDealerTestContext(t, 3, dealingTestThreshold)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
-		Threshold:      dealingTestThreshold,
+		Round:     1,
+		Threshold: dealingTestThreshold,
 	}
 
 	// Test all 3 participants (0-based kyber indices)
@@ -342,9 +339,8 @@ func TestVerifyJustification_InvalidShare(t *testing.T) {
 	dtc := newDealerTestContext(t, 3, dealingTestThreshold)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
-		Threshold:      dealingTestThreshold,
+		Round:     1,
+		Threshold: dealingTestThreshold,
 	}
 
 	j := dtc.makeInvalidDealJustification(t, 1)
@@ -357,9 +353,8 @@ func TestVerifyJustification_InvalidShare(t *testing.T) {
 // TestVerifyJustification_NilFields verifies nil field handling.
 func TestVerifyJustification_NilFields(t *testing.T) {
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
-		Threshold:      dealingTestThreshold,
+		Round:     1,
+		Threshold: dealingTestThreshold,
 	}
 
 	tests := []struct {
@@ -405,7 +400,6 @@ func TestVerifyJustification_NilFields(t *testing.T) {
 func TestBuildDealerPubKeyMap(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0x01, 0x02, 0x03}
 	round := uint32(1)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
@@ -415,12 +409,11 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 	dealer1 := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	dealer2 := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
-	setupDealerRegistrationWithKey(t, k, ctx, codeCommitment, round, dealer1, 0, dtc1.pubBytes)
-	setupDealerRegistrationWithKey(t, k, ctx, codeCommitment, round, dealer2, 1, dtc2.pubBytes)
+	setupDealerRegistrationWithKey(t, k, ctx, round, dealer1, 0, dtc1.pubBytes)
+	setupDealerRegistrationWithKey(t, k, ctx, round, dealer2, 1, dtc2.pubBytes)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
+		Round: round,
 	}
 
 	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
@@ -482,18 +475,17 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 	const n = 3
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0xAB, 0xCD, 0xEF, 0x01}
 	round := uint32(1)
 
 	// Dealer 0: valid key pair and VSS data.
 	dealer0 := newDealerTestContext(t, n, dealingTestThreshold)
 	addr0 := common.HexToAddress("0x0000000000000000000000000000000000000001")
-	setupDealerRegistrationWithKey(t, k, ctx, codeCommitment, round, addr0, 0, dealer0.pubBytes)
+	setupDealerRegistrationWithKey(t, k, ctx, round, addr0, 0, dealer0.pubBytes)
 
 	// Dealer 1: valid key pair and VSS data.
 	dealer1 := newDealerTestContext(t, n, dealingTestThreshold)
 	addr1 := common.HexToAddress("0x0000000000000000000000000000000000000002")
-	setupDealerRegistrationWithKey(t, k, ctx, codeCommitment, round, addr1, 1, dealer1.pubBytes)
+	setupDealerRegistrationWithKey(t, k, ctx, round, addr1, 1, dealer1.pubBytes)
 
 	// Attacker: a different key pair — its justifications carry bad signatures.
 	attacker := newDealerTestContext(t, n, dealingTestThreshold)
@@ -501,9 +493,8 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
-		Threshold:      dealingTestThreshold,
+		Round:     round,
+		Threshold: dealingTestThreshold,
 	}
 
 	// Build the dealer public key map once, matching what the handler builds.

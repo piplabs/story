@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/piplabs/story/client/x/dkg/keeper"
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"time"
+
+	"github.com/piplabs/story/client/x/dkg/keeper"
 
 	"cosmossdk.io/store"
 	pruningtypes "cosmossdk.io/store/pruning/types"
@@ -186,14 +186,16 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	}
 
 	var (
-		dkgTEEClient      dkgtypes.TEEClient
+		dkgKernelRouter   *keeper.KernelRouter
 		dkgContractClient *keeper.ContractClient
 	)
 
 	if cfg.DKG.Enable {
-		dkgTEEClient, err = keeper.CreateTEEClient(cfg.DKG.TEEEndpoint)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to create tee client for DKG")
+		dkgKernelRouter = keeper.NewKernelRouter(cfg.DKG.KernelEndpoints)
+		for _, ep := range cfg.DKG.KernelEndpoints {
+			if err := dkgKernelRouter.ConnectAndDiscover(ctx, ep); err != nil {
+				log.Warn(ctx, "Failed to connect to kernel endpoint, continuing", err, "endpoint", ep)
+			}
 		}
 
 		dkgContractClient, err = keeper.NewContractClient(ctx, cfg.DKG.EngineRPCEndpoint, cfg.EngineChainID, privVal.Key.PrivKey.Bytes())
@@ -207,7 +209,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 		newSDKLogger(ctx),
 		db,
 		engineCl,
-		dkgTEEClient,
+		dkgKernelRouter,
 		dkgContractClient,
 		baseAppOpts...,
 	)

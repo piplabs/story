@@ -807,18 +807,18 @@ func (mr *MockDKGKeeperMockRecorder) GetLatestActiveRound(ctx any) *gomock.Call 
 }
 
 // HasFinalizedRegistration mocks base method.
-func (m *MockDKGKeeper) HasFinalizedRegistration(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (bool, error) {
+func (m *MockDKGKeeper) HasFinalizedRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasFinalizedRegistration", ctx, codeCommitment, round, validatorAddr)
+	ret := m.ctrl.Call(m, "HasFinalizedRegistration", ctx, round, validatorAddr)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasFinalizedRegistration indicates an expected call of HasFinalizedRegistration.
-func (mr *MockDKGKeeperMockRecorder) HasFinalizedRegistration(ctx, codeCommitment, round, validatorAddr any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) HasFinalizedRegistration(ctx, round, validatorAddr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalizedRegistration", reflect.TypeOf((*MockDKGKeeper)(nil).HasFinalizedRegistration), ctx, codeCommitment, round, validatorAddr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalizedRegistration", reflect.TypeOf((*MockDKGKeeper)(nil).HasFinalizedRegistration), ctx, round, validatorAddr)
 }
 
 // MockDistributionKeeper is a mock of DistributionKeeper interface.

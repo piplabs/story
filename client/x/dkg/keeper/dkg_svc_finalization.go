@@ -13,7 +13,6 @@ import (
 // handleDKGFinalization handles the finalization phase event.
 func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG finalization",
-		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -37,7 +36,7 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -76,7 +75,6 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	log.Info(ctx, "DKG finalization phase complete",
-		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 	)
 
@@ -84,13 +82,12 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 }
 
 func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
-	log.Info(ctx, "Finalize call to TEE client",
-		"code_commitment", session.GetCodeCommitmentString(),
+	log.Info(ctx, "Finalize call to kernel client",
 		"round", session.Round,
 	)
 
 	if len(session.GlobalPubKey) > 0 && len(session.SigFinalizeNetwork) > 0 {
-		log.Info(ctx, "DKG network already finalized in TEE client, skipping call Finalize request")
+		log.Info(ctx, "DKG network already finalized in kernel client, skipping call Finalize request")
 
 		return nil
 	}
@@ -106,14 +103,19 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 			IsResharing:    session.IsResharing,
 		}
 
-		resp, err = k.teeClient.FinalizeDKG(ctx, req)
+		client, cErr := k.kernelRouter.GetClient(session.CodeCommitment)
+		if cErr != nil {
+			return errors.Wrap(cErr, "no kernel client for session")
+		}
+
+		resp, err = client.FinalizeDKG(ctx, req)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "TEE client Finalize request failed")
+		return errors.Wrap(err, "kernel client Finalize request failed")
 	}
 
 	session.ParticipantsRoot = resp.GetParticipantsRoot()
@@ -122,7 +124,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	session.PublicCoeffs = resp.GetPublicCoeffs()
 	session.PubKeyShare = resp.GetPubKeyShare()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to update session after calling Finalize on the TEE client")
+		return errors.Wrap(err, "failed to update session after calling Finalize on the kernel client")
 	}
 
 	return nil
@@ -130,7 +132,6 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "Finalize contract call",
-		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
 		"signature_len", len(session.SigFinalizeNetwork),

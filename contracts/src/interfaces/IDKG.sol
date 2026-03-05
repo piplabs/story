@@ -52,6 +52,15 @@ interface IDKG {
         bool isWhitelisted
     );
 
+    /// @notice Emitted when a TEE upgrade is scheduled
+    /// @param activationHeight The block height at which the upgrade activates
+    /// @param upgradeVersion The version identifier for the upgrade
+    event UpgradeScheduled(uint256 activationHeight, string upgradeVersion);
+
+    /// @notice Emitted when a pending TEE upgrade is cancelled
+    /// @param upgradeVersion The version identifier of the cancelled upgrade
+    event UpgradeCancelled(string upgradeVersion);
+
     /// @notice Emitted when an enclave instance is registered
     /// @param enclaveReport The enclave report
     /// @param round The round
@@ -191,4 +200,13 @@ interface IDKG {
     /// @notice Gets the is enclave type whitelisted
     /// @param enclaveType The type of the enclave
     function isEnclaveTypeWhitelisted(bytes32 enclaveType) external view returns (bool);
+
+    /// @notice Schedules a TEE upgrade at the specified activation height
+    /// @param activationHeight The block height at which the upgrade activates
+    /// @param upgradeVersion The version identifier for the upgrade
+    function scheduleUpgrade(uint256 activationHeight, string calldata upgradeVersion) external;
+
+    /// @notice Cancels a pending TEE upgrade
+    /// @param upgradeVersion The version identifier of the upgrade to cancel
+    function cancelUpgrade(string calldata upgradeVersion) external;
 }

@@ -138,22 +138,20 @@ func TestVerifyJustificationVSS_WrongIndex(t *testing.T) {
 func TestInvalidateDealerRegistration_Success(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0xDE, 0xAD, 0xBE, 0xEF}
 	round := uint32(5)
 	dealerAddr := common.HexToAddress("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 	dealerIndex := uint32(3)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, codeCommitment, round, dealerAddr, dealerIndex, types.DKGRegStatusVerified)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusVerified)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
+		Round: round,
 	}
 
 	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
 	require.NoError(t, err)
 
-	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, dealerAddr)
+	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusInvalidated, reg.Status)
 }
@@ -163,17 +161,15 @@ func TestInvalidateDealerRegistration_Success(t *testing.T) {
 func TestInvalidateDealerRegistration_AlreadyFinalized(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0x11, 0x22, 0x33, 0x44}
 	round := uint32(1)
 	dealerAddr := common.HexToAddress("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 	dealerIndex := uint32(2)
 
 	// Set up as already Finalized
-	setupDealerRegistrationForInvalidation(t, k, ctx, codeCommitment, round, dealerAddr, dealerIndex, types.DKGRegStatusFinalized)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusFinalized)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
+		Round: round,
 	}
 
 	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
@@ -182,7 +178,7 @@ func TestInvalidateDealerRegistration_AlreadyFinalized(t *testing.T) {
 	require.Contains(t, err.Error(), "possible bug")
 
 	// Status should remain Finalized
-	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, dealerAddr)
+	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusFinalized, reg.Status, "status should not change for finalized dealers")
 }
@@ -193,8 +189,7 @@ func TestInvalidateDealerRegistration_NotFound(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: make([]byte, 32),
-		Round:          1,
+		Round: 1,
 	}
 
 	// No registration has been created; index 99 does not exist
@@ -203,27 +198,11 @@ func TestInvalidateDealerRegistration_NotFound(t *testing.T) {
 	require.Contains(t, err.Error(), "no registration found with dealer index 99")
 }
 
-// TestInvalidateDealerRegistration_InvalidCodeCommitment verifies that a
-// malformed code commitment byte slice produces an error.
-func TestInvalidateDealerRegistration_InvalidCodeCommitment(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	// Only 5 bytes – too short for a 32-byte code commitment
-	network := &types.DKGNetwork{
-		CodeCommitment: []byte{0x01, 0x02, 0x03, 0x04, 0x05},
-		Round:          1,
-	}
-
-	err := k.invalidateDealerRegistration(ctx, network, 1)
-	require.Error(t, err, "short code commitment should produce an error")
-}
-
 // TestInvalidateDealerRegistration_MultipleRegistrations verifies that when
 // multiple dealers exist only the correct one gets invalidated.
 func TestInvalidateDealerRegistration_MultipleRegistrations(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0xCA, 0xFE, 0xBA, 0xBE}
 	round := uint32(3)
 
 	dealerA := common.HexToAddress("0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
@@ -231,23 +210,22 @@ func TestInvalidateDealerRegistration_MultipleRegistrations(t *testing.T) {
 	indexA := uint32(1)
 	indexB := uint32(2)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, codeCommitment, round, dealerA, indexA, types.DKGRegStatusVerified)
-	setupDealerRegistrationForInvalidation(t, k, ctx, codeCommitment, round, dealerB, indexB, types.DKGRegStatusVerified)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerA, indexA, types.DKGRegStatusVerified)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerB, indexB, types.DKGRegStatusVerified)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
+		Round: round,
 	}
 
 	// Invalidate only dealer A
 	err := k.invalidateDealerRegistration(ctx, network, indexA)
 	require.NoError(t, err)
 
-	regA, err := k.getDKGRegistration(ctx, codeCommitment, round, dealerA)
+	regA, err := k.getDKGRegistration(ctx, round, dealerA)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusInvalidated, regA.Status, "dealer A should be invalidated")
 
-	regB, err := k.getDKGRegistration(ctx, codeCommitment, round, dealerB)
+	regB, err := k.getDKGRegistration(ctx, round, dealerB)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusVerified, regB.Status, "dealer B should remain Verified")
 }
@@ -320,29 +298,27 @@ func TestDeduplicateJustifications_PreservesOrder(t *testing.T) {
 func TestInvalidateDealerRegistration_AlreadyInvalidated(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	codeCommitment := [32]byte{0xFF, 0xEE, 0xDD, 0xCC}
 	round := uint32(2)
 	dealerAddr := common.HexToAddress("0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
 	dealerIndex := uint32(5)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, codeCommitment, round, dealerAddr, dealerIndex, types.DKGRegStatusInvalidated)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusInvalidated)
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:],
-		Round:          round,
+		Round: round,
 	}
 
 	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
 	require.NoError(t, err, "re-invalidating should be a no-op")
 
-	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, dealerAddr)
+	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusInvalidated, reg.Status)
 }
 
 // setupDealerRegistrationForInvalidation is a helper that creates a registration
 // with a specific status for use in invalidation tests.
-func setupDealerRegistrationForInvalidation(t *testing.T, k *Keeper, ctx context.Context, codeCommitment [32]byte, round uint32, addr common.Address, index uint32, status types.DKGRegStatus) {
+func setupDealerRegistrationForInvalidation(t *testing.T, k *Keeper, ctx context.Context, round uint32, addr common.Address, index uint32, status types.DKGRegStatus) {
 	t.Helper()
 
 	reg := &types.DKGRegistration{
@@ -353,5 +329,5 @@ func setupDealerRegistrationForInvalidation(t *testing.T, k *Keeper, ctx context
 		CommPubKey:    []byte("comm-pub"),
 		Status:        status,
 	}
-	require.NoError(t, k.setDKGRegistration(ctx, codeCommitment, addr, reg))
+	require.NoError(t, k.setDKGRegistration(ctx, addr, reg))
 }

@@ -15,50 +15,42 @@ enum EventType {
 }
 
 message EventBeginInitialization {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 start_block_height = 3;
-  repeated string active_validators = 4;
+  uint32 round = 1;
+  uint32 start_block_height = 2;
+  repeated string active_validators = 3;
 }
 
 message EventBeginDealing {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventBeginProcessDeals {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 num_deals = 3;
+  uint32 round = 1;
+  uint32 num_deals = 2;
 }
 
 message EventBeginProcessResponses {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 num_responses = 3;
+  uint32 round = 1;
+  uint32 num_responses = 2;
 }
 
 message EventBeginProcessJustifications {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 num_justifications = 3;
+  uint32 round = 1;
+  uint32 num_justifications = 2;
 }
 
 message EventBeginFinalization {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventDKGFinalized {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventDKGCommitteeRewarded {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 member_count = 3;
-  string total_reward = 4;
-  string per_member_reward = 5;
-  string remaining_ubi = 6;
+  uint32 round = 1;
+  uint32 member_count = 2;
+  string total_reward = 3;
+  string per_member_reward = 4;
+  string remaining_ubi = 5;
 }

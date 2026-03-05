@@ -34,12 +34,12 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	testRound := uint32(1)
 	testStartBlockHeight := big.NewInt(100)
 	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
+	testEnclaveType := [32]byte{0x01}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testEnclaveReport := []byte("test-enclave-report")
 
 	validDKGNetwork := &types.DKGNetwork{
-		CodeCommitment:   testCodeCommitment[:],
 		Round:            testRound,
 		StartBlockHeight: testStartBlockHeight.Int64(),
 		StartBlockHash:   testStartBlockHash[:],
@@ -57,6 +57,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		round            uint32
 		startBlockHeight *big.Int
 		startBlockHash   [32]byte
+		enclaveType      [32]byte
 		dkgPubKey        []byte
 		commPubKey       []byte
 		enclaveReport    []byte
@@ -71,6 +72,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			round:            testRound,
 			startBlockHeight: testStartBlockHeight,
 			startBlockHash:   testStartBlockHash,
+			enclaveType:      testEnclaveType,
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
@@ -78,26 +80,16 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				// Network already set up in test setup
 			},
 			expectedRegData: &types.DKGRegistration{
-				Round:         testRound,
-				ValidatorAddr: testValidator.Hex(),
-				Index:         1,
-				DkgPubKey:     testDkgPubKey,
-				CommPubKey:    testCommPubKey,
-				EnclaveReport: testEnclaveReport,
-				Status:        types.DKGRegStatusVerified,
+				Round:          testRound,
+				ValidatorAddr:  testValidator.Hex(),
+				Index:          1,
+				DkgPubKey:      testDkgPubKey,
+				CommPubKey:     testCommPubKey,
+				EnclaveReport:  testEnclaveReport,
+				Status:         types.DKGRegStatusVerified,
+				CodeCommitment: testCodeCommitment[:],
+				EnclaveType:    testEnclaveType[:],
 			},
-		},
-		{
-			name:             "fail: codeCommitment mismatch",
-			msgSender:        testValidator,
-			codeCommitment:   [32]byte{0x99, 0x99, 0x99, 0x99},
-			round:            testRound,
-			startBlockHeight: testStartBlockHeight,
-			startBlockHash:   testStartBlockHash,
-			dkgPubKey:        testDkgPubKey,
-			commPubKey:       testCommPubKey,
-			enclaveReport:    testEnclaveReport,
-			expectedErr:      "codeCommitment mismatch",
 		},
 		{
 			name:             "fail: start block height mismatch",
@@ -141,7 +133,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				networkWithDifferentStage := &types.DKGNetwork{
-					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
 					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
@@ -166,7 +157,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			enclaveReport:    testEnclaveReport,
 			setupNetwork: func() {
 				networkInRegistrationStage := &types.DKGNetwork{
-					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
 					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
@@ -186,13 +176,13 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			round:            testRound,
 			startBlockHeight: testStartBlockHeight,
 			startBlockHash:   testStartBlockHash,
+			enclaveType:      testEnclaveType,
 			dkgPubKey:        []byte("second-dkg-pubkey"),
 			commPubKey:       []byte("second-comm-pubkey"),
 			enclaveReport:    []byte("second-enclave-report"),
 			setupNetwork: func() {
 				anotherValidator := common.HexToAddress("0xAABBCCDDEEFF112233445566778899AABBCCDDEE")
 				networkWithMultipleValidators := &types.DKGNetwork{
-					CodeCommitment:   testCodeCommitment[:],
 					Round:            testRound,
 					StartBlockHeight: testStartBlockHeight.Int64(),
 					StartBlockHash:   testStartBlockHash[:],
@@ -212,18 +202,20 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					EnclaveReport: []byte("first-enclave-report"),
 					Status:        types.DKGRegStatusVerified,
 				}
-				require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, anotherValidator, firstReg))
+				require.NoError(t, k.setDKGRegistration(ctx, anotherValidator, firstReg))
 			},
 			// Index is 3 because the first "pass" subtest already created a registration (index 1),
 			// and setupNetwork adds anotherValidator (index 1), so getNextDKGRegistrationIndex returns 3.
 			expectedRegData: &types.DKGRegistration{
-				Round:         testRound,
-				ValidatorAddr: testValidator.Hex(),
-				Index:         3,
-				DkgPubKey:     []byte("second-dkg-pubkey"),
-				CommPubKey:    []byte("second-comm-pubkey"),
-				EnclaveReport: []byte("second-enclave-report"),
-				Status:        types.DKGRegStatusVerified,
+				Round:          testRound,
+				ValidatorAddr:  testValidator.Hex(),
+				Index:          3,
+				DkgPubKey:      []byte("second-dkg-pubkey"),
+				CommPubKey:     []byte("second-comm-pubkey"),
+				EnclaveReport:  []byte("second-enclave-report"),
+				Status:         types.DKGRegStatusVerified,
+				CodeCommitment: testCodeCommitment[:],
+				EnclaveType:    testEnclaveType[:],
 			},
 		},
 	}
@@ -234,7 +226,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				tc.setupNetwork()
 			}
 
-			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.dkgPubKey, tc.commPubKey, tc.enclaveReport)
+			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.enclaveType, tc.dkgPubKey, tc.commPubKey, tc.enclaveReport)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -243,7 +235,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				require.NoError(t, err)
 
 				if tc.expectedRegData != nil {
-					storedReg, err := k.getDKGRegistration(ctx, tc.codeCommitment, tc.round, tc.msgSender)
+					storedReg, err := k.getDKGRegistration(ctx, tc.round, tc.msgSender)
 					require.NoError(t, err)
 					require.Equal(t, tc.expectedRegData.Round, storedReg.Round)
 					require.Equal(t, tc.expectedRegData.ValidatorAddr, storedReg.ValidatorAddr)
@@ -252,6 +244,8 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 					require.Equal(t, tc.expectedRegData.CommPubKey, storedReg.CommPubKey)
 					require.Equal(t, tc.expectedRegData.EnclaveReport, storedReg.EnclaveReport)
 					require.Equal(t, tc.expectedRegData.Status, storedReg.Status)
+					require.Equal(t, tc.expectedRegData.CodeCommitment, storedReg.CodeCommitment)
+					require.Equal(t, tc.expectedRegData.EnclaveType, storedReg.EnclaveType)
 				}
 			}
 		})
@@ -290,14 +284,14 @@ func TestKeeper_Finalized(t *testing.T) {
 			setup: func(t *testing.T) finalizedArgs {
 				t.Helper()
 				k, ctx := setupDKGKeeper(t)
-				sigKey, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testCodeCommitment, testRound)
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, commPubKey)
+				sigKey, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testRound)
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
 				sig := signFinalizationData(t, sigKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
 				return finalizedArgs{k, ctx, testRound, testValidator, testCodeCommitment, pRoot, sig, testGlobalPubKey, testPublicCoeffs, testPubKeyShare}
 			},
 			postCheck: func(t *testing.T, args finalizedArgs) {
 				t.Helper()
-				reg, err := args.k.getDKGRegistration(args.ctx, args.codeCommitment, args.round, args.msgSender)
+				reg, err := args.k.getDKGRegistration(args.ctx, args.round, args.msgSender)
 				require.NoError(t, err)
 				require.Equal(t, types.DKGRegStatusFinalized, reg.Status)
 			},
@@ -308,7 +302,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				t.Helper()
 				k, ctx := setupDKGKeeper(t)
 				network := &types.DKGNetwork{
-					CodeCommitment: testCodeCommitment[:], Round: 99,
+					Round: 99,
 					Total: 5, Threshold: 3, Stage: types.DKGStageFinalization,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
@@ -317,32 +311,17 @@ func TestKeeper_Finalized(t *testing.T) {
 			expectedErr: "round mismatch",
 		},
 		{
-			name: "fail: codeCommitment mismatch",
-			setup: func(t *testing.T) finalizedArgs {
-				t.Helper()
-				k, ctx := setupDKGKeeper(t)
-				otherCommitment := [32]byte{0xFF, 0xEE, 0xDD}
-				network := &types.DKGNetwork{
-					CodeCommitment: otherCommitment[:], Round: testRound,
-					Total: 5, Threshold: 3, Stage: types.DKGStageFinalization,
-				}
-				require.NoError(t, k.setDKGNetwork(ctx, network))
-				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
-			},
-			expectedErr: "codeCommitment mismatch",
-		},
-		{
 			name: "fail: stage not finalization",
 			setup: func(t *testing.T) finalizedArgs {
 				t.Helper()
 				k, ctx := setupDKGKeeper(t)
 				network := &types.DKGNetwork{
-					CodeCommitment: testCodeCommitment[:], Round: testRound,
+					Round:        testRound,
 					ActiveValSet: []string{testValidator.Hex()},
 					Total:        5, Threshold: 3, Stage: types.DKGStageDealing,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, []byte("comm-key"))
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, []byte("comm-key"))
 				pRoot := computeParticipantsRoot(testValidator)
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, participantsRoot: pRoot, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
@@ -356,14 +335,14 @@ func TestKeeper_Finalized(t *testing.T) {
 				unknownSender := common.HexToAddress("0x1111222233334444555566667777888899990000")
 
 				network := &types.DKGNetwork{
-					CodeCommitment: testCodeCommitment[:], Round: testRound,
+					Round:        testRound,
 					ActiveValSet: []string{testValidator.Hex()},
 					Total:        5, Threshold: 3, Stage: types.DKGStageFinalization,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
 
 				// Register testValidator as verified (for participants root validation to pass)
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, []byte("comm-key"))
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, []byte("comm-key"))
 				pRoot := computeParticipantsRoot(testValidator)
 
 				// Call Finalized with unknownSender who has no registration
@@ -376,8 +355,8 @@ func TestKeeper_Finalized(t *testing.T) {
 			setup: func(t *testing.T) finalizedArgs {
 				t.Helper()
 				k, ctx := setupDKGKeeper(t)
-				_, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testCodeCommitment, testRound)
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, commPubKey)
+				_, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testRound)
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
 
 				// Sign with a DIFFERENT key so address won't match commPubKey
 				wrongKey, err := crypto.GenerateKey()
@@ -404,15 +383,15 @@ func TestKeeper_Finalized(t *testing.T) {
 				pRoot := computeParticipantsRoot(testValidator, otherValidator)
 
 				network := &types.DKGNetwork{
-					CodeCommitment: testCodeCommitment[:], Round: testRound,
+					Round:        testRound,
 					ActiveValSet: []string{testValidator.Hex(), otherValidator.Hex()},
 					Total:        2, Threshold: 2, Stage: types.DKGStageFinalization,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
 
 				// Both validators are Verified
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, commPubKey)
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, otherValidator, testRound, 2, []byte("other-comm-key-padding-to-64-bytes-1234567890123456789012345678"))
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
+				setVerifiedRegistration(t, k, ctx, otherValidator, testRound, 2, []byte("other-comm-key-padding-to-64-bytes-1234567890123456789012345678"))
 
 				sig := signFinalizationData(t, sigKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
 
@@ -434,15 +413,15 @@ func TestKeeper_Finalized(t *testing.T) {
 			setup: func(t *testing.T) finalizedArgs {
 				t.Helper()
 				k, ctx := setupDKGKeeper(t)
-				sigKey, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testCodeCommitment, testRound)
+				sigKey, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testRound)
 				// Override threshold to 1 so a single vote triggers global key set
 				network := &types.DKGNetwork{
-					CodeCommitment: testCodeCommitment[:], Round: testRound,
+					Round:        testRound,
 					ActiveValSet: []string{testValidator.Hex()},
 					Total:        1, Threshold: 1, Stage: types.DKGStageFinalization,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
-				setVerifiedRegistration(t, k, ctx, testCodeCommitment, testValidator, testRound, 1, commPubKey)
+				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
 				sig := signFinalizationData(t, sigKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, participantsRoot: pRoot, signature: sig, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
@@ -476,7 +455,7 @@ func TestKeeper_Finalized(t *testing.T) {
 
 // setupFinalizedState creates a DKG network in Finalization stage and returns the signing key,
 // commPubKey, and participantsRoot.
-func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator common.Address, codeCommitment [32]byte, round uint32) (*ecdsa.PrivateKey, []byte, [32]byte) {
+func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator common.Address, round uint32) (*ecdsa.PrivateKey, []byte, [32]byte) {
 	t.Helper()
 
 	sigKey, err := crypto.GenerateKey()
@@ -484,7 +463,7 @@ func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator
 	commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:]
 
 	network := &types.DKGNetwork{
-		CodeCommitment: codeCommitment[:], Round: round,
+		Round:        round,
 		ActiveValSet: []string{validator.Hex()},
 		Total:        5, Threshold: 3, Stage: types.DKGStageFinalization,
 	}
@@ -494,14 +473,14 @@ func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator
 }
 
 // setVerifiedRegistration creates a DKG registration in Verified status.
-func setVerifiedRegistration(t *testing.T, k *Keeper, ctx context.Context, codeCommitment [32]byte, validator common.Address, round uint32, index uint32, commPubKey []byte) {
+func setVerifiedRegistration(t *testing.T, k *Keeper, ctx context.Context, validator common.Address, round uint32, index uint32, commPubKey []byte) {
 	t.Helper()
 	reg := &types.DKGRegistration{
 		Round: round, ValidatorAddr: validator.Hex(), Index: index,
 		DkgPubKey: []byte("dkg-key"), CommPubKey: commPubKey,
 		EnclaveReport: []byte("enclave-report"), Status: types.DKGRegStatusVerified,
 	}
-	require.NoError(t, k.setDKGRegistration(ctx, codeCommitment, validator, reg))
+	require.NoError(t, k.setDKGRegistration(ctx, validator, reg))
 }
 
 // computeParticipantsRoot computes the participants root hash for one or more validators.
@@ -732,205 +711,165 @@ func signFinalizationData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [3
 }
 
 func TestKeeper_UpgradeScheduled(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	testActivationHeight := uint32(1000)
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
-
 	tcs := []struct {
 		name             string
-		activationHeight uint32
-		codeCommitment   [32]byte
+		activationHeight int64
+		upgradeVersion   string
+		setupExisting    bool
 		expectedErr      string
 	}{
 		{
 			name:             "pass: successful upgrade scheduling",
-			activationHeight: testActivationHeight,
-			codeCommitment:   testCodeCommitment,
+			activationHeight: 1000,
+			upgradeVersion:   "v1.0.0",
+		},
+		{
+			name:             "fail: empty upgrade version",
+			activationHeight: 1000,
+			upgradeVersion:   "",
+			expectedErr:      "upgrade version cannot be empty",
+		},
+		{
+			name:             "fail: pending upgrade already exists",
+			activationHeight: 2000,
+			upgradeVersion:   "v2.0.0",
+			setupExisting:    true,
+			expectedErr:      "pending upgrade already exists",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.UpgradeScheduled(ctx, tc.activationHeight, tc.codeCommitment)
+			k, ctx := setupDKGKeeper(t)
+
+			if tc.setupExisting {
+				// Schedule an existing upgrade first
+				require.NoError(t, k.UpgradeScheduled(ctx, 1000, "v1.0.0"))
+			}
+
+			err := k.UpgradeScheduled(ctx, tc.activationHeight, tc.upgradeVersion)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
 			} else {
 				require.NoError(t, err)
+
+				// Verify the upgrade info is stored
+				info, err := k.GetPendingUpgrade(ctx)
+				require.NoError(t, err)
+				require.NotNil(t, info)
+				require.Equal(t, tc.upgradeVersion, info.UpgradeVersion)
+				require.Equal(t, tc.activationHeight, info.ActivationHeight)
 			}
 		})
 	}
 }
 
-func TestKeeper_RemoteAttestationProcessedOnChain(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
-	testRound := uint32(1)
-	testChalStatus := 1 // ChallengeStatus.Invalidated
-
-	testReg := &types.DKGRegistration{
-		Round:         testRound,
-		ValidatorAddr: testValidator.Hex(),
-		Index:         1,
-		DkgPubKey:     []byte("test-dkg-pubkey"),
-		CommPubKey:    []byte("test-comm-pubkey"),
-		EnclaveReport: []byte("test-enclave-report"),
-		Status:        types.DKGRegStatusVerified,
-	}
-	require.NoError(t, k.setDKGRegistration(ctx, testCodeCommitment, testValidator, testReg))
-
+func TestKeeper_UpgradeCancelled(t *testing.T) {
 	tcs := []struct {
 		name           string
-		validator      common.Address
-		chalStatus     int
-		round          uint32
-		codeCommitment [32]byte
+		upgradeVersion string
+		setupUpgrade   bool
 		expectedErr    string
 	}{
 		{
-			name:           "pass: successful remote attestation processing",
-			validator:      testValidator,
-			chalStatus:     testChalStatus,
-			round:          testRound,
-			codeCommitment: testCodeCommitment,
+			name:           "pass: successful upgrade cancellation",
+			upgradeVersion: "v1.0.0",
+			setupUpgrade:   true,
 		},
 		{
-			name:           "fail: registration not found",
-			validator:      common.HexToAddress("0x9999999999999999999999999999999999999999"),
-			chalStatus:     testChalStatus,
-			round:          testRound,
-			codeCommitment: testCodeCommitment,
-			expectedErr:    "dkg registration not found",
+			name:           "fail: no upgrade found for version",
+			upgradeVersion: "v999.0.0",
+			setupUpgrade:   false,
+			expectedErr:    "kernel upgrade info not found",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.RemoteAttestationProcessedOnChain(ctx, tc.validator, tc.chalStatus, tc.round, tc.codeCommitment)
+			k, ctx := setupDKGKeeper(t)
+
+			if tc.setupUpgrade {
+				require.NoError(t, k.UpgradeScheduled(ctx, 1000, tc.upgradeVersion))
+			}
+
+			err := k.UpgradeCancelled(ctx, tc.upgradeVersion)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
 			} else {
 				require.NoError(t, err)
+
+				// Verify the upgrade info is deleted
+				info, err := k.GetPendingUpgrade(ctx)
+				require.NoError(t, err)
+				require.Nil(t, info)
 			}
 		})
 	}
 }
 
-func TestKeeper_DealComplaintsSubmitted(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	testIndex := uint32(1)
-	testComplainIndexes := []uint32{1, 2, 3}
-	testRound := uint32(1)
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
-
+func TestKeeper_HasPendingUpgradeActivation(t *testing.T) {
 	tcs := []struct {
-		name            string
-		index           uint32
-		complainIndexes []uint32
-		round           uint32
-		codeCommitment  [32]byte
-		expectedErr     string
+		name          string
+		currentHeight int64
+		setupUpgrade  *types.KernelUpgradeInfo
+		expectNil     bool
 	}{
 		{
-			name:            "pass: successful deal complaints submission",
-			index:           testIndex,
-			complainIndexes: testComplainIndexes,
-			round:           testRound,
-			codeCommitment:  testCodeCommitment,
+			name:          "no pending upgrade returns nil",
+			currentHeight: 100,
+			setupUpgrade:  nil,
+			expectNil:     true,
+		},
+		{
+			name:          "pending upgrade not yet at activation height returns nil",
+			currentHeight: 50,
+			setupUpgrade: &types.KernelUpgradeInfo{
+				UpgradeVersion:   "v1.0.0",
+				ActivationHeight: 100,
+			},
+			expectNil: true,
+		},
+		{
+			name:          "pending upgrade at exact activation height returns info",
+			currentHeight: 100,
+			setupUpgrade: &types.KernelUpgradeInfo{
+				UpgradeVersion:   "v1.0.0",
+				ActivationHeight: 100,
+			},
+			expectNil: false,
+		},
+		{
+			name:          "pending upgrade past activation height returns info",
+			currentHeight: 200,
+			setupUpgrade: &types.KernelUpgradeInfo{
+				UpgradeVersion:   "v1.0.0",
+				ActivationHeight: 100,
+			},
+			expectNil: false,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.DealComplaintsSubmitted(ctx, tc.index, tc.complainIndexes, tc.round, tc.codeCommitment)
+			k, ctx := setupDKGKeeper(t)
 
-			if tc.expectedErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr)
-			} else {
-				require.NoError(t, err)
+			if tc.setupUpgrade != nil {
+				require.NoError(t, k.SetKernelUpgradeInfo(ctx, tc.setupUpgrade))
 			}
-		})
-	}
-}
 
-func TestKeeper_DealVerified(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
+			result, err := k.hasPendingUpgradeActivation(ctx, tc.currentHeight)
+			require.NoError(t, err)
 
-	testIndex := uint32(1)
-	testRecipientIndex := uint32(2)
-	testRound := uint32(1)
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
-
-	tcs := []struct {
-		name           string
-		index          uint32
-		recipientIndex uint32
-		round          uint32
-		codeCommitment [32]byte
-		expectedErr    string
-	}{
-		{
-			name:           "pass: successful deal verification",
-			index:          testIndex,
-			recipientIndex: testRecipientIndex,
-			round:          testRound,
-			codeCommitment: testCodeCommitment,
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			err := k.DealVerified(ctx, tc.index, tc.recipientIndex, tc.round, tc.codeCommitment)
-
-			if tc.expectedErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr)
+			if tc.expectNil {
+				require.Nil(t, result)
 			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestKeeper_InvalidDeal(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	testIndex := uint32(1)
-	testRound := uint32(1)
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
-
-	tcs := []struct {
-		name           string
-		index          uint32
-		round          uint32
-		codeCommitment [32]byte
-		expectedErr    string
-	}{
-		{
-			name:           "pass: successful invalid deal processing",
-			index:          testIndex,
-			round:          testRound,
-			codeCommitment: testCodeCommitment,
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			err := k.InvalidDeal(ctx, tc.index, tc.round, tc.codeCommitment)
-
-			if tc.expectedErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr)
-			} else {
-				require.NoError(t, err)
+				require.NotNil(t, result)
+				require.Equal(t, tc.setupUpgrade.UpgradeVersion, result.UpgradeVersion)
+				require.Equal(t, tc.setupUpgrade.ActivationHeight, result.ActivationHeight)
 			}
 		})
 	}
@@ -940,13 +879,11 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
-	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
 
 	tcs := []struct {
 		name           string
 		setup          func()
-		codeCommitment []byte
 		round          uint32
 		validatorAddr  common.Address
 		expectedResult bool
@@ -955,7 +892,7 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 		{
 			name: "pass: returns true when registration is finalized",
 			setup: func() {
-				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+				err := k.setDKGRegistration(ctx, testValidator, &types.DKGRegistration{
 					Round:         testRound,
 					ValidatorAddr: testValidator.Hex(),
 					Index:         1,
@@ -963,7 +900,6 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 				})
 				require.NoError(t, err)
 			},
-			codeCommitment: testCodeCommitment[:],
 			round:          testRound,
 			validatorAddr:  testValidator,
 			expectedResult: true,
@@ -971,7 +907,7 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 		{
 			name: "pass: returns false when registration is verified (not finalized)",
 			setup: func() {
-				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+				err := k.setDKGRegistration(ctx, testValidator, &types.DKGRegistration{
 					Round:         testRound,
 					ValidatorAddr: testValidator.Hex(),
 					Index:         1,
@@ -979,7 +915,6 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 				})
 				require.NoError(t, err)
 			},
-			codeCommitment: testCodeCommitment[:],
 			round:          testRound,
 			validatorAddr:  testValidator,
 			expectedResult: false,
@@ -987,7 +922,7 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 		{
 			name: "pass: returns false when registration is unspecified",
 			setup: func() {
-				err := k.setDKGRegistration(ctx, testCodeCommitment, testValidator, &types.DKGRegistration{
+				err := k.setDKGRegistration(ctx, testValidator, &types.DKGRegistration{
 					Round:         testRound,
 					ValidatorAddr: testValidator.Hex(),
 					Index:         1,
@@ -995,7 +930,6 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 				})
 				require.NoError(t, err)
 			},
-			codeCommitment: testCodeCommitment[:],
 			round:          testRound,
 			validatorAddr:  testValidator,
 			expectedResult: false,
@@ -1003,19 +937,9 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 		{
 			name:           "pass: returns false when no registration exists",
 			setup:          func() {},
-			codeCommitment: testCodeCommitment[:],
 			round:          uint32(999), // non-existent round
 			validatorAddr:  common.HexToAddress("0x0000000000000000000000000000000000000001"),
 			expectedResult: false,
-		},
-		{
-			name:           "fail: returns error when code commitment has wrong length",
-			setup:          func() {},
-			codeCommitment: []byte{0x01, 0x02}, // too short
-			round:          testRound,
-			validatorAddr:  testValidator,
-			expectedResult: false,
-			expectedErr:    "failed to cast code commitment to bytes32",
 		},
 	}
 
@@ -1023,7 +947,7 @@ func TestKeeper_HasFinalizedRegistration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup()
 
-			result, err := k.HasFinalizedRegistration(ctx, tc.codeCommitment, tc.round, tc.validatorAddr)
+			result, err := k.HasFinalizedRegistration(ctx, tc.round, tc.validatorAddr)
 
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -1071,6 +995,10 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 
 	mockTEEClient := dkgtestutil.NewMockTEEClient(ctrl)
 
+	// Wrap mock TEE client in a KernelRouter for testing
+	kernelRouter := NewKernelRouter(nil)
+	kernelRouter.RegisterClient([]byte("test"), mockTEEClient)
+
 	k := NewKeeper(
 		encCfg.Codec,
 		storeService,
@@ -1079,7 +1007,7 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 		dk,
 		sk,
 		valStore,
-		mockTEEClient,
+		kernelRouter,
 		nil, // TODO: mock contract client for integration test
 		"story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
 	)
