@@ -17,14 +17,16 @@ import (
 )
 
 var (
-	// deals and responses store TEE-generated DKG deals and responses that will be broadcast to other validators
-	// through the Vote Extension. This queue acts as a temporary buffer between the TEE client and the consensus layer,
-	// ensuring that generated deals and responses can be safely enqueued and later dequeued in a thread-safe manner for
-	// propagation.
-	dealsMu     sync.Mutex
-	deals       []types.Deal
-	responsesMu sync.Mutex
-	responses   []types.Response
+	// deals, responses, and justifications store TEE-generated DKG data that will be broadcast to other
+	// validators through the Vote Extension. These queues act as temporary buffers between the TEE client
+	// and the consensus layer, ensuring that generated data can be safely enqueued and later dequeued in
+	// a thread-safe manner for propagation.
+	dealsMu          sync.Mutex
+	deals            []types.Deal
+	responsesMu      sync.Mutex
+	responses        []types.Response
+	justificationsMu sync.Mutex
+	justifications   []types.Justification
 )
 
 // Keeper of the dkg store.

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -50,7 +51,44 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGDealing(ctx, latestRound)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGDealing(asyncCtx, latestRound)
+		}()
+	}
+
+	return nil
+}
+
+// ProcessJustifications handles justifications from the Vote Extension.
+// Like ProcessDeals and ProcessResponses, it emits an event and then delegates
+// verification and story-kernel forwarding only when the DKG service is enabled.
+//
+// This function does NOT affect on-chain state. Invalid justifications are
+// silently dropped (logged but not returned as errors) to prevent consensus
+// divergence between validators running with different DKG service configurations.
+//
+// Replay protection is structural, not explicit:
+//   - Cross-round: kyber's DistKeyGenerator derives SessionID from (dealer pubkey +
+//     verifiers + commitments + threshold). Each round produces fresh keys and thus
+//     unique SessionIDs. Since SessionID is embedded in Justification.Hash(), Schnorr
+//     signature verification implicitly rejects replayed justifications from other rounds.
+//   - Stage gating: justifications are only accepted during DKGStageDealing (checked
+//     in msg_server.go) and PhaseDealing (checked in handleDKGProcessJustifications).
+//   - Within-block: deduplication by (dealerIndex, recipientIndex) prevents redundant
+//     processing of the same justification broadcast by multiple validators.
+func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.DKGNetwork, justifications []types.Justification) error {
+	if err := k.emitBeginProcessJustifications(ctx, latestRound, justifications); err != nil {
+		return errors.Wrap(err, "failed to emit begin process justifications event")
+	}
+
+	if k.isDKGSvcEnabled {
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGProcessJustifications(asyncCtx, latestRound, justifications)
+		}()
 	}
 
 	return nil
@@ -62,7 +100,11 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGProcessDeals(ctx, latestRound, deals)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGProcessDeals(asyncCtx, latestRound, deals)
+		}()
 	}
 
 	return nil
@@ -74,7 +116,11 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGProcessResponses(ctx, latestRound, responses)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGProcessResponses(asyncCtx, latestRound, responses)
+		}()
 	}
 
 	return nil

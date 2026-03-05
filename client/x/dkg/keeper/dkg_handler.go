@@ -127,6 +127,11 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New("validator has already finalized for this round")
 	}
 
+	// Reject finalization by invalidated dealers (deal complaint found invalid via VSS verification)
+	if reg.Status == types.DKGRegStatusInvalidated {
+		return errors.New("dealer has been invalidated and cannot finalize")
+	}
+
 	if err := verifyFinalizationSignature(reg.CommPubKey, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare, signature); err != nil {
 		return errors.Wrap(err, "finalization signature verification failed")
 	}
