@@ -467,7 +467,7 @@ func (k *Keeper) ProcessDKGThresholdDecryptRequested(ctx context.Context, ethlog
 		})
 	}()
 
-	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, requester, ev.Round, ev.CodeCommitment, ev.RequesterPubKey, ev.Ciphertext, ev.Label); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, requester, ev.Round, ev.CodeCommitment, ev.RequesterPubKey, ev.Ciphertext, ev.Label, uint64(sdkCtx.BlockHeight())); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "handle ThresholdDecryptRequested")

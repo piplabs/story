@@ -52,6 +52,14 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// round = DKGStageRegistration if either
 			// 1. it's the initial (first) round, OR
 			// 2. the active stage of the previous round has ended, so DKG needs to reshare deals
+			//
+			// shouldTransitionStage only returns DKGStageRegistration when the previous stage
+			// was DKGStageActive, so sweep the decrypt request registry for the ending round.
+			var prevCC [32]byte
+			copy(prevCC[:], latestRound.CodeCommitment)
+			if err := k.sweepDecryptRequestRegistry(ctx, prevCC, latestRound.Round); err != nil {
+				return errors.Wrap(err, "failed to sweep decrypt request registry on round end")
+			}
 			return k.InitiateDKGRound(ctx)
 		case types.DKGStageDealing:
 			return k.BeginDealing(ctx, latestRound)

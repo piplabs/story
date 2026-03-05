@@ -13,15 +13,20 @@ const (
 	MemStoreKey = "mem_dkg"
 )
 
+// PartialDecryptionTimeoutBlocks is the number of blocks after which a partial
+// decryption submission is considered too late and rejected by consensus.
+const PartialDecryptionTimeoutBlocks uint64 = 200
+
 // KVStore key prefixes.
 var (
-	ParamsKey            = collections.NewPrefix(0)
-	DKGNetworkKey        = collections.NewPrefix(1)
-	LatestDKGNetworkKey  = collections.NewPrefix(2)
-	DKGRegistrationKey   = collections.NewPrefix(3)
-	LatestActiveRoundKey = collections.NewPrefix(4)
-	GlobalPubKeyVotesKey = collections.NewPrefix(5)
-	TEEUpgradeInfoKey    = collections.NewPrefix(6)
-	SettlementBalanceKey = collections.NewPrefix(7)
-	DKGPartialDecryptKey = collections.NewPrefix(8)
+	ParamsKey                 = collections.NewPrefix(0)
+	DKGNetworkKey             = collections.NewPrefix(1)
+	LatestDKGNetworkKey       = collections.NewPrefix(2)
+	DKGRegistrationKey        = collections.NewPrefix(3)
+	LatestActiveRoundKey      = collections.NewPrefix(4)
+	GlobalPubKeyVotesKey      = collections.NewPrefix(5)
+	TEEUpgradeInfoKey         = collections.NewPrefix(6)
+	SettlementBalanceKey      = collections.NewPrefix(7)
+	DKGPartialDecryptKey      = collections.NewPrefix(8)
+	DecryptRequestRegistryKey = collections.NewPrefix(9)
 )

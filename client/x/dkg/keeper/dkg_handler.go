@@ -9,9 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -383,7 +384,13 @@ func verifyPartialDecryptionSignature(commPubKey []byte, codeCommitment [32]byte
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
-func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error {
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+	// Consensus-level: all nodes record the request's block height so that
+	// PartialDecryptionSubmitted can enforce the timeout consistently.
+	if err := k.setDecryptRequestHeight(ctx, codeCommitment, round, label, blockHeight); err != nil {
+		return errors.Wrap(err, "failed to register decrypt request height")
+	}
+
 	if !k.isDKGSvcEnabled {
 		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
 
@@ -420,6 +427,7 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 		"requester_pubkey_len", len(requesterPubKey),
 		"ciphertext_len", len(ciphertext),
 		"label_len", len(label),
+		"block_height", blockHeight,
 	)
 
 	session, err := k.stateManager.GetSession(codeCommitment[:], round)
@@ -462,6 +470,31 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	label []byte,
 	signature []byte,
 ) error {
+	// Enforce timeout: reject partial decryptions submitted too late.
+	reqHeight, found, err := k.getDecryptRequestHeight(ctx, codeCommitment, round, label)
+	if err != nil {
+		return errors.Wrap(err, "failed to look up decrypt request registry")
+	}
+	if !found {
+		log.Info(ctx, "Partial decryption submitted for unknown or cleaned-up request",
+			"validator", validator.Hex(),
+			"round", round,
+		)
+		return nil
+	}
+	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
+	if currentHeight-reqHeight > types.PartialDecryptionTimeoutBlocks {
+		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
+			"request_height", reqHeight,
+			"current_height", currentHeight,
+			"timeout_blocks", types.PartialDecryptionTimeoutBlocks,
+			"validator", validator.Hex(),
+		)
+		if err := k.deleteDecryptRequestHeight(ctx, codeCommitment, round, label); err != nil {
+			return errors.Wrap(err, "failed to delete expired decrypt request registry entry")
+		}
+		return nil
+	}
 
 	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, validator)
 	if err != nil {

@@ -75,7 +75,7 @@ type DKGSession struct {
 	IsFinalized   bool              `json:"is_finalized"`
 	IsResharing   bool              `json:"is_resharing"`
 
-	// Pending threshold decrypt requests (from contract events)
+	// Pending threshold decrypt requests (from contract events).
 	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
 }
 
