@@ -93,6 +93,7 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	session.UpdatePhase(types.PhaseInitialized)
+
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session after calling initializeDKG method", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -103,8 +104,6 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 	log.Info(ctx, "DKG initialization complete",
 		"round", session.Round,
 	)
-
-	return
 }
 
 func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.DKGSession, isUpgrade bool) error {
@@ -155,6 +154,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	session.CommPubKey = resp.GetCommPubKey()
 	session.EnclaveReport = resp.GetEnclaveReport()
 	session.StartBlockHeight = resp.GetStartBlockHeight()
+
 	session.StartBlockHash = resp.GetStartBlockHash()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling GenerateAndSealKey on the kernel client")
@@ -223,7 +223,7 @@ func (k *Keeper) getOldCodeCommitment(ctx context.Context) ([]byte, error) {
 }
 
 func (k *Keeper) callContractRegister(ctx context.Context, session *types.DKGSession) error {
-	log.Info(ctx, "register contract call",
+	log.Info(ctx, "Register contract call",
 		"round", session.Round,
 		"start_block_height", session.StartBlockHeight,
 		"start_block_hash", hex.EncodeToString(session.StartBlockHash),

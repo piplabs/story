@@ -568,11 +568,28 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 
 			cachedCtx, _ := ctx.CacheContext()
 
+			var toEthLogErr error
+
 			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
 			for _, evmEvent := range tc.evmEvents() {
 				ethLog, err := evmEvent.ToEthLog()
-				require.NoError(t, err)
+				if err != nil {
+					toEthLogErr = err
+
+					break
+				}
+
 				ethLogs = append(ethLogs, &ethLog)
+			}
+
+			if toEthLogErr != nil {
+				if tc.expectedErr != "" {
+					require.Contains(t, toEthLogErr.Error(), tc.expectedErr)
+				} else {
+					require.NoError(t, toEthLogErr)
+				}
+
+				return
 			}
 
 			err := keeper.ProcessUpgradeEvents(cachedCtx, 1, ethLogs)

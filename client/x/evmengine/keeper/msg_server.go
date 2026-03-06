@@ -193,10 +193,12 @@ func verifyPrevPayloadEvents(prevPayloadEvents []*types.EVMEvent) ([]*ethtypes.L
 		if err := ev.Verify(); err != nil {
 			return nil, errors.Wrap(err, "verify prev payload event")
 		}
+
 		ethlog, err := ev.ToEthLog()
 		if err != nil {
 			return nil, errors.Wrap(err, "to eth log")
 		}
+
 		ethLogs = append(ethLogs, &ethlog)
 	}
 

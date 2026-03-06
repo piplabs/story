@@ -5,7 +5,7 @@ package story.dkg.v1.types;
 import "gogoproto/gogo.proto";
 import "cosmos/msg/v1/msg.proto";
 import "story/dkg/v1/types/types.proto";
-import "story/dkg/v1/types/tee.proto";
+import "story/dkg/v1/types/kernel.proto";
 
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 

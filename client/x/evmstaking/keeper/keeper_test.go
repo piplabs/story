@@ -135,7 +135,7 @@ func TestProcessStakingEvents(t *testing.T) {
 
 				return evmEvents
 			},
-			expectedError: "verify log [BUG]",
+			expectedError: "invalid address length",
 		},
 
 		// ********** UpdateValidatorCommission **********
@@ -1049,11 +1049,28 @@ func TestProcessStakingEvents(t *testing.T) {
 				cachedCtx = tc.setup(cachedCtx, sk, esk)
 			}
 
+			var toEthLogErr error
+
 			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
 			for _, evmEvent := range tc.evmEvents() {
 				ethLog, err := evmEvent.ToEthLog()
-				require.NoError(t, err)
+				if err != nil {
+					toEthLogErr = err
+
+					break
+				}
+
 				ethLogs = append(ethLogs, &ethLog)
+			}
+
+			if toEthLogErr != nil {
+				if tc.expectedError != "" {
+					require.ErrorContains(t, toEthLogErr, tc.expectedError)
+				} else {
+					require.NoError(t, toEthLogErr)
+				}
+
+				return
 			}
 
 			err = esk.ProcessStakingEvents(cachedCtx, 1, ethLogs)

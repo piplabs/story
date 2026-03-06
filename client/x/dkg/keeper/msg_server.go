@@ -2,9 +2,9 @@ package keeper
 
 import (
 	"context"
-	"github.com/piplabs/story/lib/log"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/log"
 )
 
 type msgServer struct {
@@ -15,28 +15,28 @@ type msgServer struct {
 // AddVotes is called with all aggregated votes included in a new finalized block.
 func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
-	latestRound, err := s.Keeper.GetLatestDKGRound(ctx)
+	latestRound, err := s.GetLatestDKGRound(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if latestRound != nil && latestRound.Stage == types.DKGStageDealing {
 		if len(msg.Vote.Deals) > 0 {
-			if err := s.Keeper.ProcessDeals(ctx, latestRound, msg.Vote.Deals); err != nil {
+			if err := s.ProcessDeals(ctx, latestRound, msg.Vote.Deals); err != nil {
 				// Note: no need to return error since no state changes in processing deals
 				log.Error(ctx, "Error occurred while processing deals", err)
 			}
 		}
 
 		if len(msg.Vote.Responses) > 0 {
-			if err := s.Keeper.ProcessResponses(ctx, latestRound, msg.Vote.Responses); err != nil {
+			if err := s.ProcessResponses(ctx, latestRound, msg.Vote.Responses); err != nil {
 				// Note: no need to return error since no state changes in processing responses
 				log.Error(ctx, "Error occurred while processing responses", err)
 			}
 		}
 
 		if len(msg.Vote.Justifications) > 0 {
-			if err := s.Keeper.ProcessJustifications(ctx, latestRound, msg.Vote.Justifications); err != nil {
+			if err := s.ProcessJustifications(ctx, latestRound, msg.Vote.Justifications); err != nil {
 				// Note: no need to return error since no state changes in processing justifications
 				log.Error(ctx, "Error occurred while processing justifications", err)
 			}

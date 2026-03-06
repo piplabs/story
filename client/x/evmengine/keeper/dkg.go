@@ -84,8 +84,10 @@ func (k *Keeper) ProcessDKGRegistered(ctx context.Context, ethlog *ethtypes.Log)
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeDKGInitializedSuccess,
 			)
@@ -136,8 +138,10 @@ func (k *Keeper) ProcessDKGFinalized(ctx context.Context, ethlog *ethtypes.Log) 
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeDKGFinalizedSuccess,
 			)
@@ -188,8 +192,10 @@ func (k *Keeper) ProcessDKGMinReqRegisteredParticipantsSet(ctx context.Context, 
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGMinReqRegisteredParticipantsSetSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -234,8 +240,10 @@ func (k *Keeper) ProcessDKGMinReqFinalizedParticipantsSet(ctx context.Context, e
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGMinReqFinalizedParticipantsSetSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -280,8 +288,10 @@ func (k *Keeper) ProcessDKGOperationalThresholdSet(ctx context.Context, ethlog *
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGOperationalThresholdSetSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -324,8 +334,10 @@ func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog *ethtype
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGUpgradeScheduledSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -389,12 +401,14 @@ func (k *Keeper) ProcessDKGUpgradeCancelled(ctx context.Context, ethlog *ethtype
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
-			e = sdk.NewEvent(types.EventTypeDKGUpgradeCancelledSuccess)
+
+			e = sdk.NewEvent(types.EventTypeDKGUpgradeCanceledSuccess)
 		} else {
 			e = sdk.NewEvent(
-				types.EventTypeDKGUpgradeCancelledFailure,
+				types.EventTypeDKGUpgradeCanceledFailure,
 				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
 			)
 		}

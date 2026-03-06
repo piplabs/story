@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	pruningtypes "cosmossdk.io/store/pruning/types"
 
 	cmtconfig "github.com/cometbft/cometbft/config"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	db "github.com/cosmos/cosmos-db"
 
 	apisvr "github.com/piplabs/story/client/server"

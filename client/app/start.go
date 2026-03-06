@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/piplabs/story/client/x/dkg/keeper"
-
 	"cosmossdk.io/store"
 	pruningtypes "cosmossdk.io/store/pruning/types"
 	"cosmossdk.io/store/snapshots"
@@ -30,6 +28,7 @@ import (
 	"github.com/piplabs/story/client/comet"
 	storycfg "github.com/piplabs/story/client/config"
 	apisvr "github.com/piplabs/story/client/server"
+	"github.com/piplabs/story/client/x/dkg/keeper"
 	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"

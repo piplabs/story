@@ -2,15 +2,16 @@ package horace
 
 import (
 	"context"
-	"cosmossdk.io/math"
-	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"errors"
 	"fmt"
+
+	"cosmossdk.io/math"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"github.com/cosmos/cosmos-sdk/types/module"
 
 	"github.com/piplabs/story/client/app/keepers"
 	lerrors "github.com/piplabs/story/lib/errors"
@@ -33,6 +34,7 @@ func CreateUpgradeHandler(
 		); err != nil {
 			return vm, err
 		}
+
 		return vm, nil
 	}
 }
@@ -57,6 +59,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 	if stakingParams.TokenTypes[0].TokenType != lockedTokenType {
 		return lerrors.New("locked token type not found in token types", "expected", lockedTokenType, "found", stakingParams.TokenTypes[0].TokenType)
 	}
+
 	stakingParams.TokenTypes[0].RewardsMultiplier = NewLockedTokenMultiplier
 
 	if err := sKeeper.SetParams(ctx, stakingParams); err != nil {
@@ -102,8 +105,10 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 	oldTotalRewardsTokens := math.LegacyZeroDec()
 	oldTotalRewardsTokensOfLockedValidators := math.LegacyZeroDec()
 	oldTotalRewardsTokensOfUnlockedValidators := math.LegacyZeroDec()
+
 	for _, val := range validators {
 		rt := val.GetRewardsTokens()
+
 		oldTotalRewardsTokens = oldTotalRewardsTokens.Add(rt)
 		if val.SupportTokenType == lockedTokenType {
 			oldTotalRewardsTokensOfLockedValidators = oldTotalRewardsTokensOfLockedValidators.Add(rt)
@@ -111,9 +116,11 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 			oldTotalRewardsTokensOfUnlockedValidators = oldTotalRewardsTokensOfUnlockedValidators.Add(rt)
 		}
 	}
+
 	if oldTotalRewardsTokens.IsZero() {
 		return lerrors.New("old total rewards tokens is zero")
 	}
+
 	if !oldTotalRewardsTokensOfLockedValidators.Add(oldTotalRewardsTokensOfUnlockedValidators).Equal(oldTotalRewardsTokens) {
 		return lerrors.New("old total rewards tokens of locked validators and unlocked validators do not sum to old total rewards tokens")
 	}
@@ -240,6 +247,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 				"actual", newVal.DelegatorRewardsShares,
 			)
 		}
+
 		if !newVal.RewardsTokens.Equal(newRewardsTokens) {
 			return lerrors.New("rewards tokens of the validator does not equal to the expected one",
 				"validator_address", valAddr.String(),
@@ -268,6 +276,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 			}
 
 			newRewardsStake := val.RewardsTokensFromRewardsSharesTruncated(del.RewardsShares)
+
 			startingInfo.RewardsStake = newRewardsStake
 			if err := dKeeper.SetDelegatorStartingInfo(ctx, valAddr, sdk.AccAddress(delAddr), startingInfo); err != nil {
 				return lerrors.Wrap(err, "failed to set delegator starting info")
@@ -298,8 +307,10 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 	newTotalRewardsTokens := math.LegacyZeroDec()
 	newTotalRewardsTokensOfLockedValidators := math.LegacyZeroDec()
 	newTotalRewardsTokensOfUnlockedValidators := math.LegacyZeroDec()
+
 	for _, val := range newValidators {
 		rt := val.GetRewardsTokens()
+
 		newTotalRewardsTokens = newTotalRewardsTokens.Add(rt)
 		if val.SupportTokenType == lockedTokenType {
 			newTotalRewardsTokensOfLockedValidators = newTotalRewardsTokensOfLockedValidators.Add(rt)
@@ -307,11 +318,13 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 			newTotalRewardsTokensOfUnlockedValidators = newTotalRewardsTokensOfUnlockedValidators.Add(rt)
 		}
 	}
+
 	if newTotalRewardsTokens.IsZero() {
 		return lerrors.New(
 			"new total rewards tokens is zero",
 		)
 	}
+
 	if !newTotalRewardsTokensOfLockedValidators.Add(newTotalRewardsTokensOfUnlockedValidators).Equal(newTotalRewardsTokens) {
 		return lerrors.New(
 			"sum of new locked and unlocked TotalRewardsTokens does not equal new total rewards tokens",
@@ -319,6 +332,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 			"new sum", newTotalRewardsTokensOfLockedValidators.Add(newTotalRewardsTokensOfUnlockedValidators).String(),
 		)
 	}
+
 	if !newTotalRewardsTokensOfUnlockedValidators.Equal(oldTotalRewardsTokensOfUnlockedValidators) {
 		return lerrors.New(
 			"new unlocked TotalRewardsTokens does not equal old unlocked TotalRewardsTokens",
@@ -341,6 +355,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 	}
 
 	mintParams.InflationsPerYear = NewAnnualInflationsPerYear
+
 	mintParams.BlocksPerYear = NewBlocksPerYear
 	if err := mintParams.Validate(); err != nil {
 		return lerrors.Wrap(err, "validate mint params")
@@ -355,6 +370,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 	if err != nil {
 		return lerrors.Wrap(err, "reload mint params")
 	}
+
 	if !mintParams.InflationsPerYear.Equal(NewAnnualInflationsPerYear) {
 		return lerrors.New(
 			"inflations_per_year not updated",
@@ -362,6 +378,7 @@ func runHoraceUpgrade(ctx context.Context, aKeeper AccountKeeper, sKeeper Stakin
 			"actual", mintParams.InflationsPerYear,
 		)
 	}
+
 	if mintParams.BlocksPerYear != NewBlocksPerYear {
 		return lerrors.New(
 			"blocks_per_year not updated",

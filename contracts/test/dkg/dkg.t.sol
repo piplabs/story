@@ -40,12 +40,7 @@ contract DKGTest is Test {
         });
         performTimelocked(
             address(dkg),
-            abi.encodeWithSelector(
-                DKG.whitelistEnclaveType.selector,
-                bytes32("SGX"),
-                enclaveTypeData,
-                true
-            )
+            abi.encodeWithSelector(DKG.whitelistEnclaveType.selector, bytes32("SGX"), enclaveTypeData, true)
         );
     }
 

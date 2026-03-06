@@ -50,5 +50,6 @@ func hashPublicCoeffs(coeffs [][]byte) []byte {
 	for _, c := range coeffs {
 		h.Write(c)
 	}
+
 	return h.Sum(nil)
 }

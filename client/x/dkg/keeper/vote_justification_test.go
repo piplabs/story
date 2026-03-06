@@ -17,9 +17,11 @@ import (
 // accept sdk.Context but do not use it (e.g., ExtendVote ignores its context).
 func newTestSDKContext(t *testing.T, keyName string) sdk.Context {
 	t.Helper()
+
 	key := storetypes.NewKVStoreKey(keyName)
 	transKey := storetypes.NewTransientStoreKey(keyName + "_transient")
 	testCtx := testutil.DefaultContextWithDB(t, key, transKey)
+
 	return testCtx.Ctx
 }
 
@@ -186,6 +188,7 @@ func TestExtendVote_EmptyQueues(t *testing.T) {
 	// a zero-length byte slice, so votesFromExtension returns (nil, false, nil).
 	vote, ok, err := votesFromExtension(resp.VoteExtension)
 	require.NoError(t, err)
+
 	if ok {
 		require.Empty(t, vote.Justifications)
 		require.Empty(t, vote.Deals)

@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"math/big"
 
 	"cosmossdk.io/math"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/contracts/bindings"
 )
 

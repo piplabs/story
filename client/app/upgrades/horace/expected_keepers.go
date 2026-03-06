@@ -2,10 +2,13 @@ package horace
 
 import (
 	"context"
+
 	"cosmossdk.io/core/address"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
 	minttypes "github.com/piplabs/story/client/x/mint/types"
 )
 

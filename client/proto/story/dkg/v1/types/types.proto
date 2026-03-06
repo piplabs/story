@@ -95,7 +95,7 @@ message DKGRegistration {
 
   bytes pub_key_share = 6 [
     (gogoproto.moretags) = "yaml:\"pub_key_share\""
-  ]; 
+  ];
 
   bytes enclave_report = 7 [
     (gogoproto.moretags) = "yaml:\"enclave_report\""

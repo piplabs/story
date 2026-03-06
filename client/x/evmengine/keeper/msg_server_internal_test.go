@@ -18,7 +18,6 @@ import (
 
 	moduletestutil "github.com/piplabs/story/client/x/evmengine/testutil"
 	"github.com/piplabs/story/client/x/evmengine/types"
-	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
 	"github.com/piplabs/story/lib/ethclient/mock"
@@ -282,26 +281,18 @@ func Test_msgServer_ExecutionPayload(t *testing.T) {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().DequeueEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().DequeueEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
-				esk.EXPECT().ProcessStakingEvents(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 				return sdk.UnwrapSDKContext(ctx)
 			},
 			createPayload: createValidPayload,
 			createPrevPayloadEvents: func(_ context.Context, _ common.Hash) []*types.EVMEvent {
-				// crate invalid upgrade event to trigger ProcessUpgradeEvents failure
-				upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
-				require.NoError(t, err, "failed to load ABI")
-				data, err := upgradeAbi.Events["SoftwareUpgrade"].Inputs.NonIndexed().Pack("test-upgrade", int64(0), "test-info")
-				require.NoError(t, err)
-
 				return []*types.EVMEvent{{
-					Address: nil, // nil address
+					Address: nil, // nil address triggers Verify() failure before reaching processors
 					Topics:  [][]byte{types.SoftwareUpgradeEvent.ID.Bytes()},
-					Data:    data,
 					TxHash:  dummyHash.Bytes(),
 				}}
 			},
-			expectedError: "verify log [BUG]",
+			expectedError: "nil address",
 		},
 	}
 

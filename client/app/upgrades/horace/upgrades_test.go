@@ -2,20 +2,21 @@ package horace
 
 import (
 	"context"
-	"cosmossdk.io/core/address"
 	"errors"
 	"testing"
 
+	"cosmossdk.io/core/address"
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	dtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/piplabs/story/client/app/upgrades/horace/testutil"
 	minttypes "github.com/piplabs/story/client/x/mint/types"
+
+	"go.uber.org/mock/gomock"
 )
 
 // initBech32Config ensures address conversion helpers work in tests.
@@ -41,6 +42,7 @@ func (s *stubAddressCodec) StringToBytes(str string) ([]byte, error) {
 	if s.stringToBytes != nil {
 		return s.stringToBytes(str)
 	}
+
 	return nil, errors.New("StringToBytes not configured")
 }
 
@@ -48,6 +50,7 @@ func (s *stubAddressCodec) BytesToString(bz []byte) (string, error) {
 	if s.bytesToString != nil {
 		return s.bytesToString(bz)
 	}
+
 	return "", errors.New("BytesToString not configured")
 }
 
@@ -62,6 +65,7 @@ func defaultStakingParamsLocked() stypes.Params {
 	// Deep copy TokenTypes to avoid sharing the backing array returned by DefaultParams.
 	// This prevents mutations in one test case from leaking into other tests.
 	p.TokenTypes = append([]stypes.TokenTypeInfo(nil), p.TokenTypes...)
+
 	return p
 }
 
@@ -1815,7 +1819,7 @@ func TestRunHoraceUpgrade(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()

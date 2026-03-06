@@ -78,6 +78,7 @@ func ToBytes32(b []byte) ([32]byte, error) {
 	if len(b) != 32 {
 		return arr, errors.New("invalid length: got %d, want 32", "len", len(b))
 	}
+
 	copy(arr[:], b)
 
 	return arr, nil

@@ -3,8 +3,9 @@ package cmd
 
 import (
 	"context"
-	"github.com/spf13/cobra"
 	"strconv"
+
+	"github.com/spf13/cobra"
 
 	"github.com/piplabs/story/client/app"
 	storycfg "github.com/piplabs/story/client/config"

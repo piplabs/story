@@ -1,19 +1,20 @@
 package keeper
 
 import (
-	"cosmossdk.io/collections"
-	storetypes "cosmossdk.io/core/store"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/piplabs/story/lib/errors"
 	"strings"
 	"sync"
+
+	"cosmossdk.io/collections"
+	storetypes "cosmossdk.io/core/store"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/grpc"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 var (
@@ -102,6 +103,7 @@ func NewKeeper(
 	if err != nil {
 		panic(err)
 	}
+
 	k.Schema = schema
 
 	return &k

@@ -3,9 +3,11 @@ package keeper_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/piplabs/story/client/x/dkg/keeper"
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
-	"github.com/stretchr/testify/require"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -101,6 +103,7 @@ func TestKernelRouter_GetAllCodeCommitments(t *testing.T) {
 	for _, cc := range ccs {
 		found[string(cc)] = true
 	}
+
 	require.True(t, found[string(cc1)])
 	require.True(t, found[string(cc2)])
 }

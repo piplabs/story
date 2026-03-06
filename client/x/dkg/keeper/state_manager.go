@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/piplabs/story/client/x/dkg/types"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
 // StateManager manages the local state of DKG sessions outside of consensus.
 //
-//nolint:revive // use full name
+
 type StateManager struct {
 	dataDir  string
 	mu       sync.RWMutex
@@ -53,7 +54,7 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	sessionKey := session.GetSessionKey()
 
 	if _, exists := sm.sessions[sessionKey]; exists {
-		log.Info(ctx, "session already exists with the code commitment and round. skip creating a new session", "code_commitment", session.GetCodeCommitmentString(), "round", session.Round)
+		log.Info(ctx, "Session already exists with the code commitment and round, skip creating a new session", "code_commitment", session.GetCodeCommitmentString(), "round", session.Round)
 
 		return nil
 	} else {
@@ -78,7 +79,8 @@ func (sm *StateManager) GetSession(round uint32) (*types.DKGSession, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
-	sessionKey := fmt.Sprintf("%d", round)
+	sessionKey := strconv.FormatUint(uint64(round), 10)
+
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
 		return nil, errors.New("session not found", "session_key", sessionKey)
@@ -115,6 +117,7 @@ func (sm *StateManager) UpdateSession(ctx context.Context, session *types.DKGSes
 
 func (sm *StateManager) MarkFailed(ctx context.Context, session *types.DKGSession) {
 	session.UpdatePhase(types.PhaseFailed)
+
 	if err := sm.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to mark session as failed", err)
 	}
@@ -138,7 +141,7 @@ func (sm *StateManager) DeleteSession(ctx context.Context, round uint32) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	sessionKey := fmt.Sprintf("%d", round)
+	sessionKey := strconv.FormatUint(uint64(round), 10)
 
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
@@ -181,6 +184,7 @@ func (sm *StateManager) CleanupExpiredSessions(ctx context.Context) {
 	defer sm.mu.Unlock()
 
 	var expired []string
+
 	for key, session := range sm.sessions {
 		// TODO: more rigorous expiration check
 		if session.Phase == types.PhaseCompleted || session.Phase == types.PhaseFailed {

@@ -80,8 +80,10 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGRegistration(asyncCtx, &dkgNetwork)
 		}()
 	}

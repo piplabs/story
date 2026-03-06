@@ -338,11 +338,11 @@ message PlainDeal {
 }
 
 message SecShare {
-  uint32 I = 1 [
+  uint32 i = 1 [
     (gogoproto.moretags) = "yaml:\"i\""
   ];
 
-  Scalar V = 2 [
+  Scalar v = 2 [
     (gogoproto.moretags) = "yaml:\"v\""
   ];
 }

@@ -3,12 +3,12 @@ package horace
 import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
-	"github.com/piplabs/story/lib/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/app/upgrades"
+	"github.com/piplabs/story/lib/log"
 	"github.com/piplabs/story/lib/netconf"
 )
 

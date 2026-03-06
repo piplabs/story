@@ -3,8 +3,9 @@ package config
 import (
 	"encoding/binary"
 
-	"github.com/piplabs/story/lib/errors"
 	"github.com/spf13/pflag"
+
+	"github.com/piplabs/story/lib/errors"
 )
 
 const DefaultEnclaveType uint64 = 1 // SGX

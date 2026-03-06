@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v4"
+
+	"github.com/piplabs/story/lib/errors"
 	"go.dedis.ch/kyber/v4/share"
 )
 
@@ -34,7 +36,7 @@ const MaxCommitments = 80
 // Edwards25519 curve, making it safe for use in the consensus path.
 func VerifyPedersenVSS(suite kyber.Group, shareBytes []byte, recipientIndex int, commitmentBytes [][]byte, expectedThreshold uint32) (bool, error) {
 	if len(commitmentBytes) == 0 {
-		return false, fmt.Errorf("empty commitments")
+		return false, errors.New("empty commitments")
 	}
 
 	if recipientIndex <= 0 {
@@ -53,7 +55,7 @@ func VerifyPedersenVSS(suite kyber.Group, shareBytes []byte, recipientIndex int,
 	// Unmarshal the share scalar
 	shareScalar := suite.Scalar()
 	if err := shareScalar.UnmarshalBinary(shareBytes); err != nil {
-		return false, fmt.Errorf("unmarshal share: %w", err)
+		return false, errors.Wrap(err, "unmarshal share")
 	}
 
 	// Unmarshal commitment points
@@ -61,8 +63,9 @@ func VerifyPedersenVSS(suite kyber.Group, shareBytes []byte, recipientIndex int,
 	for i, cb := range commitmentBytes {
 		p := suite.Point()
 		if err := p.UnmarshalBinary(cb); err != nil {
-			return false, fmt.Errorf("unmarshal commitment[%d]: %w", i, err)
+			return false, errors.Wrap(err, "unmarshal commitment", "index", i)
 		}
+
 		commits[i] = p
 	}
 

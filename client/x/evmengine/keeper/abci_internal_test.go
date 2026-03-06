@@ -682,6 +682,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 				k, err := NewKeeper(cdc, storeService, &tt.mockEngine, &tt.mockClient, txConfig, ak, esk, uk, dk, dkgk)
 				require.NoError(t, err)
 				k.SetValidatorAddress(common.BytesToAddress([]byte("test")))
+				k.SetVoteProvider(mockVEProvider{})
 
 				if !tt.unsetExecutionHead {
 					populateGenesisHead(ctx, t, k)
@@ -725,6 +726,7 @@ func TestKeeper_PrepareProposal(t *testing.T) {
 		keeper, err := NewKeeper(cdc, storeService, &mockEngine, mockClient, txConfig, ak, esk, uk, dk, dkgk)
 		require.NoError(t, err)
 		keeper.SetValidatorAddress(common.BytesToAddress([]byte("test")))
+		keeper.SetVoteProvider(mockVEProvider{})
 		populateGenesisHead(ctx, t, keeper)
 
 		// get the genesis block to build on top of

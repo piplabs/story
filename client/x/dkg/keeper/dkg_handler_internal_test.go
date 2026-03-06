@@ -23,6 +23,7 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -287,6 +288,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				sigKey, commPubKey, pRoot := setupFinalizedState(t, k, ctx, testValidator, testRound)
 				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
 				sig := signFinalizationData(t, sigKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
+
 				return finalizedArgs{k, ctx, testRound, testValidator, testCodeCommitment, pRoot, sig, testGlobalPubKey, testPublicCoeffs, testPubKeyShare}
 			},
 			postCheck: func(t *testing.T, args finalizedArgs) {
@@ -306,6 +308,7 @@ func TestKeeper_Finalized(t *testing.T) {
 					Total: 5, Threshold: 3, Stage: types.DKGStageFinalization,
 				}
 				require.NoError(t, k.setDKGNetwork(ctx, network))
+
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
 			expectedErr: "round mismatch",
@@ -323,6 +326,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				require.NoError(t, k.setDKGNetwork(ctx, network))
 				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, []byte("comm-key"))
 				pRoot := computeParticipantsRoot(testValidator)
+
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, participantsRoot: pRoot, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
 			expectedErr: "round is not in network set stage",
@@ -362,6 +366,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				wrongKey, err := crypto.GenerateKey()
 				require.NoError(t, err)
 				badSig := signFinalizationData(t, wrongKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
+
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, participantsRoot: pRoot, signature: badSig, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
 			expectedErr: "finalization signature verification failed",
@@ -423,6 +428,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				require.NoError(t, k.setDKGNetwork(ctx, network))
 				setVerifiedRegistration(t, k, ctx, testValidator, testRound, 1, commPubKey)
 				sig := signFinalizationData(t, sigKey, testCodeCommitment, testRound, pRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare)
+
 				return finalizedArgs{k: k, ctx: ctx, round: testRound, msgSender: testValidator, codeCommitment: testCodeCommitment, participantsRoot: pRoot, signature: sig, globalPubKey: testGlobalPubKey, publicCoeffs: testPublicCoeffs, pubKeyShare: testPubKeyShare}
 			},
 			postCheck: func(t *testing.T, args finalizedArgs) {
@@ -445,6 +451,7 @@ func TestKeeper_Finalized(t *testing.T) {
 				require.Contains(t, err.Error(), tc.expectedErr)
 			} else {
 				require.NoError(t, err)
+
 				if tc.postCheck != nil {
 					tc.postCheck(t, args)
 				}
@@ -460,6 +467,7 @@ func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator
 
 	sigKey, err := crypto.GenerateKey()
 	require.NoError(t, err)
+
 	commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:]
 
 	network := &types.DKGNetwork{
@@ -475,6 +483,7 @@ func setupFinalizedState(t *testing.T, k *Keeper, ctx context.Context, validator
 // setVerifiedRegistration creates a DKG registration in Verified status.
 func setVerifiedRegistration(t *testing.T, k *Keeper, ctx context.Context, validator common.Address, round uint32, index uint32, commPubKey []byte) {
 	t.Helper()
+
 	reg := &types.DKGRegistration{
 		Round: round, ValidatorAddr: validator.Hex(), Index: index,
 		DkgPubKey: []byte("dkg-key"), CommPubKey: commPubKey,
@@ -490,6 +499,7 @@ func computeParticipantsRoot(validators ...common.Address) [32]byte {
 	for _, v := range validators {
 		addrs = append(addrs, strings.ToLower(v.Hex()))
 	}
+
 	slices.Sort(addrs)
 
 	buf := make([]byte, 0, common.AddressLength*len(addrs))
@@ -498,8 +508,10 @@ func computeParticipantsRoot(validators ...common.Address) [32]byte {
 	}
 
 	h := crypto.Keccak256(buf)
+
 	var root [32]byte
 	copy(root[:], h)
+
 	return root
 }
 
@@ -507,6 +519,7 @@ func TestVerifyFinalizationSignature(t *testing.T) {
 	// Generate a secp256k1 key pair for testing
 	sigKey, err := crypto.GenerateKey()
 	require.NoError(t, err)
+
 	commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:] // 64 bytes, without 0x04 prefix
 
 	codeCommitment := [32]byte{0x01, 0x02, 0x03, 0x04}
@@ -653,17 +666,21 @@ func TestVerifyFinalizationSignature(t *testing.T) {
 
 	// Test V=28 signature separately since we need a key that produces recovery ID 1
 	t.Run("pass: valid signature with V=28", func(t *testing.T) {
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			k, err := crypto.GenerateKey()
 			require.NoError(t, err)
+
 			cpk := crypto.FromECDSAPub(&k.PublicKey)[1:]
+
 			sig := signFinalizationData(t, k, codeCommitment, round, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare)
 			if sig[64] == 28 {
 				err := verifyFinalizationSignature(cpk, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare, sig)
 				require.NoError(t, err)
+
 				return
 			}
 		}
+
 		t.Skip("could not generate V=28 signature in 100 attempts")
 	})
 
@@ -691,10 +708,12 @@ func signFinalizationData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [3
 	binary.BigEndian.PutUint32(roundBytes, round)
 	encoded = append(encoded, roundBytes...)
 	encoded = append(encoded, participantsRoot[:]...)
+
 	encoded = append(encoded, globalPubKey...)
 	for _, coeff := range publicCoeffs {
 		encoded = append(encoded, coeff...)
 	}
+
 	encoded = append(encoded, pubKeyShare...)
 
 	msgHash := crypto.Keccak256(encoded)

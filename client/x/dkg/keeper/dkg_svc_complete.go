@@ -35,7 +35,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 
 	if session.Phase != types.PhaseFinalized {
-		log.Error(ctx, "session is not finalized yet", nil)
+		log.Error(ctx, "Session is not finalized yet", nil)
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
@@ -55,6 +55,4 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		"round", session.Round,
 		"validator_evm_address", k.validatorEVMAddr,
 	)
-
-	return
 }

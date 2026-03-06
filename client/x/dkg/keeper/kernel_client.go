@@ -6,6 +6,7 @@ import (
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,7 +16,7 @@ import (
 // Returns the KernelClient and an io.Closer for the underlying gRPC connection.
 func CreateKernelClient(endpoint string) (types.KernelServiceClient, io.Closer, error) {
 	if endpoint == "" {
-		return nil, nil, errors.New("The endpoint is required")
+		return nil, nil, errors.New("the endpoint is required")
 	}
 
 	var creds credentials.TransportCredentials

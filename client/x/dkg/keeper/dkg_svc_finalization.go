@@ -67,6 +67,7 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	session.UpdatePhase(types.PhaseFinalized)
+
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session after calling finalizeDKG method", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -77,8 +78,6 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	log.Info(ctx, "DKG finalization phase complete",
 		"round", session.Round,
 	)
-
-	return
 }
 
 func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
@@ -122,6 +121,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 	session.GlobalPubKey = resp.GetGlobalPubKey()
 	session.SigFinalizeNetwork = resp.GetSignature()
 	session.PublicCoeffs = resp.GetPublicCoeffs()
+
 	session.PubKeyShare = resp.GetPubKeyShare()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling Finalize on the kernel client")

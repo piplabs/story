@@ -4,7 +4,6 @@ package server
 import (
 	"context"
 	"errors"
-	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	"net/http"
 	"strconv"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
