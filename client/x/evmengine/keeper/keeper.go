@@ -52,6 +52,7 @@ type Keeper struct {
 	upgradeContract *bindings.UpgradeEntrypoint
 	ubiContract     *bindings.UBIPool
 	dkgContract     *bindings.DKG
+	cdrContract     *bindings.CDR
 
 	// mutablePayload contains the previous optimistically triggered payload.
 	// It is optimistic because the validator set can change,
@@ -107,6 +108,11 @@ func NewKeeper(
 		panic(fmt.Sprintf("failed to bind to the DKG contract: %s", err))
 	}
 
+	cdrContract, err := bindings.NewCDR(common.HexToAddress(predeploys.CDR), ethCl)
+	if err != nil {
+		panic(fmt.Sprintf("failed to bind to the CDR contract: %s", err))
+	}
+
 	return &Keeper{
 		cdc:              cdc,
 		storeService:     storeService,
@@ -121,6 +127,7 @@ func NewKeeper(
 		upgradeContract:  upgradeContract,
 		ubiContract:      ubiContract,
 		dkgContract:      dkgContract,
+		cdrContract:      cdrContract,
 	}, nil
 }
 

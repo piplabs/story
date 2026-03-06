@@ -334,7 +334,7 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
-func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte) error {
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label [32]byte) error {
 	if !k.isDKGSvcEnabled {
 		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
 
@@ -365,7 +365,6 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 	}
 
 	log.Info(ctx, "DKG ThresholdDecryptRequested event received",
-		"requester", requester.Hex(),
 		"round", round,
 		"requester_pubkey_len", len(requesterPubKey),
 		"ciphertext_len", len(ciphertext),
@@ -379,10 +378,9 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common
 
 	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.
 	session.AddDecryptRequest(types.DecryptRequest{
-		Requester:       requester.Hex(),
 		Round:           round,
 		Ciphertext:      ciphertext,
-		Label:           label,
+		Label:           label[:],
 		RequesterPubKey: requesterPubKey,
 	})
 

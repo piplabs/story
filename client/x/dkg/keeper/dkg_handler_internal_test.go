@@ -993,11 +993,11 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 
 	var valStore baseapp.ValidatorStore = nil
 
-	mockTEEClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockKernelServiceClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 
 	// Wrap mock TEE client in a KernelRouter for testing
 	kernelRouter := NewKernelRouter(nil)
-	kernelRouter.RegisterClient([]byte("test"), mockTEEClient)
+	kernelRouter.RegisterClient([]byte("test"), mockKernelServiceClient)
 
 	k := NewKeeper(
 		encCfg.Codec,

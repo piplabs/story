@@ -13,7 +13,7 @@ func TestKernelRouter_RegisterAndGetClient(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
 	router := keeper.NewKernelRouter(nil)
@@ -29,7 +29,7 @@ func TestKernelRouter_GetClientNoFallback(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
 	router := keeper.NewKernelRouter(nil)
@@ -55,7 +55,7 @@ func TestKernelRouter_HasClients(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	router := keeper.NewKernelRouter(nil)
 
 	require.False(t, router.HasClients())
@@ -68,7 +68,7 @@ func TestKernelRouter_Disconnect(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
 	router := keeper.NewKernelRouter(nil)
@@ -84,8 +84,8 @@ func TestKernelRouter_GetAllCodeCommitments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock1 := dkgtestutil.NewMockTEEClient(ctrl)
-	mock2 := dkgtestutil.NewMockTEEClient(ctrl)
+	mock1 := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mock2 := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc1 := []byte{0x01, 0x02}
 	cc2 := []byte{0x03, 0x04}
 
@@ -109,8 +109,8 @@ func TestKernelRouter_MultipleClients(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock1 := dkgtestutil.NewMockTEEClient(ctrl)
-	mock2 := dkgtestutil.NewMockTEEClient(ctrl)
+	mock1 := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mock2 := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc1 := []byte{0x01, 0x02}
 	cc2 := []byte{0x03, 0x04}
 
@@ -132,7 +132,7 @@ func TestKernelRouter_GetClientWithNilCodeCommitment(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	router := keeper.NewKernelRouter(nil)
 	router.RegisterClient([]byte{0x01}, mockClient)
 
@@ -146,7 +146,7 @@ func TestKernelRouter_GetClientWithEmptyCodeCommitment(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockClient := dkgtestutil.NewMockTEEClient(ctrl)
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	router := keeper.NewKernelRouter(nil)
 	router.RegisterClient([]byte{0x01}, mockClient)
 

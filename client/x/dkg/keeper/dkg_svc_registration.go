@@ -171,7 +171,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 //
 // Upgrade: uses the provided oldCC to find the NEW binary — returns the connected client
 // whose code commitment differs from oldCC.
-func (k *Keeper) getRegistrationKernelClient(ctx context.Context, isUpgrade bool, oldCC []byte) (types.TEEClient, error) {
+func (k *Keeper) getRegistrationKernelClient(ctx context.Context, isUpgrade bool, oldCC []byte) (types.KernelServiceClient, error) {
 	if !isUpgrade {
 		// Derive CC from previous active round's registration (deterministic, on-chain state).
 		prevCC, err := k.getOldCodeCommitment(ctx)

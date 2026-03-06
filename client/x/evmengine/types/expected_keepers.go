@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"math/big"
 
 	"cosmossdk.io/math"
@@ -40,11 +41,13 @@ type DistrKeeper interface {
 }
 
 type DKGKeeper interface {
+	GetLatestActiveRound(ctx context.Context) (*dkgtypes.DKGNetwork, error)
+
 	Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash, enclaveType [32]byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) error
 	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error
 	UpgradeScheduled(ctx context.Context, activationHeight int64, upgradeVersion string) error
 	UpgradeCancelled(ctx context.Context, upgradeVersion string) error
-	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte) error
+	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label [32]byte) error
 
 	// Parameter setters (driven by DKG.sol contract events)
 	SetMinReqRegisteredParticipants(ctx context.Context, value uint32) error

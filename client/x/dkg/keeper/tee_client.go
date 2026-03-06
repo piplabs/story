@@ -13,7 +13,7 @@ import (
 
 // CreateKernelClient creates a gRPC client for the story-kernel.
 // Returns the KernelClient and an io.Closer for the underlying gRPC connection.
-func CreateKernelClient(endpoint string) (types.TEEClient, io.Closer, error) {
+func CreateKernelClient(endpoint string) (types.KernelServiceClient, io.Closer, error) {
 	if endpoint == "" {
 		return nil, nil, errors.New("The endpoint is required")
 	}
@@ -30,5 +30,5 @@ func CreateKernelClient(endpoint string) (types.TEEClient, io.Closer, error) {
 		return nil, nil, errors.Wrap(err, "failed to connect to story-kernel client")
 	}
 
-	return types.NewTEEClient(conn), conn, nil
+	return types.NewKernelServiceClient(conn), conn, nil
 }

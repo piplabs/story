@@ -138,7 +138,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
 				log.Error(ctx, "Failed to process decrypt request", err,
 					"session", session.GetSessionKey(),
-					"requester", req.Requester,
 					"round", req.Round,
 					"ciphertext_len", len(req.Ciphertext),
 					"label_len", len(req.Label),
@@ -191,7 +190,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.Wrap(err, "TEE partial decrypt failed")
 	}
 
-	if _, err := k.contractClient.SubmitPartialDecryption(
+	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
 		session.Round,
 		session.CodeCommitment,

@@ -143,14 +143,14 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	var resp *types.ProcessDealResponse
+	var resp *types.ProcessDealsResponse
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
 			"round", session.Round,
 			"num_deals", len(deals),
 		)
 
-		req := &types.ProcessDealRequest{
+		req := &types.ProcessDealsRequest{
 			CodeCommitment: session.CodeCommitment,
 			Round:          session.Round,
 			Deals:          []types.Deal{},
