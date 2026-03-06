@@ -19,6 +19,7 @@ func TestVerify(t *testing.T) {
 		if metadata.Name != storyEVMName {
 			require.False(t, uniqNames[metadata.Name])
 		}
+
 		require.False(t, uniqChainIDs[metadata.ChainID])
 		uniqNames[metadata.Name] = true
 		uniqChainIDs[metadata.ChainID] = true

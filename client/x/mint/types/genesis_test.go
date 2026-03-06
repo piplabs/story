@@ -13,6 +13,7 @@ import (
 
 func TestNewGenesisState(t *testing.T) {
 	t.Parallel()
+
 	tcs := []struct {
 		name                 string
 		params               types.Params

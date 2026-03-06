@@ -15,7 +15,9 @@ func generatePubKeyWithYParity(t *testing.T, wantEven bool) []byte {
 	for range 100 {
 		priv, err := crypto.GenerateKey()
 		require.NoError(t, err)
+
 		pub := crypto.FromECDSAPub(&priv.PublicKey)
+
 		y := pub[33:]
 		if (y[len(y)-1]%2 == 0) == wantEven {
 			return pub

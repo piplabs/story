@@ -1,6 +1,10 @@
 package netconf
 
-import "github.com/piplabs/story/lib/errors"
+import (
+	"slices"
+
+	"github.com/piplabs/story/lib/errors"
+)
 
 // ID is a network identifier.
 type ID string
@@ -30,13 +34,13 @@ const (
 	// Iliad is the official Story Protocol public testnet.
 	Iliad ID = "iliad"
 
-	// Used for local network testing.
+	// Local is for local network testing.
 	Local ID = "local"
 
 	// Odyssey is the official Story Protocol public testnet.
 	Odyssey ID = "odyssey"
 
-	// Aeneid is the official Story Protocol testnet.
+	// Aeneid is the official Story Protocol public testnet.
 	Aeneid ID = "aeneid"
 
 	// Story is the official Story Protocol mainnet.
@@ -56,18 +60,13 @@ var supported = map[ID]bool{
 
 // IsAny returns true if the `ID` matches any of the provided targets.
 func IsAny(id ID, targets ...ID) bool {
-	for _, target := range targets {
-		if id == target {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(targets, id)
 }
 
 // All returns all the supported network IDs.
 func All() []ID {
 	var resp []ID
+
 	for id, ok := range supported {
 		if ok {
 			resp = append(resp, id)

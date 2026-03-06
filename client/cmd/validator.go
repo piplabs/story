@@ -87,6 +87,7 @@ type baseConfig struct {
 
 type createValidatorConfig struct {
 	stakeConfig
+
 	ValidatorKeyFile        string
 	Moniker                 string
 	CommissionRate          uint32
@@ -97,6 +98,7 @@ type createValidatorConfig struct {
 
 type stakeConfig struct {
 	baseConfig
+
 	DelegatorAddress string
 	ValidatorPubKey  string
 	StakeAmount      string
@@ -105,11 +107,13 @@ type stakeConfig struct {
 
 type unstakeConfig struct {
 	stakeConfig
+
 	DelegationID uint32
 }
 
 type redelegateConfig struct {
 	baseConfig
+
 	DelegatorAddress   string
 	ValidatorSrcPubKey string
 	ValidatorDstPubKey string
@@ -119,26 +123,31 @@ type redelegateConfig struct {
 
 type unjailConfig struct {
 	baseConfig
+
 	ValidatorPubKey string
 }
 
 type updateCommissionConfig struct {
 	baseConfig
+
 	CommissionRate uint32
 }
 
 type operatorConfig struct {
 	baseConfig
+
 	Operator string
 }
 
 type withdrawalConfig struct {
 	baseConfig
+
 	WithdrawalAddress string
 }
 
 type rewardsConfig struct {
 	baseConfig
+
 	RewardsAddress string
 }
 
@@ -150,11 +159,13 @@ type exportKeyConfig struct {
 
 type genPrivKeyJSONConfig struct {
 	baseConfig
+
 	ValidatorKeyFile string
 }
 
 type showEncryptedConfig struct {
 	baseConfig
+
 	ShowPrivate bool
 }
 
@@ -572,8 +583,11 @@ func exportKey(_ context.Context, cfg exportKeyConfig) error {
 		if err != nil {
 			return errors.Wrap(err, "invalid private key")
 		}
+
 		evmPrivateKey := hex.EncodeToString(crypto.FromECDSA(privateKey))
+
 		keyContent := "PRIVATE_KEY=" + evmPrivateKey
+
 		if err := os.WriteFile(cfg.EvmKeyFile, []byte(keyContent), 0600); err != nil {
 			return errors.Wrap(err, "failed to export private key")
 		}
@@ -630,6 +644,7 @@ func setWithdrawalAddress(ctx context.Context, cfg withdrawalConfig) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Printf("Fee for setting withdrawal address: %s wei\n", fee.String())
 
 	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setWithdrawalAddress", fee, withdrawalAddress)
@@ -649,6 +664,7 @@ func setRewardsAddress(ctx context.Context, cfg rewardsConfig) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Printf("Fee for setting rewards address: %s wei\n", fee.String())
 
 	_, err = prepareAndExecuteTransaction(ctx, &cfg.baseConfig, "setRewardsAddress", fee, rewardsAddress)
@@ -688,6 +704,7 @@ func unsetOperator(ctx context.Context, cfg operatorConfig) error {
 	}
 
 	var unsetOperatorFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&unsetOperatorFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unsetOperatorFee")
@@ -797,6 +814,7 @@ func unstake(ctx context.Context, cfg unstakeConfig) error {
 	}
 
 	var unstakeFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&unstakeFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unstakeFee")
@@ -842,6 +860,7 @@ func unstakeOnBehalf(ctx context.Context, cfg unstakeConfig) error {
 	}
 
 	var unstakeOnBehalfFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&unstakeOnBehalfFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unstakeOnBehalfFee")
@@ -891,6 +910,7 @@ func redelegate(ctx context.Context, cfg redelegateConfig) error {
 	}
 
 	var redelegateFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack redelegateFee")
@@ -941,6 +961,7 @@ func redelegateOnBehalf(ctx context.Context, cfg redelegateConfig) error {
 	}
 
 	var redelegateFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&redelegateFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack redelegateFee")
@@ -983,6 +1004,7 @@ func unjail(ctx context.Context, cfg unjailConfig) error {
 	}
 
 	var unjailFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&unjailFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unjailFee")
@@ -1012,6 +1034,7 @@ func unjailOnBehalf(ctx context.Context, cfg unjailConfig) error {
 	}
 
 	var unjailFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&unjailFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack unjailFee")
@@ -1046,6 +1069,7 @@ func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) 
 	}
 
 	var updateCommissionFee *big.Int
+
 	err = cfg.ABI.UnpackIntoInterface(&updateCommissionFee, "fee", result)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack updateValidatorCommissionFee")
@@ -1065,10 +1089,12 @@ func updateValidatorCommission(ctx context.Context, cfg updateCommissionConfig) 
 
 func initializeBaseConfig(cfg *baseConfig) error {
 	var err error
+
 	cfg.PrivateKey, err = loadPrivKey(cfg)
 	if err != nil {
 		return errors.Wrap(err, "failed to load private key")
 	}
+
 	if cfg.PrivateKey == "" {
 		return errors.New("missing required private key")
 	}
@@ -1125,6 +1151,7 @@ func loadPrivKey(cfg *baseConfig) (string, error) {
 
 func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*big.Int, error) {
 	event := cfg.ABI.Events["Deposit"]
+
 	eventSignature := event.ID
 	for _, vLog := range receipt.Logs {
 		if vLog.Topics[0] == eventSignature {
@@ -1133,7 +1160,7 @@ func extractDelegationIDFromStake(cfg *stakeConfig, receipt *types.Receipt) (*bi
 				ValidatorCmpPubkey []byte
 				StakeAmount        *big.Int
 				StakingPeriod      *big.Int
-				DelegationId       *big.Int //nolint:revive,stylecheck // Definition comes from ABI
+				DelegationId       *big.Int //nolint:revive,staticcheck,nolintlint // Definition comes from ABI
 				OperatorAddress    common.Address
 				Data               []byte
 			}{}

@@ -25,6 +25,7 @@ import (
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
+	isgomock struct{}
 }
 
 // MockClientMockRecorder is the mock recorder for MockClient.
@@ -441,6 +442,21 @@ func (m *MockClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Head
 func (mr *MockClientMockRecorder) SubscribeNewHead(ctx, ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeNewHead", reflect.TypeOf((*MockClient)(nil).SubscribeNewHead), ctx, ch)
+}
+
+// SubscribeTransactionReceipts mocks base method.
+func (m *MockClient) SubscribeTransactionReceipts(ctx context.Context, q *ethereum.TransactionReceiptsQuery, ch chan<- []*types.Receipt) (ethereum.Subscription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeTransactionReceipts", ctx, q, ch)
+	ret0, _ := ret[0].(ethereum.Subscription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeTransactionReceipts indicates an expected call of SubscribeTransactionReceipts.
+func (mr *MockClientMockRecorder) SubscribeTransactionReceipts(ctx, q, ch any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeTransactionReceipts", reflect.TypeOf((*MockClient)(nil).SubscribeTransactionReceipts), ctx, q, ch)
 }
 
 // SuggestGasPrice mocks base method.

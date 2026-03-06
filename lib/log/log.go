@@ -56,6 +56,7 @@ func Error(ctx context.Context, msg string, err error, attrs ...any) {
 		attrs = append(attrs, slog.String("err", err.Error()))
 		attrs = append(attrs, errAttrs(err)...)
 	}
+
 	log(ctx, slog.LevelError, msg, mergeAttrs(ctx, attrs)...)
 }
 
@@ -88,6 +89,7 @@ func log(ctx context.Context, level slog.Level, msg string, attrs ...any) {
 
 	// Build trace event
 	traceAttrs := []attribute.KeyValue{attribute.String("msg", msg)}
+
 	r.Attrs(func(attr slog.Attr) bool {
 		traceAttrs = append(traceAttrs, attribute.Stringer(attr.Key, attr.Value))
 		return true
@@ -112,10 +114,13 @@ func errAttrs(err error) []any {
 		Attrs() []any
 	}
 
-	var attrs []any
-	var stack pkgerrors.StackTrace
+	var (
+		attrs []any
+		stack pkgerrors.StackTrace
+	)
 
 	// Go up the cause chain (from the outermost error to the innermost error)
+
 	for {
 		// Use the first encountered storyErr's attributes.
 		if len(attrs) == 0 {

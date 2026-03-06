@@ -170,6 +170,7 @@ func TestProcessProposalRouter(t *testing.T) {
 			res, err := handler(ctx, newReq)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedSrvCall, srv.payload)
+
 			if tc.accept {
 				require.Equal(t, abci.ResponseProcessProposal_ACCEPT, res.Status)
 			} else {
@@ -278,10 +279,11 @@ func TestValidateTx(t *testing.T) {
 			name: "tip not empty",
 			msgs: []types.Msg{&etypes.MsgExecutionPayload{Authority: authority}},
 			callback: func(b client.TxBuilder) {
-				var tip = &txtypes.Tip{
+				var tip = &txtypes.Tip{ // nolint:staticcheck // use deprecated type for tc
 					Amount: types.NewCoins(),
 					Tipper: "invalid tip",
 				}
+
 				wrappedTx := b.GetTx()
 
 				wrappedTxField := reflect.ValueOf(wrappedTx).Elem()
@@ -347,6 +349,7 @@ func TestValidateTx(t *testing.T) {
 			} else {
 				tx = b.GetTx()
 			}
+
 			err := validateTx(tx)
 
 			if tc.expectedErr != "" {
@@ -362,6 +365,7 @@ var _ etypes.MsgServiceServer = &mockServer{}
 
 type mockServer struct {
 	etypes.MsgServiceServer
+
 	payload int
 }
 

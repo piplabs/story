@@ -565,6 +565,7 @@ func TestKeeper_ProcessUpgradeEvents(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
+
 			cachedCtx, _ := ctx.CacheContext()
 
 			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
@@ -648,6 +649,7 @@ func TestKeeper_ShouldUpgrade(t *testing.T) {
 
 			shouldUpgrade, pendingUpgrade := keeper.ShouldUpgrade(ctx)
 			require.Equal(t, tc.shouldUpgrade, shouldUpgrade)
+
 			if tc.shouldUpgrade {
 				require.Equal(t, tc.expectedUpgrade, pendingUpgrade)
 			}

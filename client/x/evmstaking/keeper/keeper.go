@@ -124,6 +124,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse UpdateValidatorCommission log", err)
 				continue
 			}
+
 			if err = k.ProcessUpdateValidatorCommission(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process update validator commission", err)
 				continue
@@ -134,6 +135,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse SetWithdrawalAddress log", err)
 				continue
 			}
+
 			if err = k.ProcessSetWithdrawalAddress(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process set withdrawal address", err)
 				continue
@@ -144,6 +146,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse SetRewardAddress log", err)
 				continue
 			}
+
 			if err = k.ProcessSetRewardAddress(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process set reward address", err)
 				continue
@@ -154,6 +157,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse SetOperator log", err)
 				continue
 			}
+
 			if err = k.ProcessSetOperator(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process set operator", err)
 				continue
@@ -164,6 +168,7 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse UnsetOperator log", err)
 				continue
 			}
+
 			if err = k.ProcessUnsetOperator(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process unset operator", err)
 				continue
@@ -174,7 +179,9 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse CreateValidator log", err)
 				continue
 			}
+
 			ev.StakeAmount.Div(ev.StakeAmount, gwei)
+
 			if err = k.ProcessCreateValidator(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process create validator", err)
 				continue
@@ -185,7 +192,9 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Deposit log", err)
 				continue
 			}
+
 			ev.StakeAmount.Div(ev.StakeAmount, gwei)
+
 			if err = k.ProcessDeposit(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process deposit", err)
 				continue
@@ -196,7 +205,9 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Redelegate log", err)
 				continue
 			}
+
 			ev.Amount.Div(ev.Amount, gwei)
+
 			if err = k.ProcessRedelegate(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process redelegate", err)
 				continue
@@ -207,7 +218,9 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Withdraw log", err)
 				continue
 			}
+
 			ev.StakeAmount.Div(ev.StakeAmount, gwei)
+
 			if err = k.ProcessWithdraw(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process withdraw", err)
 				continue
@@ -218,10 +231,15 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 				clog.Error(ctx, "Failed to parse Unjail log", err)
 				continue
 			}
+
 			if err = k.ProcessUnjail(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process unjail", err)
 				continue
 			}
+
+		default:
+			clog.Error(ctx, "Unexpected event type from IP token staking contract", nil)
+			continue
 		}
 	}
 

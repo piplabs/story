@@ -35,7 +35,9 @@ func (k Keeper) BeginBlocker(ctx context.Context, ic types.InflationCalculationF
 	// mint coins, update supply
 	mintedCoinAmt := ic(ctx, params, math.LegacyNewDec(0)) // NOTE: bondedRatio is not used in current implementation.
 	mintedCoin := sdk.NewCoin(params.MintDenom, mintedCoinAmt.TruncateInt())
+
 	mintedCoins := sdk.NewCoins(mintedCoin)
+
 	if err := k.MintCoins(ctx, mintedCoins); err != nil {
 		return err
 	}

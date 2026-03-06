@@ -83,6 +83,7 @@ func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error
 	}
 
 	heightStr := mux.Vars(r)["height"]
+
 	height, err := strconv.ParseInt(heightStr, 10, 64)
 	if err != nil {
 		return nil, err
@@ -100,6 +101,7 @@ func (s *Server) GetHistoricalInfoByHeight(r *http.Request) (resp any, err error
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.Hist.Valset[i].OperatorAddress = evmOperatorAddress
 	}
 
@@ -136,6 +138,7 @@ func (s *Server) GetValidators(req *getValidatorsRequest, r *http.Request) (resp
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.Validators[i].OperatorAddress = evmOperatorAddress
 
 		if err := s.prepareUnpackInterfaces(queryResp.Validators[i]); err != nil {
@@ -169,6 +172,7 @@ func (s *Server) GetValidatorByValidatorAddress(r *http.Request) (resp any, err 
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.Validator.OperatorAddress = evmOperatorAddress
 
 	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
@@ -209,12 +213,14 @@ func (s *Server) GetValidatorDelegationsByValidatorAddress(req *getValidatorDele
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.DelegationResponses[i].Delegation.DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.DelegationResponses[i].Delegation.ValidatorAddress = evmValidatorAddress
 	}
 
@@ -278,12 +284,14 @@ func (s *Server) GetDelegationByValidatorAddressDelegatorAddress(r *http.Request
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.DelegationResponse.Delegation.DelegatorAddress = evmDelegatorAddress
 
 	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponse.Delegation.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.DelegationResponse.Delegation.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil
@@ -320,12 +328,14 @@ func (s *Server) GetValidatorUnbondingDelegations(req *getValidatorUnbondingDele
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.UnbondingResponses[i].DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.UnbondingResponses[i].ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.UnbondingResponses[i].ValidatorAddress = evmValidatorAddress
 	}
 
@@ -361,12 +371,14 @@ func (s *Server) GetDelegatorUnbondingDelegation(r *http.Request) (resp any, err
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.Unbond.DelegatorAddress = evmDelegatorAddress
 
 	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.Unbond.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.Unbond.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil
@@ -403,12 +415,14 @@ func (s *Server) GetDelegationsByDelegatorAddress(req *getDelegationsByDelegator
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.DelegationResponses[i].Delegation.DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.DelegationResponses[i].Delegation.ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.DelegationResponses[i].Delegation.ValidatorAddress = evmValidatorAddress
 	}
 
@@ -469,23 +483,28 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 	if err != nil {
 		return nil, err
 	}
+
 	bech32AccAddr := bech32AccAddress.String()
 
 	var bech32SrcValAddr string
+
 	if req.SrcValidatorAddr != "" {
 		bech32SrcValAddress, err := utils.EvmAddressToBech32ValAddress(req.SrcValidatorAddr)
 		if err != nil {
 			return nil, err
 		}
+
 		bech32SrcValAddr = bech32SrcValAddress.String()
 	}
 
 	var bech32DstValAddr string
+
 	if req.DstValidatorAddr != "" {
 		bech32DstValAddress, err := utils.EvmAddressToBech32ValAddress(req.DstValidatorAddr)
 		if err != nil {
 			return nil, err
 		}
+
 		bech32DstValAddr = bech32DstValAddress.String()
 	}
 
@@ -510,18 +529,21 @@ func (s *Server) GetRedelegationsByDelegatorAddress(req *getRedelegationsByDeleg
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.RedelegationResponses[i].Redelegation.DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorSrcAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.RedelegationResponses[i].Redelegation.ValidatorSrcAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.RedelegationResponses[i].Redelegation.ValidatorSrcAddress = evmValidatorSrcAddress
 
 		evmValidatorDstAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.RedelegationResponses[i].Redelegation.ValidatorDstAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.RedelegationResponses[i].Redelegation.ValidatorDstAddress = evmValidatorDstAddress
 	}
 
@@ -559,12 +581,14 @@ func (s *Server) GetUnbondingDelegationsByDelegatorAddress(req *getUnbondingDele
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.UnbondingResponses[i].DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.UnbondingResponses[i].ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.UnbondingResponses[i].ValidatorAddress = evmValidatorAddress
 	}
 
@@ -602,6 +626,7 @@ func (s *Server) GetValidatorsByDelegatorAddress(req *getValidatorsByDelegatorAd
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.Validators[i].OperatorAddress = evmOperatorAddress
 
 		if err := s.prepareUnpackInterfaces(queryResp.Validators[i]); err != nil {
@@ -641,6 +666,7 @@ func (s *Server) GetValidatorsByDelegatorAddressValidatorAddress(r *http.Request
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.Validator.OperatorAddress = evmOperatorAddress
 
 	if err := s.prepareUnpackInterfaces(queryResp.Validator); err != nil {
@@ -676,6 +702,7 @@ func (s *Server) GetStakedTokenByDelegatorAddress(req *getStakedTokenByDelegator
 	}
 
 	var delStakedToken []DelegationStakedToken
+
 	for _, delResp := range queryResp.DelegationResponses {
 		valAddr, err := sdk.ValAddressFromBech32(delResp.Delegation.ValidatorAddress)
 		if err != nil {
@@ -717,6 +744,7 @@ func (s *Server) GetTotalStakedTokenByDelegatorAddress(r *http.Request) (resp an
 	}
 
 	var nextKey []byte
+
 	totalStakedToken := math.LegacyZeroDec()
 
 	for {
@@ -785,6 +813,7 @@ func (s *Server) GetRewardsTokenByDelegatorAddress(req *getRewardsTokenByDelegat
 	}
 
 	var delRewardsToken []DelegationRewardsToken
+
 	for _, delResp := range queryResp.DelegationResponses {
 		valAddr, err := sdk.ValAddressFromBech32(delResp.Delegation.ValidatorAddress)
 		if err != nil {
@@ -826,6 +855,7 @@ func (s *Server) GetTotalRewardsTokenByDelegatorAddress(r *http.Request) (resp a
 	}
 
 	var nextKey []byte
+
 	totalRewardsToken := math.LegacyZeroDec()
 
 	for {
@@ -905,12 +935,14 @@ func (s *Server) GetPeriodDelegations(req *getPeriodDelegationsRequest, r *http.
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.PeriodDelegationResponses[i].PeriodDelegation.DelegatorAddress = evmDelegatorAddress
 
 		evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.PeriodDelegationResponses[i].PeriodDelegation.ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
+
 		queryResp.PeriodDelegationResponses[i].PeriodDelegation.ValidatorAddress = evmValidatorAddress
 	}
 
@@ -947,12 +979,14 @@ func (s *Server) GetPeriodDelegation(r *http.Request) (resp any, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.PeriodDelegationResponse.PeriodDelegation.DelegatorAddress = evmDelegatorAddress
 
 	evmValidatorAddress, err := utils.Bech32ValidatorAddressToEvmAddress(queryResp.PeriodDelegationResponse.PeriodDelegation.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.PeriodDelegationResponse.PeriodDelegation.ValidatorAddress = evmValidatorAddress
 
 	return queryResp, nil

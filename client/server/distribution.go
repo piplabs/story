@@ -63,6 +63,7 @@ func (s *Server) GetDistributionValidatorByValidatorAddress(r *http.Request) (re
 	if err != nil {
 		return nil, err
 	}
+
 	queryResp.OperatorAddress = evmOperatorAddress
 
 	return queryResp, nil

@@ -66,6 +66,7 @@ func (c Config) color() (termenv.Profile, error) {
 	if c.Color == "" {
 		color = ColorAuto
 	}
+
 	resp, ok := colors[color]
 	if !ok {
 		return 0, errors.New("invalid color", "color", c.Color)
@@ -76,6 +77,7 @@ func (c Config) color() (termenv.Profile, error) {
 
 func (c Config) level() (slog.Level, error) {
 	var level slog.Level
+
 	if err := level.UnmarshalText([]byte(c.Level)); err != nil {
 		return slog.Level(0), errors.Wrap(err, "parse log level")
 	}

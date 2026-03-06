@@ -1,4 +1,3 @@
-// Package cmd provides commands for interacting with the Story consensus client.
 package cmd
 
 import (
@@ -39,6 +38,7 @@ func newStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			cfg.RPCLaddr = strings.Replace(cometCfg.RPC.ListenAddress, "tcp://", "http://", 1)
 
 			return CheckStatus(cmd.Context(), cfg)
@@ -50,7 +50,7 @@ func newStatusCmd() *cobra.Command {
 	return cmd
 }
 
-// checkStatus queries the status endpoint of the Story chain and fetches the latest block height.
+// CheckStatus queries the status endpoint of the Story chain and fetches the latest block height.
 func CheckStatus(ctx context.Context, cfg StatusConfig) error {
 	rpcClient, err := http.New(cfg.RPCLaddr, "")
 	if err != nil {
