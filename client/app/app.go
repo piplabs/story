@@ -20,7 +20,6 @@ import (
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
@@ -74,14 +73,14 @@ func newApp(
 	logger log.Logger,
 	db dbm.DB,
 	engineCl ethclient.EngineClient,
-	dkgTEEClient dkgtypes.TEEClient,
+	dkgKernelRouter *dkgkeeper.KernelRouter,
 	dkgContractClient *dkgkeeper.ContractClient,
 	baseAppOpts ...func(*baseapp.BaseApp),
 ) (*App, error) {
 	supplies := []interface{}{logger, engineCl}
 
-	if dkgTEEClient != nil {
-		supplies = append(supplies, dkgTEEClient)
+	if dkgKernelRouter != nil {
+		supplies = append(supplies, dkgKernelRouter)
 	}
 
 	if dkgContractClient != nil {

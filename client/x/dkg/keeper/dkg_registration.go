@@ -2,10 +2,7 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
-
-	"github.com/piplabs/story/lib/cast"
 
 	"cosmossdk.io/collections"
 
@@ -15,9 +12,9 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// setDKGRegistration stores a DKG registration in the store using codeCommitment_round_index as the key.
-func (k *Keeper) setDKGRegistration(ctx context.Context, codeCommitment [32]byte, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
-	key := fmt.Sprintf("%s_%d_%s", hex.EncodeToString(codeCommitment[:]), dkgReg.Round, validatorAddr.Hex())
+// setDKGRegistration stores a DKG registration in the store using round_address as the key.
+func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
+	key := fmt.Sprintf("%d_%s", dkgReg.Round, validatorAddr.Hex())
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
 		return errors.Wrap(err, "failed to set dkg registration")
 	}
@@ -25,9 +22,9 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, codeCommitment [32]byte
 	return nil
 }
 
-// getDKGRegistration retrieves a DKG registration by code commitment, round, and index.
-func (k *Keeper) getDKGRegistration(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
-	key := fmt.Sprintf("%s_%d_%s", hex.EncodeToString(codeCommitment[:]), round, validatorAddr.Hex())
+// getDKGRegistration retrieves a DKG registration by round and validator address.
+func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
+	key := fmt.Sprintf("%d_%s", round, validatorAddr.Hex())
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -40,11 +37,11 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, codeCommitment [32]byte
 	return &dkgReg, nil
 }
 
-// getDKGRegistrationIndex gets the index of a specific DKG registration by code commitment, round, and msg sender.
+// getDKGRegistrationIndex gets the index of a specific DKG registration by round and msg sender.
 //
 // TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
-func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, codeCommitment [32]byte, round uint32, msgSender string) (uint32, error) {
-	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment, round)
+func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, round uint32, msgSender string) (uint32, error) {
+	registrations, err := k.getDKGRegistrationsByRound(ctx, round)
 	if err != nil {
 		return 0, err
 	}
@@ -58,9 +55,9 @@ func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, codeCommitment [32
 	return 0, errors.New("dkg registration not found")
 }
 
-// getNextDKGRegistrationIndex gets the next DKG registration index for a specific code commitment and round.
-func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, codeCommitment [32]byte, round uint32) (int, error) {
-	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment, round)
+// getNextDKGRegistrationIndex gets the next DKG registration index for a specific round.
+func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, round uint32) (int, error) {
+	registrations, err := k.getDKGRegistrationsByRound(ctx, round)
 	if err != nil {
 		return 0, err
 	}
@@ -68,10 +65,10 @@ func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, codeCommitment
 	return len(registrations) + 1, nil
 }
 
-// getDKGRegistrationsByRound retrieves all DKG registrations for a specific code commitment and round.
-func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, codeCommitment [32]byte, round uint32) ([]types.DKGRegistration, error) {
+// getDKGRegistrationsByRound retrieves all DKG registrations for a specific round.
+func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, round uint32) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
-	prefix := fmt.Sprintf("%s_%d_", hex.EncodeToString(codeCommitment[:]), round)
+	prefix := fmt.Sprintf("%d_", round)
 
 	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
 		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
@@ -89,8 +86,8 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, codeCommitment 
 }
 
 // finalizeDKGRegistration updates the status of a specific DKG registration and sets the pub key share.
-func (k *Keeper) finalizeDKGRegistration(ctx context.Context, codeCommitment [32]byte, round uint32, validatorAddr common.Address, pubKeyShare []byte) error {
-	dkgReg, err := k.getDKGRegistration(ctx, codeCommitment, round, validatorAddr)
+func (k *Keeper) finalizeDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address, pubKeyShare []byte) error {
+	dkgReg, err := k.getDKGRegistration(ctx, round, validatorAddr)
 	if err != nil {
 		return err
 	}
@@ -98,12 +95,12 @@ func (k *Keeper) finalizeDKGRegistration(ctx context.Context, codeCommitment [32
 	dkgReg.PubKeyShare = pubKeyShare
 	dkgReg.Status = types.DKGRegStatusFinalized
 
-	return k.setDKGRegistration(ctx, codeCommitment, validatorAddr, dkgReg)
+	return k.setDKGRegistration(ctx, validatorAddr, dkgReg)
 }
 
-// getDKGRegistrationsByStatus retrieves all DKG registrations with a specific status for a given code commitment and round.
-func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, codeCommitment [32]byte, round uint32, status types.DKGRegStatus) ([]types.DKGRegistration, error) {
-	allRegs, err := k.getDKGRegistrationsByRound(ctx, codeCommitment, round)
+// getDKGRegistrationsByStatus retrieves all DKG registrations with a specific status for a given round.
+func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, round uint32, status types.DKGRegStatus) ([]types.DKGRegistration, error) {
+	allRegs, err := k.getDKGRegistrationsByRound(ctx, round)
 	if err != nil {
 		return nil, err
 	}
@@ -118,14 +115,9 @@ func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, codeCommitment
 	return filteredRegs, nil
 }
 
-// HasFinalizedRegistration checks if a validator has a finalized DKG registration for a given code commitment and round.
-func (k *Keeper) HasFinalizedRegistration(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (bool, error) {
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to cast code commitment to bytes32")
-	}
-
-	reg, err := k.getDKGRegistration(ctx, codeCommitment32, round, validatorAddr)
+// HasFinalizedRegistration checks if a validator has a finalized DKG registration for a given round.
+func (k *Keeper) HasFinalizedRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (bool, error) {
+	reg, err := k.getDKGRegistration(ctx, round, validatorAddr)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
 			return false, nil
@@ -138,14 +130,9 @@ func (k *Keeper) HasFinalizedRegistration(ctx context.Context, codeCommitment []
 }
 
 // countDKGRegistrationsByStatus returns the count of DKG registrations in the status
-func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, codeCommitment []byte, round uint32, status types.DKGRegStatus) (uint32, error) {
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to cast to bytes32")
-	}
-
+func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, round uint32, status types.DKGRegStatus) (uint32, error) {
 	// Get registrations with status of registration
-	regs, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment32, round, status)
+	regs, err := k.getDKGRegistrationsByStatus(ctx, round, status)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get verified registrations")
 	}

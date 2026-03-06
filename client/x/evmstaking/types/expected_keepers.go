@@ -89,7 +89,7 @@ type SlashingKeeper interface {
 // DKGKeeper defines the expected interface for the DKG module.
 type DKGKeeper interface {
 	GetLatestActiveRound(ctx context.Context) (*dkgtypes.DKGNetwork, error)
-	HasFinalizedRegistration(ctx context.Context, codeCommitment []byte, round uint32, validatorAddr common.Address) (bool, error)
+	HasFinalizedRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (bool, error)
 	// DistributeRewardsToActiveCommittee distributes the configured portion of UBI
 	// to active DKG committee members. The senderModule must hold totalAmount coins.
 	// Returns the total amount distributed to committee members (0 if no active committee).

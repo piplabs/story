@@ -6,16 +6,28 @@ import "story/dkg/v1/types/types.proto";
 
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
-service TEE {
+service KernelService {
+  rpc GetCodeCommitment(GetCodeCommitmentRequest) returns (GetCodeCommitmentResponse);
   rpc GenerateAndSealKey(GenerateAndSealKeyRequest) returns (GenerateAndSealKeyResponse);
   rpc GenerateDeals(GenerateDealsRequest) returns (GenerateDealsResponse);
-  rpc ProcessDeals(ProcessDealRequest) returns (ProcessDealResponse);
+  rpc ProcessDeals(ProcessDealsRequest) returns (ProcessDealsResponse);
   rpc ProcessResponses(ProcessResponsesRequest) returns (ProcessResponsesResponse);
+  rpc ProcessJustification(ProcessJustificationRequest) returns (ProcessJustificationResponse);
   rpc FinalizeDKG(FinalizeDKGRequest) returns (FinalizeDKGResponse);
   rpc PartialDecryptTDH2(PartialDecryptTDH2Request) returns (PartialDecryptTDH2Response);
 }
 
-// GenerateAndSealKeyRequest is sent to TEE client to generate and seal a key
+// GetCodeCommitmentRequest requests the story-kernel instance's code commitment.
+message GetCodeCommitmentRequest {}
+
+// GetCodeCommitmentResponse contains the story-kernel instance's code commitment.
+message GetCodeCommitmentResponse {
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
+  ];
+}
+
+// GenerateAndSealKeyRequest is sent to story-kernel client to generate and seal a key
 message GenerateAndSealKeyRequest {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -30,7 +42,7 @@ message GenerateAndSealKeyRequest {
   ];
 }
 
-// GenerateAndSealKeyResponse is returned from TEE client after key generation
+// GenerateAndSealKeyResponse is returned from story-kernel client after key generation
 message GenerateAndSealKeyResponse {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -56,12 +68,12 @@ message GenerateAndSealKeyResponse {
     (gogoproto.moretags) = "yaml:\"comm_pub_key\""
   ];
 
-  bytes raw_quote = 7 [
-    (gogoproto.moretags) = "yaml:\"raw_quote\""
+  bytes enclave_report = 7 [
+    (gogoproto.moretags) = "yaml:\"enclave_report\""
   ];
 }
 
-// GenerateDealsRequest is sent to TEE client to generate deals
+// GenerateDealsRequest is sent to story-kernel client to generate deals
 message GenerateDealsRequest {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -76,7 +88,7 @@ message GenerateDealsRequest {
   ];
 }
 
-// GenerateDealsResponse is returned from TEE client with generated deals
+// GenerateDealsResponse is returned from story-kernel client with generated deals
 message GenerateDealsResponse {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -92,8 +104,8 @@ message GenerateDealsResponse {
   ];
 }
 
-// ProcessDealRequest is sent to TEE client to process deals
-message ProcessDealRequest {
+// ProcessDealsRequest is sent to story-kernel client to process deals
+message ProcessDealsRequest {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
@@ -112,8 +124,8 @@ message ProcessDealRequest {
   ];
 }
 
-// ProcessDealResponse is returned from TEE client after processing deals
-message ProcessDealResponse {
+// ProcessDealResponse is returned from story-kernel client after processing deals
+message ProcessDealsResponse {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
   ];
@@ -153,7 +165,7 @@ message ProcessResponsesResponse {
   ];
 }
 
-// FinalizeDKGRequest is sent to TEE client to finalize DKG
+// FinalizeDKGRequest is sent to story-kernel client to finalize DKG
 message FinalizeDKGRequest {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -168,7 +180,7 @@ message FinalizeDKGRequest {
   ];
 }
 
-// FinalizeDKGResponse is returned from TEE client after DKG finalization
+// FinalizeDKGResponse is returned from story-kernel client after DKG finalization
 message FinalizeDKGResponse {
   bytes code_commitment = 1 [
     (gogoproto.moretags) = "yaml:\"code_commitment\""
@@ -254,6 +266,30 @@ message PartialDecryptTDH2Response {
   ];
 }
 
+
+// ProcessJustificationRequest is sent to story-kernel client to process valid justifications
+// and restore the DKG state by accepting the originally-complained deals.
+message ProcessJustificationRequest {
+  bytes code_commitment = 1 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
+  ];
+
+  uint32 round = 2 [
+    (gogoproto.moretags) = "yaml:\"round\""
+  ];
+
+  repeated Justification justifications = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"justifications\""
+  ];
+
+  bool is_resharing = 4 [
+    (gogoproto.moretags) = "yaml:\"is_resharing\""
+  ];
+}
+
+// ProcessJustificationResponse is returned from story-kernel client after processing justifications.
+message ProcessJustificationResponse {}
 
 message Justification {
   uint32 index = 1 [

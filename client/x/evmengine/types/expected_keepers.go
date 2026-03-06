@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"math/big"
 
 	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -39,15 +40,14 @@ type DistrKeeper interface {
 }
 
 type DKGKeeper interface {
-	// NOTE: completed
-	RegistrationInitialized(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight uint64, startBlockHash [32]byte, dkgPubKey []byte, commPubKey []byte, rawQuote []byte) error
+	Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash, enclaveType [32]byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) error
 	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error
+	UpgradeScheduled(ctx context.Context, activationHeight int64, upgradeVersion string) error
+	UpgradeCancelled(ctx context.Context, upgradeVersion string) error
+	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte) error
 
-	// TODO: complete these functions
-	UpgradeScheduled(ctx context.Context, activationHeight uint32, codeCommitment [32]byte) error
-	RemoteAttestationProcessedOnChain(ctx context.Context, validator common.Address, chalStatus int, round uint32, codeCommitment [32]byte) error
-	DealComplaintsSubmitted(ctx context.Context, index uint32, complainIndexes []uint32, round uint32, codeCommitment [32]byte) error
-	DealVerified(ctx context.Context, index uint32, recipientIndex uint32, round uint32, codeCommitment [32]byte) error
-	InvalidDeal(ctx context.Context, index uint32, round uint32, codeCommitment [32]byte) error
-	ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte) error
+	// Parameter setters (driven by DKG.sol contract events)
+	SetMinReqRegisteredParticipants(ctx context.Context, value uint32) error
+	SetMinReqFinalizedParticipants(ctx context.Context, value uint32) error
+	SetOperationalThreshold(ctx context.Context, value uint32) error
 }

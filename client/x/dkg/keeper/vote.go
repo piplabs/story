@@ -15,13 +15,16 @@ import (
 )
 
 func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// TODO: determine the number of deals and responses for vote extension considering the size of deals and responses and the number of validators
+	// TODO: determine the number of deals, responses, and justifications for vote extension
+	// considering the size and the number of validators
 	dequeuedDeals := k.DequeueDeals(10)
 	dequeuedResponses := k.DequeueResponses(10)
+	dequeuedJustifications := k.DequeueJustifications(10)
 
 	bz, err := proto.Marshal(&types.Vote{
-		Deals:     dequeuedDeals,
-		Responses: dequeuedResponses,
+		Deals:          dequeuedDeals,
+		Responses:      dequeuedResponses,
+		Justifications: dequeuedJustifications,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal vote")
@@ -94,12 +97,14 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 func aggregateVotes(votes []*types.Vote) *types.Vote {
 	dealMap := make([]types.Deal, 0)
 	responseMap := make([]types.Response, 0)
+	justificationMap := make([]types.Justification, 0)
 	for _, vote := range votes {
 		dealMap = append(dealMap, vote.Deals...)
 		responseMap = append(responseMap, vote.Responses...)
+		justificationMap = append(justificationMap, vote.Justifications...)
 	}
 
-	return &types.Vote{Deals: dealMap, Responses: responseMap}
+	return &types.Vote{Deals: dealMap, Responses: responseMap, Justifications: justificationMap}
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.

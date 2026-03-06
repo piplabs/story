@@ -2,10 +2,8 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/cast"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,23 +25,13 @@ func (k *Keeper) Params(ctx context.Context, req *types.QueryParamsRequest) (*ty
 	return &types.QueryParamsResponse{Params: params}, nil
 }
 
-// GetDKGNetwork queries a DKG network by code commitment and round.
+// GetDKGNetwork queries a DKG network by round.
 func (k *Keeper) GetDKGNetwork(ctx context.Context, req *types.QueryGetDKGNetworkRequest) (*types.QueryGetDKGNetworkResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
-	}
-
-	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
-	}
-
-	network, err := k.getDKGNetwork(ctx, codeCommitment, req.Round)
+	network, err := k.getDKGNetwork(ctx, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, err.Error())
 	}
@@ -90,23 +78,13 @@ func (*Keeper) GetDKGRegistration(_ context.Context, req *types.QueryGetDKGRegis
 	return nil, status.Error(codes.Unimplemented, "GetDKGRegistration by validator address not implemented")
 }
 
-// GetAllDKGRegistrations queries all DKG registrations (registered & verified) for a specific code commitment and round.
+// GetAllDKGRegistrations queries all DKG registrations for a specific round.
 func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGetAllDKGRegistrationsRequest) (*types.QueryGetAllDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
-	}
-
-	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
-	}
-
-	registrations, err := k.getDKGRegistrationsByRound(ctx, codeCommitment, req.Round)
+	registrations, err := k.getDKGRegistrationsByRound(ctx, req.Round)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -118,23 +96,13 @@ func (k *Keeper) GetAllDKGRegistrations(ctx context.Context, req *types.QueryGet
 	}, nil
 }
 
-// GetAllVerifiedDKGRegistrations queries all verified DKG registrations for a specific code commitment and round.
+// GetAllVerifiedDKGRegistrations queries all verified DKG registrations for a specific round.
 func (k *Keeper) GetAllVerifiedDKGRegistrations(ctx context.Context, req *types.QueryGetAllVerifiedDKGRegistrationsRequest) (*types.QueryGetAllVerifiedDKGRegistrationsResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	codeCommitmentBz, err := hex.DecodeString(req.CodeCommitmentHex)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid code commitment")
-	}
-
-	codeCommitment, err := cast.ToBytes32(codeCommitmentBz)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid length of code commitment")
-	}
-
-	registrations, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment, req.Round, types.DKGRegStatusVerified)
+	registrations, err := k.getDKGRegistrationsByStatus(ctx, req.Round, types.DKGRegStatusVerified)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

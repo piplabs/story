@@ -59,3 +59,52 @@ func (*Keeper) DequeueResponses(count int) []types.Response {
 
 	return out
 }
+
+// EnqueueJustifications adds multiple justifications to the queue in a thread-safe manner.
+func (*Keeper) EnqueueJustifications(newJustifications []*types.Justification) {
+	justificationsMu.Lock()
+	defer justificationsMu.Unlock()
+
+	for _, j := range newJustifications {
+		if j != nil {
+			justifications = append(justifications, *j)
+		}
+	}
+}
+
+// DequeueJustifications dequeues up to count justifications in a thread-safe manner.
+func (*Keeper) DequeueJustifications(count int) []types.Justification {
+	justificationsMu.Lock()
+	defer justificationsMu.Unlock()
+
+	if len(justifications) == 0 {
+		return nil
+	}
+
+	if count > len(justifications) {
+		count = len(justifications)
+	}
+
+	out := make([]types.Justification, count)
+	copy(out, justifications[:count])
+	justifications = justifications[count:]
+
+	return out
+}
+
+// FlushAllQueues clears all deal, response, and justification queues.
+// This should be called when a DKG round transitions to prevent stale data
+// from a previous round from being broadcast in the new round.
+func (*Keeper) FlushAllQueues() {
+	dealsMu.Lock()
+	deals = nil
+	dealsMu.Unlock()
+
+	responsesMu.Lock()
+	responses = nil
+	responsesMu.Unlock()
+
+	justificationsMu.Lock()
+	justifications = nil
+	justificationsMu.Unlock()
+}

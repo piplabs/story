@@ -21,6 +21,6 @@ var (
 	DKGRegistrationKey   = collections.NewPrefix(3)
 	LatestActiveRoundKey = collections.NewPrefix(4)
 	GlobalPubKeyVotesKey = collections.NewPrefix(5)
-	TEEUpgradeInfoKey    = collections.NewPrefix(6)
+	KernelUpgradeInfoKey = collections.NewPrefix(6)
 	SettlementBalanceKey = collections.NewPrefix(7)
 )

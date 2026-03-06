@@ -18,32 +18,32 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
-// MockTEEClient is a mock of TEEClient interface.
-type MockTEEClient struct {
+// MockKernelClient is a mock of KernelClient interface.
+type MockKernelClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockTEEClientMockRecorder
+	recorder *MockKernelClientMockRecorder
 	isgomock struct{}
 }
 
-// MockTEEClientMockRecorder is the mock recorder for MockTEEClient.
-type MockTEEClientMockRecorder struct {
-	mock *MockTEEClient
+// MockKernelClientMockRecorder is the mock recorder for MockKernelClient.
+type MockKernelClientMockRecorder struct {
+	mock *MockKernelClient
 }
 
-// NewMockTEEClient creates a new mock instance.
-func NewMockTEEClient(ctrl *gomock.Controller) *MockTEEClient {
-	mock := &MockTEEClient{ctrl: ctrl}
-	mock.recorder = &MockTEEClientMockRecorder{mock}
+// NewMockKernelClient creates a new mock instance.
+func NewMockKernelClient(ctrl *gomock.Controller) *MockKernelClient {
+	mock := &MockKernelClient{ctrl: ctrl}
+	mock.recorder = &MockKernelClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTEEClient) EXPECT() *MockTEEClientMockRecorder {
+func (m *MockKernelClient) EXPECT() *MockKernelClientMockRecorder {
 	return m.recorder
 }
 
 // FinalizeDKG mocks base method.
-func (m *MockTEEClient) FinalizeDKG(ctx context.Context, in *types.FinalizeDKGRequest, opts ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+func (m *MockKernelClient) FinalizeDKG(ctx context.Context, in *types.FinalizeDKGRequest, opts ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
@@ -56,14 +56,14 @@ func (m *MockTEEClient) FinalizeDKG(ctx context.Context, in *types.FinalizeDKGRe
 }
 
 // FinalizeDKG indicates an expected call of FinalizeDKG.
-func (mr *MockTEEClientMockRecorder) FinalizeDKG(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) FinalizeDKG(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeDKG", reflect.TypeOf((*MockTEEClient)(nil).FinalizeDKG), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeDKG", reflect.TypeOf((*MockKernelClient)(nil).FinalizeDKG), varargs...)
 }
 
 // GenerateAndSealKey mocks base method.
-func (m *MockTEEClient) GenerateAndSealKey(ctx context.Context, in *types.GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*types.GenerateAndSealKeyResponse, error) {
+func (m *MockKernelClient) GenerateAndSealKey(ctx context.Context, in *types.GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*types.GenerateAndSealKeyResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
@@ -76,14 +76,14 @@ func (m *MockTEEClient) GenerateAndSealKey(ctx context.Context, in *types.Genera
 }
 
 // GenerateAndSealKey indicates an expected call of GenerateAndSealKey.
-func (mr *MockTEEClientMockRecorder) GenerateAndSealKey(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) GenerateAndSealKey(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndSealKey", reflect.TypeOf((*MockTEEClient)(nil).GenerateAndSealKey), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndSealKey", reflect.TypeOf((*MockKernelClient)(nil).GenerateAndSealKey), varargs...)
 }
 
 // GenerateDeals mocks base method.
-func (m *MockTEEClient) GenerateDeals(ctx context.Context, in *types.GenerateDealsRequest, opts ...grpc.CallOption) (*types.GenerateDealsResponse, error) {
+func (m *MockKernelClient) GenerateDeals(ctx context.Context, in *types.GenerateDealsRequest, opts ...grpc.CallOption) (*types.GenerateDealsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
@@ -96,14 +96,34 @@ func (m *MockTEEClient) GenerateDeals(ctx context.Context, in *types.GenerateDea
 }
 
 // GenerateDeals indicates an expected call of GenerateDeals.
-func (mr *MockTEEClientMockRecorder) GenerateDeals(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) GenerateDeals(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockTEEClient)(nil).GenerateDeals), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockKernelClient)(nil).GenerateDeals), varargs...)
+}
+
+// GetCodeCommitment mocks base method.
+func (m *MockKernelClient) GetCodeCommitment(ctx context.Context, in *types.GetCodeCommitmentRequest, opts ...grpc.CallOption) (*types.GetCodeCommitmentResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCodeCommitment", varargs...)
+	ret0, _ := ret[0].(*types.GetCodeCommitmentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCodeCommitment indicates an expected call of GetCodeCommitment.
+func (mr *MockKernelClientMockRecorder) GetCodeCommitment(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCodeCommitment", reflect.TypeOf((*MockKernelClient)(nil).GetCodeCommitment), varargs...)
 }
 
 // PartialDecryptTDH2 mocks base method.
-func (m *MockTEEClient) PartialDecryptTDH2(ctx context.Context, in *types.PartialDecryptTDH2Request, opts ...grpc.CallOption) (*types.PartialDecryptTDH2Response, error) {
+func (m *MockKernelClient) PartialDecryptTDH2(ctx context.Context, in *types.PartialDecryptTDH2Request, opts ...grpc.CallOption) (*types.PartialDecryptTDH2Response, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
@@ -116,34 +136,54 @@ func (m *MockTEEClient) PartialDecryptTDH2(ctx context.Context, in *types.Partia
 }
 
 // PartialDecryptTDH2 indicates an expected call of PartialDecryptTDH2.
-func (mr *MockTEEClientMockRecorder) PartialDecryptTDH2(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) PartialDecryptTDH2(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockTEEClient)(nil).PartialDecryptTDH2), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockKernelClient)(nil).PartialDecryptTDH2), varargs...)
 }
 
 // ProcessDeals mocks base method.
-func (m *MockTEEClient) ProcessDeals(ctx context.Context, in *types.ProcessDealRequest, opts ...grpc.CallOption) (*types.ProcessDealResponse, error) {
+func (m *MockKernelClient) ProcessDeals(ctx context.Context, in *types.ProcessDealsRequest, opts ...grpc.CallOption) (*types.ProcessDealsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ProcessDeals", varargs...)
-	ret0, _ := ret[0].(*types.ProcessDealResponse)
+	ret0, _ := ret[0].(*types.ProcessDealsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ProcessDeals indicates an expected call of ProcessDeals.
-func (mr *MockTEEClientMockRecorder) ProcessDeals(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) ProcessDeals(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEClient)(nil).ProcessDeals), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockKernelClient)(nil).ProcessDeals), varargs...)
+}
+
+// ProcessJustification mocks base method.
+func (m *MockKernelClient) ProcessJustification(ctx context.Context, in *types.ProcessJustificationRequest, opts ...grpc.CallOption) (*types.ProcessJustificationResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ProcessJustification", varargs...)
+	ret0, _ := ret[0].(*types.ProcessJustificationResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessJustification indicates an expected call of ProcessJustification.
+func (mr *MockKernelClientMockRecorder) ProcessJustification(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessJustification", reflect.TypeOf((*MockKernelClient)(nil).ProcessJustification), varargs...)
 }
 
 // ProcessResponses mocks base method.
-func (m *MockTEEClient) ProcessResponses(ctx context.Context, in *types.ProcessResponsesRequest, opts ...grpc.CallOption) (*types.ProcessResponsesResponse, error) {
+func (m *MockKernelClient) ProcessResponses(ctx context.Context, in *types.ProcessResponsesRequest, opts ...grpc.CallOption) (*types.ProcessResponsesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
@@ -156,38 +196,38 @@ func (m *MockTEEClient) ProcessResponses(ctx context.Context, in *types.ProcessR
 }
 
 // ProcessResponses indicates an expected call of ProcessResponses.
-func (mr *MockTEEClientMockRecorder) ProcessResponses(ctx, in any, opts ...any) *gomock.Call {
+func (mr *MockKernelClientMockRecorder) ProcessResponses(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEClient)(nil).ProcessResponses), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockKernelClient)(nil).ProcessResponses), varargs...)
 }
 
-// MockTEEServer is a mock of TEEServer interface.
-type MockTEEServer struct {
+// MockKernelServer is a mock of KernelServer interface.
+type MockKernelServer struct {
 	ctrl     *gomock.Controller
-	recorder *MockTEEServerMockRecorder
+	recorder *MockKernelServerMockRecorder
 	isgomock struct{}
 }
 
-// MockTEEServerMockRecorder is the mock recorder for MockTEEServer.
-type MockTEEServerMockRecorder struct {
-	mock *MockTEEServer
+// MockKernelServerMockRecorder is the mock recorder for MockKernelServer.
+type MockKernelServerMockRecorder struct {
+	mock *MockKernelServer
 }
 
-// NewMockTEEServer creates a new mock instance.
-func NewMockTEEServer(ctrl *gomock.Controller) *MockTEEServer {
-	mock := &MockTEEServer{ctrl: ctrl}
-	mock.recorder = &MockTEEServerMockRecorder{mock}
+// NewMockKernelServer creates a new mock instance.
+func NewMockKernelServer(ctrl *gomock.Controller) *MockKernelServer {
+	mock := &MockKernelServer{ctrl: ctrl}
+	mock.recorder = &MockKernelServerMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTEEServer) EXPECT() *MockTEEServerMockRecorder {
+func (m *MockKernelServer) EXPECT() *MockKernelServerMockRecorder {
 	return m.recorder
 }
 
 // FinalizeDKG mocks base method.
-func (m *MockTEEServer) FinalizeDKG(arg0 context.Context, arg1 *types.FinalizeDKGRequest) (*types.FinalizeDKGResponse, error) {
+func (m *MockKernelServer) FinalizeDKG(arg0 context.Context, arg1 *types.FinalizeDKGRequest) (*types.FinalizeDKGResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinalizeDKG", arg0, arg1)
 	ret0, _ := ret[0].(*types.FinalizeDKGResponse)
@@ -196,13 +236,13 @@ func (m *MockTEEServer) FinalizeDKG(arg0 context.Context, arg1 *types.FinalizeDK
 }
 
 // FinalizeDKG indicates an expected call of FinalizeDKG.
-func (mr *MockTEEServerMockRecorder) FinalizeDKG(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) FinalizeDKG(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeDKG", reflect.TypeOf((*MockTEEServer)(nil).FinalizeDKG), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeDKG", reflect.TypeOf((*MockKernelServer)(nil).FinalizeDKG), arg0, arg1)
 }
 
 // GenerateAndSealKey mocks base method.
-func (m *MockTEEServer) GenerateAndSealKey(arg0 context.Context, arg1 *types.GenerateAndSealKeyRequest) (*types.GenerateAndSealKeyResponse, error) {
+func (m *MockKernelServer) GenerateAndSealKey(arg0 context.Context, arg1 *types.GenerateAndSealKeyRequest) (*types.GenerateAndSealKeyResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateAndSealKey", arg0, arg1)
 	ret0, _ := ret[0].(*types.GenerateAndSealKeyResponse)
@@ -211,13 +251,13 @@ func (m *MockTEEServer) GenerateAndSealKey(arg0 context.Context, arg1 *types.Gen
 }
 
 // GenerateAndSealKey indicates an expected call of GenerateAndSealKey.
-func (mr *MockTEEServerMockRecorder) GenerateAndSealKey(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) GenerateAndSealKey(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndSealKey", reflect.TypeOf((*MockTEEServer)(nil).GenerateAndSealKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndSealKey", reflect.TypeOf((*MockKernelServer)(nil).GenerateAndSealKey), arg0, arg1)
 }
 
 // GenerateDeals mocks base method.
-func (m *MockTEEServer) GenerateDeals(arg0 context.Context, arg1 *types.GenerateDealsRequest) (*types.GenerateDealsResponse, error) {
+func (m *MockKernelServer) GenerateDeals(arg0 context.Context, arg1 *types.GenerateDealsRequest) (*types.GenerateDealsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateDeals", arg0, arg1)
 	ret0, _ := ret[0].(*types.GenerateDealsResponse)
@@ -226,13 +266,28 @@ func (m *MockTEEServer) GenerateDeals(arg0 context.Context, arg1 *types.Generate
 }
 
 // GenerateDeals indicates an expected call of GenerateDeals.
-func (mr *MockTEEServerMockRecorder) GenerateDeals(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) GenerateDeals(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockTEEServer)(nil).GenerateDeals), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDeals", reflect.TypeOf((*MockKernelServer)(nil).GenerateDeals), arg0, arg1)
+}
+
+// GetCodeCommitment mocks base method.
+func (m *MockKernelServer) GetCodeCommitment(arg0 context.Context, arg1 *types.GetCodeCommitmentRequest) (*types.GetCodeCommitmentResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCodeCommitment", arg0, arg1)
+	ret0, _ := ret[0].(*types.GetCodeCommitmentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCodeCommitment indicates an expected call of GetCodeCommitment.
+func (mr *MockKernelServerMockRecorder) GetCodeCommitment(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCodeCommitment", reflect.TypeOf((*MockKernelServer)(nil).GetCodeCommitment), arg0, arg1)
 }
 
 // PartialDecryptTDH2 mocks base method.
-func (m *MockTEEServer) PartialDecryptTDH2(arg0 context.Context, arg1 *types.PartialDecryptTDH2Request) (*types.PartialDecryptTDH2Response, error) {
+func (m *MockKernelServer) PartialDecryptTDH2(arg0 context.Context, arg1 *types.PartialDecryptTDH2Request) (*types.PartialDecryptTDH2Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PartialDecryptTDH2", arg0, arg1)
 	ret0, _ := ret[0].(*types.PartialDecryptTDH2Response)
@@ -241,28 +296,43 @@ func (m *MockTEEServer) PartialDecryptTDH2(arg0 context.Context, arg1 *types.Par
 }
 
 // PartialDecryptTDH2 indicates an expected call of PartialDecryptTDH2.
-func (mr *MockTEEServerMockRecorder) PartialDecryptTDH2(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) PartialDecryptTDH2(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockTEEServer)(nil).PartialDecryptTDH2), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptTDH2", reflect.TypeOf((*MockKernelServer)(nil).PartialDecryptTDH2), arg0, arg1)
 }
 
 // ProcessDeals mocks base method.
-func (m *MockTEEServer) ProcessDeals(arg0 context.Context, arg1 *types.ProcessDealRequest) (*types.ProcessDealResponse, error) {
+func (m *MockKernelServer) ProcessDeals(arg0 context.Context, arg1 *types.ProcessDealsRequest) (*types.ProcessDealsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ProcessDeals", arg0, arg1)
-	ret0, _ := ret[0].(*types.ProcessDealResponse)
+	ret0, _ := ret[0].(*types.ProcessDealsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ProcessDeals indicates an expected call of ProcessDeals.
-func (mr *MockTEEServerMockRecorder) ProcessDeals(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) ProcessDeals(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockTEEServer)(nil).ProcessDeals), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessDeals", reflect.TypeOf((*MockKernelServer)(nil).ProcessDeals), arg0, arg1)
+}
+
+// ProcessJustification mocks base method.
+func (m *MockKernelServer) ProcessJustification(arg0 context.Context, arg1 *types.ProcessJustificationRequest) (*types.ProcessJustificationResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProcessJustification", arg0, arg1)
+	ret0, _ := ret[0].(*types.ProcessJustificationResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ProcessJustification indicates an expected call of ProcessJustification.
+func (mr *MockKernelServerMockRecorder) ProcessJustification(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessJustification", reflect.TypeOf((*MockKernelServer)(nil).ProcessJustification), arg0, arg1)
 }
 
 // ProcessResponses mocks base method.
-func (m *MockTEEServer) ProcessResponses(arg0 context.Context, arg1 *types.ProcessResponsesRequest) (*types.ProcessResponsesResponse, error) {
+func (m *MockKernelServer) ProcessResponses(arg0 context.Context, arg1 *types.ProcessResponsesRequest) (*types.ProcessResponsesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ProcessResponses", arg0, arg1)
 	ret0, _ := ret[0].(*types.ProcessResponsesResponse)
@@ -271,7 +341,7 @@ func (m *MockTEEServer) ProcessResponses(arg0 context.Context, arg1 *types.Proce
 }
 
 // ProcessResponses indicates an expected call of ProcessResponses.
-func (mr *MockTEEServerMockRecorder) ProcessResponses(arg0, arg1 any) *gomock.Call {
+func (mr *MockKernelServerMockRecorder) ProcessResponses(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockTEEServer)(nil).ProcessResponses), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessResponses", reflect.TypeOf((*MockKernelServer)(nil).ProcessResponses), arg0, arg1)
 }

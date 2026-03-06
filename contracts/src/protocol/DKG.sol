@@ -118,6 +118,31 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     }
 
     /*//////////////////////////////////////////////////////////////////////////
+    //                          Upgrade Scheduling                           //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Schedules a story-kernel upgrade at the specified activation height.
+    ///         State management is handled by the consensus layer (CL), so this only emits an event.
+    ///         Not gated by whenNotPaused — upgrade scheduling should work even when paused.
+    /// @param activationHeight The block height at which the upgrade activates
+    /// @param upgradeVersion The version identifier for the upgrade
+    function scheduleUpgrade(uint256 activationHeight, string calldata upgradeVersion) external onlyOwner {
+        require(activationHeight > block.number, "DKG: activation must be in future");
+        require(bytes(upgradeVersion).length > 0, "DKG: upgrade version cannot be empty");
+        emit UpgradeScheduled(activationHeight, upgradeVersion);
+    }
+
+    /// @notice Cancels a pending story-kernel upgrade.
+    ///         State management is handled by the consensus layer (CL), so this only emits an event.
+    ///         The caller must specify the upgradeVersion to confirm which upgrade is being cancelled.
+    ///         Not gated by whenNotPaused — upgrade cancellation should work even when paused.
+    /// @param upgradeVersion The version identifier of the upgrade to cancel
+    function cancelUpgrade(string calldata upgradeVersion) external onlyOwner {
+        require(bytes(upgradeVersion).length > 0, "DKG: upgrade version cannot be empty");
+        emit UpgradeCancelled(upgradeVersion);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
     //                           Authentication Logic                         //
     //////////////////////////////////////////////////////////////////////////*/
 

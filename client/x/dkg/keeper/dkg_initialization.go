@@ -34,17 +34,15 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 	return bondedValidators, nil
 }
 
-func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
+// InitiateDKGRound starts a new DKG round. If isUpgrade is true, the round is marked
+// as an upgrade resharing round (IsResharing=true, IsUpgrade=true) and the current
+// active round is NOT inactive.
+func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	activeValidators, err := k.GetActiveValidators(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get active validators")
-	}
-
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to get params")
 	}
 
 	roundNum := k.getNextRoundNumber(ctx)
@@ -58,12 +56,12 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 		Round:            roundNum,
 		StartBlockHeight: sdkCtx.BlockHeight(),
 		StartBlockHash:   sdkCtx.HeaderHash(),
-		CodeCommitment:   params.CodeCommitment, // latest TEE codeCommitment
-		ActiveValSet:     activeValidators,      // list of active validators' EVM addresses
+		ActiveValSet:     activeValidators,
 		Total:            0,
 		Threshold:        0,
 		Stage:            types.DKGStageRegistration,
 		IsResharing:      isResharing,
+		IsUpgrade:        isUpgrade,
 	}
 
 	if err := k.setDKGNetwork(ctx, &dkgNetwork); err != nil {
@@ -73,6 +71,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 	log.Info(ctx, "Initiated new DKG round",
 		"round", roundNum,
 		"start_block", sdkCtx.BlockHeight(),
+		"is_upgrade", isUpgrade,
 	)
 
 	if err := k.emitBeginDKGInitialization(ctx, &dkgNetwork); err != nil {
@@ -80,7 +79,11 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context) error {
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGInitialization(ctx, &dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGRegistration(asyncCtx, &dkgNetwork)
+		}()
 	}
 
 	return nil
