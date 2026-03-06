@@ -224,6 +224,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(participantsRoot != bytes32(0), "DKG: Participants root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
         require(publicCoeffs.length != 0, "DKG: Public coefficients cannot be empty");
+        require(pubKeyShare.length != 0, "DKG: Public key share cannot be empty");
         require(signature.length != 0, "DKG: Signature cannot be empty");
 
         emit Finalized(
