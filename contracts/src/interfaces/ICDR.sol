@@ -42,8 +42,8 @@ interface ICDR {
     /// @notice Emitted when a vault is read
     /// @param uuid The UUID of the vault
     /// @param encryptedData The encrypted data
-    /// @param recipientPublicKey The public key of the recipient
-    event VaultRead(uint32 uuid, bytes encryptedData, uint256[2] recipientPublicKey);
+    /// @param recipientPublicKey The uncompressed public key of the recipient
+    event VaultRead(uint32 uuid, bytes encryptedData, bytes recipientPublicKey);
 
     /// @notice Emitted when an encrypted partial decryption is submitted
     /// @param enclaveID The ID of the enclave
@@ -92,7 +92,7 @@ interface ICDR {
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for reading
     /// @param recipientPublicKey The public key of the recipient
-    function read(uint32 uuid, bytes memory accessAuxData, uint256[2] calldata recipientPublicKey) external payable;
+    function read(uint32 uuid, bytes memory accessAuxData, bytes calldata recipientPublicKey) external payable;
 
     /// @notice Submits an encrypted partial decryption
     /// @param enclaveID The ID of the enclave

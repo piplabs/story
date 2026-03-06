@@ -162,6 +162,9 @@ func (s msgServer) ExecutionPayload(ctx context.Context, msg *types.MsgExecution
 	if err := s.ProcessDKGEvents(ctx, payload.Number-1, ethLogs); err != nil {
 		return nil, errors.Wrap(err, "deliver dkg-related event logs")
 	}
+	if err := s.ProcessCDREvents(ctx, payload.Number-1, ethLogs); err != nil {
+		return nil, errors.Wrap(err, "deliver cdr-related event logs")
+	}
 
 	if err := s.updateExecutionHead(ctx, payload); err != nil {
 		return nil, errors.Wrap(err, "update execution head")

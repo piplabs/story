@@ -15,10 +15,10 @@ import (
 // KernelRouter manages multiple story-kernel clients, routing requests by code commitment.
 type KernelRouter struct {
 	mu        sync.RWMutex
-	endpoints []string                   // configured endpoints
-	clients   map[string]types.TEEClient // codeCommitmentHex -> TEEClient
-	closers   map[string]io.Closer       // codeCommitmentHex -> underlying gRPC connection
-	ccByEP    map[string]string          // endpoint -> codeCommitmentHex (reverse lookup)
+	endpoints []string                             // configured endpoints
+	clients   map[string]types.KernelServiceClient // codeCommitmentHex -> KernelServiceClient
+	closers   map[string]io.Closer                 // codeCommitmentHex -> underlying gRPC connection
+	ccByEP    map[string]string                    // endpoint -> codeCommitmentHex (reverse lookup)
 }
 
 const maxKernelEndpoints = 2
@@ -32,7 +32,7 @@ func NewKernelRouter(endpoints []string) *KernelRouter {
 
 	return &KernelRouter{
 		endpoints: endpoints,
-		clients:   make(map[string]types.TEEClient),
+		clients:   make(map[string]types.KernelServiceClient),
 		closers:   make(map[string]io.Closer),
 		ccByEP:    make(map[string]string),
 	}
@@ -104,7 +104,7 @@ func (r *KernelRouter) RegisterClientForEndpoint(endpoint string, codeCommitment
 }
 
 // RegisterClient maps a code commitment to a kernel client.
-func (r *KernelRouter) RegisterClient(codeCommitment []byte, client types.TEEClient) {
+func (r *KernelRouter) RegisterClient(codeCommitment []byte, client types.KernelServiceClient) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -114,7 +114,7 @@ func (r *KernelRouter) RegisterClient(codeCommitment []byte, client types.TEECli
 
 // GetClient returns the kernel client for the given code commitment.
 // Returns an error if the exact code commitment is not found — no fallback.
-func (r *KernelRouter) GetClient(codeCommitment []byte) (types.TEEClient, error) {
+func (r *KernelRouter) GetClient(codeCommitment []byte) (types.KernelServiceClient, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

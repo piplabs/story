@@ -177,24 +177,20 @@ message Complaint {
 }
 
 message DecryptRequest {
-  string requester = 1 [
-    (gogoproto.moretags) = "yaml:\"requester\""
-  ];
-
-  uint32 round = 2 [
+  uint32 round = 1 [
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes ciphertext = 3 [
+  bytes ciphertext = 2 [
     (gogoproto.moretags) = "yaml:\"ciphertext\""
   ];
 
-  bytes label = 4 [
+  bytes label = 3 [
     (gogoproto.moretags) = "yaml:\"label\""
   ];
 
   // secp256k1 uncompressed requester pubkey (65 bytes)
-  bytes requester_pub_key = 5 [
+  bytes requester_pub_key = 4 [
     (gogoproto.moretags) = "yaml:\"requester_pub_key\""
   ];
 }

@@ -151,7 +151,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     function read(
         uint32 uuid,
         bytes memory accessAuxData,
-        uint256[2] calldata recipientPublicKey
+        bytes calldata recipientPublicKey
     ) external payable nonReentrant whenNotPaused {
         CDRStorage storage $ = _getCDRStorage();
         // check if the vault has data to read

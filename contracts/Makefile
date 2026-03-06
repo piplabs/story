@@ -21,7 +21,7 @@ build: version ## Build contracts.
 test: version ## Run tests.
 	forge test
 
-CONTRACTS := IPTokenStaking UpgradeEntrypoint UBIPool Create3 DKG
+CONTRACTS := IPTokenStaking UpgradeEntrypoint UBIPool Create3 DKG CDR
 
 .PHONY: bindings
 bindings: check-abigen-version build ## Generate golang contract bindings.

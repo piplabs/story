@@ -34,6 +34,9 @@ type ContractClient struct {
 	dkgContract     *bindings.DKG
 	dkgContractAbi  *abi.ABI
 	dkgContractAddr common.Address
+	cdrContract     *bindings.CDR
+	cdrContractAbi  *abi.ABI
+	cdrContractAddr common.Address
 	privateKey      *ecdsa.PrivateKey
 	fromAddress     common.Address
 	chainID         *big.Int
@@ -54,8 +57,8 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 		return nil, errors.Wrap(err, "failed to connect to Ethereum client")
 	}
 
-	contractAddr := common.HexToAddress(predeploys.DKG)
-	dkgContract, err := bindings.NewDKG(contractAddr, ethClient)
+	dkgContractAddr := common.HexToAddress(predeploys.DKG)
+	dkgContract, err := bindings.NewDKG(dkgContractAddr, ethClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create DKG contract instance")
 	}
@@ -63,6 +66,17 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	dkgContractAbi, err := bindings.DKGMetaData.GetAbi()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get DKG contract ABI")
+	}
+
+	cdrContractAddr := common.HexToAddress(predeploys.CDR)
+	cdrContract, err := bindings.NewCDR(cdrContractAddr, ethClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create CDR contract instance")
+	}
+
+	cdrContractAbi, err := bindings.CDRMetaData.GetAbi()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get CDR contract ABI")
 	}
 
 	privateKey, err := crypto.ToECDSA(privKey)
@@ -82,14 +96,18 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 		ethClient:       ethClient,
 		dkgContract:     dkgContract,
 		dkgContractAbi:  dkgContractAbi,
-		dkgContractAddr: contractAddr,
+		dkgContractAddr: dkgContractAddr,
+		cdrContract:     cdrContract,
+		cdrContractAbi:  cdrContractAbi,
+		cdrContractAddr: cdrContractAddr,
 		privateKey:      privateKey,
 		fromAddress:     fromAddress,
 		chainID:         chainID,
 	}
 
 	log.Info(ctx, "Created contract client",
-		"dkg_contract_address", contractAddr.Hex(),
+		"dkg_contract_address", dkgContractAddr.Hex(),
+		"cdr_contract_address", cdrContractAddr.Hex(),
 		"from_address", fromAddress.Hex(),
 		"chain_id", chainID,
 	)
@@ -129,7 +147,7 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, enclaveType
 		return nil, errors.Wrap(err, "failed to pack register call data")
 	}
 
-	return c.sendWithRetry(ctx, "Register", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	return c.sendWithRetry(ctx, "Register", c.dkgContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.dkgContract.Register(auth, enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
 	})
 }
@@ -163,13 +181,13 @@ func (c *ContractClient) Finalize(
 		return nil, errors.Wrap(err, "failed to pack finalize call data")
 	}
 
-	return c.sendWithRetry(ctx, "Finalize", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	return c.sendWithRetry(ctx, "Finalize", c.dkgContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.dkgContract.Finalize(auth, round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	})
 }
 
-// SubmitPartialDecryption calls the submitPartialDecryption contract method.
-func (c *ContractClient) SubmitPartialDecryption(
+// SubmitEncryptedPartialDecryption calls the submitEncryptedPartialDecryption contract method.
+func (c *ContractClient) SubmitEncryptedPartialDecryption(
 	ctx context.Context,
 	round uint32,
 	codeCommitment []byte,
@@ -179,7 +197,7 @@ func (c *ContractClient) SubmitPartialDecryption(
 	pubShare []byte,
 	label []byte,
 ) (*types.Receipt, error) {
-	log.Info(ctx, "Calling submitPartialDecryption contract method",
+	log.Info(ctx, "Calling submitEncryptedPartialDecryption contract method",
 		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"pid", pid,
@@ -194,14 +212,14 @@ func (c *ContractClient) SubmitPartialDecryption(
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack submitPartialDecryption call data")
+		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
 
-	return c.sendWithRetry(ctx, "SubmitPartialDecryption", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
-		return bound.Transact(auth, "submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		bound := bind.NewBoundContract(c.cdrContractAddr, *c.cdrContractAbi, c.ethClient, c.ethClient, c.ethClient)
+		return bound.Transact(auth, "submitEncryptedPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label)
 	})
 }
 
@@ -232,10 +250,10 @@ func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64
 }
 
 // estimateGasWithBuffer estimates gas for a contract transaction and adds a safety buffer.
-func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, data []byte) (uint64, error) {
+func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, to common.Address, data []byte) (uint64, error) {
 	msg := ethereum.CallMsg{
 		From: c.fromAddress,
-		To:   &c.dkgContractAddr,
+		To:   &to,
 		Data: data,
 	}
 
@@ -267,6 +285,7 @@ func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Trans
 func (c *ContractClient) sendWithRetry(
 	ctx context.Context,
 	methodName string,
+	to common.Address,
 	callData []byte,
 	sendTx func(auth *bind.TransactOpts) (*types.Transaction, error),
 ) (*types.Receipt, error) {
@@ -277,7 +296,7 @@ func (c *ContractClient) sendWithRetry(
 	)
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		gasLimit, err = c.estimateGasWithBuffer(ctx, callData)
+		gasLimit, err = c.estimateGasWithBuffer(ctx, to, callData)
 		if err != nil {
 			return nil, err
 		}

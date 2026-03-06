@@ -39,6 +39,7 @@ const (
 
 	// Deployed contracts.
 	DKG = "0xcccccc0000000000000000000000000000000004"
+	CDR = "0xcccccc0000000000000000000000000000000005"
 )
 
 var (

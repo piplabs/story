@@ -19,6 +19,7 @@ import (
 	types0 "github.com/cosmos/cosmos-sdk/types"
 	common "github.com/ethereum/go-ethereum/common"
 	types1 "github.com/ethereum/go-ethereum/core/types"
+	types2 "github.com/piplabs/story/client/x/dkg/types"
 	bindings "github.com/piplabs/story/contracts/bindings"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -346,6 +347,21 @@ func (mr *MockDKGKeeperMockRecorder) Finalized(ctx, round, msgSender, codeCommit
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Finalized", reflect.TypeOf((*MockDKGKeeper)(nil).Finalized), ctx, round, msgSender, codeCommitment, participantsRoot, signature, globalPubKey, publicCoeffs, pubKeyShare)
 }
 
+// GetLatestActiveRound mocks base method.
+func (m *MockDKGKeeper) GetLatestActiveRound(ctx context.Context) (*types2.DKGNetwork, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLatestActiveRound", ctx)
+	ret0, _ := ret[0].(*types2.DKGNetwork)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLatestActiveRound indicates an expected call of GetLatestActiveRound.
+func (mr *MockDKGKeeperMockRecorder) GetLatestActiveRound(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestActiveRound", reflect.TypeOf((*MockDKGKeeper)(nil).GetLatestActiveRound), ctx)
+}
+
 // Registered mocks base method.
 func (m *MockDKGKeeper) Registered(ctx context.Context, msgSender common.Address, codeCommitment [32]byte, round uint32, startBlockHeight *big.Int, startBlockHash, enclaveType [32]byte, dkgPubKey, commPubKey, enclaveReport []byte) error {
 	m.ctrl.T.Helper()
@@ -403,17 +419,17 @@ func (mr *MockDKGKeeperMockRecorder) SetOperationalThreshold(ctx, value any) *go
 }
 
 // ThresholdDecryptRequested mocks base method.
-func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, requesterPubKey, ciphertext, label []byte) error {
+func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey, ciphertext []byte, label [32]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, requester, round, requesterPubKey, ciphertext, label)
+	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, round, requesterPubKey, ciphertext, label)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ThresholdDecryptRequested indicates an expected call of ThresholdDecryptRequested.
-func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, requester, round, requesterPubKey, ciphertext, label any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, round, requesterPubKey, ciphertext, label any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, requester, round, requesterPubKey, ciphertext, label)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, round, requesterPubKey, ciphertext, label)
 }
 
 // UpgradeCancelled mocks base method.

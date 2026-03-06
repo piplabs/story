@@ -13,5 +13,4 @@ var (
 	DKGMinReqRegisteredParticipantsSetEvent = mustGetEvent(dkgContractABI, "MinReqRegisteredParticipantsSet")
 	DKGMinReqFinalizedParticipantsSetEvent  = mustGetEvent(dkgContractABI, "MinReqFinalizedParticipantsSet")
 	DKGOperationalThresholdSetEvent         = mustGetEvent(dkgContractABI, "OperationalThresholdSet")
-	DKGThresholdDecryptRequestedEvent       = mustGetEvent(dkgContractABI, "ThresholdDecryptRequested")
 )
