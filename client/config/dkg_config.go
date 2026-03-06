@@ -13,8 +13,8 @@ type DKGConfig struct {
 	// Enable enables or disables the DKG client
 	Enable bool
 
-	// TEEEndpoint is the URL/address of the TEE client
-	TEEEndpoint string
+	// KernelEndpoints is the list of story-kernel (TEE) endpoint addresses
+	KernelEndpoints []string
 
 	// EngineRPCEndpoint is the RPC endpoint of the execution layer
 	EngineRPCEndpoint string
@@ -26,7 +26,7 @@ type DKGConfig struct {
 func DefaultDKGConfig() DKGConfig {
 	return DKGConfig{
 		Enable:            false,
-		TEEEndpoint:       "127.0.0.1:50051",
+		KernelEndpoints:   []string{"127.0.0.1:50051"},
 		EngineRPCEndpoint: "http://127.0.0.1:8545",
 		EnclaveType:       DefaultEnclaveType,
 	}
@@ -34,7 +34,7 @@ func DefaultDKGConfig() DKGConfig {
 
 func BindDKGFlags(flags *pflag.FlagSet, cfg *DKGConfig) {
 	flags.BoolVar(&cfg.Enable, "dkg-enable", cfg.Enable, "DKG client is enabled or not")
-	flags.StringVar(&cfg.TEEEndpoint, "dkg-tee-endpoint", cfg.TEEEndpoint, "The endpoint of TEE client for DKG")
+	flags.StringSliceVar(&cfg.KernelEndpoints, "dkg-kernel-endpoints", cfg.KernelEndpoints, "Comma-separated list of story-kernel (TEE) endpoints for DKG")
 	flags.StringVar(&cfg.EngineRPCEndpoint, "dkg-engine-rpc-endpoint", cfg.EngineRPCEndpoint, "The RPC endpoint of execution layer")
 	flags.Uint64Var(&cfg.EnclaveType, "dkg-enc-type", cfg.EnclaveType, "TEE enclave type identifier (e.g. 1 for SGX)")
 }
@@ -44,8 +44,12 @@ func (c *DKGConfig) Validate() error {
 		return nil
 	}
 
-	if c.TEEEndpoint == "" {
-		return errors.New("tee endpoint should not be empty")
+	if len(c.KernelEndpoints) == 0 {
+		return errors.New("at least one kernel endpoint is required")
+	}
+
+	if len(c.KernelEndpoints) > 2 {
+		return errors.New("at most 2 kernel endpoints are supported (old + new binary for upgrade)")
 	}
 
 	if c.EngineRPCEndpoint == "" {

@@ -131,8 +131,8 @@ headers = "{{ .Tracer.Headers }}"
 # Enable defines if the DKG client is enabled or not.
 enable = {{ .DKG.Enable }}
 
-# The endpoint of TEE client.
-tee-endpoint = "{{ .DKG.TEEEndpoint }}"
+# Comma-separated list of story-kernel (TEE) endpoints for dual-client operation during upgrades.
+kernel-endpoints = [{{ range $i, $ep := .DKG.KernelEndpoints }}{{ if $i }}, {{ end }}"{{ $ep }}"{{ end }}]
 
 # The RPC endpoint of execution layer
 engine-rpc-endpoint = "{{ .DKG.EngineRPCEndpoint }}"

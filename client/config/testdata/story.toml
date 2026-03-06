@@ -127,8 +127,8 @@ headers = ""
 # Enable defines if the DKG client is enabled or not.
 enable = false
 
-# The endpoint of TEE client.
-tee-endpoint = "127.0.0.1:50051"
+# Comma-separated list of story-kernel (TEE) endpoints for dual-client operation during upgrades.
+kernel-endpoints = ["127.0.0.1:50051"]
 
 # The RPC endpoint of execution layer
 engine-rpc-endpoint = "http://127.0.0.1:8545"

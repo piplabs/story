@@ -91,7 +91,6 @@ func TestNewParams_WithDkgCommitteeRewardPortion(t *testing.T) {
 		types.DefaultDkgDealingPeriod,
 		types.DefaultDkgFinalizationPeriod,
 		types.DefaultDkgActivePeriod,
-		types.DefaultDkgComplaintPeriod,
 		portion,
 		types.DefaultMinReqRegisteredParticipants,
 		types.DefaultMinReqFinalizedParticipants,
@@ -278,7 +277,6 @@ func TestCalculateThreshold(t *testing.T) {
 func TestParams_Validate_NewParams(t *testing.T) {
 	// Test that setting invalid new params triggers validation errors
 	params := types.DefaultParams()
-	params.CodeCommitment = make([]byte, 32) // required for full validation
 
 	params.MinReqRegisteredParticipants = 0
 	err := params.Validate()

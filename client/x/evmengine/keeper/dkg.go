@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"strconv"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"strconv"
 
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
@@ -31,12 +33,6 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				continue
 			}
 
-		case types.DKGThresholdDecryptRequestedEvent.ID:
-			if err := k.ProcessDKGThresholdDecryptRequested(ctx, ethlog); err != nil {
-				clog.Error(ctx, "Failed to process DKGThresholdDecryptRequested", err)
-				continue
-			}
-
 		case types.DKGMinReqRegisteredParticipantsSetEvent.ID:
 			if err := k.ProcessDKGMinReqRegisteredParticipantsSet(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGMinReqRegisteredParticipantsSet", err)
@@ -52,6 +48,24 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 		case types.DKGOperationalThresholdSetEvent.ID:
 			if err := k.ProcessDKGOperationalThresholdSet(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process DKGOperationalThresholdSet", err)
+				continue
+			}
+
+		case types.DKGUpgradeScheduledEvent.ID:
+			if err := k.ProcessDKGUpgradeScheduled(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process DKGUpgradeScheduled", err)
+				continue
+			}
+
+		case types.DKGUpgradeCancelledEvent.ID:
+			if err := k.ProcessDKGUpgradeCancelled(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process DKGUpgradeCancelled", err)
+				continue
+			}
+
+		case types.DKGThresholdDecryptRequestedEvent.ID:
+			if err := k.ProcessDKGThresholdDecryptRequested(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process DKGThresholdDecryptRequested", err)
 				continue
 			}
 		}
@@ -105,7 +119,7 @@ func (k *Keeper) ProcessDKGRegistered(ctx context.Context, ethlog *ethtypes.Log)
 		})
 	}()
 
-	if err = k.dkgKeeper.Registered(cachedCtx, ev.ValidatorAddr, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.DkgPubKey, ev.EnclaveCommKey, ev.EnclaveReport); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.Registered(cachedCtx, ev.ValidatorAddr, ev.CodeCommitment, ev.Round, ev.StartBlockHeight, ev.StartBlockHash, ev.EnclaveType, ev.DkgPubKey, ev.EnclaveCommKey, ev.EnclaveReport); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "initialize DKG")
@@ -301,6 +315,114 @@ func (k *Keeper) ProcessDKGOperationalThresholdSet(ctx context.Context, ethlog *
 	return nil
 }
 
+// ProcessDKGUpgradeScheduled handles UpgradeScheduled events emitted by the DKG contract.
+func (k *Keeper) ProcessDKGUpgradeScheduled(ctx context.Context, ethlog *ethtypes.Log) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
+	ev, err := k.dkgContract.ParseUpgradeScheduled(*ethlog)
+	if err != nil {
+		return errors.Wrap(err, "parse UpgradeScheduled log")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
+
+		var e sdk.Event
+		if err == nil {
+			writeCache()
+			e = sdk.NewEvent(types.EventTypeDKGUpgradeScheduledSuccess)
+		} else {
+			e = sdk.NewEvent(
+				types.EventTypeDKGUpgradeScheduledFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGActivationHeight, ev.ActivationHeight.String()),
+				sdk.NewAttribute(types.AttributeKeyDKGUpgradeVersion, ev.UpgradeVersion),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ev.Raw.TxHash.Bytes())),
+			),
+		})
+	}()
+
+	// Validate activationHeight is positive and fits safely within int64 (Cosmos SDK block height type).
+	if !ev.ActivationHeight.IsInt64() || ev.ActivationHeight.Int64() <= 0 {
+		err = errors.New("activation height must be positive and fit within int64",
+			"activation_height", ev.ActivationHeight.String(),
+			"max_int64", math.MaxInt64,
+		)
+
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	}
+
+	// Activation height must be in the future relative to the current block.
+	if ev.ActivationHeight.Int64() <= sdkCtx.BlockHeight() {
+		err = errors.New("activation height must be greater than current block height",
+			"activation_height", ev.ActivationHeight.Int64(),
+			"current_block_height", sdkCtx.BlockHeight(),
+		)
+
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	}
+
+	if err = k.dkgKeeper.UpgradeScheduled(cachedCtx, ev.ActivationHeight.Int64(), ev.UpgradeVersion); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
+		return errors.Wrap(err, "schedule TEE upgrade")
+	}
+
+	return nil
+}
+
+// ProcessDKGUpgradeCancelled handles UpgradeCancelled events emitted by the DKG contract.
+func (k *Keeper) ProcessDKGUpgradeCancelled(ctx context.Context, ethlog *ethtypes.Log) (err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
+	ev, parseErr := k.dkgContract.ParseUpgradeCancelled(*ethlog)
+	if parseErr != nil {
+		return errors.Wrap(parseErr, "parse UpgradeCancelled log")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.WrapErrWithCode(errors.UnexpectedCondition, fmt.Errorf("panic caused by %v", r))
+		}
+
+		var e sdk.Event
+		if err == nil {
+			writeCache()
+			e = sdk.NewEvent(types.EventTypeDKGUpgradeCancelledSuccess)
+		} else {
+			e = sdk.NewEvent(
+				types.EventTypeDKGUpgradeCancelledFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ethlog.TxHash.Bytes())),
+			),
+		})
+	}()
+
+	if err = k.dkgKeeper.UpgradeCancelled(cachedCtx, ev.UpgradeVersion); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+		return errors.WrapErrWithCode(errors.InvalidRequest, err)
+	} else if err != nil {
+		return errors.Wrap(err, "cancel TEE upgrade")
+	}
+
+	return nil
+}
+
 // ProcessDKGThresholdDecryptRequested handles ThresholdDecryptRequested events emitted by the DKG contract.
 func (k *Keeper) ProcessDKGThresholdDecryptRequested(ctx context.Context, ethlog *ethtypes.Log) (err error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -343,7 +465,7 @@ func (k *Keeper) ProcessDKGThresholdDecryptRequested(ctx context.Context, ethlog
 		})
 	}()
 
-	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, requester, ev.Round, ev.CodeCommitment, ev.RequesterPubKey, ev.Ciphertext, ev.Label); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, requester, ev.Round, ev.RequesterPubKey, ev.Ciphertext, ev.Label); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "handle ThresholdDecryptRequested")

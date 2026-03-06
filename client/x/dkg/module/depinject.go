@@ -37,7 +37,7 @@ type ModuleInputs struct {
 	ValStore      *skeeper.Keeper
 
 	// These two clients can be nil depending on whether the DKG service is enabled.
-	DKGTEEClient      types.TEEClient        `optional:"true"`
+	DKGKernelRouter   *keeper.KernelRouter   `optional:"true"`
 	DKGContractClient *keeper.ContractClient `optional:"true"`
 }
 
@@ -63,7 +63,7 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.DistKeeper,
 		in.StakingKeeper,
 		in.ValStore,
-		in.DKGTEEClient,
+		in.DKGKernelRouter,
 		in.DKGContractClient,
 		authority.String(),
 	)

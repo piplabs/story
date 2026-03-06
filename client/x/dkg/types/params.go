@@ -13,7 +13,6 @@ const (
 	DefaultDkgDealingPeriod      uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgFinalizationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
 	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
-	DefaultDkgComplaintPeriod    uint32 = 2 * 60 * 60       // 2 hours
 
 	ExpectedCodeCommitmentSize int = 32 // 256-bit digest (32 bytes)
 
@@ -34,7 +33,6 @@ func NewParams(
 	dealingPeriod uint32,
 	finalizationPeriod uint32,
 	activePeriod uint32,
-	complaintPeriod uint32,
 	dkgCommitteeRewardPortion math.LegacyDec,
 	minReqRegisteredParticipants uint32,
 	minReqFinalizedParticipants uint32,
@@ -45,7 +43,6 @@ func NewParams(
 		DealingPeriod:                dealingPeriod,
 		FinalizationPeriod:           finalizationPeriod,
 		ActivePeriod:                 activePeriod,
-		ComplaintPeriod:              complaintPeriod,
 		DkgCommitteeRewardPortion:    dkgCommitteeRewardPortion,
 		MinReqRegisteredParticipants: minReqRegisteredParticipants,
 		MinReqFinalizedParticipants:  minReqFinalizedParticipants,
@@ -60,7 +57,6 @@ func DefaultParams() Params {
 		DefaultDkgDealingPeriod,
 		DefaultDkgFinalizationPeriod,
 		DefaultDkgActivePeriod,
-		DefaultDkgComplaintPeriod,
 		DefaultDkgCommitteeRewardPortion,
 		DefaultMinReqRegisteredParticipants,
 		DefaultMinReqFinalizedParticipants,
@@ -86,10 +82,6 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if err := ValidateComplaintPeriod(p.ComplaintPeriod); err != nil {
-		return err
-	}
-
 	if err := ValidateDkgCommitteeRewardPortion(p.DkgCommitteeRewardPortion); err != nil {
 		return err
 	}
@@ -106,7 +98,7 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	return ValidateCodeCommitment(p.CodeCommitment)
+	return nil
 }
 
 func ValidateRegistrationPeriod(registrationPeriod uint32) error {

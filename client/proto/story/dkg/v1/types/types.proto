@@ -26,49 +26,49 @@ enum DKGStage {
 }
 
 message DKGNetwork {
-  bytes code_commitment = 1 [
-    (gogoproto.moretags) = "yaml:\"code_commitment\""
-  ];
-
-  uint32 round = 2 [
+  uint32 round = 1 [
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  int64 start_block_height = 3 [
+  int64 start_block_height = 2 [
     (gogoproto.moretags) = "yaml:\"start_block_height\""
   ];
 
-  bytes start_block_hash = 4 [
+  bytes start_block_hash = 3 [
     (gogoproto.moretags) = "yaml:\"start_block_hash\""
   ];
 
   // list of active validators' evm addresses
-  repeated string active_val_set = 5 [
+  repeated string active_val_set = 4 [
     (gogoproto.moretags) = "yaml:\"active_val_set\""
   ];
 
-  uint32 total = 6 [
+  uint32 total = 5 [
     (gogoproto.moretags) = "yaml:\"total\""
   ];
 
-  uint32 threshold = 7 [
+  uint32 threshold = 6 [
     (gogoproto.moretags) = "yaml:\"threshold\""
   ];
 
-  DKGStage stage = 8 [
+  DKGStage stage = 7 [
     (gogoproto.moretags) = "yaml:\"stage\""
   ];
 
-  bool is_resharing = 9 [
+  bool is_resharing = 8 [
     (gogoproto.moretags) = "yaml:\"is_resharing\""
   ];
 
-  bytes global_public_key = 10 [
+  bytes global_public_key = 9 [
     (gogoproto.moretags) = "yaml:\"global_public_key\""
   ];
 
-  repeated bytes public_coeffs = 11 [
+  repeated bytes public_coeffs = 10 [
     (gogoproto.moretags) = "yaml:\"public_coeffs\""
+  ];
+
+  bool is_upgrade = 11 [
+    (gogoproto.moretags) = "yaml:\"is_upgrade\""
   ];
 }
 
@@ -104,15 +104,27 @@ message DKGRegistration {
   DKGRegStatus status = 8 [
     (gogoproto.moretags) = "yaml:\"status\""
   ];
+
+  bytes code_commitment = 9 [
+    (gogoproto.moretags) = "yaml:\"code_commitment\""
+  ];
+
+  bytes enclave_type = 10 [
+    (gogoproto.moretags) = "yaml:\"enclave_type\""
+  ];
 }
 
-message TEEUpgradeInfo {
-  bytes code_commitment = 1 [
-    (gogoproto.moretags) = "yaml:\"code_commitment\""
+message KernelUpgradeInfo {
+  string upgrade_version = 1 [
+    (gogoproto.moretags) = "yaml:\"upgrade_version\""
   ];
 
   int64 activation_height = 2 [
     (gogoproto.moretags) = "yaml:\"activation_height\""
+  ];
+
+  bool is_activated = 3 [
+    (gogoproto.moretags) = "yaml:\"is_activated\""
   ];
 }
 
@@ -173,20 +185,16 @@ message DecryptRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
-  bytes code_commitment = 3 [
-    (gogoproto.moretags) = "yaml:\"code_commitment\""
-  ];
-
-  bytes ciphertext = 4 [
+  bytes ciphertext = 3 [
     (gogoproto.moretags) = "yaml:\"ciphertext\""
   ];
 
-  bytes label = 5 [
+  bytes label = 4 [
     (gogoproto.moretags) = "yaml:\"label\""
   ];
 
   // secp256k1 uncompressed requester pubkey (65 bytes)
-  bytes requester_pub_key = 6 [
+  bytes requester_pub_key = 5 [
     (gogoproto.moretags) = "yaml:\"requester_pub_key\""
   ];
 }

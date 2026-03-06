@@ -75,17 +75,22 @@ type DKGSession struct {
 	Complaints    []Complaint       `json:"complaints,omitempty"`
 	IsFinalized   bool              `json:"is_finalized"`
 	IsResharing   bool              `json:"is_resharing"`
+	IsUpgrade     bool              `json:"is_upgrade"`
+
+	// OldCodeCommitment holds the previous active round's code commitment during upgrade resharing.
+	// Dealers use this to route TEE calls to the old binary (which holds the sealed key shares).
+	// Empty for non-upgrade rounds.
+	OldCodeCommitment []byte `json:"old_code_commitment,omitempty"`
 
 	// Pending threshold decrypt requests (from contract events)
 	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
-func NewDKGSession(codeCommitment []byte, round uint32, activeValidators []string, isResharing bool, enclaveType [32]byte) *DKGSession {
+func NewDKGSession(round uint32, activeValidators []string, isResharing bool, enclaveType [32]byte) *DKGSession {
 	now := time.Now()
 
 	return &DKGSession{
-		CodeCommitment:   codeCommitment,
 		Round:            round,
 		GlobalPubKey:     make([]byte, 0),
 		CommPubKey:       make([]byte, 0),
@@ -111,12 +116,12 @@ func (s *DKGSession) GetCodeCommitmentString() string {
 	return hex.EncodeToString(s.CodeCommitment)
 }
 
-// GetSessionKey returns a unique key (codeCommitment_round) for this DKG session.
+// GetSessionKey returns a unique key (round) for this DKG session.
 func (s *DKGSession) GetSessionKey() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return fmt.Sprintf("%s_%d", s.GetCodeCommitmentString(), s.Round)
+	return fmt.Sprintf("%d", s.Round)
 }
 
 // UpdatePhase updates the session phase and timestamp.
@@ -134,5 +139,25 @@ func (s *DKGSession) AddDecryptRequest(req DecryptRequest) {
 	defer s.mu.Unlock()
 
 	s.DecryptRequests = append(s.DecryptRequests, req)
+	s.LastUpdate = time.Now()
+}
+
+// GetDecryptRequests returns a copy of the pending decrypt requests.
+func (s *DKGSession) GetDecryptRequests() []DecryptRequest {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	cp := make([]DecryptRequest, len(s.DecryptRequests))
+	copy(cp, s.DecryptRequests)
+
+	return cp
+}
+
+// SetDecryptRequests replaces the decrypt requests slice (used after processing to retain only failed requests).
+func (s *DKGSession) SetDecryptRequests(remaining []DecryptRequest) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.DecryptRequests = remaining
 	s.LastUpdate = time.Now()
 }

@@ -52,5 +52,5 @@ func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNet
 		return errors.Wrap(err, "failed to mark the current round as failed")
 	}
 
-	return k.InitiateDKGRound(ctx)
+	return k.InitiateDKGRound(ctx, false)
 }

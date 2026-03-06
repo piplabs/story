@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -25,7 +25,7 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
-	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.CodeCommitment, latestRound.Round, types.DKGRegStatusFinalized)
+	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
 	}
@@ -73,6 +73,13 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to set the latest active round of DKG")
 	}
 
+	// If this was an upgrade round, log that the upgrade is complete
+	if latestRound.IsUpgrade {
+		log.Info(ctx, "Upgrade resharing round completed, new TEE binary is now active",
+			"round", latestRound.Round,
+		)
+	}
+
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
 		go func() {
@@ -81,7 +88,7 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		}()
 	}
 
-	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "code_commitment", hex.EncodeToString(latestRound.CodeCommitment))
+	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round)
 
 	return nil
 }

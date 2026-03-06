@@ -19,7 +19,7 @@ import (
 type StateManager struct {
 	dataDir  string
 	mu       sync.RWMutex
-	sessions map[string]*types.DKGSession // keyed by session key (codeCommitment_round)
+	sessions map[string]*types.DKGSession // keyed by session key (round)
 }
 
 // NewStateManager creates a new state manager.
@@ -73,12 +73,12 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	}
 }
 
-// GetSession retrieves a DKG session by its code_commitment and round.
-func (sm *StateManager) GetSession(codeCommitment []byte, round uint32) (*types.DKGSession, error) {
+// GetSession retrieves a DKG session by round.
+func (sm *StateManager) GetSession(round uint32) (*types.DKGSession, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
-	sessionKey := fmt.Sprintf("%x_%d", codeCommitment, round)
+	sessionKey := fmt.Sprintf("%d", round)
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
 		return nil, errors.New("session not found", "session_key", sessionKey)
@@ -134,11 +134,11 @@ func (sm *StateManager) ListSessions() []*types.DKGSession {
 }
 
 // DeleteSession removes a DKG session.
-func (sm *StateManager) DeleteSession(ctx context.Context, codeCommitment []byte, round uint32) error {
+func (sm *StateManager) DeleteSession(ctx context.Context, round uint32) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	sessionKey := fmt.Sprintf("%x_%d", codeCommitment, round)
+	sessionKey := fmt.Sprintf("%d", round)
 
 	session, exists := sm.sessions[sessionKey]
 	if !exists {
