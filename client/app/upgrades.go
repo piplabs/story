@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
+	"sort"
 
+	"cosmossdk.io/store/rootmulti"
 	storetypes "cosmossdk.io/store/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
+	"github.com/piplabs/story/client/app/upgrades/v_2_0_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -28,6 +31,7 @@ var (
 		polybius.Upgrade,
 		terence.Upgrade,
 		horace.Upgrade,
+		v_2_0_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -36,6 +40,7 @@ var (
 		polybius.Fork,
 		terence.Fork,
 		horace.Fork,
+		v_2_0_0.Fork,
 	}
 )
 
@@ -75,12 +80,76 @@ func (a *App) setupUpgradeStoreLoaders() {
 }
 
 // UpgradeStoreLoader returns store loader including all upgrades.
+// For future upgrades (height > current), it pre-adds new stores so the
+// binary can start before the upgrade height without a store version
+// mismatch. Note: pre-adding stores changes the app hash at the next
+// commit, so ALL validators must switch to the new binary together.
 func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 	return func(ms storetypes.CommitMultiStore) error {
-		if storeUpgrades, ok := storeUpgradesMap[ms.LastCommitID().Version+1]; ok {
-			if len(storeUpgrades.Renamed) > 0 || len(storeUpgrades.Deleted) > 0 || len(storeUpgrades.Added) > 0 {
-				return ms.LoadLatestVersionAndUpgrade(&storeUpgrades)
+		lastVersion := ms.LastCommitID().Version
+		nextVersion := lastVersion + 1
+
+		// On a fresh genesis chain (no commits yet), all modules are already
+		// registered and their stores are mounted. Applying store upgrades
+		// would conflict with existing stores (e.g., trying to add DKG store
+		// that already exists from genesis). Skip the upgrade loader entirely.
+		if lastVersion == 0 {
+			return baseapp.DefaultStoreLoader(ms)
+		}
+
+		// Build set of already-mounted store keys. Stores registered from
+		// genesis (via app_config.go) already exist and must NOT be re-added
+		// through StoreUpgrades — doing so would set an incorrect initial
+		// version and cause "initial version set to X, but found earlier
+		// version Y" errors on restart.
+		mountedStores := make(map[string]bool)
+		if rms, ok := ms.(*rootmulti.Store); ok {
+			for name := range rms.StoreKeysByName() {
+				mountedStores[name] = true
 			}
+		} else {
+			fmt.Println("WARN: CommitMultiStore is not *rootmulti.Store, cannot detect already-mounted stores")
+		}
+
+		// Sort heights for deterministic iteration order across all validators.
+		heights := make([]int64, 0, len(storeUpgradesMap))
+		for h := range storeUpgradesMap {
+			heights = append(heights, h)
+		}
+		sort.Slice(heights, func(i, j int) bool { return heights[i] < heights[j] })
+
+		var merged storetypes.StoreUpgrades
+		addedSet := make(map[string]bool)
+
+		for _, height := range heights {
+			su := storeUpgradesMap[height]
+			if height == nextVersion {
+				// Exact upgrade height: apply all operations.
+				for _, key := range su.Added {
+					if !addedSet[key] && !mountedStores[key] {
+						merged.Added = append(merged.Added, key)
+						addedSet[key] = true
+					}
+				}
+				merged.Deleted = append(merged.Deleted, su.Deleted...)
+				merged.Renamed = append(merged.Renamed, su.Renamed...)
+			} else if height > nextVersion {
+				// Future upgrade only: pre-add new stores so the binary
+				// can load without crashing on missing stores. This
+				// covers rolling upgrades and late-joining validators.
+				for _, key := range su.Added {
+					if !addedSet[key] && !mountedStores[key] {
+						merged.Added = append(merged.Added, key)
+						addedSet[key] = true
+					}
+				}
+			}
+			// Past upgrades (height <= lastVersion) are skipped — those
+			// stores were already added during the original upgrade.
+		}
+
+		if len(merged.Renamed) > 0 || len(merged.Deleted) > 0 || len(merged.Added) > 0 {
+			return ms.LoadLatestVersionAndUpgrade(&merged)
 		}
 
 		return baseapp.DefaultStoreLoader(ms)
@@ -145,6 +214,9 @@ func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64)
 
 	case netconf.Horace:
 		return horace.GetUpgradeHeight(ctx)
+
+	case netconf.V200:
+		return v_2_0_0.GetUpgradeHeight(ctx)
 
 	default:
 		// no dynamic resolver → use fallback (static height)

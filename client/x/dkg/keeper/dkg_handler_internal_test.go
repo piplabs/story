@@ -740,7 +740,7 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 	ephemeralPubKey := []byte("ephemeral-pub-key")
 	pubShare := []byte("pub-share")
 
-	validSig := signPartialDecryptionData(t, sigKey, codeCommitment, round, encryptedPartial, ephemeralPubKey, pubShare)
+	validSig := signPartialDecryptionData(t, sigKey, round, encryptedPartial, ephemeralPubKey, pubShare)
 
 	tcs := []struct {
 		name             string
@@ -855,13 +855,13 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 	}
 }
 
-func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [32]byte, round uint32, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
+func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, round uint32, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
 	t.Helper()
 
-	encoded := make([]byte, 0, len(codeCommitment)+4+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
-	encoded = append(encoded, codeCommitment[:]...)
 	roundBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(roundBytes, round)
+
+	encoded := make([]byte, 0, 4+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
 	encoded = append(encoded, roundBytes...)
 	encoded = append(encoded, encryptedPartial...)
 	encoded = append(encoded, ephemeralPubKey...)

@@ -52,6 +52,7 @@ func TestProcessUbiWithdrawal(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), types.ModuleName, gomock.Any()).Return(nil)
 			},
 			expectedResult: &types.Withdrawal{
+				CreationHeight:   200,
 				ExecutionAddress: "",
 				Amount:           uint64(500),
 				WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UBI,
@@ -97,6 +98,7 @@ func TestProcessUbiWithdrawal(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedResult: &types.Withdrawal{
+				CreationHeight:   200,
 				ExecutionAddress: "",
 				Amount:           uint64(8000000001 - 1000),
 				WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UBI,
@@ -112,6 +114,7 @@ func TestProcessUbiWithdrawal(t *testing.T) {
 				bk.EXPECT().BurnCoins(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedResult: &types.Withdrawal{
+				CreationHeight:   200,
 				ExecutionAddress: "",
 				Amount:           uint64(8000000001 - 1000 + 500),
 				WithdrawalType:   types.WithdrawalType_WITHDRAWAL_TYPE_UBI,
@@ -127,7 +130,8 @@ func TestProcessUbiWithdrawal(t *testing.T) {
 				tc.setupMocks(bk, dk, dkgk)
 			}
 
-			cachedCtx, _ := ctx.CacheContext()
+			// Set block height past v2.0.0 upgrade height to activate DKG features.
+			cachedCtx, _ := ctx.WithBlockHeight(200).CacheContext()
 
 			// initialize withdrawal queue
 			require.NoError(t, esk.WithdrawalQueue.Initialize(cachedCtx))

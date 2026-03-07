@@ -31,6 +31,7 @@ import (
 	esmodule "github.com/piplabs/story/client/x/evmstaking/module"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
+	"github.com/piplabs/story/lib/netconf"
 
 	protov2 "google.golang.org/protobuf/proto"
 )
@@ -55,7 +56,7 @@ func createRequest(t *testing.T, txConfig client.TxConfig, msg []types.Msg, isFi
 		txs = append(txs, txBz)
 	}
 
-	height := int64(99)
+	height := int64(200) // Past v2.0.0 upgrade height for TestChainID (110).
 	if isFirst {
 		height = 1
 	}
@@ -159,7 +160,8 @@ func TestProcessProposalRouter(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			key := storetypes.NewKVStoreKey("test")
-			ctx := sdktestutil.DefaultContext(key, storetypes.NewTransientStoreKey("test_key"))
+			ctx := sdktestutil.DefaultContext(key, storetypes.NewTransientStoreKey("test_key")).
+				WithChainID(netconf.TestChainID).WithBlockHeight(200)
 
 			srv := &mockServer{}
 			dkgSrv := &mockDKGServer{}
