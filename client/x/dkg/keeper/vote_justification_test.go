@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // newTestSDKContext creates a minimal sdk.Context for testing functions that
@@ -22,7 +23,8 @@ func newTestSDKContext(t *testing.T, keyName string) sdk.Context {
 	transKey := storetypes.NewTransientStoreKey(keyName + "_transient")
 	testCtx := testutil.DefaultContextWithDB(t, key, transKey)
 
-	return testCtx.Ctx
+	// Set chain ID and block height so that IsV200 returns true.
+	return testCtx.Ctx.WithChainID(netconf.TestChainID).WithBlockHeight(200)
 }
 
 // buildJustificationVote creates a proto-marshaled Vote containing the given

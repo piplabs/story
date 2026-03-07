@@ -15,6 +15,7 @@ const (
 	V142    = "v1.4.2"
 
 	Horace = "horace"
+	V200   = "v2.0.0"
 )
 
 var (
@@ -31,18 +32,21 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence: 50,
 		V142:    50,
 		Horace:  100,
+		V200:    110,
 	},
 	LocalChainID: {
 		V121:    0,
 		Terence: 50,
 		V142:    50,
 		Horace:  100,
+		V200:    110,
 	},
 	StoryLocalnetID: {
 		V121:    0,
 		Terence: 0,
 		V142:    0,
 		Horace:  100,
+		V200:    110,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
@@ -52,6 +56,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence:  10886688,
 		V142:     12088950,
 		Horace:   14017000,
+		V200:     100000000, // TBD: set before deployment
 	},
 	StoryChainID: {
 		Virgil:   809988,
@@ -61,6 +66,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence:  11538000,
 		V142:     11784600,
 		Horace:   13780500,
+		V200:     100000000, // TBD: set before deployment
 	},
 }
 
@@ -121,4 +127,13 @@ func IsV142(chainID string, blockNumber int64) (bool, error) {
 	}
 
 	return blockNumber >= v142Block, nil
+}
+
+func IsV200(chainID string, blockNumber int64) (bool, error) {
+	v200Block, err := GetUpgradeHeight(chainID, V200)
+	if err != nil {
+		return false, err
+	}
+
+	return blockNumber >= v200Block, nil
 }

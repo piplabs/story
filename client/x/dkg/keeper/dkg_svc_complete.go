@@ -56,6 +56,4 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	)
 
 	k.StartDecryptWorker(ctx)
-
-	return
 }
