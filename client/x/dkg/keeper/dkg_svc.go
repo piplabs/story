@@ -13,6 +13,7 @@ import (
 
 var dkgSvcRunning atomic.Bool
 var decryptWorkerRunning atomic.Bool
+var registryCleanupWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
@@ -71,6 +72,33 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	return
+}
+
+// StartRegistryCleanupWorker launches a background goroutine that fires a cleanup signal every 5 minutes.
+// BeginBlocker drains the signal and performs the actual KV-store pruning with a proper sdk.Context.
+func (k *Keeper) StartRegistryCleanupWorker(ctx context.Context) {
+	if !registryCleanupWorkerRunning.CompareAndSwap(false, true) {
+		return
+	}
+
+	go func() {
+		defer registryCleanupWorkerRunning.Store(false)
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// Non-blocking send: if a signal is already pending, skip.
+				select {
+				case k.registryCleanupTrigger <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
 }
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests

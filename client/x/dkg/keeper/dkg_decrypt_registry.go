@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"cosmossdk.io/collections"
+
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
 
@@ -50,31 +52,38 @@ func (k *Keeper) deleteDecryptRequestHeight(ctx context.Context, codeCommitment 
 	return nil
 }
 
-// sweepDecryptRequestRegistry deletes all registry entries for the given
-// (codeCommitment, round) pair. Should be called when a DKG round ends.
-func (k *Keeper) sweepDecryptRequestRegistry(ctx context.Context, codeCommitment [32]byte, round uint32) error {
-	prefix := fmt.Sprintf("%s_%d_", hex.EncodeToString(codeCommitment[:]), round)
-
+// pruneTimedOutDecryptRequests iterates all registry entries and removes any whose
+// stored block height is older than PartialDecryptionTimeoutBlocks relative to currentHeight.
+// Called from BeginBlocker when the background cleanup worker signals.
+func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight uint64) error {
 	iter, err := k.DecryptRequestRegistry.Iterate(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "iterate decrypt request registry")
+		return errors.Wrap(err, "iterate decrypt request registry for pruning")
 	}
 	defer iter.Close()
 
-	var toDelete []string
+	type entry struct {
+		key    string
+		height uint64
+	}
+	var expired []entry
 	for ; iter.Valid(); iter.Next() {
 		key, err := iter.Key()
 		if err != nil {
 			return errors.Wrap(err, "iterate decrypt request registry key")
 		}
-		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
-			toDelete = append(toDelete, key)
+		height, err := iter.Value()
+		if err != nil {
+			return errors.Wrap(err, "iterate decrypt request registry value")
+		}
+		if currentHeight > height && currentHeight-height > types.PartialDecryptionTimeoutBlocks {
+			expired = append(expired, entry{key, height})
 		}
 	}
 
-	for _, key := range toDelete {
-		if err := k.DecryptRequestRegistry.Remove(ctx, key); err != nil {
-			return errors.Wrap(err, "remove decrypt request registry entry")
+	for _, e := range expired {
+		if err := k.DecryptRequestRegistry.Remove(ctx, e.key); err != nil {
+			return errors.Wrap(err, "remove expired decrypt request registry entry")
 		}
 	}
 

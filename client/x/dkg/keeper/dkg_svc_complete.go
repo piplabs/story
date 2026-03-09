@@ -59,5 +59,8 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		"validator_evm_address", k.validatorEVMAddr,
 	)
 
+	k.StartDecryptWorker(ctx)
+	k.StartRegistryCleanupWorker(ctx)
+
 	return
 }

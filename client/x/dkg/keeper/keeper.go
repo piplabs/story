@@ -54,6 +54,8 @@ type Keeper struct {
 	SettlementBalance       collections.Item[string]                // remaining UBI after committee distribution during FinalizeDKGRound
 	DKGPartialDecrypt       collections.Map[string, []byte]        // key: codeCommitment_round_validator_pid_labelHash
 	DecryptRequestRegistry  collections.Map[string, uint64]        // key: codeCommitment_round_labelHash; value: blockHeight when request was registered
+
+	registryCleanupTrigger chan struct{} // signals BeginBlocker to run a registry prune pass
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -97,6 +99,7 @@ func NewKeeper(
 		SettlementBalance:  collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
 		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
 		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, collections.Uint64Value),
+		registryCleanupTrigger: make(chan struct{}, 1),
 	}
 
 	schema, err := sb.Build()

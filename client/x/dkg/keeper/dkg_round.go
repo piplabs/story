@@ -48,11 +48,5 @@ func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNet
 		return errors.Wrap(err, "failed to mark the current round as failed")
 	}
 
-	var cc [32]byte
-	copy(cc[:], currentRound.CodeCommitment)
-	if err := k.sweepDecryptRequestRegistry(ctx, cc, currentRound.Round); err != nil {
-		return errors.Wrap(err, "failed to sweep decrypt request registry on round skip")
-	}
-
 	return k.InitiateDKGRound(ctx)
 }
