@@ -124,19 +124,3 @@ func TestPruneTimedOutDecryptRequests_AllExpired(t *testing.T) {
 		require.False(t, found)
 	}
 }
-
-// TestStartRegistryCleanupWorker verifies the goroutine fires a signal on the trigger channel.
-func TestStartRegistryCleanupWorker(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
-	// Override ticker interval is not possible directly, but we can confirm the channel
-	// starts empty and the worker is idempotent (second call is a no-op).
-	require.Empty(t, k.registryCleanupTrigger)
-
-	k.StartRegistryCleanupWorker(ctx)
-	// Second call should not panic or launch a duplicate goroutine.
-	k.StartRegistryCleanupWorker(ctx)
-
-	// Reset the atomic so the goroutine cleanup is clean after test.
-	t.Cleanup(func() { registryCleanupWorkerRunning.Store(false) })
-}

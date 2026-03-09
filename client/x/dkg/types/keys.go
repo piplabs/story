@@ -17,6 +17,11 @@ const (
 // decryption submission is considered too late and rejected by consensus.
 const PartialDecryptionTimeoutBlocks uint64 = 200
 
+// DecryptRequestRegistryCleanupInterval is the block interval at which timed-out
+// decrypt request registry entries are pruned. All nodes prune at the same height,
+// ensuring deterministic consensus-layer state transitions.
+const DecryptRequestRegistryCleanupInterval int64 = 1000
+
 // KVStore key prefixes.
 var (
 	ParamsKey                 = collections.NewPrefix(0)

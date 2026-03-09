@@ -58,13 +58,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		return k.InitiateDKGRound(ctx, true)
 	}
 
-	// Drain any pending registry cleanup signal from the background worker.
-	select {
-	case <-k.registryCleanupTrigger:
+	// Prune timed-out decrypt request registry entries every N blocks.
+	// All nodes evaluate this condition identically, preserving consensus.
+	if currentHeight%types.DecryptRequestRegistryCleanupInterval == 0 {
 		if err := k.pruneTimedOutDecryptRequests(ctx, uint64(currentHeight)); err != nil {
 			log.Error(ctx, "Failed to prune timed-out decrypt request registry", err)
 		}
-	default:
 	}
 
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)
