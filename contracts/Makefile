@@ -40,8 +40,8 @@ fork-mainnet: ## Run an anvil mainnet fork.
 check-abigen-version: ## Check abigen version, exit(1) if not 1.13.14-stable.
 	@version=$$(abigen --version); \
 	if [ "$$version" != "abigen version 1.16.0-stable" ]; then \
-		echo "abigen version is not 1.13.14-stable"; \
-		echo "Install with go install github.com/ethereum/go-ethereum/cmd/abigen@v1.13.14"; \
+		echo "abigen version is not 1.16.0-stable"; \
+		echo "Install with go install github.com/ethereum/go-ethereum/cmd/abigen@v1.16.0"; \
 		exit 1; \
 	fi
 

@@ -214,14 +214,13 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 		return nil, errors.Wrap(err, "failed to convert bytes32")
 	}
 
-	callData, err := c.dkgContractAbi.Pack("submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
 
-	return c.sendWithRetry(ctx, "SubmitPartialDecryption", callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		bound := bind.NewBoundContract(c.dkgContractAddr, *c.dkgContractAbi, c.ethClient, c.ethClient, c.ethClient)
-		return bound.Transact(auth, "submitPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
 	})
 }
 

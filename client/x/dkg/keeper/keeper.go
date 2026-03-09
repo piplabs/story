@@ -47,16 +47,18 @@ type Keeper struct {
 	validatorEVMAddr string   // EVM address of the validator
 	enclaveType      [32]byte // TEE enclave type identifier
 
-	Schema                 collections.Schema
-	ParamsStore            collections.Item[types.Params]
-	DKGNetworks            collections.Map[string, types.DKGNetwork]      // key: codeCommitment_round
-	LatestDKGNetwork       collections.Item[string]                       // stores codeCommitment key of latest DKG network
-	LatestActiveRound      collections.Item[string]                       // stores latest active round of DKG network
-	DKGRegistrations       collections.Map[string, types.DKGRegistration] // key: codeCommitment_round_address
-	GlobalPubKeyVotes      collections.Map[string, uint32]                // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
-	SettlementBalance      collections.Item[string]                       // remaining UBI after committee distribution during FinalizeDKGRound
-	DKGPartialDecrypt      collections.Map[string, []byte]                // key: codeCommitment_round_validator_pid_labelHash
-	DecryptRequestRegistry collections.Map[string, uint64]                // key: codeCommitment_round_labelHash; value: blockHeight when request was registered
+	Schema             collections.Schema
+	ParamsStore        collections.Item[types.Params]
+	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: codeCommitment_round
+	LatestDKGNetwork   collections.Item[string]                         // stores codeCommitment key of latest DKG network
+	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
+	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: codeCommitment_round_address
+	GlobalPubKeyVotes  collections.Map[string, uint32]                  // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
+	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
+	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
+
+	DKGPartialDecrypt      collections.Map[string, []byte] // key: codeCommitment_round_validator_pid_labelHash
+	DecryptRequestRegistry collections.Map[string, uint64] // key: codeCommitment_round_labelHash; value: blockHeight when request was registered
 
 	registryCleanupTrigger chan struct{} // signals BeginBlocker to run a registry prune pass
 }
@@ -98,8 +100,8 @@ func NewKeeper(
 		LatestActiveRound:      collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
 		DKGRegistrations:       collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
 		GlobalPubKeyVotes:      collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
-		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
 		SettlementBalance:      collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
+		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
 		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
 		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, collections.Uint64Value),
 		registryCleanupTrigger: make(chan struct{}, 1),

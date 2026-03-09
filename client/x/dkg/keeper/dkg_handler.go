@@ -385,7 +385,7 @@ func verifyPartialDecryptionSignature(commPubKey []byte, codeCommitment [32]byte
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
-func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, requester common.Address, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
 	// Consensus-level: all nodes record the request's block height so that
 	// PartialDecryptionSubmitted can enforce the timeout consistently.
 	if err := k.setDecryptRequestHeight(ctx, codeCommitment, round, label, blockHeight); err != nil {
@@ -493,7 +493,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		return nil
 	}
 
-	reg, err := k.getDKGRegistration(ctx, codeCommitment, round, validator)
+	reg, err := k.getDKGRegistration(ctx, round, validator)
 	if err != nil {
 		return errors.Wrap(err, "failed to get DKG registration for signature verification")
 	}
