@@ -385,10 +385,10 @@ func verifyPartialDecryptionSignature(commPubKey []byte, codeCommitment [32]byte
 
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
-func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
 	// Consensus-level: all nodes record the request's block height so that
 	// PartialDecryptionSubmitted can enforce the timeout consistently.
-	if err := k.setDecryptRequestHeight(ctx, codeCommitment, round, label, blockHeight); err != nil {
+	if err := k.setDecryptRequestHeight(ctx, round, label, blockHeight); err != nil {
 		return errors.Wrap(err, "failed to register decrypt request height")
 	}
 
@@ -468,7 +468,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	signature []byte,
 ) error {
 	// Enforce timeout: reject partial decryptions submitted too late.
-	reqHeight, found, err := k.getDecryptRequestHeight(ctx, codeCommitment, round, label)
+	reqHeight, found, err := k.getDecryptRequestHeight(ctx, round, label)
 	if err != nil {
 		return errors.Wrap(err, "failed to look up decrypt request registry")
 	}
@@ -487,7 +487,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 			"timeout_blocks", types.PartialDecryptionTimeoutBlocks,
 			"validator", validator.Hex(),
 		)
-		if err := k.deleteDecryptRequestHeight(ctx, codeCommitment, round, label); err != nil {
+		if err := k.deleteDecryptRequestHeight(ctx, round, label); err != nil {
 			return errors.Wrap(err, "failed to delete expired decrypt request registry entry")
 		}
 		return nil

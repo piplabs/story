@@ -43,7 +43,6 @@ interface ICDR {
     /// @param uuid The UUID of the vault
     /// @param requester The address requesting the read (msg.sender)
     /// @param round The DKG round number for threshold decryption
-    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param ciphertext The encrypted data (ciphertext)
     /// @param requesterPubKey The public key of the requester
     /// @param label The label identifying the decrypt request
@@ -51,7 +50,6 @@ interface ICDR {
         uint32 uuid,
         address indexed requester,
         uint32 round,
-        bytes32 codeCommitment,
         bytes ciphertext,
         bytes requesterPubKey,
         bytes label
@@ -119,14 +117,12 @@ interface ICDR {
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
     /// @param round The DKG round number for threshold decryption
-    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param accessAuxData The auxiliary access data for reading
     /// @param requesterPubKey The public key of the requester
     /// @param label The label identifying the decrypt request
     function read(
         uint32 uuid,
         uint32 round,
-        bytes32 codeCommitment,
         bytes memory accessAuxData,
         bytes calldata requesterPubKey,
         bytes calldata label

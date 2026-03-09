@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -22,9 +21,8 @@ type partialDecryptionSubmission struct {
 	Label            []byte `json:"label"`
 }
 
-func dkgPartialDecryptKey(codeCommitment [32]byte, round uint32, label []byte) string {
-	labelHash := sha256.Sum256(label)
-	return fmt.Sprintf("%s_%d_%s", hex.EncodeToString(codeCommitment[:]), round, hex.EncodeToString(labelHash[:]))
+func dkgPartialDecryptKey(round uint32, label []byte) string {
+	return fmt.Sprintf("%d_%s", round, hex.EncodeToString(label))
 }
 
 func (k *Keeper) setPartialDecryptionSubmission(
@@ -52,7 +50,7 @@ func (k *Keeper) setPartialDecryptionSubmission(
 		return errors.Wrap(err, "marshal partial decryption submission")
 	}
 
-	if err := k.DKGPartialDecrypt.Set(ctx, dkgPartialDecryptKey(codeCommitment, round, label), bz); err != nil {
+	if err := k.DKGPartialDecrypt.Set(ctx, dkgPartialDecryptKey(round, label), bz); err != nil {
 		return errors.Wrap(err, "set partial decryption submission")
 	}
 

@@ -49,7 +49,7 @@ type Keeper struct {
 
 	Schema             collections.Schema
 	ParamsStore        collections.Item[types.Params]
-	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: codeCommitment_round
+	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
 	LatestDKGNetwork   collections.Item[string]                         // stores codeCommitment key of latest DKG network
 	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
 	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: codeCommitment_round_address

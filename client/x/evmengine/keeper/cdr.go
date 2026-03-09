@@ -68,7 +68,6 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGCodeCommitment, hex.EncodeToString(ev.CodeCommitment[:])),
 				sdk.NewAttribute(types.AttributeKeyDKGRequester, ev.Requester.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGCiphertextLen, strconv.Itoa(len(ev.Ciphertext))),
 				sdk.NewAttribute(types.AttributeKeyDKGLabelLen, strconv.Itoa(len(ev.Label))),
@@ -77,7 +76,7 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		})
 	}()
 
-	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, ev.Round, ev.CodeCommitment, ev.RequesterPubKey, ev.Ciphertext, ev.Label, uint64(sdkCtx.BlockHeight())); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, ev.Round, ev.RequesterPubKey, ev.Ciphertext, ev.Label, uint64(sdkCtx.BlockHeight())); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "handle ThresholdDecryptRequested")

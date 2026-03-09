@@ -433,9 +433,9 @@ func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, 
 }
 
 // ThresholdDecryptRequested mocks base method.
-func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, round, codeCommitment, requesterPubKey, ciphertext, label, blockHeight)
+	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, round, requesterPubKey, ciphertext, label, blockHeight)
 	ret0, _ := ret[0].(error)
 	return ret0
 }

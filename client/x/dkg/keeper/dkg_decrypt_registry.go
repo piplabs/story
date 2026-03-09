@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 
@@ -14,15 +13,14 @@ import (
 
 // decryptRequestRegistryKey builds the key for the DecryptRequestRegistry map:
 // hex(codeCommitment)_round_hex(sha256(label))
-func decryptRequestRegistryKey(codeCommitment [32]byte, round uint32, label []byte) string {
-	labelHash := sha256.Sum256(label)
-	return fmt.Sprintf("%s_%d_%s", hex.EncodeToString(codeCommitment[:]), round, hex.EncodeToString(labelHash[:]))
+func decryptRequestRegistryKey(round uint32, label []byte) string {
+	return fmt.Sprintf("%d_%s", round, hex.EncodeToString(label))
 }
 
 // setDecryptRequestHeight records the block height at which a threshold decrypt
 // request was registered. Called by all consensus nodes in ThresholdDecryptRequested.
-func (k *Keeper) setDecryptRequestHeight(ctx context.Context, codeCommitment [32]byte, round uint32, label []byte, blockHeight uint64) error {
-	key := decryptRequestRegistryKey(codeCommitment, round, label)
+func (k *Keeper) setDecryptRequestHeight(ctx context.Context, round uint32, label []byte, blockHeight uint64) error {
+	key := decryptRequestRegistryKey(round, label)
 	if err := k.DecryptRequestRegistry.Set(ctx, key, blockHeight); err != nil {
 		return errors.Wrap(err, "set decrypt request registry")
 	}
@@ -31,8 +29,8 @@ func (k *Keeper) setDecryptRequestHeight(ctx context.Context, codeCommitment [32
 
 // getDecryptRequestHeight retrieves the block height stored for a decrypt request.
 // Returns (height, true, nil) if found, or (0, false, nil) if not found.
-func (k *Keeper) getDecryptRequestHeight(ctx context.Context, codeCommitment [32]byte, round uint32, label []byte) (uint64, bool, error) {
-	key := decryptRequestRegistryKey(codeCommitment, round, label)
+func (k *Keeper) getDecryptRequestHeight(ctx context.Context, round uint32, label []byte) (uint64, bool, error) {
+	key := decryptRequestRegistryKey(round, label)
 	height, err := k.DecryptRequestRegistry.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -44,8 +42,8 @@ func (k *Keeper) getDecryptRequestHeight(ctx context.Context, codeCommitment [32
 }
 
 // deleteDecryptRequestHeight removes a single registry entry by label.
-func (k *Keeper) deleteDecryptRequestHeight(ctx context.Context, codeCommitment [32]byte, round uint32, label []byte) error {
-	key := decryptRequestRegistryKey(codeCommitment, round, label)
+func (k *Keeper) deleteDecryptRequestHeight(ctx context.Context, round uint32, label []byte) error {
+	key := decryptRequestRegistryKey(round, label)
 	if err := k.DecryptRequestRegistry.Remove(ctx, key); err != nil {
 		return errors.Wrap(err, "delete decrypt request registry entry")
 	}

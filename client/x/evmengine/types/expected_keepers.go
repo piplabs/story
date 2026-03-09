@@ -48,7 +48,7 @@ type DKGKeeper interface {
 	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error
 	UpgradeScheduled(ctx context.Context, activationHeight int64, upgradeVersion string) error
 	UpgradeCancelled(ctx context.Context, upgradeVersion string) error
-	ThresholdDecryptRequested(ctx context.Context, round uint32, codeCommitment [32]byte, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error
+	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error
 	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, codeCommitment [32]byte, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, label []byte, signature []byte) error
 
 	// Parameter setters (driven by DKG.sol contract events)
