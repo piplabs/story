@@ -518,7 +518,7 @@ func (k Keeper) ProcessWithdraw(ctx context.Context, ev *bindings.IPTokenStaking
 	if ev.Delegator == valEvmAddr {
 		activeRound, err := k.dkgKeeper.GetLatestActiveRound(cachedCtx)
 		if err == nil && activeRound != nil {
-			hasFinalized, err := k.dkgKeeper.HasFinalizedRegistration(cachedCtx, activeRound.CodeCommitment, activeRound.Round, valEvmAddr)
+			hasFinalized, err := k.dkgKeeper.HasFinalizedRegistration(cachedCtx, activeRound.Round, valEvmAddr)
 			if err == nil && hasFinalized {
 				return errors.WrapErrWithCode(
 					errors.ActiveDKGMemberSelfUnstake,

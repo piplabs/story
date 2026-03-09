@@ -1,9 +1,6 @@
 syntax = "proto3";
 package story.dkg.v1.types;
 
-import "gogoproto/gogo.proto";
-import "story/dkg/v1/types/types.proto";
-
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 
 enum EventType {
@@ -14,51 +11,46 @@ enum EventType {
   EVENT_TYPE_BEGIN_PROCESS_RESPONSES = 4;
   EVENT_TYPE_BEGIN_FINALIZATION = 5;
   EVENT_TYPE_DKG_FINALIZED = 6;
+  EVENT_TYPE_BEGIN_PROCESS_JUSTIFICATIONS = 7;
 }
 
 message EventBeginInitialization {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 start_block_height = 3;
-  repeated string active_validators = 4;
+  uint32 round = 1;
+  uint32 start_block_height = 2;
+  repeated string active_validators = 3;
 }
 
 message EventBeginDealing {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventBeginProcessDeals {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  repeated types.Deal deals = 3 [
-    (gogoproto.nullable) = false
-  ];
+  uint32 round = 1;
+  uint32 num_deals = 2;
 }
 
 message EventBeginProcessResponses {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  repeated types.Response responses = 3 [
-    (gogoproto.nullable) = false
-  ];
+  uint32 round = 1;
+  uint32 num_responses = 2;
+}
+
+message EventBeginProcessJustifications {
+  uint32 round = 1;
+  uint32 num_justifications = 2;
 }
 
 message EventBeginFinalization {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventDKGFinalized {
-  bytes code_commitment = 1;
-  uint32 round = 2;
+  uint32 round = 1;
 }
 
 message EventDKGCommitteeRewarded {
-  bytes code_commitment = 1;
-  uint32 round = 2;
-  uint32 member_count = 3;
-  string total_reward = 4;
-  string per_member_reward = 5;
-  string remaining_ubi = 6;
+  uint32 round = 1;
+  uint32 member_count = 2;
+  string total_reward = 3;
+  string per_member_reward = 4;
+  string remaining_ubi = 5;
 }

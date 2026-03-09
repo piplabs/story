@@ -1913,8 +1913,7 @@ func TestProcessWithdrawDKGBlocking(t *testing.T) {
 	require.NoError(t, err)
 
 	activeRound := &dkgtypes.DKGNetwork{
-		CodeCommitment: []byte("test-commitment"),
-		Round:          1,
+		Round: 1,
 	}
 
 	// createSelfUnstake creates a withdraw event where Delegator == validator EVM address (self-unstake)
@@ -1951,7 +1950,7 @@ func TestProcessWithdrawDKGBlocking(t *testing.T) {
 				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
 				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
 				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
-				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(true, nil)
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.Round, valEvmAddr).Return(true, nil)
 			},
 			withdraw:  createSelfUnstake(),
 			expectErr: "finalized member of the active DKG round",
@@ -1974,7 +1973,7 @@ func TestProcessWithdrawDKGBlocking(t *testing.T) {
 				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
 				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
 				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
-				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(false, nil)
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.Round, valEvmAddr).Return(false, nil)
 				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
 			},
 			withdraw:  createSelfUnstake(),
@@ -1997,7 +1996,7 @@ func TestProcessWithdrawDKGBlocking(t *testing.T) {
 				mockSK.EXPECT().GetSingularityHeight(gomock.Any()).Return(uint64(0), nil)
 				ak.EXPECT().HasAccount(gomock.Any(), gomock.Any()).Return(true)
 				dkgk.EXPECT().GetLatestActiveRound(gomock.Any()).Return(activeRound, nil)
-				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.CodeCommitment, activeRound.Round, valEvmAddr).Return(false, errors.New("dkg error"))
+				dkgk.EXPECT().HasFinalizedRegistration(gomock.Any(), activeRound.Round, valEvmAddr).Return(false, errors.New("dkg error"))
 				mockSK.EXPECT().GetLockedTokenType(gomock.Any()).Return(int32(0), errors.New("stop: past DKG check"))
 			},
 			withdraw:  createSelfUnstake(),

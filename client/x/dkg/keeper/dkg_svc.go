@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 	"sync/atomic"
 	"time"
 
@@ -11,13 +10,25 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// dkgAsyncTimeout is the maximum duration for async DKG goroutines that
+// communicate with the story-kernel. These goroutines must NOT use the CometBFT
+// consensus context because it gets cancelled when block processing completes,
+// which can abort in-flight gRPC calls to the story-kernel.
+const dkgAsyncTimeout = 1 * time.Minute
+
+// dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
+// This replaces the consensus context that would otherwise be cancelled after block processing.
+func dkgAsyncContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), dkgAsyncTimeout)
+}
+
 var dkgSvcRunning atomic.Bool
 var decryptWorkerRunning atomic.Bool
 var registryCleanupWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
-	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
 
@@ -25,7 +36,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	if session.Phase != types.PhaseFailed {
-		log.Debug(ctx, "No failed DKG session found; skipping resume process", "code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment), "round", dkgNetwork.Round)
+		log.Debug(ctx, "No failed DKG session found; skipping resume process", "round", dkgNetwork.Round)
 
 		return
 	}
@@ -39,7 +50,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGInitialization(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGRegistration(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -48,7 +63,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGDealing(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGDealing(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -57,7 +76,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGFinalization(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGFinalization(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageActive:
 		session.UpdatePhase(types.PhaseFinalized)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -66,7 +89,11 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
-		go k.handleDKGComplete(ctx, dkgNetwork)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGComplete(asyncCtx, dkgNetwork)
+		}()
 	case types.DKGStageUnspecified:
 		return
 	}
@@ -129,16 +156,16 @@ func (k *Keeper) StartDecryptWorker(ctx context.Context) {
 func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
-		if len(session.DecryptRequests) == 0 {
+		requests := session.GetDecryptRequests()
+		if len(requests) == 0 {
 			continue
 		}
 
-		remaining := make([]types.DecryptRequest, 0, len(session.DecryptRequests))
-		for _, req := range session.DecryptRequests {
+		remaining := make([]types.DecryptRequest, 0, len(requests))
+		for _, req := range requests {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
 				log.Error(ctx, "Failed to process decrypt request", err,
 					"session", session.GetSessionKey(),
-					"requester", req.Requester,
 					"round", req.Round,
 					"ciphertext_len", len(req.Ciphertext),
 					"label_len", len(req.Label),
@@ -148,11 +175,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			}
 		}
 
-		session.DecryptRequests = remaining
+		session.SetDecryptRequests(remaining)
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
 				"session", session.GetSessionKey(),
-				"remaining_requests", len(session.DecryptRequests),
+				"remaining_requests", len(remaining),
 			)
 		}
 	}
@@ -160,8 +187,8 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 // handleDecryptRequest attempts TDH2 partial decrypt for a single request.
 func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.teeClient == nil {
-		return errors.New("tee client not configured")
+	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
+		return errors.New("kernel client not configured")
 	}
 
 	pid := session.Index
@@ -173,7 +200,12 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("missing global public key for session")
 	}
 
-	resp, err := k.teeClient.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
+	client, err := k.kernelRouter.GetClient(session.CodeCommitment)
+	if err != nil {
+		return errors.Wrap(err, "no kernel client for session")
+	}
+
+	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
 		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
@@ -186,7 +218,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.Wrap(err, "TEE partial decrypt failed")
 	}
 
-	if _, err := k.contractClient.SubmitPartialDecryption(
+	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
 		session.Round,
 		session.CodeCommitment,

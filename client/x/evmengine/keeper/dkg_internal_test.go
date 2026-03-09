@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,19 +36,18 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testParticipantsRoot := [32]byte{0x56, 0x78}
 	testRound := uint32(1)
-	testStartBlockHeight := uint64(100)
-	testStartBlockHash := [32]byte{0xaa, 0xbb}
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
-	testRawQuote := []byte("test-raw-quote")
+	testEnclaveReport := []byte("test-enclave-report")
 	testSignature := []byte("test-signature")
 	testGlobalPubKey := []byte("test-global-pubkey")
 	testPublicCoeffs := [][]byte{[]byte("test-public-coeffs")}
-	testPubKeyShare := []byte("test-pub-key-share")
-	testIndex := uint32(1)
-	testComplainIndexes := []uint32{1, 2, 3}
-	testRecipientIndex := uint32(2)
-	testActivationHeight := uint32(100)
+	testPubKeyShare := []byte("test-pubkey-share")
+	testEnclaveType := [32]byte{0x01}
+	testValidationContext := []byte("")
+	testActivationHeight := int64(100)
 
 	tcs := []struct {
 		name         string
@@ -81,15 +81,15 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 		{
 			name: "pass: DKGInitialized event",
 			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote)
+				data, err := dkgAbi.Events["Registered"].Inputs.NonIndexed().Pack(
+					testEnclaveReport, testRound, testEnclaveType, testCommPubKey, testDkgPubKey, testCodeCommitment, testStartBlockHeight, testStartBlockHash, testValidationContext)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32), // indexed msgSender
 						},
 						Data:   data,
@@ -98,7 +98,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testEnclaveType, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGInitializedSuccess event
@@ -123,8 +123,8 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 		{
 			name: "pass: DKGFinalized event",
 			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
-					testRound, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare, testSignature)
+				data, err := dkgAbi.Events["Finalized"].Inputs.NonIndexed().Pack(
+					testRound, testEnclaveType, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -166,7 +166,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			name: "pass: DKG UpgradeScheduled event",
 			evmEvents: func() []*types.EVMEvent {
 				data, err := dkgAbi.Events["UpgradeScheduled"].Inputs.NonIndexed().Pack(
-					testActivationHeight, testCodeCommitment)
+					big.NewInt(int64(testActivationHeight)), "v1.0.0")
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
@@ -181,7 +181,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().UpgradeScheduled(gomock.Any(), testActivationHeight, testCodeCommitment).Return(nil)
+				dkgk.EXPECT().UpgradeScheduled(gomock.Any(), testActivationHeight, "v1.0.0").Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
 				// Should emit DKGUpgradeScheduledSuccess event
@@ -194,7 +194,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 						attrs := event.Attributes
 						require.NotEmpty(t, attrs)
 						require.Equal(t, strconv.FormatUint(uint64(testActivationHeight), 10), attrs[1].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[2].Value)
+						require.Equal(t, "v1.0.0", attrs[2].Value)
 
 						break
 					}
@@ -203,190 +203,23 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			},
 		},
 		{
-			name: "pass: RemoteAttestationProcessedOnChain event",
-			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["RemoteAttestationProcessedOnChain"].Inputs.NonIndexed().Pack(
-					testValidator, uint8(1), testRound, testCodeCommitment) // ChallengeStatus.Invalidated = 1
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{
-					{
-						Address: dummyContractAddress.Bytes(),
-						Topics: [][]byte{
-							types.DKGRemoteAttestationProcessedOnChainEvent.ID.Bytes(),
-						},
-						Data:   data,
-						TxHash: dummyHash.Bytes(),
-					},
-				}
-			},
-			setupMock: func() {
-				dkgk.EXPECT().RemoteAttestationProcessedOnChain(gomock.Any(), testValidator, int(1), testRound, testCodeCommitment).Return(nil)
-			},
-			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit DKGRemoteAttestationProcessedOnChainSuccess event
-				t.Helper()
-				found := false
-				for _, event := range events {
-					if event.Type == types.EventTypeDKGRemoteAttestationProcessedOnChainSuccess {
-						found = true
-						// Check attributes
-						attrs := event.Attributes
-						require.NotEmpty(t, attrs)
-						require.Equal(t, testValidator.Hex(), attrs[1].Value)
-						require.Equal(t, "1", attrs[2].Value) // ChalStatus = 1
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
-
-						break
-					}
-				}
-				require.True(t, found, "Expected DKGRemoteAttestationProcessedOnChainSuccess event to be emitted for %s", testName)
-			},
-		},
-		{
-			name: "pass: DealComplaintsSubmitted event",
-			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["DealComplaintsSubmitted"].Inputs.NonIndexed().Pack(
-					testIndex, testComplainIndexes, testRound, testCodeCommitment)
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{
-					{
-						Address: dummyContractAddress.Bytes(),
-						Topics: [][]byte{
-							types.DKGDealComplaintsSubmittedEvent.ID.Bytes(),
-						},
-						Data:   data,
-						TxHash: dummyHash.Bytes(),
-					},
-				}
-			},
-			setupMock: func() {
-				dkgk.EXPECT().DealComplaintsSubmitted(gomock.Any(), testIndex, testComplainIndexes, testRound, testCodeCommitment).Return(nil)
-			},
-			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit DKGDealComplaintsSubmittedSuccess event
-				t.Helper()
-				found := false
-				for _, event := range events {
-					if event.Type == types.EventTypeDKGDealComplaintsSubmittedSuccess {
-						found = true
-						// Check attributes
-						attrs := event.Attributes
-						require.NotEmpty(t, attrs)
-						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
-						require.Equal(t, "1,2,3", attrs[2].Value) // ComplainIndexes joined
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
-
-						break
-					}
-				}
-				require.True(t, found, "Expected DKGDealComplaintsSubmittedSuccess event to be emitted for %s", testName)
-			},
-		},
-		{
-			name: "pass: DealVerified event",
-			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["DealVerified"].Inputs.NonIndexed().Pack(
-					testIndex, testRecipientIndex, testRound, testCodeCommitment)
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{
-					{
-						Address: dummyContractAddress.Bytes(),
-						Topics: [][]byte{
-							types.DKGDealVerifiedEvent.ID.Bytes(),
-						},
-						Data:   data,
-						TxHash: dummyHash.Bytes(),
-					},
-				}
-			},
-			setupMock: func() {
-				dkgk.EXPECT().DealVerified(gomock.Any(), testIndex, testRecipientIndex, testRound, testCodeCommitment).Return(nil)
-			},
-			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit DKGDealVerifiedSuccess event
-				t.Helper()
-				found := false
-				for _, event := range events {
-					if event.Type == types.EventTypeDKGDealVerifiedSuccess {
-						found = true
-						// Check attributes
-						attrs := event.Attributes
-						require.NotEmpty(t, attrs)
-						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
-						require.Equal(t, strconv.FormatUint(uint64(testRecipientIndex), 10), attrs[2].Value)
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
-
-						break
-					}
-				}
-				require.True(t, found, "Expected DKGDealVerifiedSuccess event to be emitted for %s", testName)
-			},
-		},
-		{
-			name: "pass: InvalidDeal event",
-			evmEvents: func() []*types.EVMEvent {
-				data, err := dkgAbi.Events["InvalidDeal"].Inputs.NonIndexed().Pack(
-					testIndex, testRound, testCodeCommitment)
-				require.NoError(t, err)
-
-				return []*types.EVMEvent{
-					{
-						Address: dummyContractAddress.Bytes(),
-						Topics: [][]byte{
-							types.DKGInvalidDealEvent.ID.Bytes(),
-						},
-						Data:   data,
-						TxHash: dummyHash.Bytes(),
-					},
-				}
-			},
-			setupMock: func() {
-				dkgk.EXPECT().InvalidDeal(gomock.Any(), testIndex, testRound, testCodeCommitment).Return(nil)
-			},
-			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
-				// Should emit DKGInvalidDealSuccess event
-				t.Helper()
-				found := false
-				for _, event := range events {
-					if event.Type == types.EventTypeDKGInvalidDealSuccess {
-						found = true
-						// Check attributes
-						attrs := event.Attributes
-						require.NotEmpty(t, attrs)
-						require.Equal(t, strconv.FormatUint(uint64(testIndex), 10), attrs[1].Value)
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
-
-						break
-					}
-				}
-				require.True(t, found, "Expected DKGInvalidDealSuccess event to be emitted for %s", testName)
-			},
-		},
-		{
 			name: "pass: multiple DKG events",
 			evmEvents: func() []*types.EVMEvent {
-				// DKGInitialized event
-				initData, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-					testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote)
+				// Registered event
+				initData, err := dkgAbi.Events["Registered"].Inputs.NonIndexed().Pack(
+					testEnclaveReport, testRound, testEnclaveType, testCommPubKey, testDkgPubKey, testCodeCommitment, testStartBlockHeight, testStartBlockHash, testValidationContext)
 				require.NoError(t, err)
 
-				// DKGFinalized event
-				finalizedData, err := dkgAbi.Events["DKGFinalized"].Inputs.NonIndexed().Pack(
-					testRound, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare, testSignature)
+				// Finalized event
+				finalizedData, err := dkgAbi.Events["Finalized"].Inputs.NonIndexed().Pack(
+					testRound, testEnclaveType, testCodeCommitment, testParticipantsRoot, testGlobalPubKey, testPublicCoeffs, testPubKeyShare, testSignature)
 				require.NoError(t, err)
 
 				return []*types.EVMEvent{
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   initData,
@@ -404,7 +237,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 			},
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testEnclaveType, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
 				dkgk.EXPECT().Finalized(gomock.Any(), testRound, testValidator, testCodeCommitment, testParticipantsRoot, testSignature, testGlobalPubKey, testPublicCoeffs, testPubKeyShare).Return(nil)
 			},
 			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
@@ -422,6 +255,117 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 				}
 				require.True(t, foundInit, "Expected DKGInitializedSuccess event to be emitted for %s", testName)
 				require.True(t, foundFinalized, "Expected DKGFinalizedSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: MinReqRegisteredParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqRegisteredParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(5))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqRegisteredParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqRegisteredParticipants(gomock.Any(), uint32(5)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqRegisteredParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(5, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqRegisteredParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: MinReqFinalizedParticipantsSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["MinReqFinalizedParticipantsSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(4))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGMinReqFinalizedParticipantsSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetMinReqFinalizedParticipants(gomock.Any(), uint32(4)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGMinReqFinalizedParticipantsSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(4, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGMinReqFinalizedParticipantsSetSuccess event to be emitted for %s", testName)
+			},
+		},
+		{
+			name: "pass: OperationalThresholdSet event",
+			evmEvents: func() []*types.EVMEvent {
+				data, err := dkgAbi.Events["OperationalThresholdSet"].Inputs.NonIndexed().Pack(
+					big.NewInt(750))
+				require.NoError(t, err)
+
+				return []*types.EVMEvent{
+					{
+						Address: dummyContractAddress.Bytes(),
+						Topics: [][]byte{
+							types.DKGOperationalThresholdSetEvent.ID.Bytes(),
+						},
+						Data:   data,
+						TxHash: dummyHash.Bytes(),
+					},
+				}
+			},
+			setupMock: func() {
+				dkgk.EXPECT().SetOperationalThreshold(gomock.Any(), uint32(750)).Return(nil)
+			},
+			verifyEvents: func(t *testing.T, events sdk.Events, testName string) {
+				t.Helper()
+				found := false
+				for _, event := range events {
+					if event.Type == types.EventTypeDKGOperationalThresholdSetSuccess {
+						found = true
+						attrs := event.Attributes
+						require.NotEmpty(t, attrs)
+						require.Equal(t, strconv.FormatUint(750, 10), attrs[1].Value)
+
+						break
+					}
+				}
+				require.True(t, found, "Expected DKGOperationalThresholdSetSuccess event to be emitted for %s", testName)
 			},
 		},
 		{
@@ -451,7 +395,7 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 					{
 						Address: dummyContractAddress.Bytes(),
 						Topics: [][]byte{
-							types.DKGInitializedEvent.ID.Bytes(),
+							types.DKGRegisteredEvent.ID.Bytes(),
 							common.LeftPadBytes(testValidator.Bytes(), 32),
 						},
 						Data:   []byte("invalid-data"), // Invalid data that will fail parsing
@@ -513,20 +457,19 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testCodeCommitment := [32]byte{0x12, 0x34}
 	testRound := uint32(1)
-	testStartBlockHeight := uint64(100)
-	testStartBlockHash := [32]byte{0xaa, 0xbb}
+	testStartBlockHeight := big.NewInt(100)
+	testStartBlockHash := [32]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB}
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
-	testRawQuote := []byte("test-raw-quote")
-
-	dkgContract := &bindings.DKG{}
-	keeper.dkgContract = dkgContract
+	testEnclaveReport := []byte("test-enclave-report")
+	testEnclaveType := [32]byte{0x01}
+	testValidationContext := []byte("")
 
 	// Create mock log with proper structure
 	mockLog := &ethtypes.Log{
 		Address: dummyContractAddress,
 		Topics: []common.Hash{
-			types.DKGInitializedEvent.ID,
+			types.DKGRegisteredEvent.ID,
 			common.BytesToHash(common.LeftPadBytes(testValidator.Bytes(), 32)),
 		},
 		Data:        []byte{}, // Will be filled by ABI packing
@@ -538,8 +481,8 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	// Pack the non-indexed data using the ABI
 	dkgAbi, err := bindings.DKGMetaData.GetAbi()
 	require.NoError(t, err)
-	data, err := dkgAbi.Events["DKGInitialized"].Inputs.NonIndexed().Pack(
-		testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote)
+	data, err := dkgAbi.Events["Registered"].Inputs.NonIndexed().Pack(
+		testEnclaveReport, testRound, testEnclaveType, testCommPubKey, testDkgPubKey, testCodeCommitment, testStartBlockHeight, testStartBlockHash, testValidationContext)
 	require.NoError(t, err)
 	mockLog.Data = data
 
@@ -551,13 +494,13 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 		{
 			name: "pass: successful DKG initialization",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(nil)
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testEnclaveType, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(nil)
 			},
 		},
 		{
 			name: "fail: DKG keeper returns error",
 			setupMock: func() {
-				dkgk.EXPECT().RegistrationInitialized(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testDkgPubKey, testCommPubKey, testRawQuote).Return(
+				dkgk.EXPECT().Registered(gomock.Any(), testValidator, testCodeCommitment, testRound, testStartBlockHeight, testStartBlockHash, testEnclaveType, testDkgPubKey, testCommPubKey, testEnclaveReport).Return(
 					sdkerrors.ErrInvalidRequest.Wrap("invalid request"))
 			},
 			expectedErr: "invalid request",
@@ -570,7 +513,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 				tc.setupMock()
 			}
 
-			err := keeper.ProcessDKGInitialized(ctx, mockLog)
+			err := keeper.ProcessDKGRegistered(ctx, mockLog)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
@@ -586,12 +529,12 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 				for _, event := range events {
 					if event.Type == types.EventTypeDKGInitializedFailure {
 						found = true
-						// Check attributes
+						// Check attributes (ErrorCode is attrs[0], so other attrs shift by 1)
 						attrs := event.Attributes
 						require.NotEmpty(t, attrs)
-						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
-						require.Equal(t, testValidator.Hex(), attrs[2].Value)
-						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
+						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[2].Value)
+						require.Equal(t, testValidator.Hex(), attrs[3].Value)
+						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[4].Value)
 
 						break
 					}
@@ -609,9 +552,11 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						require.Equal(t, strconv.FormatUint(uint64(testRound), 10), attrs[1].Value)
 						require.Equal(t, testValidator.Hex(), attrs[2].Value)
 						require.Equal(t, hex.EncodeToString(testCodeCommitment[:]), attrs[3].Value)
-						require.Equal(t, hex.EncodeToString(testDkgPubKey), attrs[4].Value)
-						require.Equal(t, hex.EncodeToString(testCommPubKey), attrs[5].Value)
-						require.Equal(t, hex.EncodeToString(testRawQuote), attrs[6].Value)
+						require.Equal(t, testStartBlockHeight.String(), attrs[4].Value)
+						require.Equal(t, hex.EncodeToString(testStartBlockHash[:]), attrs[5].Value)
+						require.Equal(t, hex.EncodeToString(testDkgPubKey), attrs[6].Value)
+						require.Equal(t, hex.EncodeToString(testCommPubKey), attrs[7].Value)
+						require.Equal(t, hex.EncodeToString(testValidationContext), attrs[8].Value)
 
 						break
 					}

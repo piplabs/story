@@ -11,7 +11,6 @@ import (
 
 	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
@@ -56,12 +55,7 @@ func (k *Keeper) distributeRewardsFromModule(ctx context.Context, round *types.D
 	}
 
 	// Get the finalized committee members.
-	codeCommitment32, err := cast.ToBytes32(round.CodeCommitment)
-	if err != nil {
-		return math.ZeroInt(), errors.Wrap(err, "cast code commitment to bytes32")
-	}
-
-	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment32, round.Round, types.DKGRegStatusFinalized)
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, round.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return math.ZeroInt(), errors.Wrap(err, "get finalized DKG registrations")
 	}
@@ -250,12 +244,7 @@ func (k *Keeper) distributeFromModuleBalance(ctx context.Context, round *types.D
 	}
 
 	// Get the finalized committee members.
-	codeCommitment32, err := cast.ToBytes32(round.CodeCommitment)
-	if err != nil {
-		return math.ZeroInt(), errors.Wrap(err, "cast code commitment to bytes32")
-	}
-
-	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, codeCommitment32, round.Round, types.DKGRegStatusFinalized)
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, round.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return math.ZeroInt(), errors.Wrap(err, "get finalized DKG registrations")
 	}

@@ -118,6 +118,31 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     }
 
     /*//////////////////////////////////////////////////////////////////////////
+    //                          Upgrade Scheduling                           //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Schedules a story-kernel upgrade at the specified activation height.
+    ///         State management is handled by the consensus layer (CL), so this only emits an event.
+    ///         Not gated by whenNotPaused — upgrade scheduling should work even when paused.
+    /// @param activationHeight The block height at which the upgrade activates
+    /// @param upgradeVersion The version identifier for the upgrade
+    function scheduleUpgrade(uint256 activationHeight, string calldata upgradeVersion) external onlyOwner {
+        require(activationHeight > block.number, "DKG: activation must be in future");
+        require(bytes(upgradeVersion).length > 0, "DKG: upgrade version cannot be empty");
+        emit UpgradeScheduled(activationHeight, upgradeVersion);
+    }
+
+    /// @notice Cancels a pending story-kernel upgrade.
+    ///         State management is handled by the consensus layer (CL), so this only emits an event.
+    ///         The caller must specify the upgradeVersion to confirm which upgrade is being cancelled.
+    ///         Not gated by whenNotPaused — upgrade cancellation should work even when paused.
+    /// @param upgradeVersion The version identifier of the upgrade to cancel
+    function cancelUpgrade(string calldata upgradeVersion) external onlyOwner {
+        require(bytes(upgradeVersion).length > 0, "DKG: upgrade version cannot be empty");
+        emit UpgradeCancelled(upgradeVersion);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
     //                           Authentication Logic                         //
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -180,7 +205,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @param participantsRoot The participants root
     /// @param globalPubKey The global public key
     /// @param publicCoeffs The public coefficients
-    /// @param pubKeyShare The validator's public key share
+    /// @param pubKeyShare The public key share
     /// @param signature The signature
     function finalize(
         uint32 round,
@@ -199,6 +224,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(participantsRoot != bytes32(0), "DKG: Participants root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
         require(publicCoeffs.length != 0, "DKG: Public coefficients cannot be empty");
+        require(pubKeyShare.length != 0, "DKG: Public key share cannot be empty");
         require(signature.length != 0, "DKG: Signature cannot be empty");
 
         emit Finalized(

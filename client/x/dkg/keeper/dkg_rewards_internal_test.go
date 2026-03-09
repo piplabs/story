@@ -513,13 +513,7 @@ func TestDistributeDKGCommitteeRewards_ArithmeticInvariant(t *testing.T) {
 func createTestDKGNetwork(t *testing.T, k *Keeper, ctx context.Context, round uint32) *types.DKGNetwork {
 	t.Helper()
 
-	codeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
-		0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
-		0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
-		0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF}
-
 	dkgNetwork := &types.DKGNetwork{
-		CodeCommitment:   codeCommitment[:],
 		Round:            round,
 		StartBlockHeight: 100,
 		StartBlockHash:   make([]byte, 32),
@@ -543,12 +537,9 @@ func setRegistration(t *testing.T, k *Keeper, ctx context.Context, network *type
 		Index:         1,
 		DkgPubKey:     []byte("test-dkg-pubkey"),
 		CommPubKey:    []byte("test-comm-pubkey"),
-		RawQuote:      []byte("test-raw-quote"),
+		EnclaveReport: []byte("test-enclave-report"),
 		Status:        status,
 	}
 
-	var codeCommitment [32]byte
-	copy(codeCommitment[:], network.CodeCommitment)
-
-	require.NoError(t, k.setDKGRegistration(ctx, codeCommitment, addr, reg))
+	require.NoError(t, k.setDKGRegistration(ctx, addr, reg))
 }

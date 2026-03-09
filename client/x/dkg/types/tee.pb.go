@@ -6,15 +6,16 @@ package types
 import (
 	context "context"
 	fmt "fmt"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	grpc1 "github.com/cosmos/gogoproto/grpc"
 	proto "github.com/cosmos/gogoproto/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	io "io"
-	math "math"
-	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -28,7 +29,89 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// GenerateAndSealKeyRequest is sent to TEE client to generate and seal a key
+// GetCodeCommitmentRequest requests the story-kernel instance's code commitment.
+type GetCodeCommitmentRequest struct {
+}
+
+func (m *GetCodeCommitmentRequest) Reset()         { *m = GetCodeCommitmentRequest{} }
+func (m *GetCodeCommitmentRequest) String() string { return proto.CompactTextString(m) }
+func (*GetCodeCommitmentRequest) ProtoMessage()    {}
+func (*GetCodeCommitmentRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{0}
+}
+func (m *GetCodeCommitmentRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetCodeCommitmentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetCodeCommitmentRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetCodeCommitmentRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCodeCommitmentRequest.Merge(m, src)
+}
+func (m *GetCodeCommitmentRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetCodeCommitmentRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCodeCommitmentRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCodeCommitmentRequest proto.InternalMessageInfo
+
+// GetCodeCommitmentResponse contains the story-kernel instance's code commitment.
+type GetCodeCommitmentResponse struct {
+	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
+}
+
+func (m *GetCodeCommitmentResponse) Reset()         { *m = GetCodeCommitmentResponse{} }
+func (m *GetCodeCommitmentResponse) String() string { return proto.CompactTextString(m) }
+func (*GetCodeCommitmentResponse) ProtoMessage()    {}
+func (*GetCodeCommitmentResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{1}
+}
+func (m *GetCodeCommitmentResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetCodeCommitmentResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetCodeCommitmentResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetCodeCommitmentResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCodeCommitmentResponse.Merge(m, src)
+}
+func (m *GetCodeCommitmentResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetCodeCommitmentResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCodeCommitmentResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCodeCommitmentResponse proto.InternalMessageInfo
+
+func (m *GetCodeCommitmentResponse) GetCodeCommitment() []byte {
+	if m != nil {
+		return m.CodeCommitment
+	}
+	return nil
+}
+
+// GenerateAndSealKeyRequest is sent to story-kernel client to generate and seal a key
 type GenerateAndSealKeyRequest struct {
 	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -39,7 +122,7 @@ func (m *GenerateAndSealKeyRequest) Reset()         { *m = GenerateAndSealKeyReq
 func (m *GenerateAndSealKeyRequest) String() string { return proto.CompactTextString(m) }
 func (*GenerateAndSealKeyRequest) ProtoMessage()    {}
 func (*GenerateAndSealKeyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{0}
+	return fileDescriptor_cefb4926f681f453, []int{2}
 }
 func (m *GenerateAndSealKeyRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -89,7 +172,7 @@ func (m *GenerateAndSealKeyRequest) GetAddress() string {
 	return ""
 }
 
-// GenerateAndSealKeyResponse is returned from TEE client after key generation
+// GenerateAndSealKeyResponse is returned from story-kernel client after key generation
 type GenerateAndSealKeyResponse struct {
 	CodeCommitment   []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round            uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -97,14 +180,14 @@ type GenerateAndSealKeyResponse struct {
 	StartBlockHash   []byte `protobuf:"bytes,4,opt,name=start_block_hash,json=startBlockHash,proto3" json:"start_block_hash,omitempty" yaml:"start_block_hash"`
 	DkgPubKey        []byte `protobuf:"bytes,5,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
 	CommPubKey       []byte `protobuf:"bytes,6,opt,name=comm_pub_key,json=commPubKey,proto3" json:"comm_pub_key,omitempty" yaml:"comm_pub_key"`
-	RawQuote         []byte `protobuf:"bytes,7,opt,name=raw_quote,json=rawQuote,proto3" json:"raw_quote,omitempty" yaml:"raw_quote"`
+	EnclaveReport    []byte `protobuf:"bytes,7,opt,name=enclave_report,json=enclaveReport,proto3" json:"enclave_report,omitempty" yaml:"enclave_report"`
 }
 
 func (m *GenerateAndSealKeyResponse) Reset()         { *m = GenerateAndSealKeyResponse{} }
 func (m *GenerateAndSealKeyResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateAndSealKeyResponse) ProtoMessage()    {}
 func (*GenerateAndSealKeyResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{1}
+	return fileDescriptor_cefb4926f681f453, []int{3}
 }
 func (m *GenerateAndSealKeyResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -175,14 +258,14 @@ func (m *GenerateAndSealKeyResponse) GetCommPubKey() []byte {
 	return nil
 }
 
-func (m *GenerateAndSealKeyResponse) GetRawQuote() []byte {
+func (m *GenerateAndSealKeyResponse) GetEnclaveReport() []byte {
 	if m != nil {
-		return m.RawQuote
+		return m.EnclaveReport
 	}
 	return nil
 }
 
-// GenerateDealsRequest is sent to TEE client to generate deals
+// GenerateDealsRequest is sent to story-kernel client to generate deals
 type GenerateDealsRequest struct {
 	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -193,7 +276,7 @@ func (m *GenerateDealsRequest) Reset()         { *m = GenerateDealsRequest{} }
 func (m *GenerateDealsRequest) String() string { return proto.CompactTextString(m) }
 func (*GenerateDealsRequest) ProtoMessage()    {}
 func (*GenerateDealsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{2}
+	return fileDescriptor_cefb4926f681f453, []int{4}
 }
 func (m *GenerateDealsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -243,7 +326,7 @@ func (m *GenerateDealsRequest) GetIsResharing() bool {
 	return false
 }
 
-// GenerateDealsResponse is returned from TEE client with generated deals
+// GenerateDealsResponse is returned from story-kernel client with generated deals
 type GenerateDealsResponse struct {
 	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -254,7 +337,7 @@ func (m *GenerateDealsResponse) Reset()         { *m = GenerateDealsResponse{} }
 func (m *GenerateDealsResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateDealsResponse) ProtoMessage()    {}
 func (*GenerateDealsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{3}
+	return fileDescriptor_cefb4926f681f453, []int{5}
 }
 func (m *GenerateDealsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -304,26 +387,26 @@ func (m *GenerateDealsResponse) GetDeals() []Deal {
 	return nil
 }
 
-// ProcessDealRequest is sent to TEE client to process deals
-type ProcessDealRequest struct {
+// ProcessDealsRequest is sent to story-kernel client to process deals
+type ProcessDealsRequest struct {
 	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
 	Deals          []Deal `protobuf:"bytes,3,rep,name=deals,proto3" json:"deals" yaml:"deals"`
 	IsResharing    bool   `protobuf:"varint,4,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
 }
 
-func (m *ProcessDealRequest) Reset()         { *m = ProcessDealRequest{} }
-func (m *ProcessDealRequest) String() string { return proto.CompactTextString(m) }
-func (*ProcessDealRequest) ProtoMessage()    {}
-func (*ProcessDealRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{4}
+func (m *ProcessDealsRequest) Reset()         { *m = ProcessDealsRequest{} }
+func (m *ProcessDealsRequest) String() string { return proto.CompactTextString(m) }
+func (*ProcessDealsRequest) ProtoMessage()    {}
+func (*ProcessDealsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{6}
 }
-func (m *ProcessDealRequest) XXX_Unmarshal(b []byte) error {
+func (m *ProcessDealsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ProcessDealRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ProcessDealsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_ProcessDealRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ProcessDealsRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -333,65 +416,65 @@ func (m *ProcessDealRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return b[:n], nil
 	}
 }
-func (m *ProcessDealRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ProcessDealRequest.Merge(m, src)
+func (m *ProcessDealsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProcessDealsRequest.Merge(m, src)
 }
-func (m *ProcessDealRequest) XXX_Size() int {
+func (m *ProcessDealsRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *ProcessDealRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ProcessDealRequest.DiscardUnknown(m)
+func (m *ProcessDealsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProcessDealsRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ProcessDealRequest proto.InternalMessageInfo
+var xxx_messageInfo_ProcessDealsRequest proto.InternalMessageInfo
 
-func (m *ProcessDealRequest) GetCodeCommitment() []byte {
+func (m *ProcessDealsRequest) GetCodeCommitment() []byte {
 	if m != nil {
 		return m.CodeCommitment
 	}
 	return nil
 }
 
-func (m *ProcessDealRequest) GetRound() uint32 {
+func (m *ProcessDealsRequest) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
-func (m *ProcessDealRequest) GetDeals() []Deal {
+func (m *ProcessDealsRequest) GetDeals() []Deal {
 	if m != nil {
 		return m.Deals
 	}
 	return nil
 }
 
-func (m *ProcessDealRequest) GetIsResharing() bool {
+func (m *ProcessDealsRequest) GetIsResharing() bool {
 	if m != nil {
 		return m.IsResharing
 	}
 	return false
 }
 
-// ProcessDealResponse is returned from TEE client after processing deals
-type ProcessDealResponse struct {
+// ProcessDealResponse is returned from story-kernel client after processing deals
+type ProcessDealsResponse struct {
 	CodeCommitment []byte     `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32     `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
 	Responses      []Response `protobuf:"bytes,3,rep,name=responses,proto3" json:"responses" yaml:"responses"`
 }
 
-func (m *ProcessDealResponse) Reset()         { *m = ProcessDealResponse{} }
-func (m *ProcessDealResponse) String() string { return proto.CompactTextString(m) }
-func (*ProcessDealResponse) ProtoMessage()    {}
-func (*ProcessDealResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{5}
+func (m *ProcessDealsResponse) Reset()         { *m = ProcessDealsResponse{} }
+func (m *ProcessDealsResponse) String() string { return proto.CompactTextString(m) }
+func (*ProcessDealsResponse) ProtoMessage()    {}
+func (*ProcessDealsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{7}
 }
-func (m *ProcessDealResponse) XXX_Unmarshal(b []byte) error {
+func (m *ProcessDealsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ProcessDealResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ProcessDealsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_ProcessDealResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ProcessDealsResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -401,33 +484,33 @@ func (m *ProcessDealResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return b[:n], nil
 	}
 }
-func (m *ProcessDealResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ProcessDealResponse.Merge(m, src)
+func (m *ProcessDealsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProcessDealsResponse.Merge(m, src)
 }
-func (m *ProcessDealResponse) XXX_Size() int {
+func (m *ProcessDealsResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *ProcessDealResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ProcessDealResponse.DiscardUnknown(m)
+func (m *ProcessDealsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProcessDealsResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ProcessDealResponse proto.InternalMessageInfo
+var xxx_messageInfo_ProcessDealsResponse proto.InternalMessageInfo
 
-func (m *ProcessDealResponse) GetCodeCommitment() []byte {
+func (m *ProcessDealsResponse) GetCodeCommitment() []byte {
 	if m != nil {
 		return m.CodeCommitment
 	}
 	return nil
 }
 
-func (m *ProcessDealResponse) GetRound() uint32 {
+func (m *ProcessDealsResponse) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
-func (m *ProcessDealResponse) GetResponses() []Response {
+func (m *ProcessDealsResponse) GetResponses() []Response {
 	if m != nil {
 		return m.Responses
 	}
@@ -445,7 +528,7 @@ func (m *ProcessResponsesRequest) Reset()         { *m = ProcessResponsesRequest
 func (m *ProcessResponsesRequest) String() string { return proto.CompactTextString(m) }
 func (*ProcessResponsesRequest) ProtoMessage()    {}
 func (*ProcessResponsesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{6}
+	return fileDescriptor_cefb4926f681f453, []int{8}
 }
 func (m *ProcessResponsesRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -510,7 +593,7 @@ func (m *ProcessResponsesResponse) Reset()         { *m = ProcessResponsesRespon
 func (m *ProcessResponsesResponse) String() string { return proto.CompactTextString(m) }
 func (*ProcessResponsesResponse) ProtoMessage()    {}
 func (*ProcessResponsesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{7}
+	return fileDescriptor_cefb4926f681f453, []int{9}
 }
 func (m *ProcessResponsesResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -546,7 +629,7 @@ func (m *ProcessResponsesResponse) GetJustifications() []*Justification {
 	return nil
 }
 
-// FinalizeDKGRequest is sent to TEE client to finalize DKG
+// FinalizeDKGRequest is sent to story-kernel client to finalize DKG
 type FinalizeDKGRequest struct {
 	CodeCommitment []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -557,7 +640,7 @@ func (m *FinalizeDKGRequest) Reset()         { *m = FinalizeDKGRequest{} }
 func (m *FinalizeDKGRequest) String() string { return proto.CompactTextString(m) }
 func (*FinalizeDKGRequest) ProtoMessage()    {}
 func (*FinalizeDKGRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{8}
+	return fileDescriptor_cefb4926f681f453, []int{10}
 }
 func (m *FinalizeDKGRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -607,7 +690,7 @@ func (m *FinalizeDKGRequest) GetIsResharing() bool {
 	return false
 }
 
-// FinalizeDKGResponse is returned from TEE client after DKG finalization
+// FinalizeDKGResponse is returned from story-kernel client after DKG finalization
 type FinalizeDKGResponse struct {
 	CodeCommitment   []byte   `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
 	Round            uint32   `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
@@ -622,7 +705,7 @@ func (m *FinalizeDKGResponse) Reset()         { *m = FinalizeDKGResponse{} }
 func (m *FinalizeDKGResponse) String() string { return proto.CompactTextString(m) }
 func (*FinalizeDKGResponse) ProtoMessage()    {}
 func (*FinalizeDKGResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{9}
+	return fileDescriptor_cefb4926f681f453, []int{11}
 }
 func (m *FinalizeDKGResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -716,7 +799,7 @@ func (m *PartialDecryptTDH2Request) Reset()         { *m = PartialDecryptTDH2Req
 func (m *PartialDecryptTDH2Request) String() string { return proto.CompactTextString(m) }
 func (*PartialDecryptTDH2Request) ProtoMessage()    {}
 func (*PartialDecryptTDH2Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{10}
+	return fileDescriptor_cefb4926f681f453, []int{12}
 }
 func (m *PartialDecryptTDH2Request) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -814,7 +897,7 @@ func (m *PartialDecryptTDH2Response) Reset()         { *m = PartialDecryptTDH2Re
 func (m *PartialDecryptTDH2Response) String() string { return proto.CompactTextString(m) }
 func (*PartialDecryptTDH2Response) ProtoMessage()    {}
 func (*PartialDecryptTDH2Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{11}
+	return fileDescriptor_cefb4926f681f453, []int{13}
 }
 func (m *PartialDecryptTDH2Response) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -871,6 +954,113 @@ func (m *PartialDecryptTDH2Response) GetSignature() []byte {
 	return nil
 }
 
+// ProcessJustificationRequest is sent to story-kernel client to process valid justifications
+// and restore the DKG state by accepting the originally-complained deals.
+type ProcessJustificationRequest struct {
+	CodeCommitment []byte          `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
+	Round          uint32          `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Justifications []Justification `protobuf:"bytes,3,rep,name=justifications,proto3" json:"justifications" yaml:"justifications"`
+	IsResharing    bool            `protobuf:"varint,4,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
+}
+
+func (m *ProcessJustificationRequest) Reset()         { *m = ProcessJustificationRequest{} }
+func (m *ProcessJustificationRequest) String() string { return proto.CompactTextString(m) }
+func (*ProcessJustificationRequest) ProtoMessage()    {}
+func (*ProcessJustificationRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{14}
+}
+func (m *ProcessJustificationRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ProcessJustificationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ProcessJustificationRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ProcessJustificationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProcessJustificationRequest.Merge(m, src)
+}
+func (m *ProcessJustificationRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *ProcessJustificationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProcessJustificationRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ProcessJustificationRequest proto.InternalMessageInfo
+
+func (m *ProcessJustificationRequest) GetCodeCommitment() []byte {
+	if m != nil {
+		return m.CodeCommitment
+	}
+	return nil
+}
+
+func (m *ProcessJustificationRequest) GetRound() uint32 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *ProcessJustificationRequest) GetJustifications() []Justification {
+	if m != nil {
+		return m.Justifications
+	}
+	return nil
+}
+
+func (m *ProcessJustificationRequest) GetIsResharing() bool {
+	if m != nil {
+		return m.IsResharing
+	}
+	return false
+}
+
+// ProcessJustificationResponse is returned from story-kernel client after processing justifications.
+type ProcessJustificationResponse struct {
+}
+
+func (m *ProcessJustificationResponse) Reset()         { *m = ProcessJustificationResponse{} }
+func (m *ProcessJustificationResponse) String() string { return proto.CompactTextString(m) }
+func (*ProcessJustificationResponse) ProtoMessage()    {}
+func (*ProcessJustificationResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cefb4926f681f453, []int{15}
+}
+func (m *ProcessJustificationResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ProcessJustificationResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ProcessJustificationResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ProcessJustificationResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProcessJustificationResponse.Merge(m, src)
+}
+func (m *ProcessJustificationResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *ProcessJustificationResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProcessJustificationResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ProcessJustificationResponse proto.InternalMessageInfo
+
 type Justification struct {
 	Index            uint32            `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
 	VssJustification *VSSJustification `protobuf:"bytes,2,opt,name=vss_justification,json=vssJustification,proto3" json:"vss_justification,omitempty" yaml:"vss_justification"`
@@ -880,7 +1070,7 @@ func (m *Justification) Reset()         { *m = Justification{} }
 func (m *Justification) String() string { return proto.CompactTextString(m) }
 func (*Justification) ProtoMessage()    {}
 func (*Justification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{12}
+	return fileDescriptor_cefb4926f681f453, []int{16}
 }
 func (m *Justification) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -934,7 +1124,7 @@ func (m *VSSJustification) Reset()         { *m = VSSJustification{} }
 func (m *VSSJustification) String() string { return proto.CompactTextString(m) }
 func (*VSSJustification) ProtoMessage()    {}
 func (*VSSJustification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{13}
+	return fileDescriptor_cefb4926f681f453, []int{17}
 }
 func (m *VSSJustification) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1002,7 +1192,7 @@ func (m *PlainDeal) Reset()         { *m = PlainDeal{} }
 func (m *PlainDeal) String() string { return proto.CompactTextString(m) }
 func (*PlainDeal) ProtoMessage()    {}
 func (*PlainDeal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{14}
+	return fileDescriptor_cefb4926f681f453, []int{18}
 }
 func (m *PlainDeal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1068,7 +1258,7 @@ func (m *SecShare) Reset()         { *m = SecShare{} }
 func (m *SecShare) String() string { return proto.CompactTextString(m) }
 func (*SecShare) ProtoMessage()    {}
 func (*SecShare) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cefb4926f681f453, []int{15}
+	return fileDescriptor_cefb4926f681f453, []int{19}
 }
 func (m *SecShare) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1112,18 +1302,22 @@ func (m *SecShare) GetV() *Scalar {
 }
 
 func init() {
+	proto.RegisterType((*GetCodeCommitmentRequest)(nil), "story.dkg.v1.types.GetCodeCommitmentRequest")
+	proto.RegisterType((*GetCodeCommitmentResponse)(nil), "story.dkg.v1.types.GetCodeCommitmentResponse")
 	proto.RegisterType((*GenerateAndSealKeyRequest)(nil), "story.dkg.v1.types.GenerateAndSealKeyRequest")
 	proto.RegisterType((*GenerateAndSealKeyResponse)(nil), "story.dkg.v1.types.GenerateAndSealKeyResponse")
 	proto.RegisterType((*GenerateDealsRequest)(nil), "story.dkg.v1.types.GenerateDealsRequest")
 	proto.RegisterType((*GenerateDealsResponse)(nil), "story.dkg.v1.types.GenerateDealsResponse")
-	proto.RegisterType((*ProcessDealRequest)(nil), "story.dkg.v1.types.ProcessDealRequest")
-	proto.RegisterType((*ProcessDealResponse)(nil), "story.dkg.v1.types.ProcessDealResponse")
+	proto.RegisterType((*ProcessDealsRequest)(nil), "story.dkg.v1.types.ProcessDealsRequest")
+	proto.RegisterType((*ProcessDealsResponse)(nil), "story.dkg.v1.types.ProcessDealsResponse")
 	proto.RegisterType((*ProcessResponsesRequest)(nil), "story.dkg.v1.types.ProcessResponsesRequest")
 	proto.RegisterType((*ProcessResponsesResponse)(nil), "story.dkg.v1.types.ProcessResponsesResponse")
 	proto.RegisterType((*FinalizeDKGRequest)(nil), "story.dkg.v1.types.FinalizeDKGRequest")
 	proto.RegisterType((*FinalizeDKGResponse)(nil), "story.dkg.v1.types.FinalizeDKGResponse")
 	proto.RegisterType((*PartialDecryptTDH2Request)(nil), "story.dkg.v1.types.PartialDecryptTDH2Request")
 	proto.RegisterType((*PartialDecryptTDH2Response)(nil), "story.dkg.v1.types.PartialDecryptTDH2Response")
+	proto.RegisterType((*ProcessJustificationRequest)(nil), "story.dkg.v1.types.ProcessJustificationRequest")
+	proto.RegisterType((*ProcessJustificationResponse)(nil), "story.dkg.v1.types.ProcessJustificationResponse")
 	proto.RegisterType((*Justification)(nil), "story.dkg.v1.types.Justification")
 	proto.RegisterType((*VSSJustification)(nil), "story.dkg.v1.types.VSSJustification")
 	proto.RegisterType((*PlainDeal)(nil), "story.dkg.v1.types.PlainDeal")
@@ -1233,257 +1427,382 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// TEEClient is the client API for TEE service.
+// KernelServiceClient is the client API for KernelService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type TEEClient interface {
+type KernelServiceClient interface {
+	GetCodeCommitment(ctx context.Context, in *GetCodeCommitmentRequest, opts ...grpc.CallOption) (*GetCodeCommitmentResponse, error)
 	GenerateAndSealKey(ctx context.Context, in *GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*GenerateAndSealKeyResponse, error)
 	GenerateDeals(ctx context.Context, in *GenerateDealsRequest, opts ...grpc.CallOption) (*GenerateDealsResponse, error)
-	ProcessDeals(ctx context.Context, in *ProcessDealRequest, opts ...grpc.CallOption) (*ProcessDealResponse, error)
+	ProcessDeals(ctx context.Context, in *ProcessDealsRequest, opts ...grpc.CallOption) (*ProcessDealsResponse, error)
 	ProcessResponses(ctx context.Context, in *ProcessResponsesRequest, opts ...grpc.CallOption) (*ProcessResponsesResponse, error)
+	ProcessJustification(ctx context.Context, in *ProcessJustificationRequest, opts ...grpc.CallOption) (*ProcessJustificationResponse, error)
 	FinalizeDKG(ctx context.Context, in *FinalizeDKGRequest, opts ...grpc.CallOption) (*FinalizeDKGResponse, error)
 	PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTDH2Request, opts ...grpc.CallOption) (*PartialDecryptTDH2Response, error)
 }
 
-type tEEClient struct {
+type kernelServiceClient struct {
 	cc grpc1.ClientConn
 }
 
-func NewTEEClient(cc grpc1.ClientConn) TEEClient {
-	return &tEEClient{cc}
+func NewKernelServiceClient(cc grpc1.ClientConn) KernelServiceClient {
+	return &kernelServiceClient{cc}
 }
 
-func (c *tEEClient) GenerateAndSealKey(ctx context.Context, in *GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*GenerateAndSealKeyResponse, error) {
+func (c *kernelServiceClient) GetCodeCommitment(ctx context.Context, in *GetCodeCommitmentRequest, opts ...grpc.CallOption) (*GetCodeCommitmentResponse, error) {
+	out := new(GetCodeCommitmentResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/GetCodeCommitment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *kernelServiceClient) GenerateAndSealKey(ctx context.Context, in *GenerateAndSealKeyRequest, opts ...grpc.CallOption) (*GenerateAndSealKeyResponse, error) {
 	out := new(GenerateAndSealKeyResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/GenerateAndSealKey", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/GenerateAndSealKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tEEClient) GenerateDeals(ctx context.Context, in *GenerateDealsRequest, opts ...grpc.CallOption) (*GenerateDealsResponse, error) {
+func (c *kernelServiceClient) GenerateDeals(ctx context.Context, in *GenerateDealsRequest, opts ...grpc.CallOption) (*GenerateDealsResponse, error) {
 	out := new(GenerateDealsResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/GenerateDeals", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/GenerateDeals", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tEEClient) ProcessDeals(ctx context.Context, in *ProcessDealRequest, opts ...grpc.CallOption) (*ProcessDealResponse, error) {
-	out := new(ProcessDealResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/ProcessDeals", in, out, opts...)
+func (c *kernelServiceClient) ProcessDeals(ctx context.Context, in *ProcessDealsRequest, opts ...grpc.CallOption) (*ProcessDealsResponse, error) {
+	out := new(ProcessDealsResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/ProcessDeals", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tEEClient) ProcessResponses(ctx context.Context, in *ProcessResponsesRequest, opts ...grpc.CallOption) (*ProcessResponsesResponse, error) {
+func (c *kernelServiceClient) ProcessResponses(ctx context.Context, in *ProcessResponsesRequest, opts ...grpc.CallOption) (*ProcessResponsesResponse, error) {
 	out := new(ProcessResponsesResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/ProcessResponses", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/ProcessResponses", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tEEClient) FinalizeDKG(ctx context.Context, in *FinalizeDKGRequest, opts ...grpc.CallOption) (*FinalizeDKGResponse, error) {
+func (c *kernelServiceClient) ProcessJustification(ctx context.Context, in *ProcessJustificationRequest, opts ...grpc.CallOption) (*ProcessJustificationResponse, error) {
+	out := new(ProcessJustificationResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/ProcessJustification", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *kernelServiceClient) FinalizeDKG(ctx context.Context, in *FinalizeDKGRequest, opts ...grpc.CallOption) (*FinalizeDKGResponse, error) {
 	out := new(FinalizeDKGResponse)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/FinalizeDKG", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/FinalizeDKG", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tEEClient) PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTDH2Request, opts ...grpc.CallOption) (*PartialDecryptTDH2Response, error) {
+func (c *kernelServiceClient) PartialDecryptTDH2(ctx context.Context, in *PartialDecryptTDH2Request, opts ...grpc.CallOption) (*PartialDecryptTDH2Response, error) {
 	out := new(PartialDecryptTDH2Response)
-	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.TEE/PartialDecryptTDH2", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.KernelService/PartialDecryptTDH2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// TEEServer is the server API for TEE service.
-type TEEServer interface {
+// KernelServiceServer is the server API for KernelService service.
+type KernelServiceServer interface {
+	GetCodeCommitment(context.Context, *GetCodeCommitmentRequest) (*GetCodeCommitmentResponse, error)
 	GenerateAndSealKey(context.Context, *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error)
 	GenerateDeals(context.Context, *GenerateDealsRequest) (*GenerateDealsResponse, error)
-	ProcessDeals(context.Context, *ProcessDealRequest) (*ProcessDealResponse, error)
+	ProcessDeals(context.Context, *ProcessDealsRequest) (*ProcessDealsResponse, error)
 	ProcessResponses(context.Context, *ProcessResponsesRequest) (*ProcessResponsesResponse, error)
+	ProcessJustification(context.Context, *ProcessJustificationRequest) (*ProcessJustificationResponse, error)
 	FinalizeDKG(context.Context, *FinalizeDKGRequest) (*FinalizeDKGResponse, error)
 	PartialDecryptTDH2(context.Context, *PartialDecryptTDH2Request) (*PartialDecryptTDH2Response, error)
 }
 
-// UnimplementedTEEServer can be embedded to have forward compatible implementations.
-type UnimplementedTEEServer struct {
+// UnimplementedKernelServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedKernelServiceServer struct {
 }
 
-func (*UnimplementedTEEServer) GenerateAndSealKey(ctx context.Context, req *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error) {
+func (*UnimplementedKernelServiceServer) GetCodeCommitment(ctx context.Context, req *GetCodeCommitmentRequest) (*GetCodeCommitmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCodeCommitment not implemented")
+}
+func (*UnimplementedKernelServiceServer) GenerateAndSealKey(ctx context.Context, req *GenerateAndSealKeyRequest) (*GenerateAndSealKeyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateAndSealKey not implemented")
 }
-func (*UnimplementedTEEServer) GenerateDeals(ctx context.Context, req *GenerateDealsRequest) (*GenerateDealsResponse, error) {
+func (*UnimplementedKernelServiceServer) GenerateDeals(ctx context.Context, req *GenerateDealsRequest) (*GenerateDealsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateDeals not implemented")
 }
-func (*UnimplementedTEEServer) ProcessDeals(ctx context.Context, req *ProcessDealRequest) (*ProcessDealResponse, error) {
+func (*UnimplementedKernelServiceServer) ProcessDeals(ctx context.Context, req *ProcessDealsRequest) (*ProcessDealsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProcessDeals not implemented")
 }
-func (*UnimplementedTEEServer) ProcessResponses(ctx context.Context, req *ProcessResponsesRequest) (*ProcessResponsesResponse, error) {
+func (*UnimplementedKernelServiceServer) ProcessResponses(ctx context.Context, req *ProcessResponsesRequest) (*ProcessResponsesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProcessResponses not implemented")
 }
-func (*UnimplementedTEEServer) FinalizeDKG(ctx context.Context, req *FinalizeDKGRequest) (*FinalizeDKGResponse, error) {
+func (*UnimplementedKernelServiceServer) ProcessJustification(ctx context.Context, req *ProcessJustificationRequest) (*ProcessJustificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcessJustification not implemented")
+}
+func (*UnimplementedKernelServiceServer) FinalizeDKG(ctx context.Context, req *FinalizeDKGRequest) (*FinalizeDKGResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeDKG not implemented")
 }
-func (*UnimplementedTEEServer) PartialDecryptTDH2(ctx context.Context, req *PartialDecryptTDH2Request) (*PartialDecryptTDH2Response, error) {
+func (*UnimplementedKernelServiceServer) PartialDecryptTDH2(ctx context.Context, req *PartialDecryptTDH2Request) (*PartialDecryptTDH2Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PartialDecryptTDH2 not implemented")
 }
 
-func RegisterTEEServer(s grpc1.Server, srv TEEServer) {
-	s.RegisterService(&_TEE_serviceDesc, srv)
+func RegisterKernelServiceServer(s grpc1.Server, srv KernelServiceServer) {
+	s.RegisterService(&_KernelService_serviceDesc, srv)
 }
 
-func _TEE_GenerateAndSealKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _KernelService_GetCodeCommitment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCodeCommitmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KernelServiceServer).GetCodeCommitment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.dkg.v1.types.KernelService/GetCodeCommitment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KernelServiceServer).GetCodeCommitment(ctx, req.(*GetCodeCommitmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KernelService_GenerateAndSealKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GenerateAndSealKeyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).GenerateAndSealKey(ctx, in)
+		return srv.(KernelServiceServer).GenerateAndSealKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/GenerateAndSealKey",
+		FullMethod: "/story.dkg.v1.types.KernelService/GenerateAndSealKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).GenerateAndSealKey(ctx, req.(*GenerateAndSealKeyRequest))
+		return srv.(KernelServiceServer).GenerateAndSealKey(ctx, req.(*GenerateAndSealKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TEE_GenerateDeals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _KernelService_GenerateDeals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GenerateDealsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).GenerateDeals(ctx, in)
+		return srv.(KernelServiceServer).GenerateDeals(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/GenerateDeals",
+		FullMethod: "/story.dkg.v1.types.KernelService/GenerateDeals",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).GenerateDeals(ctx, req.(*GenerateDealsRequest))
+		return srv.(KernelServiceServer).GenerateDeals(ctx, req.(*GenerateDealsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TEE_ProcessDeals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProcessDealRequest)
+func _KernelService_ProcessDeals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessDealsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).ProcessDeals(ctx, in)
+		return srv.(KernelServiceServer).ProcessDeals(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/ProcessDeals",
+		FullMethod: "/story.dkg.v1.types.KernelService/ProcessDeals",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).ProcessDeals(ctx, req.(*ProcessDealRequest))
+		return srv.(KernelServiceServer).ProcessDeals(ctx, req.(*ProcessDealsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TEE_ProcessResponses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _KernelService_ProcessResponses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ProcessResponsesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).ProcessResponses(ctx, in)
+		return srv.(KernelServiceServer).ProcessResponses(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/ProcessResponses",
+		FullMethod: "/story.dkg.v1.types.KernelService/ProcessResponses",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).ProcessResponses(ctx, req.(*ProcessResponsesRequest))
+		return srv.(KernelServiceServer).ProcessResponses(ctx, req.(*ProcessResponsesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TEE_FinalizeDKG_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _KernelService_ProcessJustification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessJustificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KernelServiceServer).ProcessJustification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.dkg.v1.types.KernelService/ProcessJustification",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KernelServiceServer).ProcessJustification(ctx, req.(*ProcessJustificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KernelService_FinalizeDKG_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FinalizeDKGRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).FinalizeDKG(ctx, in)
+		return srv.(KernelServiceServer).FinalizeDKG(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/FinalizeDKG",
+		FullMethod: "/story.dkg.v1.types.KernelService/FinalizeDKG",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).FinalizeDKG(ctx, req.(*FinalizeDKGRequest))
+		return srv.(KernelServiceServer).FinalizeDKG(ctx, req.(*FinalizeDKGRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TEE_PartialDecryptTDH2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _KernelService_PartialDecryptTDH2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PartialDecryptTDH2Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TEEServer).PartialDecryptTDH2(ctx, in)
+		return srv.(KernelServiceServer).PartialDecryptTDH2(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/story.dkg.v1.types.TEE/PartialDecryptTDH2",
+		FullMethod: "/story.dkg.v1.types.KernelService/PartialDecryptTDH2",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TEEServer).PartialDecryptTDH2(ctx, req.(*PartialDecryptTDH2Request))
+		return srv.(KernelServiceServer).PartialDecryptTDH2(ctx, req.(*PartialDecryptTDH2Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var TEE_serviceDesc = _TEE_serviceDesc
-var _TEE_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "story.dkg.v1.types.TEE",
-	HandlerType: (*TEEServer)(nil),
+var KernelService_serviceDesc = _KernelService_serviceDesc
+var _KernelService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "story.dkg.v1.types.KernelService",
+	HandlerType: (*KernelServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetCodeCommitment",
+			Handler:    _KernelService_GetCodeCommitment_Handler,
+		},
+		{
 			MethodName: "GenerateAndSealKey",
-			Handler:    _TEE_GenerateAndSealKey_Handler,
+			Handler:    _KernelService_GenerateAndSealKey_Handler,
 		},
 		{
 			MethodName: "GenerateDeals",
-			Handler:    _TEE_GenerateDeals_Handler,
+			Handler:    _KernelService_GenerateDeals_Handler,
 		},
 		{
 			MethodName: "ProcessDeals",
-			Handler:    _TEE_ProcessDeals_Handler,
+			Handler:    _KernelService_ProcessDeals_Handler,
 		},
 		{
 			MethodName: "ProcessResponses",
-			Handler:    _TEE_ProcessResponses_Handler,
+			Handler:    _KernelService_ProcessResponses_Handler,
+		},
+		{
+			MethodName: "ProcessJustification",
+			Handler:    _KernelService_ProcessJustification_Handler,
 		},
 		{
 			MethodName: "FinalizeDKG",
-			Handler:    _TEE_FinalizeDKG_Handler,
+			Handler:    _KernelService_FinalizeDKG_Handler,
 		},
 		{
 			MethodName: "PartialDecryptTDH2",
-			Handler:    _TEE_PartialDecryptTDH2_Handler,
+			Handler:    _KernelService_PartialDecryptTDH2_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "story/dkg/v1/types/tee.proto",
+}
+
+func (m *GetCodeCommitmentRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetCodeCommitmentRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetCodeCommitmentRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *GetCodeCommitmentResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetCodeCommitmentResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetCodeCommitmentResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.CodeCommitment)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GenerateAndSealKeyRequest) Marshal() (dAtA []byte, err error) {
@@ -1548,10 +1867,10 @@ func (m *GenerateAndSealKeyResponse) MarshalToSizedBuffer(dAtA []byte) (int, err
 	_ = i
 	var l int
 	_ = l
-	if len(m.RawQuote) > 0 {
-		i -= len(m.RawQuote)
-		copy(dAtA[i:], m.RawQuote)
-		i = encodeVarintTee(dAtA, i, uint64(len(m.RawQuote)))
+	if len(m.EnclaveReport) > 0 {
+		i -= len(m.EnclaveReport)
+		copy(dAtA[i:], m.EnclaveReport)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.EnclaveReport)))
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -1690,7 +2009,7 @@ func (m *GenerateDealsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ProcessDealRequest) Marshal() (dAtA []byte, err error) {
+func (m *ProcessDealsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -1700,12 +2019,12 @@ func (m *ProcessDealRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ProcessDealRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *ProcessDealsRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ProcessDealRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *ProcessDealsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -1749,7 +2068,7 @@ func (m *ProcessDealRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ProcessDealResponse) Marshal() (dAtA []byte, err error) {
+func (m *ProcessDealsResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -1759,12 +2078,12 @@ func (m *ProcessDealResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ProcessDealResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *ProcessDealsResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ProcessDealResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *ProcessDealsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -2137,6 +2456,88 @@ func (m *PartialDecryptTDH2Response) MarshalToSizedBuffer(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *ProcessJustificationRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ProcessJustificationRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ProcessJustificationRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.IsResharing {
+		i--
+		if m.IsResharing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Justifications) > 0 {
+		for iNdEx := len(m.Justifications) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Justifications[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintTee(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Round != 0 {
+		i = encodeVarintTee(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintTee(dAtA, i, uint64(len(m.CodeCommitment)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ProcessJustificationResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ProcessJustificationResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ProcessJustificationResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
 func (m *Justification) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2343,6 +2744,28 @@ func encodeVarintTee(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
+func (m *GetCodeCommitmentRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *GetCodeCommitmentResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CodeCommitment)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	return n
+}
+
 func (m *GenerateAndSealKeyRequest) Size() (n int) {
 	if m == nil {
 		return 0
@@ -2391,7 +2814,7 @@ func (m *GenerateAndSealKeyResponse) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTee(uint64(l))
 	}
-	l = len(m.RawQuote)
+	l = len(m.EnclaveReport)
 	if l > 0 {
 		n += 1 + l + sovTee(uint64(l))
 	}
@@ -2439,7 +2862,7 @@ func (m *GenerateDealsResponse) Size() (n int) {
 	return n
 }
 
-func (m *ProcessDealRequest) Size() (n int) {
+func (m *ProcessDealsRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2464,7 +2887,7 @@ func (m *ProcessDealRequest) Size() (n int) {
 	return n
 }
 
-func (m *ProcessDealResponse) Size() (n int) {
+func (m *ProcessDealsResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2647,6 +3070,40 @@ func (m *PartialDecryptTDH2Response) Size() (n int) {
 	return n
 }
 
+func (m *ProcessJustificationRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CodeCommitment)
+	if l > 0 {
+		n += 1 + l + sovTee(uint64(l))
+	}
+	if m.Round != 0 {
+		n += 1 + sovTee(uint64(m.Round))
+	}
+	if len(m.Justifications) > 0 {
+		for _, e := range m.Justifications {
+			l = e.Size()
+			n += 1 + l + sovTee(uint64(l))
+		}
+	}
+	if m.IsResharing {
+		n += 2
+	}
+	return n
+}
+
+func (m *ProcessJustificationResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
 func (m *Justification) Size() (n int) {
 	if m == nil {
 		return 0
@@ -2734,6 +3191,140 @@ func sovTee(x uint64) (n int) {
 }
 func sozTee(x uint64) (n int) {
 	return sovTee(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *GetCodeCommitmentRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetCodeCommitmentRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetCodeCommitmentRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetCodeCommitmentResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetCodeCommitmentResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetCodeCommitmentResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *GenerateAndSealKeyRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -3075,7 +3666,7 @@ func (m *GenerateAndSealKeyResponse) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RawQuote", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EnclaveReport", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -3102,9 +3693,9 @@ func (m *GenerateAndSealKeyResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RawQuote = append(m.RawQuote[:0], dAtA[iNdEx:postIndex]...)
-			if m.RawQuote == nil {
-				m.RawQuote = []byte{}
+			m.EnclaveReport = append(m.EnclaveReport[:0], dAtA[iNdEx:postIndex]...)
+			if m.EnclaveReport == nil {
+				m.EnclaveReport = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -3388,7 +3979,7 @@ func (m *GenerateDealsResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ProcessDealRequest) Unmarshal(dAtA []byte) error {
+func (m *ProcessDealsRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3411,10 +4002,10 @@ func (m *ProcessDealRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ProcessDealRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: ProcessDealsRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ProcessDealRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ProcessDealsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3545,7 +4136,7 @@ func (m *ProcessDealRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ProcessDealResponse) Unmarshal(dAtA []byte) error {
+func (m *ProcessDealsResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3568,10 +4159,10 @@ func (m *ProcessDealResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ProcessDealResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: ProcessDealsResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ProcessDealResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ProcessDealsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4772,6 +5363,213 @@ func (m *PartialDecryptTDH2Response) Unmarshal(dAtA []byte) error {
 				m.Signature = []byte{}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ProcessJustificationRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProcessJustificationRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProcessJustificationRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeCommitment == nil {
+				m.CodeCommitment = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Justifications", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTee
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTee
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Justifications = append(m.Justifications, Justification{})
+			if err := m.Justifications[len(m.Justifications)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTee
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsResharing = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTee(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTee
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ProcessJustificationResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTee
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProcessJustificationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProcessJustificationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTee(dAtA[iNdEx:])

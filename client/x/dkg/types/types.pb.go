@@ -5,11 +5,12 @@ package types
 
 import (
 	fmt "fmt"
-	_ "github.com/cosmos/gogoproto/gogoproto"
-	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	_ "github.com/cosmos/gogoproto/gogoproto"
+	proto "github.com/cosmos/gogoproto/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -29,18 +30,21 @@ const (
 	DKGRegStatusUnspecified DKGRegStatus = 0
 	DKGRegStatusVerified    DKGRegStatus = 1
 	DKGRegStatusFinalized   DKGRegStatus = 2
+	DKGRegStatusInvalidated DKGRegStatus = 3
 )
 
 var DKGRegStatus_name = map[int32]string{
 	0: "DKG_REG_STATUS_UNSPECIFIED",
 	1: "DKG_REG_STATUS_VERIFIED",
 	2: "DKG_REG_STATUS_FINALIZED",
+	3: "DKG_REG_STATUS_INVALIDATED",
 }
 
 var DKGRegStatus_value = map[string]int32{
 	"DKG_REG_STATUS_UNSPECIFIED": 0,
 	"DKG_REG_STATUS_VERIFIED":    1,
 	"DKG_REG_STATUS_FINALIZED":   2,
+	"DKG_REG_STATUS_INVALIDATED": 3,
 }
 
 func (x DKGRegStatus) String() string {
@@ -89,18 +93,18 @@ func (DKGStage) EnumDescriptor() ([]byte, []int) {
 }
 
 type DKGNetwork struct {
-	CodeCommitment   []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
-	Round            uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	StartBlockHeight int64  `protobuf:"varint,3,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty" yaml:"start_block_height"`
-	StartBlockHash   []byte `protobuf:"bytes,4,opt,name=start_block_hash,json=startBlockHash,proto3" json:"start_block_hash,omitempty" yaml:"start_block_hash"`
+	Round            uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	StartBlockHeight int64  `protobuf:"varint,2,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty" yaml:"start_block_height"`
+	StartBlockHash   []byte `protobuf:"bytes,3,opt,name=start_block_hash,json=startBlockHash,proto3" json:"start_block_hash,omitempty" yaml:"start_block_hash"`
 	// list of active validators' evm addresses
-	ActiveValSet    []string `protobuf:"bytes,5,rep,name=active_val_set,json=activeValSet,proto3" json:"active_val_set,omitempty" yaml:"active_val_set"`
-	Total           uint32   `protobuf:"varint,6,opt,name=total,proto3" json:"total,omitempty" yaml:"total"`
-	Threshold       uint32   `protobuf:"varint,7,opt,name=threshold,proto3" json:"threshold,omitempty" yaml:"threshold"`
-	Stage           DKGStage `protobuf:"varint,8,opt,name=stage,proto3,enum=story.dkg.v1.types.DKGStage" json:"stage,omitempty" yaml:"stage"`
-	IsResharing     bool     `protobuf:"varint,9,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
-	GlobalPublicKey []byte   `protobuf:"bytes,10,opt,name=global_public_key,json=globalPublicKey,proto3" json:"global_public_key,omitempty" yaml:"global_public_key"`
-	PublicCoeffs    [][]byte `protobuf:"bytes,11,rep,name=public_coeffs,json=publicCoeffs,proto3" json:"public_coeffs,omitempty" yaml:"public_coeffs"`
+	ActiveValSet    []string `protobuf:"bytes,4,rep,name=active_val_set,json=activeValSet,proto3" json:"active_val_set,omitempty" yaml:"active_val_set"`
+	Total           uint32   `protobuf:"varint,5,opt,name=total,proto3" json:"total,omitempty" yaml:"total"`
+	Threshold       uint32   `protobuf:"varint,6,opt,name=threshold,proto3" json:"threshold,omitempty" yaml:"threshold"`
+	Stage           DKGStage `protobuf:"varint,7,opt,name=stage,proto3,enum=story.dkg.v1.types.DKGStage" json:"stage,omitempty" yaml:"stage"`
+	IsResharing     bool     `protobuf:"varint,8,opt,name=is_resharing,json=isResharing,proto3" json:"is_resharing,omitempty" yaml:"is_resharing"`
+	GlobalPublicKey []byte   `protobuf:"bytes,9,opt,name=global_public_key,json=globalPublicKey,proto3" json:"global_public_key,omitempty" yaml:"global_public_key"`
+	PublicCoeffs    [][]byte `protobuf:"bytes,10,rep,name=public_coeffs,json=publicCoeffs,proto3" json:"public_coeffs,omitempty" yaml:"public_coeffs"`
+	IsUpgrade       bool     `protobuf:"varint,11,opt,name=is_upgrade,json=isUpgrade,proto3" json:"is_upgrade,omitempty" yaml:"is_upgrade"`
 }
 
 func (m *DKGNetwork) Reset()         { *m = DKGNetwork{} }
@@ -135,13 +139,6 @@ func (m *DKGNetwork) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_DKGNetwork proto.InternalMessageInfo
-
-func (m *DKGNetwork) GetCodeCommitment() []byte {
-	if m != nil {
-		return m.CodeCommitment
-	}
-	return nil
-}
 
 func (m *DKGNetwork) GetRound() uint32 {
 	if m != nil {
@@ -213,15 +210,24 @@ func (m *DKGNetwork) GetPublicCoeffs() [][]byte {
 	return nil
 }
 
+func (m *DKGNetwork) GetIsUpgrade() bool {
+	if m != nil {
+		return m.IsUpgrade
+	}
+	return false
+}
+
 type DKGRegistration struct {
-	Round         uint32       `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	ValidatorAddr string       `protobuf:"bytes,2,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty" yaml:"validator_addr"`
-	Index         uint32       `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
-	DkgPubKey     []byte       `protobuf:"bytes,4,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
-	CommPubKey    []byte       `protobuf:"bytes,5,opt,name=comm_pub_key,json=commPubKey,proto3" json:"comm_pub_key,omitempty" yaml:"comm_pub_key"`
-	PubKeyShare   []byte       `protobuf:"bytes,6,opt,name=pub_key_share,json=pubKeyShare,proto3" json:"pub_key_share,omitempty" yaml:"pub_key_share"`
-	RawQuote      []byte       `protobuf:"bytes,7,opt,name=raw_quote,json=rawQuote,proto3" json:"raw_quote,omitempty" yaml:"raw_quote"`
-	Status        DKGRegStatus `protobuf:"varint,8,opt,name=status,proto3,enum=story.dkg.v1.types.DKGRegStatus" json:"status,omitempty" yaml:"status"`
+	Round          uint32       `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	ValidatorAddr  string       `protobuf:"bytes,2,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty" yaml:"validator_addr"`
+	Index          uint32       `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
+	DkgPubKey      []byte       `protobuf:"bytes,4,opt,name=dkg_pub_key,json=dkgPubKey,proto3" json:"dkg_pub_key,omitempty" yaml:"dkg_pub_key"`
+	CommPubKey     []byte       `protobuf:"bytes,5,opt,name=comm_pub_key,json=commPubKey,proto3" json:"comm_pub_key,omitempty" yaml:"comm_pub_key"`
+	PubKeyShare    []byte       `protobuf:"bytes,6,opt,name=pub_key_share,json=pubKeyShare,proto3" json:"pub_key_share,omitempty" yaml:"pub_key_share"`
+	EnclaveReport  []byte       `protobuf:"bytes,7,opt,name=enclave_report,json=enclaveReport,proto3" json:"enclave_report,omitempty" yaml:"enclave_report"`
+	Status         DKGRegStatus `protobuf:"varint,8,opt,name=status,proto3,enum=story.dkg.v1.types.DKGRegStatus" json:"status,omitempty" yaml:"status"`
+	CodeCommitment []byte       `protobuf:"bytes,9,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
+	EnclaveType    []byte       `protobuf:"bytes,10,opt,name=enclave_type,json=enclaveType,proto3" json:"enclave_type,omitempty" yaml:"enclave_type"`
 }
 
 func (m *DKGRegistration) Reset()         { *m = DKGRegistration{} }
@@ -299,9 +305,9 @@ func (m *DKGRegistration) GetPubKeyShare() []byte {
 	return nil
 }
 
-func (m *DKGRegistration) GetRawQuote() []byte {
+func (m *DKGRegistration) GetEnclaveReport() []byte {
 	if m != nil {
-		return m.RawQuote
+		return m.EnclaveReport
 	}
 	return nil
 }
@@ -313,23 +319,38 @@ func (m *DKGRegistration) GetStatus() DKGRegStatus {
 	return DKGRegStatusUnspecified
 }
 
-type TEEUpgradeInfo struct {
-	CodeCommitment   []byte `protobuf:"bytes,1,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
-	ActivationHeight int64  `protobuf:"varint,2,opt,name=activation_height,json=activationHeight,proto3" json:"activation_height,omitempty" yaml:"activation_height"`
+func (m *DKGRegistration) GetCodeCommitment() []byte {
+	if m != nil {
+		return m.CodeCommitment
+	}
+	return nil
 }
 
-func (m *TEEUpgradeInfo) Reset()         { *m = TEEUpgradeInfo{} }
-func (m *TEEUpgradeInfo) String() string { return proto.CompactTextString(m) }
-func (*TEEUpgradeInfo) ProtoMessage()    {}
-func (*TEEUpgradeInfo) Descriptor() ([]byte, []int) {
+func (m *DKGRegistration) GetEnclaveType() []byte {
+	if m != nil {
+		return m.EnclaveType
+	}
+	return nil
+}
+
+type KernelUpgradeInfo struct {
+	UpgradeVersion   string `protobuf:"bytes,1,opt,name=upgrade_version,json=upgradeVersion,proto3" json:"upgrade_version,omitempty" yaml:"upgrade_version"`
+	ActivationHeight int64  `protobuf:"varint,2,opt,name=activation_height,json=activationHeight,proto3" json:"activation_height,omitempty" yaml:"activation_height"`
+	IsActivated      bool   `protobuf:"varint,3,opt,name=is_activated,json=isActivated,proto3" json:"is_activated,omitempty" yaml:"is_activated"`
+}
+
+func (m *KernelUpgradeInfo) Reset()         { *m = KernelUpgradeInfo{} }
+func (m *KernelUpgradeInfo) String() string { return proto.CompactTextString(m) }
+func (*KernelUpgradeInfo) ProtoMessage()    {}
+func (*KernelUpgradeInfo) Descriptor() ([]byte, []int) {
 	return fileDescriptor_a7c6c6d7f465ec7b, []int{2}
 }
-func (m *TEEUpgradeInfo) XXX_Unmarshal(b []byte) error {
+func (m *KernelUpgradeInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *TEEUpgradeInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *KernelUpgradeInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_TEEUpgradeInfo.Marshal(b, m, deterministic)
+		return xxx_messageInfo_KernelUpgradeInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -339,30 +360,37 @@ func (m *TEEUpgradeInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return b[:n], nil
 	}
 }
-func (m *TEEUpgradeInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TEEUpgradeInfo.Merge(m, src)
+func (m *KernelUpgradeInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KernelUpgradeInfo.Merge(m, src)
 }
-func (m *TEEUpgradeInfo) XXX_Size() int {
+func (m *KernelUpgradeInfo) XXX_Size() int {
 	return m.Size()
 }
-func (m *TEEUpgradeInfo) XXX_DiscardUnknown() {
-	xxx_messageInfo_TEEUpgradeInfo.DiscardUnknown(m)
+func (m *KernelUpgradeInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_KernelUpgradeInfo.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_TEEUpgradeInfo proto.InternalMessageInfo
+var xxx_messageInfo_KernelUpgradeInfo proto.InternalMessageInfo
 
-func (m *TEEUpgradeInfo) GetCodeCommitment() []byte {
+func (m *KernelUpgradeInfo) GetUpgradeVersion() string {
 	if m != nil {
-		return m.CodeCommitment
+		return m.UpgradeVersion
 	}
-	return nil
+	return ""
 }
 
-func (m *TEEUpgradeInfo) GetActivationHeight() int64 {
+func (m *KernelUpgradeInfo) GetActivationHeight() int64 {
 	if m != nil {
 		return m.ActivationHeight
 	}
 	return 0
+}
+
+func (m *KernelUpgradeInfo) GetIsActivated() bool {
+	if m != nil {
+		return m.IsActivated
+	}
+	return false
 }
 
 type EncryptedDeal struct {
@@ -554,13 +582,11 @@ func (m *Complaint) GetSignature() []byte {
 }
 
 type DecryptRequest struct {
-	Requester      string `protobuf:"bytes,1,opt,name=requester,proto3" json:"requester,omitempty" yaml:"requester"`
-	Round          uint32 `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
-	CodeCommitment []byte `protobuf:"bytes,3,opt,name=code_commitment,json=codeCommitment,proto3" json:"code_commitment,omitempty" yaml:"code_commitment"`
-	Ciphertext     []byte `protobuf:"bytes,4,opt,name=ciphertext,proto3" json:"ciphertext,omitempty" yaml:"ciphertext"`
-	Label          []byte `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty" yaml:"label"`
+	Round      uint32 `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty" yaml:"round"`
+	Ciphertext []byte `protobuf:"bytes,2,opt,name=ciphertext,proto3" json:"ciphertext,omitempty" yaml:"ciphertext"`
+	Label      []byte `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty" yaml:"label"`
 	// secp256k1 uncompressed requester pubkey (65 bytes)
-	RequesterPubKey []byte `protobuf:"bytes,6,opt,name=requester_pub_key,json=requesterPubKey,proto3" json:"requester_pub_key,omitempty" yaml:"requester_pub_key"`
+	RequesterPubKey []byte `protobuf:"bytes,4,opt,name=requester_pub_key,json=requesterPubKey,proto3" json:"requester_pub_key,omitempty" yaml:"requester_pub_key"`
 }
 
 func (m *DecryptRequest) Reset()         { *m = DecryptRequest{} }
@@ -596,25 +622,11 @@ func (m *DecryptRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DecryptRequest proto.InternalMessageInfo
 
-func (m *DecryptRequest) GetRequester() string {
-	if m != nil {
-		return m.Requester
-	}
-	return ""
-}
-
 func (m *DecryptRequest) GetRound() uint32 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
-}
-
-func (m *DecryptRequest) GetCodeCommitment() []byte {
-	if m != nil {
-		return m.CodeCommitment
-	}
-	return nil
 }
 
 func (m *DecryptRequest) GetCiphertext() []byte {
@@ -637,7 +649,6 @@ func (m *DecryptRequest) GetRequesterPubKey() []byte {
 	}
 	return nil
 }
-
 
 type Response struct {
 	Index       uint32       `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty" yaml:"index"`
@@ -852,7 +863,7 @@ func init() {
 	proto.RegisterEnum("story.dkg.v1.types.DKGStage", DKGStage_name, DKGStage_value)
 	proto.RegisterType((*DKGNetwork)(nil), "story.dkg.v1.types.DKGNetwork")
 	proto.RegisterType((*DKGRegistration)(nil), "story.dkg.v1.types.DKGRegistration")
-	proto.RegisterType((*TEEUpgradeInfo)(nil), "story.dkg.v1.types.TEEUpgradeInfo")
+	proto.RegisterType((*KernelUpgradeInfo)(nil), "story.dkg.v1.types.KernelUpgradeInfo")
 	proto.RegisterType((*EncryptedDeal)(nil), "story.dkg.v1.types.EncryptedDeal")
 	proto.RegisterType((*Deal)(nil), "story.dkg.v1.types.Deal")
 	proto.RegisterType((*Complaint)(nil), "story.dkg.v1.types.Complaint")
@@ -980,13 +991,23 @@ func (m *DKGNetwork) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.IsUpgrade {
+		i--
+		if m.IsUpgrade {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
 	if len(m.PublicCoeffs) > 0 {
 		for iNdEx := len(m.PublicCoeffs) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.PublicCoeffs[iNdEx])
 			copy(dAtA[i:], m.PublicCoeffs[iNdEx])
 			i = encodeVarintTypes(dAtA, i, uint64(len(m.PublicCoeffs[iNdEx])))
 			i--
-			dAtA[i] = 0x5a
+			dAtA[i] = 0x52
 		}
 	}
 	if len(m.GlobalPublicKey) > 0 {
@@ -994,7 +1015,7 @@ func (m *DKGNetwork) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.GlobalPublicKey)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.GlobalPublicKey)))
 		i--
-		dAtA[i] = 0x52
+		dAtA[i] = 0x4a
 	}
 	if m.IsResharing {
 		i--
@@ -1004,22 +1025,22 @@ func (m *DKGNetwork) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x40
 	}
 	if m.Stage != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Stage))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x38
 	}
 	if m.Threshold != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Threshold))
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x30
 	}
 	if m.Total != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Total))
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x28
 	}
 	if len(m.ActiveValSet) > 0 {
 		for iNdEx := len(m.ActiveValSet) - 1; iNdEx >= 0; iNdEx-- {
@@ -1027,7 +1048,7 @@ func (m *DKGNetwork) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.ActiveValSet[iNdEx])
 			i = encodeVarintTypes(dAtA, i, uint64(len(m.ActiveValSet[iNdEx])))
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x22
 		}
 	}
 	if len(m.StartBlockHash) > 0 {
@@ -1035,24 +1056,17 @@ func (m *DKGNetwork) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.StartBlockHash)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.StartBlockHash)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 	}
 	if m.StartBlockHeight != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.StartBlockHeight))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 	}
 	if m.Round != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Round))
 		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.CodeCommitment) > 0 {
-		i -= len(m.CodeCommitment)
-		copy(dAtA[i:], m.CodeCommitment)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.CodeCommitment)))
-		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -1077,15 +1091,29 @@ func (m *DKGRegistration) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.EnclaveType) > 0 {
+		i -= len(m.EnclaveType)
+		copy(dAtA[i:], m.EnclaveType)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.EnclaveType)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.CodeCommitment) > 0 {
+		i -= len(m.CodeCommitment)
+		copy(dAtA[i:], m.CodeCommitment)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.CodeCommitment)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.Status != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x40
 	}
-	if len(m.RawQuote) > 0 {
-		i -= len(m.RawQuote)
-		copy(dAtA[i:], m.RawQuote)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.RawQuote)))
+	if len(m.EnclaveReport) > 0 {
+		i -= len(m.EnclaveReport)
+		copy(dAtA[i:], m.EnclaveReport)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.EnclaveReport)))
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -1130,7 +1158,7 @@ func (m *DKGRegistration) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *TEEUpgradeInfo) Marshal() (dAtA []byte, err error) {
+func (m *KernelUpgradeInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -1140,25 +1168,35 @@ func (m *TEEUpgradeInfo) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *TEEUpgradeInfo) MarshalTo(dAtA []byte) (int, error) {
+func (m *KernelUpgradeInfo) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *TEEUpgradeInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *KernelUpgradeInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if m.IsActivated {
+		i--
+		if m.IsActivated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.ActivationHeight != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.ActivationHeight))
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.CodeCommitment) > 0 {
-		i -= len(m.CodeCommitment)
-		copy(dAtA[i:], m.CodeCommitment)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.CodeCommitment)))
+	if len(m.UpgradeVersion) > 0 {
+		i -= len(m.UpgradeVersion)
+		copy(dAtA[i:], m.UpgradeVersion)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.UpgradeVersion)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1326,40 +1364,26 @@ func (m *DecryptRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.RequesterPubKey)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.RequesterPubKey)))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x22
 	}
 	if len(m.Label) > 0 {
 		i -= len(m.Label)
 		copy(dAtA[i:], m.Label)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.Label)))
 		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x1a
 	}
 	if len(m.Ciphertext) > 0 {
 		i -= len(m.Ciphertext)
 		copy(dAtA[i:], m.Ciphertext)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.Ciphertext)))
 		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.CodeCommitment) > 0 {
-		i -= len(m.CodeCommitment)
-		copy(dAtA[i:], m.CodeCommitment)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.CodeCommitment)))
-		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x12
 	}
 	if m.Round != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Round))
 		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Requester) > 0 {
-		i -= len(m.Requester)
-		copy(dAtA[i:], m.Requester)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.Requester)))
-		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -1533,10 +1557,6 @@ func (m *DKGNetwork) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.CodeCommitment)
-	if l > 0 {
-		n += 1 + l + sovTypes(uint64(l))
-	}
 	if m.Round != 0 {
 		n += 1 + sovTypes(uint64(m.Round))
 	}
@@ -1575,6 +1595,9 @@ func (m *DKGNetwork) Size() (n int) {
 			n += 1 + l + sovTypes(uint64(l))
 		}
 	}
+	if m.IsUpgrade {
+		n += 2
+	}
 	return n
 }
 
@@ -1606,28 +1629,39 @@ func (m *DKGRegistration) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
-	l = len(m.RawQuote)
+	l = len(m.EnclaveReport)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
 	if m.Status != 0 {
 		n += 1 + sovTypes(uint64(m.Status))
 	}
+	l = len(m.CodeCommitment)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	l = len(m.EnclaveType)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
 	return n
 }
 
-func (m *TEEUpgradeInfo) Size() (n int) {
+func (m *KernelUpgradeInfo) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.CodeCommitment)
+	l = len(m.UpgradeVersion)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
 	if m.ActivationHeight != 0 {
 		n += 1 + sovTypes(uint64(m.ActivationHeight))
+	}
+	if m.IsActivated {
+		n += 2
 	}
 	return n
 }
@@ -1700,16 +1734,8 @@ func (m *DecryptRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Requester)
-	if l > 0 {
-		n += 1 + l + sovTypes(uint64(l))
-	}
 	if m.Round != 0 {
 		n += 1 + sovTypes(uint64(m.Round))
-	}
-	l = len(m.CodeCommitment)
-	if l > 0 {
-		n += 1 + l + sovTypes(uint64(l))
 	}
 	l = len(m.Ciphertext)
 	if l > 0 {
@@ -1827,40 +1853,6 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
-			if m.CodeCommitment == nil {
-				m.CodeCommitment = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
 			}
@@ -1879,7 +1871,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartBlockHeight", wireType)
 			}
@@ -1898,7 +1890,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartBlockHash", wireType)
 			}
@@ -1932,7 +1924,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 				m.StartBlockHash = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ActiveValSet", wireType)
 			}
@@ -1964,7 +1956,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 			}
 			m.ActiveValSet = append(m.ActiveValSet, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 6:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Total", wireType)
 			}
@@ -1983,7 +1975,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 7:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Threshold", wireType)
 			}
@@ -2002,7 +1994,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 8:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
 			}
@@ -2021,7 +2013,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 9:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsResharing", wireType)
 			}
@@ -2041,7 +2033,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.IsResharing = bool(v != 0)
-		case 10:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GlobalPublicKey", wireType)
 			}
@@ -2075,7 +2067,7 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 				m.GlobalPublicKey = []byte{}
 			}
 			iNdEx = postIndex
-		case 11:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PublicCoeffs", wireType)
 			}
@@ -2107,6 +2099,26 @@ func (m *DKGNetwork) Unmarshal(dAtA []byte) error {
 			m.PublicCoeffs = append(m.PublicCoeffs, make([]byte, postIndex-iNdEx))
 			copy(m.PublicCoeffs[len(m.PublicCoeffs)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsUpgrade", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsUpgrade = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTypes(dAtA[iNdEx:])
@@ -2331,7 +2343,7 @@ func (m *DKGRegistration) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RawQuote", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EnclaveReport", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2358,9 +2370,9 @@ func (m *DKGRegistration) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RawQuote = append(m.RawQuote[:0], dAtA[iNdEx:postIndex]...)
-			if m.RawQuote == nil {
-				m.RawQuote = []byte{}
+			m.EnclaveReport = append(m.EnclaveReport[:0], dAtA[iNdEx:postIndex]...)
+			if m.EnclaveReport == nil {
+				m.EnclaveReport = []byte{}
 			}
 			iNdEx = postIndex
 		case 8:
@@ -2382,57 +2394,7 @@ func (m *DKGRegistration) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *TEEUpgradeInfo) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TEEUpgradeInfo: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TEEUpgradeInfo: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
 			}
@@ -2466,6 +2428,122 @@ func (m *TEEUpgradeInfo) Unmarshal(dAtA []byte) error {
 				m.CodeCommitment = []byte{}
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnclaveType", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EnclaveType = append(m.EnclaveType[:0], dAtA[iNdEx:postIndex]...)
+			if m.EnclaveType == nil {
+				m.EnclaveType = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTypes(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KernelUpgradeInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTypes
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KernelUpgradeInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KernelUpgradeInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpgradeVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UpgradeVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ActivationHeight", wireType)
@@ -2485,6 +2563,26 @@ func (m *TEEUpgradeInfo) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsActivated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsActivated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTypes(dAtA[iNdEx:])
@@ -2980,38 +3078,6 @@ func (m *DecryptRequest) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Requester", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthTypes
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Requester = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
 			}
@@ -3030,41 +3096,7 @@ func (m *DecryptRequest) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CodeCommitment", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CodeCommitment = append(m.CodeCommitment[:0], dAtA[iNdEx:postIndex]...)
-			if m.CodeCommitment == nil {
-				m.CodeCommitment = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Ciphertext", wireType)
 			}
@@ -3098,7 +3130,7 @@ func (m *DecryptRequest) Unmarshal(dAtA []byte) error {
 				m.Ciphertext = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
 			}
@@ -3132,7 +3164,7 @@ func (m *DecryptRequest) Unmarshal(dAtA []byte) error {
 				m.Label = []byte{}
 			}
 			iNdEx = postIndex
-		case 6:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequesterPubKey", wireType)
 			}

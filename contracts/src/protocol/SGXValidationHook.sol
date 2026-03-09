@@ -22,9 +22,10 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     }
 
     address public immutable DKG;
-  
+
     // keccak256(abi.encode(uint256(keccak256("story.SGXValidationHook")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 private constant SGXValidationHookStorageLocation = 0xb6733d04ab09a9ab7321af14605111bb04c61e96f75dd35de2adb36bd07c7a00;
+    bytes32 private constant SGXValidationHookStorageLocation =
+        0xb6733d04ab09a9ab7321af14605111bb04c61e96f75dd35de2adb36bd07c7a00;
 
     constructor(address dkg) {
         require(dkg != address(0), "SGXValidationHook: DKG cannot be empty");
@@ -80,7 +81,7 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         bytes32 expectedDataCommitment,
         bytes calldata enclaveReport,
         bytes calldata validationContext
-    ) external override returns (bool) {    
+    ) external override returns (bool) {
         require(msg.sender == DKG, "SGXValidationHook: Only DKG can call this function");
         SGXValidationHookStorage storage $ = _getSGXValidationHookStorage();
         // see verifyAndAttestOnChain  https://github.com/automata-network/automata-dcap-attestation/blob/4e7ab275ca8c358895a83fb6d51c9bd40ba1cf68/evm/contracts/AutomataDcapAttestationFee.sol#L23

@@ -2,16 +2,14 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
-	"github.com/piplabs/story/client/x/dkg/types"
 
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/log"
 )
 
 // handleDKGComplete handles the DKG completion event.
 func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNetwork) {
 	log.Info(ctx, "Handling DKG completion",
-		"code_commitment", hex.EncodeToString(dkgNetwork.CodeCommitment),
 		"round", dkgNetwork.Round,
 	)
 
@@ -22,7 +20,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 	defer dkgSvcRunning.Store(false)
 
-	session, err := k.stateManager.GetSession(dkgNetwork.CodeCommitment, dkgNetwork.Round)
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
 		k.stateManager.MarkFailed(ctx, session)
@@ -54,7 +52,6 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 
 	log.Info(ctx, "DKG process completed successfully",
-		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
 		"validator_evm_address", k.validatorEVMAddr,
 	)

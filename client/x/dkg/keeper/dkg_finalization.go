@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -14,21 +14,47 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 	}
 
 	if k.isDKGSvcEnabled {
-		go k.handleDKGFinalization(ctx, latestRound)
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGFinalization(asyncCtx, latestRound)
+		}()
 	}
 
 	return nil
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
-	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.CodeCommitment, latestRound.Round, types.DKGRegStatusFinalized)
+	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
 	}
 
-	// TODO: compare with minReqFinalized
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get DKG params")
+	}
+
+	// Check if finalized count meets the minimum required participants
+	if finalizedCount < params.MinReqFinalizedParticipants {
+		log.Info(ctx, "Finalized registration count below minimum required. Skipping current round.",
+			"finalized_count", finalizedCount,
+			"min_req_finalized", params.MinReqFinalizedParticipants,
+			"current", latestRound.Round,
+			"next", latestRound.Round+1,
+		)
+
+		return k.SkipToNextRound(ctx, latestRound)
+	}
+
+	// Check if finalized count meets the operational threshold
 	if finalizedCount < latestRound.Threshold {
-		log.Info(ctx, "The number of DKG registrations in Finalized status is smaller than the threshold. Skipping current round.", "current", latestRound.Round, "next", latestRound.Round+1)
+		log.Info(ctx, "Finalized registration count below operational threshold. Skipping current round.",
+			"finalized_count", finalizedCount,
+			"threshold", latestRound.Threshold,
+			"current", latestRound.Round,
+			"next", latestRound.Round+1,
+		)
 
 		return k.SkipToNextRound(ctx, latestRound)
 	}
@@ -47,11 +73,22 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to set the latest active round of DKG")
 	}
 
-	if k.isDKGSvcEnabled {
-		go k.handleDKGComplete(ctx, latestRound)
+	// If this was an upgrade round, log that the upgrade is complete
+	if latestRound.IsUpgrade {
+		log.Info(ctx, "Upgrade resharing round completed, new TEE binary is now active",
+			"round", latestRound.Round,
+		)
 	}
 
-	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round, "code_commitment", hex.EncodeToString(latestRound.CodeCommitment))
+	if k.isDKGSvcEnabled {
+		asyncCtx, cancel := dkgAsyncContext()
+		go func() {
+			defer cancel()
+			k.handleDKGComplete(asyncCtx, latestRound)
+		}()
+	}
+
+	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round)
 
 	return nil
 }

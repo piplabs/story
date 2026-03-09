@@ -24,6 +24,7 @@ func (k *Keeper) evmEvents(ctx context.Context, blockHash common.Hash) ([]*types
 				common.HexToAddress(predeploys.UBIPool),
 				common.HexToAddress(predeploys.UpgradeEntrypoint),
 				common.HexToAddress(predeploys.DKG),
+				common.HexToAddress(predeploys.CDR),
 			},
 		})
 		if err != nil {
