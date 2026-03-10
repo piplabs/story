@@ -62,10 +62,10 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				continue
 			}
 		}
+
+		clog.Debug(ctx, "Processed DKG events", "height", height, "count", len(logs))
+
 	}
-
-	clog.Debug(ctx, "Processed DKG events", "height", height, "count", len(logs))
-
 	return nil
 }
 
