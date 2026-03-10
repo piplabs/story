@@ -131,8 +131,10 @@ func newKeyShowEncryptedCmd() *cobra.Command {
 }
 
 func convertKey(_ context.Context, cfg keyConfig) error {
-	var compressedPubKeyBytes []byte
-	var err error
+	var (
+		compressedPubKeyBytes []byte
+		err                   error
+	)
 
 	switch {
 	case cfg.ValidatorKeyFile != "":
@@ -147,6 +149,7 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 		}
 	case cfg.PubKeyHex != "":
 		pubKeyHex := strings.TrimPrefix(cfg.PubKeyHex, "0x")
+
 		compressedPubKeyBytes, err = hex.DecodeString(pubKeyHex)
 		if err != nil {
 			return errors.Wrap(err, "failed to decode hex public key")
@@ -158,10 +161,12 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 		}
 	case cfg.PubKeyHexUncompressed != "":
 		pubKeyHex := strings.TrimPrefix(cfg.PubKeyHexUncompressed, "0x")
+
 		uncompressedPubKeyBytes, err := hex.DecodeString(pubKeyHex)
 		if err != nil {
 			return errors.Wrap(err, "failed to decode hex public key")
 		}
+
 		compressedPubKeyBytes, err = uncmpPubKeyToCmpPubKey(uncompressedPubKeyBytes)
 		if err != nil {
 			return errors.Wrap(err, "failed to convert uncompressed pub key")
@@ -181,6 +186,7 @@ func convertKey(_ context.Context, cfg keyConfig) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load encrypted private key")
 		}
+
 		compressedPubKeyBytes = pv.PubKey.Bytes()
 	default:
 		return errors.New("no valid key input provided")

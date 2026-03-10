@@ -84,7 +84,8 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     ) external override returns (bool) {
         require(msg.sender == DKG, "SGXValidationHook: Only DKG can call this function");
         SGXValidationHookStorage storage $ = _getSGXValidationHookStorage();
-        // see verifyAndAttestOnChain  https://github.com/automata-network/automata-dcap-attestation/blob/4e7ab275ca8c358895a83fb6d51c9bd40ba1cf68/evm/contracts/AutomataDcapAttestationFee.sol#L23
+        // see verifyAndAttestOnChain in automata-dcap-attestation:
+        // AutomataDcapAttestationFee.sol#L23
         (bool success, bytes memory output) = IAutomataDcapAttestationFee($.automataValidationAddr)
             .verifyAndAttestOnChain(enclaveReport, $.tcbEvaluationDataNumber);
         require(success, "SGXAttestationReportValidator: Attestation failed");
@@ -153,7 +154,7 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         // - The enclave report body is 384 bytes long
         // - The last 64 bytes of the enclave report body are reserved for report_data
         // Therefore, the starting offset for report_data is: 48 (quote header) + 320 = 368
-        // https://github.com/intel/SGX-TDX-DCAP-QuoteVerificationLibrary/blob/16b7291a7a86e486fdfcf1dfb4be885c0cc00b4e/Src/AttestationLibrary/src/QuoteVerification/QuoteConstants.h
+        // See SGX-TDX-DCAP-QuoteVerificationLibrary QuoteConstants.h
         uint256 start = 368;
         bytes32 first32;
         assembly {

@@ -24,6 +24,8 @@ import (
 	stypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
 
+	dkgmodule "github.com/piplabs/story/client/x/dkg/module"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/client/x/evmengine/module"
 	etypes "github.com/piplabs/story/client/x/evmengine/types"
 	esmodule "github.com/piplabs/story/client/x/evmstaking/module"
@@ -73,6 +75,9 @@ func TestProcessProposalRouter(t *testing.T) {
 	executionPayloadMsg := &etypes.MsgExecutionPayload{
 		Authority: authtypes.NewModuleAddress(etypes.ModuleName).String(),
 	}
+	dkgVoteMsg := &dkgtypes.MsgAddDkgVote{
+		Authority: authtypes.NewModuleAddress(etypes.ModuleName).String(),
+	}
 
 	tcs := []struct {
 		name            string
@@ -90,22 +95,28 @@ func TestProcessProposalRouter(t *testing.T) {
 		},
 		{
 			name:            "first not empty",
-			payloadMsgs:     []types.Msg{executionPayloadMsg},
+			payloadMsgs:     []types.Msg{executionPayloadMsg, dkgVoteMsg},
 			first:           true,
 			accept:          false,
 			expectedSrvCall: 0,
 		},
 		{
 			name:            "too many txs",
-			payloadMsgs:     []types.Msg{executionPayloadMsg},
+			payloadMsgs:     []types.Msg{executionPayloadMsg, dkgVoteMsg},
 			multipleTx:      true,
 			accept:          false,
 			expectedSrvCall: 0,
 		},
 		{
-			name:            "one payload message",
-			payloadMsgs:     []types.Msg{executionPayloadMsg},
+			name:            "one payload message with dkg vote",
+			payloadMsgs:     []types.Msg{executionPayloadMsg, dkgVoteMsg},
 			accept:          true,
+			expectedSrvCall: 1,
+		},
+		{
+			name:            "missing dkg vote message",
+			payloadMsgs:     []types.Msg{executionPayloadMsg},
+			accept:          false,
 			expectedSrvCall: 1,
 		},
 		{
@@ -126,6 +137,7 @@ func TestProcessProposalRouter(t *testing.T) {
 				&etypes.MsgExecutionPayload{
 					Authority: authtypes.NewModuleAddress("test").String(),
 				},
+				dkgVoteMsg,
 			},
 			accept:          false,
 			expectedSrvCall: 0,
@@ -137,6 +149,7 @@ func TestProcessProposalRouter(t *testing.T) {
 					Authority:        authtypes.NewModuleAddress(etypes.ModuleName).String(),
 					ExecutionPayload: []byte("invalid payload"),
 				},
+				dkgVoteMsg,
 			},
 			accept:          false,
 			expectedSrvCall: 1,
@@ -149,7 +162,8 @@ func TestProcessProposalRouter(t *testing.T) {
 			ctx := sdktestutil.DefaultContext(key, storetypes.NewTransientStoreKey("test_key"))
 
 			srv := &mockServer{}
-			encCfg := moduletestutil.MakeTestEncodingConfig(module.AppModuleBasic{}, esmodule.AppModuleBasic{})
+			dkgSrv := &mockDKGServer{}
+			encCfg := moduletestutil.MakeTestEncodingConfig(module.AppModuleBasic{}, esmodule.AppModuleBasic{}, dkgmodule.AppModuleBasic{})
 
 			engineCl := struct {
 				ethclient.EngineClient
@@ -162,6 +176,7 @@ func TestProcessProposalRouter(t *testing.T) {
 			router := baseapp.NewMsgServiceRouter()
 			router.SetInterfaceRegistry(encCfg.InterfaceRegistry)
 			etypes.RegisterMsgServiceServer(router, srv)
+			dkgtypes.RegisterMsgServiceServer(router, dkgSrv)
 
 			handler := makeProcessProposalHandler(router, txConfig)
 
@@ -170,6 +185,7 @@ func TestProcessProposalRouter(t *testing.T) {
 			res, err := handler(ctx, newReq)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedSrvCall, srv.payload)
+
 			if tc.accept {
 				require.Equal(t, abci.ResponseProcessProposal_ACCEPT, res.Status)
 			} else {
@@ -278,10 +294,11 @@ func TestValidateTx(t *testing.T) {
 			name: "tip not empty",
 			msgs: []types.Msg{&etypes.MsgExecutionPayload{Authority: authority}},
 			callback: func(b client.TxBuilder) {
-				var tip = &txtypes.Tip{
+				var tip = &txtypes.Tip{ // nolint:staticcheck // use deprecated type for tc
 					Amount: types.NewCoins(),
 					Tipper: "invalid tip",
 				}
+
 				wrappedTx := b.GetTx()
 
 				wrappedTxField := reflect.ValueOf(wrappedTx).Elem()
@@ -347,6 +364,7 @@ func TestValidateTx(t *testing.T) {
 			} else {
 				tx = b.GetTx()
 			}
+
 			err := validateTx(tx)
 
 			if tc.expectedErr != "" {
@@ -359,10 +377,20 @@ func TestValidateTx(t *testing.T) {
 }
 
 var _ etypes.MsgServiceServer = &mockServer{}
+var _ dkgtypes.MsgServiceServer = &mockDKGServer{}
 
 type mockServer struct {
 	etypes.MsgServiceServer
+
 	payload int
+}
+
+type mockDKGServer struct {
+	dkgtypes.UnimplementedMsgServiceServer
+}
+
+func (s *mockDKGServer) AddVote(_ context.Context, _ *dkgtypes.MsgAddDkgVote) (*dkgtypes.AddDkgVoteResponse, error) {
+	return &dkgtypes.AddDkgVoteResponse{}, nil
 }
 
 func (s *mockServer) ExecutionPayload(_ context.Context, payload *etypes.MsgExecutionPayload) (*etypes.ExecutionPayloadResponse, error) {

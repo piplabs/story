@@ -27,6 +27,7 @@ var (
 // initializeABI loads the ABI once.
 func initializeABI(t *testing.T) *abi.ABI {
 	t.Helper()
+
 	upgradeAbi, err := bindings.UpgradeEntrypointMetaData.GetAbi()
 	require.NoError(t, err, "failed to load ABI")
 
@@ -94,6 +95,7 @@ func TestEVMEvent_ToEthLog(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			result, err := tc.evmEvent.ToEthLog()
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedResult, result)
@@ -185,6 +187,7 @@ func TestEVMEvent_Verify(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			err := tc.evmEvent.Verify()
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)

@@ -1,4 +1,3 @@
-//nolint:revive // just use interface{}
 package types
 
 import (
@@ -35,17 +34,15 @@ func (p Params) Validate() error {
 	if err := validateMintDenom(p.MintDenom); err != nil {
 		return err
 	}
+
 	if err := validateInflationsPerYear(p.InflationsPerYear); err != nil {
 		return err
 	}
-	if err := validateBlocksPerYear(p.BlocksPerYear); err != nil {
-		return err
-	}
 
-	return nil
+	return validateBlocksPerYear(p.BlocksPerYear)
 }
 
-func validateMintDenom(i interface{}) error {
+func validateMintDenom(i any) error {
 	v, ok := i.(string)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -62,7 +59,7 @@ func validateMintDenom(i interface{}) error {
 	return nil
 }
 
-func validateInflationsPerYear(i interface{}) error {
+func validateInflationsPerYear(i any) error {
 	v, ok := i.(math.LegacyDec)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -71,6 +68,7 @@ func validateInflationsPerYear(i interface{}) error {
 	if v.IsNil() {
 		return fmt.Errorf("inflations per year cannot be nil: %s", v)
 	}
+
 	if v.IsNegative() {
 		return fmt.Errorf("inflations per year cannot be negative: %s", v)
 	}
@@ -78,7 +76,7 @@ func validateInflationsPerYear(i interface{}) error {
 	return nil
 }
 
-func validateBlocksPerYear(i interface{}) error {
+func validateBlocksPerYear(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)

@@ -1,170 +1,204 @@
+version: "2"
 run:
-  timeout: 5m
-  go: "1.22"
-linters-settings:
-  exhaustive:
-    default-signifies-exhaustive: true
-  forbidigo:
-    forbid:
-      - 'fmt\.Print.*(# Avoid debug logging)?'
-      - 'fmt\.Errorf.*(# Prefer lib/errors.Wrap)?'
-      - 'prometheus\.New.*(# Prefer promauto)?'
-  gci: # Auto-format imports
-    sections:
-      - standard                               # Go stdlib
-      - prefix(golang.org)                     # Golang pkg import
-      - prefix(cosmossdk.io)                   # Cosmos SDK import
-      - prefix(github.com)                     # Catch-all Github direct imports
-      - prefix(github.com/piplabs)       # piplabs
-      - prefix(github.com/piplabs/story) # story
-      - default                                # All other imports not matched to another section type.
-      - blank                                  # Blank imports
-    custom-order: true
-  govet:
-    enable-all: true
-  importas:
-    no-unaliased: true
-    alias:
-      - pkg: github.com/cometbft/cometbft/crypto/secp256k1
-        alias: k1
-    # TODO: Add our own import aliases here
-  misspell:
-    locale: US
-  nlreturn:
-    block-size: 2
-  nolintlint:
-    require-explanation: true
-    require-specific: true
-  paralleltest:
-    # Ignore missing calls to `t.Parallel()` and only report incorrect uses of it.
-    # Default: false
-    ignore-missing: true
-    # Ignore missing calls to `t.Parallel()` in subtests. Top-level tests are
-    # still required to have `t.Parallel`, but subtests are allowed to skip it.
-    # Default: false
-    ignore-missing-subtests: true
-  revive:
-    enable-all-rules: true
-    severity: warning
-    ignore-generated-header: true
+  go: "1.24"
+linters:
+  default: all
+  disable:
+    - cyclop
+    - depguard
+    - err113
+    - exhaustruct
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - godox
+    - gomoddirectives
+    - interfacebloat
+    - ireturn
+    - lll
+    - mnd
+    - nonamedreturns
+    - prealloc
+    - tagliatelle
+    - tparallel
+    - varnamelen
+    - wsl
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    forbidigo:
+      forbid:
+        - pattern: fmt\.Print.*(# Avoid debug logging)?
+        - pattern: fmt\.Errorf.*(# Prefer lib/errors.Wrap)?
+        - pattern: prometheus\.New.*(# Prefer promauto)?
+    govet:
+      enable-all: true
+    importas:
+      alias:
+        - pkg: github.com/cometbft/cometbft/crypto/secp256k1
+          alias: k1
+      no-unaliased: true
+    misspell:
+      locale: US
+    nlreturn:
+      block-size: 2
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    paralleltest:
+      ignore-missing: true
+      ignore-missing-subtests: true
+    revive:
+      severity: warning
+      enable-all-rules: true
+      rules:
+        - name: file-header
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        - name: banned-characters
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: function-result-limit
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: argument-limit
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: comment-spacings
+          disabled: true
+        - name: imports-blocklist
+          arguments:
+            - log
+            - github.com/gogo/protobuf/proto
+            - github.com/stretchr/testify/assert
+            - golang.org/x/exp/slices
+        - name: unhandled-error
+          arguments:
+            - fmt.Printf
+            - fmt.Println
+    staticcheck:
+      checks:
+        - all
+        - -SA1019
+    testpackage:
+      skip-regexp: internal_test\.go
+    wrapcheck:
+      ignore-sigs:
+        - github.com/piplabs/story/
+        - google.golang.org/grpc/status
+        - github.com/ethereum/go-ethereum
+        - Errorf
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - .Wrap(
+        - .Wrapf(
+        - .WithMessage(
+        - .WithMessagef(
+        - .WithStack(
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      # Disabled revive rules
-      - name: file-header # Doesn't support auto fix
-        disabled: true
-      - name: max-public-structs # Too strict
-        disabled: true
-      - name: banned-characters # Not applicable
-        disabled: true
-      - name: cognitive-complexity # False positives, address in code reviews
-        disabled: true
-      - name: function-length # False positives, address in code reviews
-        disabled: true
-      - name: function-result-limit # False positives, address in code reviews
-        disabled: true
-      - name: cyclomatic # False positives, address in code reviews
-        disabled: true
-      - name: argument-limit # False positives, address in code reviews
-        disabled: true
-      - name: line-length-limit # Requires us to cause indentation confusion: https://google.github.io/styleguide/go/decisions#indentation-confusion
-        disabled: true
-      - name: comment-spacings # Relax revive rules for prefix comment spacing
-        disabled: true
-      # Some configured revive rules
-      - name: imports-blocklist
-        arguments:
-          - "log"                                # Prefer ./lib/log
-          - "github.com/gogo/protobuf/proto"     # Prefer google.golang.org/protobuf
-          - "github.com/stretchr/testify/assert" # Prefer github.com/stretchr/testify/require
-          - "golang.org/x/exp/slices"            # Prefer slices
-      - name: unhandled-error
-        arguments:
-         - 'fmt.Printf'
-         - 'fmt.Println'
-  staticcheck:
-    checks:
-     - "all"
-     - "-SA1019"
-  testpackage:
-    skip-regexp: internal_test\.go # Allow internal tests
-  wrapcheck:
-    ignoreSigs:
-      - github.com/piplabs/story/
-      - google.golang.org/grpc/status # No point wrapping gRPC/network errors.
-      - github.com/ethereum/go-ethereum # We wrap these automatically in lib/ethclient
-      - "Errorf"
-      - ".Errorf("
-      - "errors.New("
-      - "errors.Unwrap("
-      - ".Wrap("
-      - ".Wrapf("
-      - ".WithMessage("
-      - ".WithMessagef("
-      - ".WithStack("
+      - linters:
+          - contextcheck
+          - dupl
+          - gosec
+          - maintidx
+          - perfsprint
+          - revive
+          - wrapcheck
+        path: (.*)(_test|tutil|scripts)(.*)
+      - linters:
+          - perfsprint
+        path: (.*)(e2e)(.*)
+      - linters:
+          - forbidigo
+        path: (.*)(scripts|cli)(.*)
+      - path: (.+)\.go$
+        text: add-constant
+      - path: (.+)\.go$
+        text: fieldalignment
+      - path: (.+)\.go$
+        text: 'shadow: declaration of'
+      - path: (.+)\.go$
+        text: shadows an import name
+      - path: (.+)\.go$
+        text: 'ifElseChain: rewrite if-else to switch statement'
+      - path: (.+)\.go$
+        text: 'nested-structs: no nested structs are allowed'
+      - path: (.+)\.go$
+        text: confusing-naming
+      - path: (.+)\.go$
+        text: flag-parameter
+      - path: (.+)\.go$
+        text: 'G306: Expect WriteFile permissions to be 0600 or less'
+      - path: (.+)\.go$
+        text: 'exported: type name will be used as module.Module'
+      - path: (.+)\.go$
+        text: 'defer: prefer not to defer chains of function calls'
+      - path: (.+)\.go$
+        text: 'G601: Implicit memory aliasing in for loop'
+      - path: (.+)\.go$
+        text: 'loopclosure: loop variable'
+      - path: (.+)\.go$
+        text: Range statement for test
+      - path: (.+)\.go$
+        text: 'range-val-address: suspicious assignment of'
+      - path: (.+)\.go$
+        text: exporting a pointer for the loop variable snapshot
+      - path: (.+)\.go$
+        text: has no field or method
+      - path: (.+)\.go$
+        text: integer overflow conversion
 
+      - text: 'use pointer receiver and non-pointer receiver'            # We prefer non-pointers, but require pointer receivers for unmarshalling.
+        linters: [ recvcheck ]
+      - text: 'avoid meaningless package names'
+        linters: [ revive ]
+      - text: 'avoid package names that conflict with Go standard library package names' # Use errors package for Story error
+        linters: [ revive ]
+      - text: 'avoid inline error handling using' # allow inline error handling
+        linters: [ noinlineerr ]
+    paths:
+      - .*\.pb\.go$
+      - contracts/bindings/*
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   fix: true
-  exclude-files:
-    - ".*\\.pb\\.go$" # Ignore generated protobuf files
-    - "contracts/bindings/*" # Ignore generated contract bindings
-  exclude-rules:
-    - path: '(.*)(_test|tutil|scripts)(.*)'
-      linters:         # Relax linters for both tests/scripts (non-production code)
-        - gosec        # Security not required
-        - revive       # Relax revive rules
-        - wrapcheck    # Wrapping not required
-        - perfsprint   # Performance not an issue here
-        - contextcheck # Context not an issue here
-        - maintidx     # Relax linter for table driven tests
-        - dupl         # Many tests share similar testing logic but call different methods with different args
-    - path: '(.*)(e2e)(.*)'
-      linters:         # Relax linters for both e2e (performance not required)
-        - perfsprint   # Performance not an issue here
-    - path: '(.*)(scripts|cli)(.*)'
-      linters:        # Relax linters for scripts and clis
-        - forbidigo   # Allow debug printing
-  exclude:
-    - add-constant         # Ignore "add-constant: avoid magic numbers like" since it is too strict
-    - fieldalignment # Ignore "fieldalignment: struct with XXX pointer bytes could be YYY"
-    - "shadow: declaration of" # Relax govet
-    - "shadows an import name" # Relax revive
-    - "ifElseChain: rewrite if-else to switch statement"   # IfElseChain actually preferred to switches
-    - "nested-structs: no nested structs are allowed"      # Relax revive
-    - "confusing-naming" #  Relax revive, we often use Foo and foo function names.
-    - "flag-parameter" # Relax revive, flag parameters are ok if used sparingly.
-    - "G306: Expect WriteFile permissions to be 0600 or less" # We write a lot of files that need to be editable.
-    - "exported: type name will be used as module.Module" # Cosmos style
-    - "defer: prefer not to defer chains of function calls" # We use this for defer latency()()
-
-    # Loop variable issues have been fixed in Go 1.22, so can be ignored
-    - "G601: Implicit memory aliasing in for loop"
-    - "loopclosure: loop variable"
-    - "Range statement for test"
-    - "range-val-address: suspicious assignment of"
-    - "exporting a pointer for the loop variable snapshot"
-
-linters:
-  enable-all: true
-  disable:
-    # Disable some linters (alphabetical order)
-    - cyclop               # False positives, address in code reviews
-    - depguard             # Dependency guard is for enterprise users
-    - err113               # Too strict (goerr113)
-    - exhaustruct          # Exhaustive structs results in super verbose go code
-    - funlen               # Some functions will be long
-    - gocognit             # We tend to write long multi-step functions
-    - gochecknoglobals     # We use globals in many places
-    - godox                # Allow TODOs
-    - goimports            # Handled by gci
-    - gofumpt              # Not compatible with gci, see https://github.com/golangci/golangci-lint/issues/1490.
-    - gomnd
-    - gomoddirectives      # We have a replace directive
-    - interfacebloat       # For pragmatic expected_keepers
-    - ireturn              # Too many false positives
-    - mnd                  # Magic numbers
-    - nonamedreturns       # Allow named returns
-    - prealloc             # Too many false positives
-    - tagliatelle          # Too strict
-    - varnamelen           # False positives
-    - wsl                  # Way to strict and opinionated
-    - lll                  # Disable rigid line length limit
-    - tparallel           # Disable test parallelization
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - prefix(golang.org)
+        - prefix(cosmossdk.io)
+        - prefix(github.com)
+        - prefix(github.com/piplabs)
+        - prefix(github.com/piplabs/story)
+        - default
+        - blank
+      custom-order: true
+  exclusions:
+    generated: lax
+    paths:
+      - .*\.pb\.go$
+      - contracts/bindings/*
+      - third_party$
+      - builtin$
+      - examples$

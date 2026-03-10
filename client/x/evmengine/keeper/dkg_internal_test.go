@@ -426,12 +426,14 @@ func TestKeeper_ProcessDKGEvents(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
+
 			cachedCtx, _ := ctx.CacheContext()
 
 			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
 			for _, evmEvent := range tc.evmEvents() {
 				ethLog, err := evmEvent.ToEthLog()
 				require.NoError(t, err)
+
 				ethLogs = append(ethLogs, &ethLog)
 			}
 
@@ -484,6 +486,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 	data, err := dkgAbi.Events["Registered"].Inputs.NonIndexed().Pack(
 		testEnclaveReport, testRound, testEnclaveType, testCommPubKey, testDkgPubKey, testCodeCommitment, testStartBlockHeight, testStartBlockHash, testValidationContext)
 	require.NoError(t, err)
+
 	mockLog.Data = data
 
 	tcs := []struct {
@@ -523,9 +526,11 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 
 			// Check if the correct events were emitted
 			events := ctx.EventManager().Events()
+
 			if tc.expectedErr != "" {
 				// Should emit failure event
 				found := false
+
 				for _, event := range events {
 					if event.Type == types.EventTypeDKGInitializedFailure {
 						found = true
@@ -539,10 +544,12 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						break
 					}
 				}
+
 				require.True(t, found, "Expected failure event to be emitted")
 			} else {
 				// Should emit success event
 				found := false
+
 				for _, event := range events {
 					if event.Type == types.EventTypeDKGInitializedSuccess {
 						found = true
@@ -561,6 +568,7 @@ func TestKeeper_ProcessDKGInitialized(t *testing.T) {
 						break
 					}
 				}
+
 				require.True(t, found, "Expected success event to be emitted")
 			}
 		})

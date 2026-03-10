@@ -30,8 +30,10 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUnjailSuccess,
 			)
@@ -76,6 +78,7 @@ func (k Keeper) ProcessUnjail(ctx context.Context, ev *bindings.IPTokenStakingUn
 		} else if err != nil {
 			return errors.Wrap(err, "get validator's operator address failed")
 		}
+
 		if operatorAddr != ev.Unjailer.String() {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,

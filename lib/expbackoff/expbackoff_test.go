@@ -83,10 +83,12 @@ func TestConfigs(t *testing.T) {
 			})
 
 			var resps []string
+
 			for i := range test.backoffs {
 				resp := expbackoff.Backoff(test.config, i)
 				resps = append(resps, resp.Truncate(time.Millisecond*10).String())
 			}
+
 			require.Equal(t, test.backoffs, resps)
 		})
 	}
@@ -95,8 +97,10 @@ func TestConfigs(t *testing.T) {
 func TestNewWithReset(t *testing.T) {
 	t0 := time.Now()
 	now := t0
+
 	expbackoff.SetAfterForT(t, func(d time.Duration) <-chan time.Time {
 		now = now.Add(d)
+
 		ch := make(chan time.Time, 1)
 		ch <- now
 

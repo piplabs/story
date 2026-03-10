@@ -4,7 +4,6 @@ package server
 import (
 	"context"
 	"errors"
-	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	"net/http"
 	"strconv"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
@@ -66,6 +66,7 @@ func NewServer(cfg *Config, store Store) (*Server, error) {
 	if err := s.registerCodec(); err != nil {
 		return nil, err
 	}
+
 	s.registerHandle()
 
 	var svrHandler http.Handler = s.httpMux
@@ -86,8 +87,28 @@ func NewServer(cfg *Config, store Store) (*Server, error) {
 	return s, nil
 }
 
+func (s *Server) Start() error {
+	go func() {
+		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.errChan <- err
+		}
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		return nil
+	case err := <-s.errChan:
+		return err
+	}
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
+}
+
 func (s *Server) registerCodec() error {
 	sdkConfig := sdk.GetConfig()
+
 	reg, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
 		ProtoFiles: proto.HybridResolver,
 		SigningOptions: signing.Options{
@@ -139,23 +160,4 @@ func (s *Server) createQueryContextByHeader(r *http.Request) (sdk.Context, error
 	}
 
 	return s.store.CreateQueryContext(height, false)
-}
-
-func (s *Server) Start() error {
-	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.errChan <- err
-		}
-	}()
-
-	select {
-	case <-time.After(time.Second):
-		return nil
-	case err := <-s.errChan:
-		return err
-	}
-}
-
-func (s *Server) Stop(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
 }

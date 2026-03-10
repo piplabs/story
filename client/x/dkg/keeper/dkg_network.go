@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"context"
-	"fmt"
 	"slices"
+	"strconv"
 
 	"cosmossdk.io/collections"
 
@@ -14,7 +14,7 @@ import (
 // setDKGNetwork stores a DKG network in the store using round as the key.
 // If this DKG network is the latest DKG network (per `isLatestDKGNetwork`), it updates the latest pointer.
 func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	key := fmt.Sprintf("%d", dkgNetwork.Round)
+	key := strconv.FormatUint(uint64(dkgNetwork.Round), 10)
 	if err := k.DKGNetworks.Set(ctx, key, *dkgNetwork); err != nil {
 		return err
 	}
@@ -23,6 +23,7 @@ func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 	if err != nil {
 		return errors.Wrap(err, "failed to check if DKG network is latest")
 	}
+
 	if shouldUpdateLatest {
 		if err := k.LatestDKGNetwork.Set(ctx, key); err != nil {
 			return errors.Wrap(err, "failed to update latest DKG network pointer")
@@ -34,7 +35,8 @@ func (k *Keeper) setDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNetwork
 
 // getDKGNetwork retrieves a DKG network by round.
 func (k *Keeper) getDKGNetwork(ctx context.Context, round uint32) (*types.DKGNetwork, error) {
-	key := fmt.Sprintf("%d", round)
+	key := strconv.FormatUint(uint64(round), 10)
+
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -106,7 +108,6 @@ func (k *Keeper) GetDKGNetworksByRound(ctx context.Context, round uint32) ([]typ
 
 		return false, nil
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate DKG networks")
 	}
@@ -123,7 +124,6 @@ func (k *Keeper) getAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, err
 
 		return false, nil
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate DKG networks")
 	}
@@ -133,7 +133,7 @@ func (k *Keeper) getAllDKGNetworks(ctx context.Context) ([]types.DKGNetwork, err
 
 // DeleteDKGNetwork removes a DKG network from the store.
 func (k *Keeper) DeleteDKGNetwork(ctx context.Context, round uint32) error {
-	key := fmt.Sprintf("%d", round)
+	key := strconv.FormatUint(uint64(round), 10)
 	return k.DKGNetworks.Remove(ctx, key)
 }
 
@@ -152,12 +152,15 @@ func (k *Keeper) isLatestDKGNetwork(ctx context.Context, dkgNetwork *types.DKGNe
 
 		return false, err
 	}
+
 	if currentLatest == nil {
 		return true, nil
 	}
+
 	if dkgNetwork.Round > currentLatest.Round {
 		return true, nil
 	}
+
 	if dkgNetwork.Round == currentLatest.Round && dkgNetwork.StartBlockHeight > currentLatest.StartBlockHeight {
 		return true, nil
 	}
@@ -175,7 +178,7 @@ func (k *Keeper) getNextRoundNumber(ctx context.Context) uint32 {
 }
 
 func (k *Keeper) setLatestActiveRound(ctx context.Context, dkgNetwork *types.DKGNetwork) error {
-	key := fmt.Sprintf("%d", dkgNetwork.Round)
+	key := strconv.FormatUint(uint64(dkgNetwork.Round), 10)
 	if err := k.LatestActiveRound.Set(ctx, key); err != nil {
 		return errors.Wrap(err, "failed to update latest active round of DKG network pointer")
 	}
@@ -216,18 +219,10 @@ func (k *Keeper) isInPrevActiveValSet(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	if latestActive == nil {
 		return false, nil
 	}
 
 	return slices.Contains(latestActive.ActiveValSet, k.validatorEVMAddr), nil
-}
-
-func (*Keeper) calculateThreshold(total uint32) uint32 {
-	threshold := (total * 2) / 3
-	if threshold*3 < total*2 {
-		threshold++
-	}
-
-	return threshold + 1 // 2/3 + 1 threshold
 }

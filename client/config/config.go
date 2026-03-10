@@ -254,11 +254,18 @@ func (c Config) EncPrivKeyFile() string {
 func (c Config) Verify() error {
 	if c.EngineEndpoint == "" {
 		return errors.New("flag --engine-endpoint is empty")
-	} else if c.EngineJWTFile == "" {
+	}
+
+	if c.EngineJWTFile == "" {
 		return errors.New("flag --engine-jwt-file is empty")
-	} else if c.Network == "" {
+	}
+
+	if c.Network == "" {
 		return errors.New("flag --network is empty")
-	} else if err := c.Network.Verify(); err != nil {
+	}
+
+	err := c.Network.Verify()
+	if err != nil {
 		return err
 	}
 
@@ -285,6 +292,7 @@ func WriteConfigTOML(cfg Config, logCfg log.Config) error {
 
 	s := struct {
 		Config
+
 		Log     log.Config
 		Version string
 	}{
@@ -308,6 +316,7 @@ func homeDir() string {
 	if home := os.Getenv("HOME"); home != "" {
 		return home
 	}
+
 	if usr, err := user.Current(); err == nil {
 		return usr.HomeDir
 	}

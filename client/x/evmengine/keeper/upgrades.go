@@ -29,6 +29,7 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 				clog.Error(ctx, "Failed to parse SoftwareUpgrade log", err)
 				continue
 			}
+
 			if err = k.ProcessSoftwareUpgrade(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process software upgrade", err)
 				continue
@@ -39,10 +40,14 @@ func (k *Keeper) ProcessUpgradeEvents(ctx context.Context, height uint64, logs [
 				clog.Error(ctx, "Failed to parse CancelUpgrade log", err)
 				continue
 			}
+
 			if err = k.ProcessCancelUpgrade(ctx, ev); err != nil {
 				clog.Error(ctx, "Failed to process cancel upgrade", err)
 				continue
 			}
+		default:
+			// skip if the event is not from upgrade entrypoint contract
+			continue
 		}
 	}
 
@@ -61,8 +66,10 @@ func (k *Keeper) ProcessSoftwareUpgrade(ctx context.Context, ev *bindings.Upgrad
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUpgradeSuccess,
 			)
@@ -118,8 +125,10 @@ func (k *Keeper) ProcessCancelUpgrade(ctx context.Context, ev *bindings.UpgradeE
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeCancelUpgradeSuccess,
 			)
@@ -267,15 +276,18 @@ func (k *Keeper) IsUpgradePending(ctx sdk.Context) bool {
 // If an upgrade is found, it returns the Plan object and nil error.
 func (k *Keeper) getPendingUpgrade(ctx sdk.Context) (upgradetypes.Plan, error) {
 	stores := k.storeService.OpenKVStore(ctx)
+
 	value, err := stores.Get(types.PendingUpgradeKey)
 	if err != nil {
 		return upgradetypes.Plan{}, errors.Wrap(err, "failed to get upgrade")
 	}
+
 	if value == nil {
 		return upgradetypes.Plan{}, types.ErrUpgradeNotFound
 	}
 
 	var upgrade upgradetypes.Plan
+
 	if err = k.cdc.Unmarshal(value, &upgrade); err != nil {
 		return upgradetypes.Plan{}, errors.Wrap(err, "failed to unmarshal")
 	}

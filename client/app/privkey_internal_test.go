@@ -78,6 +78,7 @@ func TestLoadPrivVal(t *testing.T) {
 			if !tt.cmtPrivval {
 				require.NoError(t, os.Remove(cmtPrivvalFile))
 			}
+
 			if !tt.cmtPrivState {
 				require.NoError(t, os.Remove(cmtPrivStateFile))
 			}

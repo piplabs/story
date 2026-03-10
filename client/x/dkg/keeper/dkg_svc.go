@@ -13,12 +13,12 @@ import (
 
 // dkgAsyncTimeout is the maximum duration for async DKG goroutines that
 // communicate with the story-kernel. These goroutines must NOT use the CometBFT
-// consensus context because it gets cancelled when block processing completes,
+// consensus context because it gets canceled when block processing completes,
 // which can abort in-flight gRPC calls to the story-kernel.
 const dkgAsyncTimeout = 1 * time.Minute
 
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
-// This replaces the consensus context that would otherwise be cancelled after block processing.
+// This replaces the consensus context that would otherwise be canceled after block processing.
 func dkgAsyncContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), dkgAsyncTimeout)
 }
@@ -44,6 +44,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
 		session.UpdatePhase(types.PhaseInitializing)
+
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session phase to initializing", err)
 
@@ -51,12 +52,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGRegistration(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseDealing)
+
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session phase to dealing", err)
 
@@ -64,12 +68,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGDealing(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)
+
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session phase to dealing", err)
 
@@ -77,12 +84,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGFinalization(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageActive:
 		session.UpdatePhase(types.PhaseFinalized)
+
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session phase to finalized", err)
 
@@ -90,15 +100,14 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGComplete(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageUnspecified:
-		return
 	}
-
-	return
 }
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests
@@ -111,6 +120,7 @@ func (k *Keeper) StartDecryptWorker(ctx context.Context) {
 
 	go func() {
 		defer decryptWorkerRunning.Store(false)
+
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
@@ -145,11 +155,13 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 					"requester_pub_key_len", len(req.RequesterPubKey),
 				)
 				remaining = append(remaining, req) // keep for retry
+
 				continue
 			}
 		}
 
 		session.SetDecryptRequests(remaining)
+
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
 				"session", session.GetSessionKey(),
@@ -189,7 +201,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	if err != nil {
-		return errors.Wrap(err, "TEE partial decrypt failed")
+		return errors.Wrap(err, "generating partial decrypt failed")
 	}
 
 	uuid, err := labelToUUID(req.Label)

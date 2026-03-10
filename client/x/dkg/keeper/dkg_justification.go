@@ -6,16 +6,17 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/share"
-	vssp "go.dedis.ch/kyber/v4/share/vss/pedersen"
-	"go.dedis.ch/kyber/v4/sign/schnorr"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 	"github.com/piplabs/story/lib/vss"
+
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/share"
+	vssp "go.dedis.ch/kyber/v4/share/vss/pedersen"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 )
 
 // verifyJustificationVSS performs Pedersen VSS verification using the Edwards25519 suite.
@@ -75,6 +76,7 @@ func verifyJustificationSignature(suite *edwards25519.SuiteEd25519, j types.Just
 		if err := p.UnmarshalBinary(c.GetData()); err != nil {
 			return errors.Wrap(err, "unmarshal commitment point")
 		}
+
 		commitments = append(commitments, p)
 	}
 
@@ -131,6 +133,7 @@ func deduplicateJustifications(justifications []types.Justification) []types.Jus
 
 	for _, j := range justifications {
 		var recipientIdx uint32
+
 		if vssJ := j.GetVssJustification(); vssJ != nil {
 			if pd := vssJ.GetPlainDeal(); pd != nil {
 				if ss := pd.GetSecShare(); ss != nil {
@@ -145,6 +148,7 @@ func deduplicateJustifications(justifications []types.Justification) []types.Jus
 		}
 
 		seen[key] = struct{}{}
+
 		result = append(result, j)
 	}
 
@@ -191,7 +195,7 @@ func verifyJustification(latestRound *types.DKGNetwork, j types.Justification) (
 		latestRound.Threshold,
 	)
 	if err != nil {
-		return false, errors.Wrap(err, "VSS verification failed")
+		return false, errors.Wrap(err, "vss verification failed")
 	}
 
 	return valid, nil
@@ -259,6 +263,7 @@ func (k *Keeper) invalidateDealerRegistration(ctx context.Context, latestRound *
 			}
 
 			reg.Status = types.DKGRegStatusInvalidated
+
 			validatorAddr := common.HexToAddress(strings.TrimSpace(reg.ValidatorAddr))
 			if err := k.setDKGRegistration(ctx, validatorAddr, &reg); err != nil {
 				return errors.Wrap(err, "failed to update registration status to invalidated")

@@ -73,7 +73,9 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	// Votes inside the VEs are NOT guaranteed to be valid, since
 	// VerifyVoteExtension isn't called after quorum is reached.
 	var allVotes []*types.Vote
+
 	log.Info(ctx, "Processing vote extensions", "height", commitHeight, "num_votes", len(commit.Votes))
+
 	for _, vote := range commit.Votes {
 		selected, _, err := k.parseAndVerifyVoteExtension(vote.VoteExtension)
 		if err != nil {
@@ -98,6 +100,7 @@ func aggregateVotes(votes []*types.Vote) *types.Vote {
 	dealMap := make([]types.Deal, 0)
 	responseMap := make([]types.Response, 0)
 	justificationMap := make([]types.Justification, 0)
+
 	for _, vote := range votes {
 		dealMap = append(dealMap, vote.Deals...)
 		responseMap = append(responseMap, vote.Responses...)

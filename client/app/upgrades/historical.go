@@ -35,7 +35,7 @@ func defaultUpgradeHandler(
 	}
 }
 
-// An example of an upgrade that uses the default upgrade handler and also performs additional state changes.
+// UpgradeExample is an example of an upgrade that uses the default upgrade handler and also performs additional state changes.
 // For example, even if `ConsensusVersion` is not modified for any modules, it still might be beneficial to create
 // an upgrade so node runners are signaled to start utilizing `Cosmovisor` for new binaries.
 var UpgradeExample = Upgrade{

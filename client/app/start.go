@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/piplabs/story/client/x/dkg/keeper"
-
 	"cosmossdk.io/store"
 	pruningtypes "cosmossdk.io/store/pruning/types"
 	"cosmossdk.io/store/snapshots"
@@ -30,6 +28,7 @@ import (
 	"github.com/piplabs/story/client/comet"
 	storycfg "github.com/piplabs/story/client/config"
 	apisvr "github.com/piplabs/story/client/server"
+	"github.com/piplabs/story/client/x/dkg/keeper"
 	"github.com/piplabs/story/lib/buildinfo"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/ethclient"
@@ -41,6 +40,7 @@ import (
 // Config wraps the story (app) and comet (client) configurations.
 type Config struct {
 	storycfg.Config
+
 	Comet cmtcfg.Config
 }
 
@@ -87,6 +87,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	buildinfo.Instrument(ctx)
 
 	tracerIDs := tracer.Identifiers{Network: cfg.Network, Service: "story", Instance: cfg.Comet.Moniker}
+
 	stopTracer, err := tracer.Init(ctx, tracerIDs, cfg.Tracer)
 	if err != nil {
 		return nil, err
@@ -107,11 +108,13 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}
 
 	var rpcClient *rpclocal.Local
+
 	if cfg.WithComet {
 		n, ok := cmtNode.(*node.Node)
 		if !ok {
 			return nil, errors.Wrap(err, "convert comet node")
 		}
+
 		rpcClient = rpclocal.New(n)
 		cmtAPI := comet.NewAPI(rpcClient, app.ChainID())
 
@@ -125,15 +128,18 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 	}
 
 	var apiSvr *apisvr.Server
+
 	if cfg.API.Enable {
 		log.Info(ctx, "Starting API server",
 			"api_address", cfg.API.Address,
 			"enable_unsafe_cors", cfg.API.EnableUnsafeCORS,
 		)
+
 		apiSvr, err = apisvr.NewServer(&cfg.API, app)
 		if err != nil {
 			return nil, errors.Wrap(err, "create API server")
 		}
+
 		if err := apiSvr.Start(); err != nil {
 			return nil, errors.Wrap(err, "start API server")
 		}
@@ -146,6 +152,7 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 		if err := cmtNode.Stop(); err != nil {
 			return errors.Wrap(err, "stop comet node")
 		}
+
 		<-cmtNode.Quit()
 
 		// Note that cometBFT doesn't shut down cleanly. It leaves a bunch of goroutines running...
@@ -216,6 +223,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "create app")
 	}
+
 	app.Keepers.EVMEngKeeper.SetBuildDelay(cfg.EVMBuildDelay)
 	app.Keepers.EVMEngKeeper.SetBuildOptimistic(cfg.EVMBuildOptimistic)
 
@@ -223,6 +231,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "convert validator pubkey to address")
 	}
+
 	app.Keepers.EVMEngKeeper.SetValidatorAddress(addr)
 
 	if cfg.DKG.Enable {
@@ -274,6 +283,7 @@ func newCometNode(ctx context.Context, cfg *cmtcfg.Config, app *App, privVal cmt
 		if err != nil {
 			return nil, errors.Wrap(err, "create abci server")
 		}
+
 		cmtNode.SetLogger(cmtLog.With("module", "abci-server"))
 	}
 
@@ -294,12 +304,14 @@ func makeBaseAppOpts(cfg Config) ([]func(*baseapp.BaseApp), error) {
 	snapshotOptions := snapshottypes.NewSnapshotOptions(cfg.SnapshotInterval, uint32(cfg.SnapshotKeepRecent))
 
 	pruneOpts := pruningtypes.NewPruningOptionsFromString(cfg.PruningOption)
-	if cfg.PruningOption == pruningtypes.PruningOptionDefault {
+	switch cfg.PruningOption {
+	case pruningtypes.PruningOptionDefault:
 		// Override the default cosmosSDK pruning values with much more aggressive defaults
 		// since historical state isn't very important for most use-cases.
 		pruneOpts = pruningtypes.NewCustomPruningOptions(defaultPruningKeep, defaultPruningInterval)
-	} else if cfg.PruningOption == pruningtypes.PruningOptionCustom {
+	case pruningtypes.PruningOptionCustom:
 		pruneOpts = pruningtypes.NewCustomPruningOptions(cfg.PruningKeepRecent, cfg.PruningInterval)
+	default:
 	}
 
 	if err := pruneOpts.Validate(); err != nil {

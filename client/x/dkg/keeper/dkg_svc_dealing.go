@@ -7,11 +7,12 @@ import (
 	"slices"
 
 	"cosmossdk.io/collections"
-	"go.dedis.ch/kyber/v4/group/edwards25519"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+
+	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -70,6 +71,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	var resp *types.GenerateDealsResponse
+
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "GenerateDeals call to kernel client",
 			"round", session.Round,
@@ -111,8 +113,6 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	log.Info(ctx, "DKG deals are generated successfully",
 		"round", session.Round,
 	)
-
-	return
 }
 
 // handleDKGProcessDeals handles the deals from other committee members.
@@ -144,6 +144,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	var resp *types.ProcessDealsResponse
+
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
 			"round", session.Round,
@@ -191,8 +192,6 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	log.Info(ctx, "Process deals complete",
 		"round", session.Round,
 	)
-
-	return
 }
 
 // handleDKGProcessResponses handles the responses of processDeals from other committee members.
@@ -253,6 +252,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 	for _, cc := range ccsToProcess {
 		var processResp *types.ProcessResponsesResponse
+
 		if err := retry(ctx, func(ctx context.Context) error {
 			log.Info(ctx, "ProcessResponses call to kernel client",
 				"round", session.Round,
@@ -302,8 +302,6 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	log.Info(ctx, "Process responses complete",
 		"round", session.Round,
 	)
-
-	return
 }
 
 func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
@@ -383,6 +381,7 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	// This MUST happen before deduplication so that an attacker cannot preempt a valid
 	// justification by broadcasting an unsigned one with the same (dealerIndex, recipientIndex).
 	var signatureVerified []types.Justification
+
 	for _, j := range justifications {
 		if err := verifyJustificationSignature(suite, j, dealerPubKeys); err != nil {
 			log.Debug(ctx, "Dropping justification with invalid signature",
@@ -402,6 +401,7 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	// Step 3: Perform Pedersen VSS verification on each deduplicated justification.
 	// Invalid justifications are silently dropped (not errors).
 	var validJustifications []types.Justification
+
 	for _, j := range deduped {
 		valid, err := verifyJustification(dkgNetwork, j)
 		if err != nil {

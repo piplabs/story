@@ -11,6 +11,7 @@ import (
 
 type ParamsTestSuite struct {
 	suite.Suite
+
 	encConf testutil.TestEncodingConfig
 }
 

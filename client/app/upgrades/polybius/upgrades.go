@@ -26,6 +26,7 @@ func CreateUpgradeHandler(
 		}
 
 		params.MaxValidators = NewMaxValidators
+
 		if err := keepers.StakingKeeper.SetParams(ctx, params); err != nil {
 			return vm, errors.Wrap(err, "failed to set new params of staking module")
 		}

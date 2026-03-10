@@ -11,6 +11,7 @@ import (
 
 func TestNewGenesisState(t *testing.T) {
 	t.Parallel()
+
 	dummyExecutionHead := common.HexToHash("0x047e24c3455107d87c68dffa307b3b7fa1877f3e9d7f30c7ee359f2eff3a75d9")
 	tcs := []struct {
 		name           string
@@ -44,6 +45,7 @@ func TestNewGenesisState(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			result := types.NewGenesisState(tc.params)
 			require.Equal(t, tc.params, result.Params)
 		})
@@ -52,6 +54,7 @@ func TestNewGenesisState(t *testing.T) {
 
 func TestDefaultGenesisState(t *testing.T) {
 	t.Parallel()
+
 	result := types.DefaultGenesisState()
 	require.Equal(t, types.DefaultParams(), result.Params)
 }

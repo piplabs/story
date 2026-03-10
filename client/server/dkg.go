@@ -2,10 +2,11 @@ package server
 
 import (
 	"encoding/hex"
+	"net/http"
+
 	"github.com/piplabs/story/client/server/utils"
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
-	"net/http"
 )
 
 func (s *Server) initDKGRoute() {

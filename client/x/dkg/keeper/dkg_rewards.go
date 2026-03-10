@@ -31,6 +31,7 @@ func (k *Keeper) DistributeRewardsToActiveCommittee(ctx context.Context, senderM
 	if err != nil {
 		return math.ZeroInt(), errors.Wrap(err, "get latest active DKG network")
 	}
+
 	if activeRound == nil {
 		// No active DKG round — no committee to reward.
 		return math.ZeroInt(), nil
@@ -50,7 +51,7 @@ func (k *Keeper) distributeRewardsFromModule(ctx context.Context, round *types.D
 	}
 
 	portion := params.DkgCommitteeRewardPortion
-	if portion.IsZero() {
+	if portion.IsNil() || portion.IsZero() {
 		return math.ZeroInt(), nil
 	}
 
@@ -69,6 +70,7 @@ func (k *Keeper) distributeRewardsFromModule(ctx context.Context, round *types.D
 	for _, reg := range finalizedRegs {
 		memberAddrs = append(memberAddrs, reg.ValidatorAddr)
 	}
+
 	sort.Strings(memberAddrs)
 
 	// Calculate DKG reward amounts.
@@ -175,6 +177,7 @@ func (k *Keeper) settleRewardsForPreviousCommittee(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get previous active DKG network")
 	}
+
 	if prevActive == nil {
 		// First round ever — no previous committee to reward.
 		return nil
@@ -186,7 +189,7 @@ func (k *Keeper) settleRewardsForPreviousCommittee(ctx context.Context) error {
 		return errors.Wrap(err, "failed to get DKG params")
 	}
 
-	if params.DkgCommitteeRewardPortion.IsZero() {
+	if params.DkgCommitteeRewardPortion.IsNil() || params.DkgCommitteeRewardPortion.IsZero() {
 		return nil
 	}
 
@@ -239,7 +242,7 @@ func (k *Keeper) distributeFromModuleBalance(ctx context.Context, round *types.D
 	}
 
 	portion := params.DkgCommitteeRewardPortion
-	if portion.IsZero() {
+	if portion.IsNil() || portion.IsZero() {
 		return math.ZeroInt(), nil
 	}
 
@@ -258,6 +261,7 @@ func (k *Keeper) distributeFromModuleBalance(ctx context.Context, round *types.D
 	for _, reg := range finalizedRegs {
 		memberAddrs = append(memberAddrs, reg.ValidatorAddr)
 	}
+
 	sort.Strings(memberAddrs)
 
 	// Calculate DKG reward amounts.

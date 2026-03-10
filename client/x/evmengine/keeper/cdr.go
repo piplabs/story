@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	clog "github.com/piplabs/story/lib/log"
@@ -56,8 +57,10 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGThresholdDecryptRequestedSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -90,6 +93,7 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 func uuidToLabel(uuid uint32) [32]byte {
 	var label [32]byte
 	binary.BigEndian.PutUint32(label[28:], uuid)
+
 	return label
 }
 

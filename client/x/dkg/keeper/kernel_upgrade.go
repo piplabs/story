@@ -52,7 +52,6 @@ func (k *Keeper) GetAllKernelUpgradeInfos(ctx context.Context) ([]types.KernelUp
 		infos = append(infos, info)
 		return false, nil
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate kernel upgrade infos")
 	}
@@ -69,7 +68,6 @@ func (k *Keeper) GetPendingUpgrade(ctx context.Context) (*types.KernelUpgradeInf
 		pending = &info
 		return true, nil // stop at first entry
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate kernel upgrade infos for pending upgrade")
 	}

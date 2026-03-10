@@ -34,8 +34,10 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeRedelegateSuccess,
 				sdk.NewAttribute(types.AttributeKeyAmount, actualAmount),
@@ -85,6 +87,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 	if err != nil {
 		return errors.Wrap(err, "src validator pubkey to evm address")
 	}
+
 	valDstEvmAddr, err := k1util.CosmosPubkeyToEVMAddress(validatorDstPubkey.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "dst validator pubkey to evm address")
@@ -105,6 +108,7 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 		} else if err != nil {
 			return errors.Wrap(err, "get delegator's operator address failed")
 		}
+
 		if operatorAddr != ev.OperatorAddress.String() {
 			return errors.WrapErrWithCode(
 				errors.InvalidOperator,
@@ -156,7 +160,12 @@ func (k Keeper) ProcessRedelegate(ctx context.Context, ev *bindings.IPTokenStaki
 
 	msg.ApplyRewardsSharesFix = isV142
 
-	resp, err := skeeper.NewMsgServerImpl(k.stakingKeeper.(*skeeper.Keeper)).BeginRedelegate(cachedCtx, msg)
+	sKeeper, ok := k.stakingKeeper.(*skeeper.Keeper)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+
+	resp, err := skeeper.NewMsgServerImpl(sKeeper).BeginRedelegate(cachedCtx, msg)
 	switch {
 	case errors.Is(err, stypes.ErrSelfRedelegation):
 		return errors.WrapErrWithCode(errors.SelfRedelegation, err)

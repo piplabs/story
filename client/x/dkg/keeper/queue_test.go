@@ -1,10 +1,11 @@
 package keeper
 
 import (
-	"github.com/piplabs/story/client/x/dkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/dkg/types"
 )
 
 func TestEnqueueAndDequeueDeals(t *testing.T) {
@@ -59,7 +60,7 @@ func TestEnqueueAndDequeueDeals(t *testing.T) {
 	require.Equal(t, uint32(3), got[2].Index)
 
 	got = k.DequeueDeals(3)
-	require.Len(t, got, 0)
+	require.Empty(t, got)
 }
 
 func TestEnqueueAndDequeueResponses(t *testing.T) {
@@ -108,5 +109,5 @@ func TestEnqueueAndDequeueResponses(t *testing.T) {
 	require.Equal(t, uint32(3), got[2].Index)
 
 	got = k.DequeueResponses(3)
-	require.Len(t, got, 0)
+	require.Empty(t, got)
 }

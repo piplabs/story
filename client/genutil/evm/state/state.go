@@ -21,6 +21,7 @@ type StorageSlot struct {
 // If it does not support encoding a value, it returns an error.
 func EncodeStorage(layout solc.StorageLayout, values StorageValues) ([]StorageSlot, error) {
 	var slots []StorageSlot
+
 	for label, value := range values {
 		slot, ok := solc.SlotOf(layout, label)
 		if !ok {
@@ -40,6 +41,7 @@ func EncodeStorage(layout solc.StorageLayout, values StorageValues) ([]StorageSl
 
 func encodeStorage(slot uint, value any) (StorageSlot, error) {
 	key := encodeSlot(slot)
+
 	v, err := encodeValue(value)
 	if err != nil {
 		return StorageSlot{}, err

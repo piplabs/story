@@ -160,7 +160,9 @@ func bindValidatorRedelegateOnBehalfFlags(cmd *cobra.Command, cfg *redelegateCon
 
 func bindValidatorKeyExportFlags(cmd *cobra.Command, cfg *exportKeyConfig) {
 	bindValidatorKeyFlags(cmd, &cfg.ValidatorKeyFile)
+
 	defaultEVMKeyFilePath := filepath.Join(config.DefaultHomeDir(), "config", "private_key.txt")
+
 	cmd.Flags().BoolVar(&cfg.ExportEVMKey, "export-evm-key", false, "Export the EVM private key")
 	cmd.Flags().StringVar(&cfg.EvmKeyFile, "evm-key-path", defaultEVMKeyFilePath, "Path to save the exported EVM private key")
 }
@@ -524,6 +526,7 @@ func validateEncryptFlags(cmd *cobra.Command, cfg *baseConfig) error {
 	}
 
 	loadEnv()
+
 	pk := os.Getenv("PRIVATE_KEY")
 	if pk == "" {
 		return errors.New("no private key is provided")
@@ -792,6 +795,7 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint, valEVMAddr string) (Va
 	if err != nil {
 		return Validator{}, errors.Wrap(err, "failed to get validator")
 	}
+
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusInternalServerError {
 		return Validator{}, errors.New("failed to get validator", "http_code", resp.StatusCode)
 	}
@@ -803,6 +807,7 @@ func getValidatorByEVMAddr(ctx context.Context, endpoint, valEVMAddr string) (Va
 	defer resp.Body.Close()
 
 	var response ValidatorResponse
+
 	if err := json.Unmarshal(body, &response); err != nil {
 		return Validator{}, errors.Wrap(err, "failed to unmarshal response")
 	}
@@ -869,6 +874,7 @@ func getSelfDelegation(ctx context.Context, endpoint, valEVMAddr string) (*big.I
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get validator")
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("failed to get validator")
 	}
@@ -880,6 +886,7 @@ func getSelfDelegation(ctx context.Context, endpoint, valEVMAddr string) (*big.I
 	}
 
 	var response SelfDelegationResponse
+
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal response")
 	}
