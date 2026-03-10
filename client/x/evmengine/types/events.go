@@ -65,6 +65,7 @@ const (
 	AttributeKeyDKGRecipientIndex               = "dkg_recipient_index"
 	AttributeKeyDKGChalStatus                   = "dkg_chal_status"
 	AttributeKeyDKGRequester                    = "dkg_requester"
+	AttributeKeyDKGRequesterPubKeyLen           = "dkg_requester_pub_key_len"
 	AttributeKeyDKGCiphertextLen                = "dkg_ciphertext_len"
 	AttributeKeyDKGLabelLen                     = "dkg_label_len"
 	AttributeKeyDKGPid                          = "dkg_pid"

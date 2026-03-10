@@ -190,37 +190,32 @@ func (c *ContractClient) Finalize(
 func (c *ContractClient) SubmitEncryptedPartialDecryption(
 	ctx context.Context,
 	round uint32,
-	codeCommitment []byte,
 	pid uint32,
 	encryptedPartial []byte,
 	ephemeralPubKey []byte,
 	pubShare []byte,
-	label []byte,
+	requesterPubKey []byte,
+	uuid uint32,
 	signature []byte,
 ) (*types.Receipt, error) {
 	log.Info(ctx, "Calling submitEncryptedPartialDecryption contract method",
-		"code_commitment", hex.EncodeToString(codeCommitment),
 		"round", round,
 		"pid", pid,
 		"partial_len", len(encryptedPartial),
 		"eph_pub_len", len(ephemeralPubKey),
 		"pub_share_len", len(pubShare),
-		"label_len", len(label),
+		"requester_pub_key_len", len(requesterPubKey),
+		"uuid", uuid,
 		"signature_len", len(signature),
 	)
 
-	codeCommitment32, err := cast.ToBytes32(codeCommitment)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert bytes32")
-	}
-
-	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
 
 	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, codeCommitment32, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
 	})
 }
 

@@ -50,15 +50,15 @@ type Keeper struct {
 	Schema             collections.Schema
 	ParamsStore        collections.Item[types.Params]
 	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
-	LatestDKGNetwork   collections.Item[string]                         // stores codeCommitment key of latest DKG network
+	LatestDKGNetwork   collections.Item[string]                         // stores round key of latest DKG network
 	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
-	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: codeCommitment_round_address
-	GlobalPubKeyVotes  collections.Map[string, uint32]                  // key: codeCommitment_round_globalPubKey_hash(publicCoeffs)
+	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: round_address
+	GlobalPubKeyVotes  collections.Map[string, uint32]                  // key: round_globalPubKey_hash(publicCoeffs)
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt      collections.Map[string, []byte] // key: codeCommitment_round_validator_pid_labelHash
-	DecryptRequestRegistry collections.Map[string, uint64] // key: codeCommitment_round_labelHash; value: blockHeight when request was registered
+	DKGPartialDecrypt      collections.Map[string, []byte] // key: round_validator_pid_labelHash
+	DecryptRequestRegistry collections.Map[string, uint64] // key: requesterPubKeyHash_labelHash; value: blockHeight when request was registered
 }
 
 // NewKeeper creates a new dkg Keeper instance.

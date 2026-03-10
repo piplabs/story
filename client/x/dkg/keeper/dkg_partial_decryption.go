@@ -13,7 +13,6 @@ import (
 type partialDecryptionSubmission struct {
 	Validator        string `json:"validator"`
 	Round            uint32 `json:"round"`
-	CodeCommitment   []byte `json:"code_commitment"`
 	Pid              uint32 `json:"pid"`
 	EncryptedPartial []byte `json:"encrypted_partial"`
 	EphemeralPubKey  []byte `json:"ephemeral_pub_key"`
@@ -29,7 +28,6 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	ctx context.Context,
 	validator common.Address,
 	round uint32,
-	codeCommitment [32]byte,
 	pid uint32,
 	encryptedPartial []byte,
 	ephemeralPubKey []byte,
@@ -39,7 +37,6 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	bz, err := json.Marshal(partialDecryptionSubmission{
 		Validator:        validator.Hex(),
 		Round:            round,
-		CodeCommitment:   codeCommitment[:],
 		Pid:              pid,
 		EncryptedPartial: encryptedPartial,
 		EphemeralPubKey:  ephemeralPubKey,

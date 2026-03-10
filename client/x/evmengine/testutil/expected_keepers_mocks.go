@@ -419,17 +419,17 @@ func (mr *MockDKGKeeperMockRecorder) SetOperationalThreshold(ctx, value any) *go
 }
 
 // PartialDecryptionSubmitted mocks base method.
-func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, codeCommitment [32]byte, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, label, signature []byte) error {
+func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
-func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, codeCommitment, pid, encryptedPartial, ephemeralPubKey, pubShare, label, signature)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
 }
 
 // ThresholdDecryptRequested mocks base method.
@@ -441,9 +441,9 @@ func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uin
 }
 
 // ThresholdDecryptRequested indicates an expected call of ThresholdDecryptRequested.
-func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, round, codeCommitment, requesterPubKey, ciphertext, label, blockHeight any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) ThresholdDecryptRequested(ctx, round, requesterPubKey, ciphertext, label, blockHeight any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, round, codeCommitment, requesterPubKey, ciphertext, label, blockHeight)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThresholdDecryptRequested", reflect.TypeOf((*MockDKGKeeper)(nil).ThresholdDecryptRequested), ctx, round, requesterPubKey, ciphertext, label, blockHeight)
 }
 
 // UpgradeCancelled mocks base method.

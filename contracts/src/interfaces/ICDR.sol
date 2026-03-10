@@ -43,37 +43,37 @@ interface ICDR {
     /// @param uuid The UUID of the vault
     /// @param requester The address requesting the read (msg.sender)
     /// @param round The DKG round number for threshold decryption
+    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param ciphertext The encrypted data (ciphertext)
     /// @param requesterPubKey The public key of the requester
-    /// @param label The label identifying the decrypt request
     event VaultRead(
         uint32 uuid,
         address indexed requester,
         uint32 round,
+        bytes32 codeCommitment,
         bytes ciphertext,
-        bytes requesterPubKey,
-        bytes label
+        bytes requesterPubKey
     );
 
     /// @notice Emitted when an encrypted partial decryption is submitted
     /// @param validator The address of the submitting validator (msg.sender)
     /// @param round The DKG round number
-    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param pid The participant index of the validator
     /// @param encryptedPartial The encrypted partial decryption
     /// @param ephemeralPubKey The ephemeral public key used for encryption
     /// @param pubShare The validator's public key share
-    /// @param label The label identifying the decrypt request (vault UUID bytes)
+    /// @param requesterPubKey The public key of the requester
+    /// @param uuid The UUID of the vault
     /// @param signature The signature over the partial decryption payload
     event EncryptedPartialDecryptionSubmitted(
         address indexed validator,
         uint32 round,
-        bytes32 codeCommitment,
         uint32 pid,
         bytes encryptedPartial,
         bytes ephemeralPubKey,
         bytes pubShare,
-        bytes label,
+        bytes requesterPubKey,
+        uint32 uuid,
         bytes signature
     );
 
@@ -117,34 +117,34 @@ interface ICDR {
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
     /// @param round The DKG round number for threshold decryption
+    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param accessAuxData The auxiliary access data for reading
     /// @param requesterPubKey The public key of the requester
-    /// @param label The label identifying the decrypt request
     function read(
         uint32 uuid,
         uint32 round,
+        bytes32 codeCommitment,
         bytes memory accessAuxData,
-        bytes calldata requesterPubKey,
-        bytes calldata label
+        bytes calldata requesterPubKey
     ) external payable;
 
     /// @notice Submits an encrypted partial decryption
     /// @param round The DKG round number
-    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param pid The participant index of the validator
     /// @param encryptedPartial The encrypted partial decryption
     /// @param ephemeralPubKey The ephemeral public key used for encryption
     /// @param pubShare The validator's public key share
-    /// @param label The label identifying the decrypt request (vault UUID bytes)
+    /// @param requesterPubKey The public key of the requester
+    /// @param uuid The UUID of the vault
     /// @param signature The signature over the partial decryption payload
     function submitEncryptedPartialDecryption(
         uint32 round,
-        bytes32 codeCommitment,
         uint32 pid,
         bytes calldata encryptedPartial,
         bytes calldata ephemeralPubKey,
         bytes calldata pubShare,
-        bytes calldata label,
+        bytes calldata requesterPubKey,
+        uint32 uuid,
         bytes calldata signature
     ) external payable;
 

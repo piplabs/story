@@ -825,7 +825,7 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := verifyPartialDecryptionSignature(tc.commPubKey, tc.codeCommitment, tc.round, tc.encryptedPartial, tc.ephemeralPubKey, tc.pubShare, tc.signature)
+			err := verifyPartialDecryptionSignature(tc.commPubKey, tc.round, tc.encryptedPartial, tc.ephemeralPubKey, tc.pubShare, tc.signature)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
