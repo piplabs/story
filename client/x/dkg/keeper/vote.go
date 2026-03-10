@@ -7,7 +7,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -152,7 +151,7 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	votes := aggregateVotes(allVotes)
 
 	return &types.MsgAddDkgVote{
-		Authority: authtypes.NewModuleAddress(types.ModuleName).String(),
+		Authority: k.GetAuthority(),
 		Vote:      votes,
 	}, nil
 }
