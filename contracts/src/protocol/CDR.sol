@@ -146,14 +146,10 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
 
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
-    /// @param round The DKG round number for threshold decryption
-    /// @param codeCommitment The DKG code commitment identifying the committee
     /// @param accessAuxData The auxiliary access data for reading
     /// @param requesterPubKey The public key of the requester
     function read(
         uint32 uuid,
-        uint32 round,
-        bytes32 codeCommitment,
         bytes memory accessAuxData,
         bytes calldata requesterPubKey
     ) external payable nonReentrant whenNotPaused {
@@ -178,7 +174,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         // collect the read fee and burn it
         _collectFee($.readFee);
 
-        emit VaultRead(uuid, msg.sender, round, codeCommitment, vault.encryptedData, requesterPubKey);
+        emit VaultRead(uuid, msg.sender, vault.encryptedData, requesterPubKey);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

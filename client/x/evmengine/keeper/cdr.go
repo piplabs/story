@@ -49,6 +49,16 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		return errors.Wrap(err, "parse VaultRead log")
 	}
 
+	latestRound, err := k.dkgKeeper.GetLatestActiveRound(cachedCtx)
+	if err != nil {
+		return errors.Wrap(err, "get latest active round")
+	}
+	if latestRound == nil {
+		return errors.New("no active DKG round")
+	}
+
+	round := latestRound.Round
+
 	label := uuidToLabel(ev.Uuid)
 
 	defer func() {
@@ -72,7 +82,7 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		sdkCtx.EventManager().EmitEvents(sdk.Events{
 			e.AppendAttributes(
 				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
-				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(ev.Round), 10)),
+				sdk.NewAttribute(types.AttributeKeyDKGRound, strconv.FormatUint(uint64(round), 10)),
 				sdk.NewAttribute(types.AttributeKeyDKGRequester, ev.Requester.Hex()),
 				sdk.NewAttribute(types.AttributeKeyDKGCiphertextLen, strconv.Itoa(len(ev.Ciphertext))),
 				sdk.NewAttribute(types.AttributeKeyDKGLabelLen, strconv.Itoa(len(label))),
@@ -81,7 +91,7 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		})
 	}()
 
-	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, ev.Round, ev.RequesterPubKey, ev.Ciphertext, label[:], uint64(sdkCtx.BlockHeight())); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+	if err = k.dkgKeeper.ThresholdDecryptRequested(cachedCtx, round, ev.RequesterPubKey, ev.Ciphertext, label[:], uint64(sdkCtx.BlockHeight())); errors.Is(err, sdkerrors.ErrInvalidRequest) {
 		return errors.WrapErrWithCode(errors.InvalidRequest, err)
 	} else if err != nil {
 		return errors.Wrap(err, "handle ThresholdDecryptRequested")
