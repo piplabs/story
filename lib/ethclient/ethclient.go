@@ -97,6 +97,7 @@ func (w Wrapper) HeaderByType(ctx context.Context, typ HeadType) (*types.Header,
 	defer latency(w.chain, endpoint)()
 
 	var header *types.Header
+
 	err := w.cl.Client().CallContext(
 		ctx,
 		&header,

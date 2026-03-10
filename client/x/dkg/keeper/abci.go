@@ -45,6 +45,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	if upgradeInfo != nil {
 		log.Info(ctx, "Kernel upgrade activated, initiating upgrade resharing round",
 			"upgrade_version", upgradeInfo.UpgradeVersion,

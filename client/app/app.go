@@ -4,6 +4,7 @@ import (
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
+
 	abci "github.com/cometbft/cometbft/abci/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -19,10 +20,10 @@ import (
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/comet"
+	dkgkeeper "github.com/piplabs/story/client/x/dkg/keeper"
 	evmenginekeeper "github.com/piplabs/story/client/x/evmengine/keeper"
 	evmstakingkeeper "github.com/piplabs/story/client/x/evmstaking/keeper"
 	mintkeeper "github.com/piplabs/story/client/x/mint/keeper"
@@ -98,6 +99,7 @@ func newApp(
 		app        = new(App)
 		appBuilder = new(runtime.AppBuilder)
 	)
+
 	if err := depinject.Inject(depCfg,
 		&appBuilder,
 		&app.appCodec,
@@ -121,6 +123,7 @@ func newApp(
 	}
 
 	app.Keepers.EVMEngKeeper.SetVoteProvider(app.Keepers.DKGKeeper)
+
 	baseAppOpts = append(baseAppOpts, func(bapp *baseapp.BaseApp) {
 		// Use evm engine to create block proposals.
 		// Note that we do not check MaxTxBytes since all EngineEVM transaction MUST be included since we cannot
@@ -161,7 +164,7 @@ func newApp(
 			return nil, errors.Wrap(err, "set module version map")
 		}
 
-		return app.App.InitChainer(ctx, req)
+		return app.InitChainer(ctx, req)
 	})
 
 	app.setupUpgradeHandlers()

@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	VersionMajor = 1          // Major version component of the current release
-	VersionMinor = 4          // Minor version component of the current release
-	VersionPatch = 3          // Patch version component of the current release
-	VersionMeta  = "unstable" // Version metadata to append to the version string
+	VersionMajor = 1        // Major version component of the current release
+	VersionMinor = 5        // Minor version component of the current release
+	VersionPatch = 3        // Patch version component of the current release
+	VersionMeta  = "stable" // Version metadata to append to the version string
 )
 
 // Version returns the version of the whole story-monorepo and all binaries built from this git commit.
@@ -64,6 +64,7 @@ func NewVersionCmd() *cobra.Command {
 			commit, timestamp := get()
 
 			var sb strings.Builder
+
 			_, _ = sb.WriteString("Version       " + VersionWithMeta())
 			_, _ = sb.WriteString("\n")
 			_, _ = sb.WriteString("Git Commit    " + commit)
@@ -87,12 +88,14 @@ func get() (hash string, timestamp string) { //nolint:nonamedreturns // Disambig
 	}
 
 	for _, s := range info.Settings {
-		if s.Key == "vcs.revision" {
+		switch s.Key {
+		case "vcs.revision":
 			if len(s.Value) < hashLen {
 				hashLen = len(s.Value)
 			}
+
 			hash = s.Value[:hashLen]
-		} else if s.Key == "vcs.time" {
+		case "vcs.time":
 			timestamp = s.Value
 		}
 	}

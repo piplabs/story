@@ -26,7 +26,7 @@ const (
 	// NamespaceSize is the number of proxies to deploy per namespace.
 	NamespaceSize = 2048
 
-	// IP Token Predeploys.
+	// IPTokenStaking , UBIPool , UpgradeEntrypoint are the predeploy contract addresses.
 	IPTokenStaking    = "0xcccccc0000000000000000000000000000000001"
 	UBIPool           = "0xcccccc0000000000000000000000000000000002"
 	UpgradeEntrypoint = "0xcccccc0000000000000000000000000000000003"

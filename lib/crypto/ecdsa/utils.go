@@ -1,4 +1,4 @@
-// ADAPTED FROM: https://github.com/Layr-Labs/eigensdk-go/blob/dev/crypto/ecdsa/utils.go
+// Package ecdsa is adapted from: https://github.com/Layr-Labs/eigensdk-go/blob/dev/crypto/ecdsa/utils.go
 package ecdsa
 
 import (
@@ -62,6 +62,7 @@ func writeBytesToFile(path string, data []byte) error {
 
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
+
 	_, err = file.Write(data)
 
 	return errors.Wrap(err, "writing to file")

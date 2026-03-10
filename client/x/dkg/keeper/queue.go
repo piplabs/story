@@ -97,14 +97,20 @@ func (*Keeper) DequeueJustifications(count int) []types.Justification {
 // from a previous round from being broadcast in the new round.
 func (*Keeper) FlushAllQueues() {
 	dealsMu.Lock()
+
 	deals = nil
+
 	dealsMu.Unlock()
 
 	responsesMu.Lock()
+
 	responses = nil
+
 	responsesMu.Unlock()
 
 	justificationsMu.Lock()
+
 	justifications = nil
+
 	justificationsMu.Unlock()
 }

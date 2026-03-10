@@ -37,6 +37,7 @@ func loadValidatorFile(path string) ([]byte, error) {
 	}
 
 	var keyData ValidatorKey
+
 	if err := json.Unmarshal(keyFileBytes, &keyData); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal validator key file")
 	}
@@ -133,6 +134,7 @@ func uncmpPubKeyToCmpPubKey(uncmpPubKey []byte) ([]byte, error) {
 
 func printKeyFormats(compressedPubKeyBytes []byte) error {
 	compressedPubKeyBase64 := base64.StdEncoding.EncodeToString(compressedPubKeyBytes)
+
 	uncompressedPubKeyBytes, err := cmpPubKeyToUncmpPubKey(compressedPubKeyBytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert compressed pub key to uncompressed format")

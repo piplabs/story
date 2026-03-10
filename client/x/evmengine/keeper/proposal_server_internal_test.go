@@ -58,6 +58,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 		// get latest block to build on top
 		latestBlock, err := mockEngine.HeaderByType(c, ethclient.HeadLatest)
 		require.NoError(t, err)
+
 		latestHeight := latestBlock.Number.Uint64()
 
 		sdkCtx := sdk.UnwrapSDKContext(c)
@@ -170,6 +171,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 			createPayload: func(ctx context.Context, withWithdrawal bool) (*etypes.Block, engine.PayloadID, []byte) {
 				latestBlock, err := mockEngine.HeaderByType(ctx, ethclient.HeadLatest)
 				require.NoError(t, err)
+
 				latestHeight := latestBlock.Number.Uint64()
 				wrongNextHeight := latestHeight + 2
 
@@ -423,6 +425,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 				esk.EXPECT().MaxWithdrawalPerBlock(ctx).Return(uint32(0), nil)
 				esk.EXPECT().PeekEligibleWithdrawals(ctx, gomock.Any()).Return(nil, nil)
 				esk.EXPECT().PeekEligibleRewardWithdrawals(ctx, gomock.Any()).Return(nil, nil)
+
 				mockEngine.forceInvalidNewPayloadV3 = true
 
 				return sdk.UnwrapSDKContext(ctx)
@@ -544,9 +547,11 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 			if tc.setup != nil {
 				cachedCtx = tc.setup(cachedCtx)
 			}
+
 			if tc.createPayload != nil {
 				block, payloadID, payloadData = tc.createPayload(cachedCtx, tc.withWithdrawal)
 			}
+
 			if tc.createPrevPayloadEvents != nil {
 				events = tc.createPrevPayloadEvents(cachedCtx, block.Hash())
 			}
@@ -561,6 +566,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, resp)
+
 				if tc.postCheck != nil {
 					tc.postCheck(cachedCtx, block, payloadID)
 				}
@@ -576,6 +582,7 @@ func Test_proposalServer_ExecutionPayload(t *testing.T) {
 func fastBackoffForT() {
 	backoffFuncMu.Lock()
 	defer backoffFuncMu.Unlock()
+
 	backoffFunc = func(context.Context, ...func(*expbackoff.Config)) func() {
 		return func() {}
 	}

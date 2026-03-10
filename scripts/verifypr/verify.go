@@ -1,4 +1,3 @@
-// Command verifypr provides a tool to verify story PRs against the conventional commit template.
 package main
 
 import (
@@ -54,12 +53,14 @@ type PR struct {
 // prFromEnv returns the PR by parsing it from "GITHUB_PR" env var or an error.
 func prFromEnv() (PR, error) {
 	const prEnv = "GITHUB_PR"
+
 	prJSON, ok := os.LookupEnv(prEnv)
 	if !ok || strings.TrimSpace(prJSON) == "" {
 		return PR{}, errors.New("env variable not set")
 	}
 
 	var pr PR
+
 	if err := json.Unmarshal([]byte(prJSON), &pr); err != nil {
 		return PR{}, err
 	}
@@ -79,6 +80,7 @@ func verify(commitMsg string) error {
 	// Parse conventional commit message.
 	m := parser.NewMachine()
 	m.WithTypes(cc.TypesConventional)
+
 	msg, err := m.Parse([]byte(commitMsg))
 	if err != nil {
 		return fmt.Errorf("parse conventional commit message: %w", err)
@@ -132,9 +134,11 @@ func verifyDescription(description string) error {
 
 func verifyFooter(commit *cc.ConventionalCommit) error {
 	const issueFooter = "issue"
+
 	if len(commit.Footers) == 0 {
 		return errors.New("missing `issue` section. Please add a github issue for this PR")
 	}
+
 	if len(commit.Footers[issueFooter]) == 0 {
 		return errors.New("missing `issue` section. Please add a github issue for this PR")
 	}

@@ -25,8 +25,10 @@ func (k Keeper) ProcessSetWithdrawalAddress(ctx context.Context, ev *bindings.IP
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeSetWithdrawalAddressSuccess,
 			)
@@ -67,8 +69,10 @@ func (k Keeper) ProcessSetRewardAddress(ctx context.Context, ev *bindings.IPToke
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeSetRewardAddressSuccess,
 			)
@@ -109,8 +113,10 @@ func (k Keeper) ProcessSetOperator(ctx context.Context, ev *bindings.IPTokenStak
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeSetOperatorSuccess,
 			)
@@ -150,8 +156,10 @@ func (k Keeper) ProcessUnsetOperator(ctx context.Context, ev *bindings.IPTokenSt
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUnsetOperatorSuccess,
 			)

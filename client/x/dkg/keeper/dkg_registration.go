@@ -25,6 +25,7 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Ad
 // getDKGRegistration retrieves a DKG registration by round and validator address.
 func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
 	key := fmt.Sprintf("%d_%s", round, validatorAddr.Hex())
+
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -35,24 +36,6 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validator
 	}
 
 	return &dkgReg, nil
-}
-
-// getDKGRegistrationIndex gets the index of a specific DKG registration by round and msg sender.
-//
-// TODO: optimize since `getDKGRegistrationsByRound` walks all registrations.
-func (k *Keeper) getDKGRegistrationIndex(ctx context.Context, round uint32, msgSender string) (uint32, error) {
-	registrations, err := k.getDKGRegistrationsByRound(ctx, round)
-	if err != nil {
-		return 0, err
-	}
-
-	for _, registration := range registrations {
-		if registration.ValidatorAddr == msgSender {
-			return registration.Index, nil
-		}
-	}
-
-	return 0, errors.New("dkg registration not found")
 }
 
 // getNextDKGRegistrationIndex gets the next DKG registration index for a specific round.
@@ -68,6 +51,7 @@ func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, round uint32) 
 // getDKGRegistrationsByRound retrieves all DKG registrations for a specific round.
 func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, round uint32) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
+
 	prefix := fmt.Sprintf("%d_", round)
 
 	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
@@ -77,7 +61,6 @@ func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, round uint32) (
 
 		return false, nil // Continue iteration
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate dkg registrations")
 	}
@@ -106,6 +89,7 @@ func (k *Keeper) getDKGRegistrationsByStatus(ctx context.Context, round uint32, 
 	}
 
 	var filteredRegs []types.DKGRegistration
+
 	for _, reg := range allRegs {
 		if reg.Status == status {
 			filteredRegs = append(filteredRegs, reg)
@@ -129,7 +113,7 @@ func (k *Keeper) HasFinalizedRegistration(ctx context.Context, round uint32, val
 	return reg.Status == types.DKGRegStatusFinalized, nil
 }
 
-// countDKGRegistrationsByStatus returns the count of DKG registrations in the status
+// countDKGRegistrationsByStatus returns the count of DKG registrations in the status.
 func (k *Keeper) countDKGRegistrationsByStatus(ctx context.Context, round uint32, status types.DKGRegStatus) (uint32, error) {
 	// Get registrations with status of registration
 	regs, err := k.getDKGRegistrationsByStatus(ctx, round, status)

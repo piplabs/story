@@ -64,6 +64,7 @@ func NewRootCmd(appName string, appDescription string, subCmds ...*cobra.Command
 // SilenceErrUsage silences the usage and error printing.
 func SilenceErrUsage(cmd *cobra.Command) {
 	cmd.SilenceUsage = true
+
 	cmd.SilenceErrors = true
 	for _, cmd := range cmd.Commands() {
 		SilenceErrUsage(cmd)
@@ -119,8 +120,8 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) error {
 		// related issue: https://github.com/piplabs/story/issues/487
 		if strings.HasPrefix(f.Name, "log_") {
 			flagName = strings.Replace(f.Name, "_", ".", 1)
-		} else if strings.HasPrefix(f.Name, "state-sync.") {
-			flagName = strings.TrimPrefix(f.Name, "state-sync.")
+		} else if after, ok := strings.CutPrefix(f.Name, "state-sync."); ok {
+			flagName = after
 		} else {
 			flagName = strings.Replace(f.Name, "-", ".", 1)
 		}

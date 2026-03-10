@@ -6,13 +6,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/dkg/types"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
 	vssp "go.dedis.ch/kyber/v4/share/vss/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-
-	"github.com/piplabs/story/client/x/dkg/types"
 )
 
 // dealingTestThreshold is the threshold used in dealing tests (t=2: linear polynomial).
@@ -47,9 +48,11 @@ func newDealerTestContext(t *testing.T, n, threshold int) *dealerTestContext {
 
 	shares := priPoly.Shares(n)
 	shareBytesList := make([][]byte, n)
+
 	for i, s := range shares {
 		bz, err := s.V.MarshalBinary()
 		require.NoError(t, err)
+
 		shareBytesList[i] = bz
 	}
 
@@ -105,6 +108,7 @@ func (dtc *dealerTestContext) makeSignedJustification(t *testing.T, dealerIndex 
 	for i, c := range dtc.commits {
 		bz, err := c.MarshalBinary()
 		require.NoError(t, err)
+
 		commitmentPoints[i] = &types.Point{Data: bz}
 	}
 
@@ -163,6 +167,7 @@ func (dtc *dealerTestContext) makeInvalidDealJustification(t *testing.T, dealerI
 	for i, c := range dtc.commits {
 		bz, err := c.MarshalBinary()
 		require.NoError(t, err)
+
 		commitmentPoints[i] = &types.Point{Data: bz}
 	}
 
@@ -325,7 +330,7 @@ func TestVerifyJustification_ValidShare(t *testing.T) {
 	}
 
 	// Test all 3 participants (0-based kyber indices)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		j := dtc.makeSignedJustification(t, 1, i)
 
 		valid, err := verifyJustification(network, j)
@@ -473,6 +478,7 @@ func TestMaxJustificationsPerBlock(t *testing.T) {
 func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 	// n=3 participants, threshold=2 (linear polynomial → 2 commitments).
 	const n = 3
+
 	k, ctx := setupDKGKeeper(t)
 
 	round := uint32(1)
@@ -510,6 +516,7 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 		input := []types.Justification{validJ, invalidSigJ}
 
 		var sigVerified []types.Justification
+
 		for _, j := range input {
 			if err := verifyJustificationSignature(suite, j, dealerPubKeys); err == nil {
 				sigVerified = append(sigVerified, j)
@@ -532,11 +539,13 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 
 		// Step 1: signature check — both pass because dealer0's key is correct.
 		var sigVerified []types.Justification
+
 		for _, j := range input {
 			if err := verifyJustificationSignature(suite, j, dealerPubKeys); err == nil {
 				sigVerified = append(sigVerified, j)
 			}
 		}
+
 		require.Len(t, sigVerified, 2, "both should pass signature check before dedup")
 
 		// Step 2: deduplicate — (dealerIndex=0, recipientIndex=0) appears twice.
@@ -578,6 +587,7 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 
 		// Step 1: filter by Schnorr signature.
 		var sigVerified []types.Justification
+
 		for _, j := range input {
 			if err := verifyJustificationSignature(suite, j, dealerPubKeys); err == nil {
 				sigVerified = append(sigVerified, j)
@@ -592,6 +602,7 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 
 		// Step 3: filter by Pedersen VSS.
 		var finalValid []types.Justification
+
 		for _, j := range deduped {
 			ok, err := verifyJustification(network, j)
 			if err == nil && ok {

@@ -5,13 +5,15 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strconv"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	clog "github.com/piplabs/story/lib/log"
-	"strconv"
 )
 
 func (k *Keeper) ProcessCDREvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
@@ -45,6 +47,7 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 	if err != nil {
 		return errors.Wrap(err, "get latest active round")
 	}
+
 	if latestActive == nil {
 		return errors.New("no active DKG round available for threshold decryption")
 	}
@@ -57,8 +60,10 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(types.EventTypeDKGThresholdDecryptRequestedSuccess)
 		} else {
 			e = sdk.NewEvent(
@@ -90,5 +95,6 @@ func (k *Keeper) ProcessCDRVaultRead(ctx context.Context, ethlog *ethtypes.Log) 
 func uuidToLabel(uuid uint32) [32]byte {
 	var label [32]byte
 	binary.BigEndian.PutUint32(label[28:], uuid)
+
 	return label
 }

@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/lib/vss"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
 	dkgPed "go.dedis.ch/kyber/v4/share/dkg/pedersen"
-
-	"github.com/piplabs/story/lib/vss"
 )
 
 // newSuite returns the Edwards25519 suite used by the DKG protocol.
@@ -30,19 +31,23 @@ func generateVSSData(t *testing.T, n, threshold int) (commitmentBytes [][]byte, 
 
 	// Info() returns (base, commits []kyber.Point)
 	_, commits := pubPoly.Info()
+
 	commitmentBytes = make([][]byte, len(commits))
 	for i, c := range commits {
 		bz, err := c.MarshalBinary()
 		require.NoError(t, err)
+
 		commitmentBytes[i] = bz
 	}
 
 	// Shares uses 1-based indices internally but returns a 0-indexed slice
 	shares := priPoly.Shares(n)
 	shareBytes = make([][]byte, n)
+
 	for i, s := range shares {
 		bz, err := s.V.MarshalBinary()
 		require.NoError(t, err)
+
 		shareBytes[i] = bz
 	}
 
@@ -60,7 +65,7 @@ func TestVerifyPedersenVSS_ValidShare(t *testing.T) {
 
 	commitmentBytes, shareBytes := generateVSSData(t, n, threshold)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		recipientIndex := i + 1 // 1-based
 		ok, err := vss.VerifyPedersenVSS(suite, shareBytes[i], recipientIndex, commitmentBytes, uint32(threshold))
 		require.NoError(t, err, "recipient index %d should not error", recipientIndex)
@@ -184,7 +189,7 @@ func TestVerifyPedersenVSS_SingleCommitmentThreshold1(t *testing.T) {
 	commitmentBytes, shareBytes := generateVSSData(t, n, threshold)
 	require.Len(t, commitmentBytes, 1, "threshold=1 means one commitment")
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ok, err := vss.VerifyPedersenVSS(suite, shareBytes[i], i+1, commitmentBytes, uint32(threshold))
 		require.NoError(t, err)
 		require.True(t, ok, "share %d should verify with single commitment", i+1)
@@ -203,7 +208,7 @@ func TestVerifyPedersenVSS_MultipleCommitmentsThreshold3(t *testing.T) {
 	commitmentBytes, shareBytes := generateVSSData(t, n, threshold)
 	require.Len(t, commitmentBytes, 3, "threshold=3 means three commitments")
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ok, err := vss.VerifyPedersenVSS(suite, shareBytes[i], i+1, commitmentBytes, uint32(threshold))
 		require.NoError(t, err)
 		require.True(t, ok, "share %d should verify with 3 commitments", i+1)
@@ -312,7 +317,7 @@ func TestVerifyPedersenVSS_KyberIndexConvention(t *testing.T) {
 
 	commitmentBytes, shareBytes := generateVSSData(t, n, threshold)
 
-	for kyberIdx := 0; kyberIdx < n; kyberIdx++ {
+	for kyberIdx := range n {
 		// Simulate the conversion: proto 0-based -> VSS 1-based
 		vssIndex := kyberIdx + 1
 
@@ -365,22 +370,25 @@ func TestVerifyPedersenVSS_EndToEndDKGJustificationFlow(t *testing.T) {
 
 	// Step 1: Create N key pairs (exactly like DKG participants)
 	privKeys := make([]kyber.Scalar, n)
+
 	pubKeys := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		privKeys[i] = suite.Scalar().Pick(suite.RandomStream())
 		pubKeys[i] = suite.Point().Mul(privKeys[i], nil)
 	}
 
 	// Step 2: Create actual DKG generators
 	dkgs := make([]*dkgPed.DistKeyGenerator, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		d, err := dkgPed.NewDistKeyGenerator(suite, privKeys[i], pubKeys, threshold)
 		require.NoError(t, err)
+
 		dkgs[i] = d
 	}
 
 	// Step 3: Full deal exchange — this creates the REAL internal polynomials
 	allResps := make([]*dkgPed.Response, 0)
+
 	for dealerIdx, d := range dkgs {
 		deals, err := d.Deals()
 		require.NoError(t, err)
@@ -412,6 +420,7 @@ func TestVerifyPedersenVSS_EndToEndDKGJustificationFlow(t *testing.T) {
 			if resp.Response.Index == uint32(i) {
 				continue // skip self
 			}
+
 			_, err := d.ProcessResponse(resp)
 			require.NoError(t, err)
 		}
@@ -436,15 +445,17 @@ func TestVerifyPedersenVSS_EndToEndDKGJustificationFlow(t *testing.T) {
 	pubPoly := dealerPoly.Commit(suite.Point().Base())
 
 	_, commits := pubPoly.Info()
+
 	commitBzs := make([][]byte, len(commits))
 	for i, c := range commits {
 		bz, err := c.MarshalBinary()
 		require.NoError(t, err)
+
 		commitBzs[i] = bz
 	}
 
 	// For each participant, verify the index convention
-	for kyberI := 0; kyberI < n; kyberI++ {
+	for kyberI := range n {
 		priShare := dealerPoly.Eval(kyberI) // PriShare{I: kyberI (0-based), V: f(1+kyberI)}
 		require.Equal(t, kyberI, priShare.I,
 			"PriPoly.Eval(%d) should return PriShare.I = %d (0-based)", kyberI, kyberI)
@@ -576,6 +587,7 @@ func TestVerifyPedersenVSS_TableDriven(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			ok, err := vss.VerifyPedersenVSS(suite, tc.shareBytes, tc.recipientIndex, tc.commitmentBytes, tc.threshold)
 			if tc.wantErr {
 				require.Error(t, err)

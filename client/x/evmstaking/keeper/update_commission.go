@@ -29,8 +29,10 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 		}
 
 		var e sdk.Event
+
 		if err == nil {
 			writeCache()
+
 			e = sdk.NewEvent(
 				types.EventTypeUpdateValidatorCommissionSuccess,
 			)
@@ -63,6 +65,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 
 	validatorAddr := sdk.ValAddress(valEvmAddr.Bytes())
+
 	validator, err := k.stakingKeeper.GetValidator(cachedCtx, validatorAddr)
 	if errors.Is(err, stypes.ErrNoValidatorFound) {
 		return errors.WrapErrWithCode(errors.ValidatorNotFound, err)
@@ -85,6 +88,7 @@ func (k Keeper) ProcessUpdateValidatorCommission(ctx context.Context, ev *bindin
 	}
 
 	skeeperMsgServer := skeeper.NewMsgServerImpl(evmstakingSKeeper)
+
 	if _, err := skeeperMsgServer.EditValidator(cachedCtx, msg); err != nil {
 		return errors.Wrap(err, "update validator commission rate")
 	}

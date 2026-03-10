@@ -12,6 +12,7 @@ import (
 
 func Test_mustGetABI(t *testing.T) {
 	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		input       *bind.MetaData
@@ -53,6 +54,7 @@ func Test_mustGetABI(t *testing.T) {
 
 func Test_mustGetUpgradeEvent(t *testing.T) {
 	t.Parallel()
+
 	abi := mustGetABI(bindings.UpgradeEntrypointMetaData)
 	testCases := []struct {
 		name        string
@@ -90,6 +92,7 @@ func Test_mustGetUpgradeEvent(t *testing.T) {
 
 func Test_mustGetUBIPoolEvent(t *testing.T) {
 	t.Parallel()
+
 	abi := mustGetABI(bindings.UBIPoolMetaData)
 	testCases := []struct {
 		name        string

@@ -46,6 +46,7 @@ func stringArrayToNativePtr() mapstructure.DecodeHookFunc {
 		}
 
 		from := as[0]
+
 		t = t.Elem()
 		switch t.String() {
 		case "big.Int":
@@ -72,6 +73,7 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 		}
 
 		from := as[0]
+
 		switch t {
 		case reflect.Bool:
 			return strconv.ParseBool(from)
@@ -106,6 +108,7 @@ func buildMap(query url.Values, prefix ...string) (ret map[string]any) {
 
 	ret = make(map[string]any)
 	prefixMapped := make(map[string]bool)
+
 	for k, vs := range query {
 		if rk := strings.TrimPrefix(k, fullPrefix); fullPrefix == "" || rk != k {
 			rk = strings.TrimSuffix(rk, "[]")

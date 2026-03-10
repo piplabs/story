@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/piplabs/story/client/genutil/evm/predeploys"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -18,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 
+	"github.com/piplabs/story/client/genutil/evm/predeploys"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
@@ -58,6 +57,7 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	}
 
 	dkgContractAddr := common.HexToAddress(predeploys.DKG)
+
 	dkgContract, err := bindings.NewDKG(dkgContractAddr, ethClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create DKG contract instance")
@@ -69,6 +69,7 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	}
 
 	cdrContractAddr := common.HexToAddress(predeploys.CDR)
+
 	cdrContract, err := bindings.NewCDR(cdrContractAddr, ethClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create CDR contract instance")
@@ -83,11 +84,14 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse private key")
 	}
+
 	publicKey := privateKey.Public()
+
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, errors.New("failed to cast public key to ECDSA")
 	}
+
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 
 	chainID := big.NewInt(engineChainID)
@@ -272,7 +276,9 @@ func (c *ContractClient) waitForTransaction(ctx context.Context, tx *types.Trans
 	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 
 	receipt, err := bind.WaitMined(timeoutCtx, c.ethClient, tx)
+
 	cancel()
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to wait for transaction to be mined")
 	}
@@ -311,7 +317,7 @@ func (c *ContractClient) sendWithRetry(
 			return nil, errors.Wrap(err, "failed to send tx", "method_name", methodName)
 		}
 
-		log.Info(ctx, fmt.Sprintf("%s tx sent", methodName),
+		log.Info(ctx, methodName+" tx sent",
 			"tx_hash", tx.Hash().Hex(),
 			"attempt", attempt,
 			"gas_limit", gasLimit,
@@ -323,7 +329,7 @@ func (c *ContractClient) sendWithRetry(
 		}
 
 		if receipt.Status == types.ReceiptStatusSuccessful {
-			log.Info(ctx, fmt.Sprintf("%s succeeded", methodName),
+			log.Info(ctx, methodName+" succeeded",
 				"tx_hash", tx.Hash().Hex(),
 				"gas_used", receipt.GasUsed,
 				"attempt", attempt)
@@ -333,7 +339,7 @@ func (c *ContractClient) sendWithRetry(
 
 		usageRatio := float64(receipt.GasUsed) / float64(gasLimit)
 		if usageRatio > 0.95 && attempt < maxRetries {
-			log.Warn(ctx, fmt.Sprintf("%s likely out-of-gas, retrying", methodName),
+			log.Warn(ctx, methodName+" likely out-of-gas, retrying",
 				nil,
 				"old_gas_limit", gasLimit,
 				"gas_used", receipt.GasUsed,

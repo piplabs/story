@@ -29,19 +29,23 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 		log.Error(ctx, "InitGenesis.evmstaking withdrawal queue not initialized", err)
 		return err
 	}
+
 	if err := k.RewardWithdrawalQueue.Initialize(ctx); err != nil {
 		log.Error(ctx, "InitGenesis.evmstaking reward withdrawal queue not initialized", err)
 		return err
 	}
+
 	vals, err := k.stakingKeeper.GetAllValidators(ctx)
 	if err != nil {
 		return err
 	}
+
 	for _, v := range vals {
 		pk, ok := v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey)
 		if !ok {
 			return err
 		}
+
 		evmAddr, err := k1util.CosmosPubkeyToEVMAddress(pk.Bytes())
 		if err != nil {
 			return err
@@ -61,6 +65,7 @@ func (k Keeper) InitGenesis(ctx context.Context, gs *types.GenesisState) error {
 		if err = k.DelegatorWithdrawAddress.Set(ctx, delAddr.String(), evmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator withdraw address map")
 		}
+
 		if err = k.DelegatorRewardAddress.Set(ctx, delAddr.String(), evmAddr.String()); err != nil {
 			return errors.Wrap(err, "set delegator reward address map")
 		}

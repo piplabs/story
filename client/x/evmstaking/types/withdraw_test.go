@@ -15,6 +15,7 @@ import (
 
 type WithdrawTestSuite struct {
 	suite.Suite
+
 	encConf    testutil.TestEncodingConfig
 	delAddr    string
 	valAddr    string

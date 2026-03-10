@@ -83,6 +83,7 @@ func TestKeeper_ProcessUBIPercentageSet(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setupMock()
+
 			err := keeper.ProcessUBIPercentageSet(ctx, tc.ev())
 			if tc.expectedErr != "" {
 				require.Error(t, err)
@@ -202,13 +203,31 @@ func TestKeeper_ProcessUBIEvents(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock()
 			}
+
 			cachedCtx, _ := ctx.CacheContext()
+
+			var toEthLogErr error
 
 			ethLogs := make([]*ethtypes.Log, 0, len(tc.evmEvents()))
 			for _, evmEvent := range tc.evmEvents() {
 				ethLog, err := evmEvent.ToEthLog()
-				require.NoError(t, err)
+				if err != nil {
+					toEthLogErr = err
+
+					break
+				}
+
 				ethLogs = append(ethLogs, &ethLog)
+			}
+
+			if toEthLogErr != nil {
+				if tc.expectedErr != "" {
+					require.Contains(t, toEthLogErr.Error(), tc.expectedErr)
+				} else {
+					require.NoError(t, toEthLogErr)
+				}
+
+				return
 			}
 
 			err := keeper.ProcessUBIEvents(cachedCtx, 1, ethLogs)

@@ -15,8 +15,10 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGFinalization(asyncCtx, latestRound)
 		}()
 	}
@@ -82,8 +84,10 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGComplete(asyncCtx, latestRound)
 		}()
 	}

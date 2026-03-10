@@ -137,6 +137,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 
 	if voteCount >= latest.Threshold && len(latest.GlobalPublicKey) == 0 {
 		latest.GlobalPublicKey = globalPubKey
+
 		latest.PublicCoeffs = publicCoeffs
 		if err := k.setDKGNetwork(ctx, latest); err != nil {
 			return errors.Wrap(err, "failed to set dkg network")
@@ -158,7 +159,7 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 	return nil
 }
 
-// validateParticipantsRoot validates the root hash of the participants
+// validateParticipantsRoot validates the root hash of the participants.
 func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, participantsRoot [32]byte) error {
 	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, round, types.DKGRegStatusVerified)
 	if err != nil {
@@ -175,8 +176,10 @@ func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, par
 		if !common.IsHexAddress(addr) {
 			return errors.New("invalid validator evm address in verified registrations", "validator_addr", reg.ValidatorAddr)
 		}
+
 		addrs = append(addrs, addr)
 	}
+
 	slices.Sort(addrs)
 
 	buf := make([]byte, 0, common.AddressLength*len(addrs))
@@ -216,6 +219,7 @@ func (k *Keeper) UpgradeScheduled(ctx context.Context, activationHeight int64, u
 	if err != nil {
 		return errors.Wrap(err, "failed to check existing pending upgrade")
 	}
+
 	if existing != nil {
 		return errors.New("pending upgrade already exists; cancel the existing upgrade first before scheduling a new one",
 			"existing_version", existing.UpgradeVersion,
@@ -235,7 +239,7 @@ func (k *Keeper) UpgradeScheduled(ctx context.Context, activationHeight int64, u
 	return nil
 }
 
-// UpgradeCancelled handles upgrade cancelled event by removing the specified kernel upgrade info.
+// UpgradeCancelled handles upgrade canceled event by removing the specified kernel upgrade info.
 // The upgradeVersion parameter ensures the operator explicitly confirms which upgrade to cancel.
 func (k *Keeper) UpgradeCancelled(ctx context.Context, upgradeVersion string) error {
 	log.Info(ctx, "DKG UpgradeCancelled event received", "upgrade_version", upgradeVersion)
@@ -254,7 +258,7 @@ func (k *Keeper) UpgradeCancelled(ctx context.Context, upgradeVersion string) er
 		return errors.Wrap(err, "failed to delete upgrade info")
 	}
 
-	log.Info(ctx, "TEE upgrade cancelled",
+	log.Info(ctx, "TEE upgrade canceled",
 		"upgrade_version", upgradeVersion,
 		"activation_height", info.ActivationHeight,
 	)
@@ -273,10 +277,12 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 
 	// Compute total size of publicCoeffs for accurate capacity hint
 	coeffsLen := 0
+
 	for _, coeff := range publicCoeffs {
 		if len(coeff) == 0 {
 			return errors.New("empty public coefficient")
 		}
+
 		coeffsLen += len(coeff)
 	}
 
@@ -287,10 +293,12 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 	binary.BigEndian.PutUint32(roundBytes, round)
 	encoded = append(encoded, roundBytes...)
 	encoded = append(encoded, participantsRoot[:]...)
+
 	encoded = append(encoded, globalPubKey...)
 	for _, coeff := range publicCoeffs {
 		encoded = append(encoded, coeff...)
 	}
+
 	encoded = append(encoded, pubKeyShare...)
 
 	msgHash := crypto.Keccak256(encoded)
@@ -392,5 +400,6 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		"session", session.GetSessionKey(),
 		"pending_requests", len(session.GetDecryptRequests()),
 	)
+
 	return nil
 }

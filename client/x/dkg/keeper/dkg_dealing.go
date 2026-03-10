@@ -52,8 +52,10 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGDealing(asyncCtx, latestRound)
 		}()
 	}
@@ -85,8 +87,10 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGProcessJustifications(asyncCtx, latestRound, justifications)
 		}()
 	}
@@ -101,8 +105,10 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGProcessDeals(asyncCtx, latestRound, deals)
 		}()
 	}
@@ -117,8 +123,10 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 
 	if k.isDKGSvcEnabled {
 		asyncCtx, cancel := dkgAsyncContext()
+
 		go func() {
 			defer cancel()
+
 			k.handleDKGProcessResponses(asyncCtx, latestRound, responses)
 		}()
 	}

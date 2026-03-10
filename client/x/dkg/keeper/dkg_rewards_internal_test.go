@@ -21,7 +21,6 @@ import (
 
 func TestDistributeDKGCommitteeRewards_NoPreviousActiveRound(t *testing.T) {
 	// First round ever — no previous active round set. Should return nil immediately.
-
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	err := k.settleRewardsForPreviousCommittee(ctx)
@@ -34,7 +33,6 @@ func TestDistributeDKGCommitteeRewards_NoPreviousActiveRound(t *testing.T) {
 
 func TestDistributeDKGCommitteeRewards_ZeroRewardPortion(t *testing.T) {
 	// Reward portion is zero — should return nil without touching UBI.
-
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	params := types.DefaultParams()
@@ -53,7 +51,6 @@ func TestDistributeDKGCommitteeRewards_ZeroRewardPortion(t *testing.T) {
 
 func TestDistributeDKGCommitteeRewards_ZeroUbiBalance(t *testing.T) {
 	// UBI balance is zero — should skip distribution gracefully.
-
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -71,7 +68,6 @@ func TestDistributeDKGCommitteeRewards_ZeroUbiBalance(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_NoFinalizedMembers(t *testing.T) {
 	// Previous active round exists, but no members have DKGRegStatusFinalized.
 	// UBI is withdrawn, distributeFromModuleBalance returns 0, all goes to settlement balance.
-
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -97,7 +93,6 @@ func TestDistributeDKGCommitteeRewards_NoFinalizedMembers(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_NormalDistribution(t *testing.T) {
 	// Normal case: 3 finalized members, 10% reward portion, 10000 UBI balance.
 	// Expected: perMember = (10000 * 0.10) / 3 = 333, totalDistributed = 999, remaining = 9001.
-
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -133,7 +128,6 @@ func TestDistributeDKGCommitteeRewards_NormalDistribution(t *testing.T) {
 
 func TestDistributeDKGCommitteeRewards_SingleMember(t *testing.T) {
 	// Single finalized member gets the full DKG reward portion.
-
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -165,7 +159,6 @@ func TestDistributeDKGCommitteeRewards_SingleMember(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_DustHandling(t *testing.T) {
 	// Test that integer division truncation dust goes to the remaining UBI.
 	// 7 members, 10% of 100 = 10, perMember = 10/7 = 1, totalDistributed = 7, remaining = 93.
-
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -199,7 +192,6 @@ func TestDistributeDKGCommitteeRewards_DustHandling(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_PerMemberRewardZero(t *testing.T) {
 	// When the per-member reward truncates to zero (e.g. 1 UBI, 10%, 100 members),
 	// no sends should happen and remaining should equal the full withdrawn amount.
-
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -230,7 +222,6 @@ func TestDistributeDKGCommitteeRewards_PerMemberRewardZero(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_WithdrawnAmountZeroAfterWithdraw(t *testing.T) {
 	// Edge case: UBI balance check says nonzero, but actual withdrawal returns zero.
 	// Should skip distribution gracefully.
-
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -302,7 +293,6 @@ func TestDistributeDKGCommitteeRewards_ErrorWithdrawUbi(t *testing.T) {
 func TestDistributeDKGCommitteeRewards_ErrorSendCoinsPartialFailure(t *testing.T) {
 	// If SendCoinsFromModuleToAccount fails on the 2nd of 3 members,
 	// the function should return an error.
-
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -392,7 +382,7 @@ func TestClaimSettlementBalance_TransferError(t *testing.T) {
 // ---------- Determinism: sorted member ordering ----------
 
 func TestDistributeDKGCommitteeRewards_DeterministicOrdering(t *testing.T) {
-	for run := 0; run < 2; run++ {
+	for run := range 2 {
 		k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 		prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -413,6 +403,7 @@ func TestDistributeDKGCommitteeRewards_DeterministicOrdering(t *testing.T) {
 			Return(sdk.NewCoin(sdk.DefaultBondDenom, ubiBalance), nil)
 
 		var recipientOrder []common.Address
+
 		bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ interface{}, _ string, recipient sdk.AccAddress, _ sdk.Coins) error {
 				recipientOrder = append(recipientOrder, common.BytesToAddress(recipient.Bytes()))
@@ -423,10 +414,10 @@ func TestDistributeDKGCommitteeRewards_DeterministicOrdering(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, recipientOrder, 3)
 
-		for i := 0; i < len(recipientOrder)-1; i++ {
+		for i := range len(recipientOrder) - 1 {
 			hexI := common.BytesToAddress(recipientOrder[i].Bytes()).Hex()
 			hexJ := common.BytesToAddress(recipientOrder[i+1].Bytes()).Hex()
-			require.True(t, hexI < hexJ,
+			require.Less(t, hexI, hexJ,
 				"run %d: recipients must be in sorted hex order: %s should come before %s",
 				run, hexI, hexJ)
 		}
@@ -437,7 +428,6 @@ func TestDistributeDKGCommitteeRewards_DeterministicOrdering(t *testing.T) {
 
 func TestDistributeDKGCommitteeRewards_FullRewardPortion(t *testing.T) {
 	// Reward portion = 1.0 (100%). All UBI goes to committee, remaining = 0.
-
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	params := types.DefaultParams()

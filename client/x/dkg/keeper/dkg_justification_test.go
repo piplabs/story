@@ -6,10 +6,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/share"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/share"
 )
 
 // generateShareAndCommitments generates a valid Pedersen VSS share and commitment
@@ -36,6 +37,7 @@ func generateShareAndCommitments(t *testing.T, recipientIndex int) (shareBytes [
 	}
 
 	var err error
+
 	shareBytes, err = shares[idx].V.MarshalBinary()
 	require.NoError(t, err)
 
@@ -43,6 +45,7 @@ func generateShareAndCommitments(t *testing.T, recipientIndex int) (shareBytes [
 	for i, c := range commits {
 		bz, err := c.MarshalBinary()
 		require.NoError(t, err)
+
 		commitmentBytes[i] = bz
 	}
 

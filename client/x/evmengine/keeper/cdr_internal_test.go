@@ -26,6 +26,7 @@ func TestUuidToLabel(t *testing.T) {
 			expected: func() [32]byte {
 				var b [32]byte
 				b[31] = 1
+
 				return b
 			}(),
 		},
@@ -35,6 +36,7 @@ func TestUuidToLabel(t *testing.T) {
 			expected: func() [32]byte {
 				var b [32]byte
 				b[30] = 1
+
 				return b
 			}(),
 		},
@@ -47,6 +49,7 @@ func TestUuidToLabel(t *testing.T) {
 				b[29] = 0xFF
 				b[30] = 0xFF
 				b[31] = 0xFF
+
 				return b
 			}(),
 		},
@@ -55,6 +58,7 @@ func TestUuidToLabel(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			result := uuidToLabel(tc.uuid)
 			require.Equal(t, tc.expected, result)
 			require.Len(t, result, 32)

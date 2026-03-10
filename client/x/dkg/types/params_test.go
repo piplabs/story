@@ -5,8 +5,9 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/dkg/types"
 )
 
 func TestValidateDkgCommitteeRewardPortion(t *testing.T) {

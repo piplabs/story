@@ -3,7 +3,6 @@ package story.dkg.v1.types;
 
 import "gogoproto/gogo.proto";
 import "story/dkg/v1/types/params.proto";
-import "story/dkg/v1/types/types.proto";
 
 option go_package = "github.com/piplabs/story/client/x/dkg/types";
 

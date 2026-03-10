@@ -29,7 +29,8 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 	// setFinalizedRegs creates N finalized registrations for the given round.
 	setFinalizedRegs := func(t *testing.T, k *Keeper, ctx sdk.Context, n int) {
 		t.Helper()
-		for i := 0; i < n; i++ {
+
+		for i := range n {
 			reg := &types.DKGRegistration{
 				Round:         testRound,
 				ValidatorAddr: validators[i].Hex(),

@@ -45,6 +45,7 @@ func (q Queue[T]) Initialize(ctx context.Context) error {
 	if err != nil {
 		return ierrors.Wrap(err, "initialize set front")
 	}
+
 	err = q.rear.Set(ctx, 0)
 	if err != nil {
 		return ierrors.Wrap(err, "initialize set rear")
@@ -78,6 +79,7 @@ func (q Queue[T]) Dequeue(ctx context.Context) (elem T, err error) {
 	}
 
 	front, _ := q.front.Get(ctx)
+
 	elem, err = q.elements.Get(ctx, front)
 	if err != nil {
 		return elem, ierrors.Wrap(err, "dequeue elements get")
@@ -99,6 +101,7 @@ func (q Queue[T]) Dequeue(ctx context.Context) (elem T, err error) {
 func (q Queue[T]) Get(ctx context.Context, index uint64) (elem T, err error) {
 	// adjust the index to start at the front of the elements
 	front, _ := q.front.Get(ctx)
+
 	rear, _ := q.rear.Get(ctx)
 	if front+index >= rear {
 		return elem, ierrors.Wrap(ErrOutOfBoundsQueue, "get")

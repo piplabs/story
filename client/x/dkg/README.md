@@ -1,8 +1,8 @@
 # DKG Module
 
-The DKG (Distributed Key Generation) module implements a TEE-based distributed key generation and threshold decryption 
-protocol for the Story blockchain. It coordinates validators running TEE services (`story-kernel`) to collectively 
-generate cryptographic key shares, perform periodic resharing, and provide TDH2 (Threshold Decryption based on Hybrid 
+The DKG (Distributed Key Generation) module implements a TEE-based distributed key generation and threshold decryption
+protocol for the Story blockchain. It coordinates validators running TEE services (`story-kernel`) to collectively
+generate cryptographic key shares, perform periodic resharing, and provide TDH2 (Threshold Decryption based on Hybrid
 encryption) partial decryption services.
 
 ## Architecture
@@ -75,8 +75,8 @@ Each DKG round progresses through the following on-chain stages:
 
 ### Failure Handling
 
-If a round fails to meet minimum participation thresholds when transitioning from Registration to Dealing, or from 
-Finalization to Active, the round is marked as `Failed` and a new round is initiated immediately. The previous active 
+If a round fails to meet minimum participation thresholds when transitioning from Registration to Dealing, or from
+Finalization to Active, the round is marked as `Failed` and a new round is initiated immediately. The previous active
 round remains in service until a new round successfully reaches the Active stage.
 
 ## Module Parameters
@@ -130,8 +130,8 @@ The module stores the following data in the Cosmos SDK KV store:
 
 ## Contract Integration (DKG.sol)
 
-The DKG module interacts with a pre-deployed EVM contract (`DKG.sol`) at a predefined address. All validator actions 
-(register, finalize, submit partial decryption) are executed as EVM transactions. The contract emits events that the 
+The DKG module interacts with a pre-deployed EVM contract (`DKG.sol`) at a predefined address. All validator actions
+(register, finalize, submit partial decryption) are executed as EVM transactions. The contract emits events that the
 consensus layer processes:
 
 | Contract Event | CL Handler | Description |
@@ -165,7 +165,7 @@ The DKG module uses CometBFT vote extensions to propagate dealing data between v
 
 ## Kernel Upgrade (TEE Binary Upgrade)
 
-SGX enclaves seal key shares using `SealWithUniqueKey` (MRENCLAVE-based), which means a new binary cannot unseal data 
+SGX enclaves seal key shares using `SealWithUniqueKey` (MRENCLAVE-based), which means a new binary cannot unseal data
 sealed by the old one. The kernel upgrade mechanism uses **proactive resharing** to redistribute key shares from the old
 binary to the new one.
 

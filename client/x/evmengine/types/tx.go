@@ -21,6 +21,7 @@ func (l *EVMEvent) ToEthLog() (ethtypes.Log, error) {
 		// Events of story contracts are expected to have topics.
 		return ethtypes.Log{}, errors.New("empty topics")
 	}
+
 	topics := make([]common.Hash, 0, len(l.Topics))
 	for _, t := range l.Topics {
 		topics = append(topics, common.BytesToHash(t))

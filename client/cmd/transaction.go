@@ -75,6 +75,7 @@ func sendTransaction(ctx context.Context, cfg baseConfig, contractAddress common
 	if !ok {
 		return nil, errors.New("failed to assert type to *ecdsa.PublicKey")
 	}
+
 	fromAddress := crypto.PubkeyToAddress(*publicKey)
 
 	nonce, err := client.PendingNonceAt(ctx, fromAddress)
@@ -157,6 +158,7 @@ func estimateGas(ctx context.Context, client *ethclient.Client, fromAddress, con
 		Value:    value,
 		Data:     data,
 	}
+
 	gasLimit, err := client.EstimateGas(ctx, msg)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to estimate gas")

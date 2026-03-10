@@ -75,6 +75,7 @@ func (r *KernelRouter) ConnectAndDiscover(ctx context.Context, endpoint string) 
 	}
 
 	r.ccByEP[endpoint] = codeCommitmentHex
+
 	r.clients[codeCommitmentHex] = client
 	if closer != nil {
 		r.closers[codeCommitmentHex] = closer
@@ -123,6 +124,7 @@ func (r *KernelRouter) GetClient(codeCommitment []byte) (types.KernelServiceClie
 	}
 
 	codeCommitmentHex := hex.EncodeToString(codeCommitment)
+
 	client, ok := r.clients[codeCommitmentHex]
 	if !ok {
 		return nil, errors.New("no kernel client for code commitment",
@@ -139,11 +141,13 @@ func (r *KernelRouter) GetAllCodeCommitments() [][]byte {
 	defer r.mu.RUnlock()
 
 	var ccs [][]byte
+
 	for codeCommitmentHex := range r.clients {
 		cc, err := hex.DecodeString(codeCommitmentHex)
 		if err != nil {
 			continue
 		}
+
 		ccs = append(ccs, cc)
 	}
 
@@ -158,8 +162,10 @@ func (r *KernelRouter) Disconnect(codeCommitment []byte) {
 	codeCommitmentHex := hex.EncodeToString(codeCommitment)
 	if closer, ok := r.closers[codeCommitmentHex]; ok {
 		_ = closer.Close()
+
 		delete(r.closers, codeCommitmentHex)
 	}
+
 	delete(r.clients, codeCommitmentHex)
 }
 

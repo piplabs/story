@@ -13,16 +13,18 @@ import (
 	"github.com/piplabs/story/lib/promutil"
 )
 
-// Query staking module's UnbondingDelegation (UBD Queue) to get the matured unbonding delegations. Then,
+// EndBlock query staking module's UnbondingDelegation (UBD Queue) to get the matured unbonding delegations. Then,
 // insert the matured unbonding delegations into the withdrawal queue.
 func (k *Keeper) EndBlock(ctx context.Context) (abci.ValidatorUpdates, error) {
 	log.Debug(ctx, "EndBlock.evmstaking")
+
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
 	isSingularity, err := k.IsSingularity(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	if isSingularity {
 		return nil, nil
 	}

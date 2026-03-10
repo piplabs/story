@@ -59,7 +59,9 @@ func AssertLogging(t *testing.T, testFunc func(*testing.T, context.Context)) {
 	for name, initFunc := range loggers {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+
 			var buf bytes.Buffer
+
 			logger := initFunc(&buf)
 
 			ctx := context.Background()

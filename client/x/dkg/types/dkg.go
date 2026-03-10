@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -121,7 +122,7 @@ func (s *DKGSession) GetSessionKey() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return fmt.Sprintf("%d", s.Round)
+	return strconv.FormatUint(uint64(s.Round), 10)
 }
 
 // UpdatePhase updates the session phase and timestamp.

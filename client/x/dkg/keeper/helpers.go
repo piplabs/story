@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"context"
-	"fmt"
-	"github.com/piplabs/story/lib/log"
 	"time"
+
+	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 )
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
-	for i := 0; i < retryAttemts; i++ {
+	for i := range retryAttemts {
 		if err := fn(ctx); err != nil {
 			log.Warn(context.Background(), "retry failed", err, "attempt", i+1)
 			time.Sleep(retryDelay)
@@ -24,5 +25,5 @@ func retry(ctx context.Context, fn func(ctx context.Context) error) error {
 		return nil
 	}
 
-	return fmt.Errorf("all retries failed")
+	return errors.New("all retries failed")
 }

@@ -14,6 +14,7 @@ import (
 
 func TestIPTokenToBondCoin(t *testing.T) {
 	t.Parallel()
+
 	amount := big.NewInt(100)
 	coin, coins := keeper.IPTokenToBondCoin(amount)
 	require.Equal(t, sdk.DefaultBondDenom, coin.Denom)

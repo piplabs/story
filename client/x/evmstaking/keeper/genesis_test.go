@@ -128,6 +128,7 @@ func TestInitGenesis(t *testing.T) {
 				require.Contains(t, err.Error(), tc.expectedError)
 			} else {
 				require.NoError(t, err)
+
 				if tc.postStateCheck != nil {
 					tc.postStateCheck(cachedCtx, esk)
 				}
@@ -197,6 +198,7 @@ func TestExportGenesis(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup(cachedCtx, esk)
 			}
+
 			genesis := esk.ExportGenesis(cachedCtx)
 			require.Equal(t, tc.expectedGenesis, genesis)
 		})

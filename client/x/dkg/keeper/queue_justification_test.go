@@ -36,6 +36,7 @@ func makeTestJustification(index uint32) *types.Justification {
 func drainJustifications() {
 	justificationsMu.Lock()
 	defer justificationsMu.Unlock()
+
 	justifications = nil
 }
 
@@ -179,20 +180,25 @@ func TestEnqueueJustifications_Concurrent(t *testing.T) {
 
 	k, _ := setupDKGKeeper(t)
 
-	const goroutines = 10
-	const itemsPerGoroutine = 5
+	const (
+		goroutines        = 10
+		itemsPerGoroutine = 5
+	)
 
 	var wg sync.WaitGroup
 
 	// Concurrent enqueues
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		wg.Add(1)
+
 		go func(base int) {
 			defer wg.Done()
+
 			batch := make([]*types.Justification, itemsPerGoroutine)
-			for j := 0; j < itemsPerGoroutine; j++ {
+			for j := range itemsPerGoroutine {
 				batch[j] = makeTestJustification(uint32(base*itemsPerGoroutine + j))
 			}
+
 			k.EnqueueJustifications(batch)
 		}(i)
 	}
@@ -200,16 +206,23 @@ func TestEnqueueJustifications_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	// Concurrent dequeues: drain everything
-	var mu sync.Mutex
-	var totalDequeued int
+	var (
+		mu            sync.Mutex
+		totalDequeued int
+	)
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			got := k.DequeueJustifications(itemsPerGoroutine)
+
 			mu.Lock()
+
 			totalDequeued += len(got)
+
 			mu.Unlock()
 		}()
 	}
