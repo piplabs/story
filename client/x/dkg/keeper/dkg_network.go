@@ -214,6 +214,29 @@ func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwo
 	return &dkgNetwork, nil
 }
 
+// endPreviousActiveRound finds the previous active round and sets its stage to Ended.
+// This prevents the previous round from continuing stage transitions after a new round
+// has been finalized and becomes the active round.
+func (k *Keeper) endPreviousActiveRound(ctx context.Context, currentRound uint32) error {
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get previous active round")
+	}
+
+	if prevActive == nil || prevActive.Round == currentRound {
+		return nil
+	}
+
+	if prevActive.Stage == types.DKGStageActive {
+		prevActive.Stage = types.DKGStageEnded
+		if err := k.setDKGNetwork(ctx, prevActive); err != nil {
+			return errors.Wrap(err, "failed to set previous active round to ended")
+		}
+	}
+
+	return nil
+}
+
 func (k *Keeper) isInPrevActiveValSet(ctx context.Context) (bool, error) {
 	latestActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {

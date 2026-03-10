@@ -60,13 +60,18 @@ func (k *Keeper) GetAllKernelUpgradeInfos(ctx context.Context) ([]types.KernelUp
 }
 
 // GetPendingUpgrade finds a pending kernel upgrade info.
-// Since upgrade info is deleted upon activation, any existing entry is pending.
+// Activated upgrades are marked with IsActivated=true and filtered out,
+// so any remaining non-activated entry is a pending upgrade.
 func (k *Keeper) GetPendingUpgrade(ctx context.Context) (*types.KernelUpgradeInfo, error) {
 	var pending *types.KernelUpgradeInfo
 
 	err := k.KernelUpgradeInfos.Walk(ctx, nil, func(_ string, info types.KernelUpgradeInfo) (bool, error) {
+		if info.IsActivated {
+			return false, nil // skip activated entries, continue walking
+		}
+
 		pending = &info
-		return true, nil // stop at first entry
+		return true, nil // found pending, stop
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to iterate kernel upgrade infos for pending upgrade")
@@ -79,6 +84,31 @@ func (k *Keeper) GetPendingUpgrade(ctx context.Context) (*types.KernelUpgradeInf
 func (k *Keeper) DeleteKernelUpgradeInfo(ctx context.Context, upgradeVersion string) error {
 	if err := k.KernelUpgradeInfos.Remove(ctx, upgradeVersion); err != nil {
 		return errors.Wrap(err, "failed to delete kernel upgrade info")
+	}
+
+	return nil
+}
+
+// deleteActivatedUpgradeInfo removes all upgrade infos that have been activated.
+// Called after a successful upgrade resharing round to clean up completed upgrades.
+func (k *Keeper) deleteActivatedUpgradeInfo(ctx context.Context) error {
+	var activatedVersions []string
+
+	err := k.KernelUpgradeInfos.Walk(ctx, nil, func(_ string, info types.KernelUpgradeInfo) (bool, error) {
+		if info.IsActivated {
+			activatedVersions = append(activatedVersions, info.UpgradeVersion)
+		}
+
+		return false, nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to iterate kernel upgrade infos for cleanup")
+	}
+
+	for _, version := range activatedVersions {
+		if err := k.DeleteKernelUpgradeInfo(ctx, version); err != nil {
+			return errors.Wrap(err, "failed to delete activated kernel upgrade info")
+		}
 	}
 
 	return nil

@@ -52,8 +52,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			"activation_height", upgradeInfo.ActivationHeight,
 		)
 
-		if err := k.DeleteKernelUpgradeInfo(ctx, upgradeInfo.UpgradeVersion); err != nil {
-			return errors.Wrap(err, "failed to delete kernel upgrade info after activation")
+		// Mark as activated instead of deleting immediately.
+		// The upgrade info will be deleted in FinalizeDKGRound after the
+		// upgrade resharing round completes successfully.
+		upgradeInfo.IsActivated = true
+		if err := k.SetKernelUpgradeInfo(ctx, upgradeInfo); err != nil {
+			return errors.Wrap(err, "failed to mark kernel upgrade info as activated")
 		}
 
 		return k.InitiateDKGRound(ctx, true)
@@ -91,7 +95,8 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 
 // hasPendingUpgradeActivation checks if there is a pending kernel upgrade that should be
 // activated at the current block height. Returns the upgrade info if activation is due,
-// or nil if no upgrade needs activation.
+// or nil if no upgrade needs activation. Already-activated upgrades are filtered out
+// to prevent re-initialization.
 func (k *Keeper) hasPendingUpgradeActivation(ctx context.Context, currentHeight int64) (*types.KernelUpgradeInfo, error) {
 	upgradeInfo, err := k.GetPendingUpgrade(ctx)
 	if err != nil {
@@ -99,6 +104,11 @@ func (k *Keeper) hasPendingUpgradeActivation(ctx context.Context, currentHeight 
 	}
 
 	if upgradeInfo == nil || currentHeight < upgradeInfo.ActivationHeight {
+		return nil, nil
+	}
+
+	// Skip already-activated upgrades to prevent re-initialization
+	if upgradeInfo.IsActivated {
 		return nil, nil
 	}
 

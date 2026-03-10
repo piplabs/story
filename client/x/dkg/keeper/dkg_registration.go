@@ -39,6 +39,10 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validator
 }
 
 // getNextDKGRegistrationIndex gets the next DKG registration index for a specific round.
+// The returned index is 1-based: the first participant gets index 1, the second gets index 2, etc.
+// This 1-based convention is used throughout the on-chain DKG registration and deal/response
+// routing logic. When interfacing with kyber's DKG library, which uses 0-based PIDs
+// (participant IDs), the caller must convert by subtracting 1 (i.e., kyberPID = index - 1).
 func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, round uint32) (int, error) {
 	registrations, err := k.getDKGRegistrationsByRound(ctx, round)
 	if err != nil {

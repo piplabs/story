@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -14,12 +15,20 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+const (
+	// maxVoteExtensionSize is the maximum allowed size of a raw vote extension in bytes (256 KB).
+	maxVoteExtensionSize = 256 << 10
+
+	// maxItemsPerVote is the maximum number of deals, responses, or justifications
+	// allowed in a single vote extension. With 80 validators, a single validator
+	// produces at most 79 deals and 79 responses per round.
+	maxItemsPerVote = 80
+)
+
 func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// TODO: determine the number of deals, responses, and justifications for vote extension
-	// considering the size and the number of validators
-	dequeuedDeals := k.DequeueDeals(10)
-	dequeuedResponses := k.DequeueResponses(10)
-	dequeuedJustifications := k.DequeueJustifications(10)
+	dequeuedDeals := k.DequeueDeals(maxItemsPerVote)
+	dequeuedResponses := k.DequeueResponses(maxItemsPerVote)
+	dequeuedJustifications := k.DequeueJustifications(maxItemsPerVote)
 
 	bz, err := proto.Marshal(&types.Vote{
 		Deals:          dequeuedDeals,
@@ -35,11 +44,12 @@ func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.Res
 	}, nil
 }
 
-func (k *Keeper) VerifyVoteExtension(_ sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
-	// todo: consider adding more checks here
+func (k *Keeper) VerifyVoteExtension(ctx sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
 	_, _, err := k.parseAndVerifyVoteExtension(req.VoteExtension)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse vote extension")
+		log.Warn(ctx, "Rejecting invalid vote extension", err)
+
+		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
 	}
 
 	return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_ACCEPT}, nil
@@ -47,11 +57,27 @@ func (k *Keeper) VerifyVoteExtension(_ sdk.Context, req *abci.RequestVerifyVoteE
 
 //nolint:unparam // ignore unused param error
 func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool, error) {
+	if len(voteExt) > maxVoteExtensionSize {
+		return nil, false, fmt.Errorf("vote extension too large: %d bytes exceeds max %d", len(voteExt), maxVoteExtensionSize)
+	}
+
 	vote, ok, err := votesFromExtension(voteExt)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse vote extension")
 	} else if !ok {
 		return nil, true, nil // Empty vote extension is fine
+	}
+
+	if len(vote.Deals) > maxItemsPerVote {
+		return nil, false, fmt.Errorf("too many deals in vote extension: %d exceeds max %d", len(vote.Deals), maxItemsPerVote)
+	}
+
+	if len(vote.Responses) > maxItemsPerVote {
+		return nil, false, fmt.Errorf("too many responses in vote extension: %d exceeds max %d", len(vote.Responses), maxItemsPerVote)
+	}
+
+	if len(vote.Justifications) > maxItemsPerVote {
+		return nil, false, fmt.Errorf("too many justifications in vote extension: %d exceeds max %d", len(vote.Justifications), maxItemsPerVote)
 	}
 
 	return []*types.Vote{vote}, true, nil
@@ -83,8 +109,6 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 			continue
 		}
 
-		// TODO: discard duplicated votes (deals or responses)
-
 		allVotes = append(allVotes, selected...)
 	}
 
@@ -97,17 +121,108 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 }
 
 func aggregateVotes(votes []*types.Vote) *types.Vote {
-	dealMap := make([]types.Deal, 0)
-	responseMap := make([]types.Response, 0)
-	justificationMap := make([]types.Justification, 0)
-
+	allDeals := make([]types.Deal, 0)
+	allResponses := make([]types.Response, 0)
+	allJustifications := make([]types.Justification, 0)
 	for _, vote := range votes {
-		dealMap = append(dealMap, vote.Deals...)
-		responseMap = append(responseMap, vote.Responses...)
-		justificationMap = append(justificationMap, vote.Justifications...)
+		allDeals = append(allDeals, vote.Deals...)
+		allResponses = append(allResponses, vote.Responses...)
+		allJustifications = append(allJustifications, vote.Justifications...)
 	}
 
-	return &types.Vote{Deals: dealMap, Responses: responseMap, Justifications: justificationMap}
+	return &types.Vote{
+		Deals:          deduplicateDeals(allDeals),
+		Responses:      deduplicateResponses(allResponses),
+		Justifications: deduplicateJustifications(allJustifications),
+	}
+}
+
+// deduplicateDeals removes duplicate deals by (dealerIndex, recipientIndex).
+func deduplicateDeals(deals []types.Deal) []types.Deal {
+	type dedupKey struct {
+		dealerIndex    uint32
+		recipientIndex uint32
+	}
+
+	seen := make(map[dedupKey]struct{})
+	result := make([]types.Deal, 0, len(deals))
+
+	for _, d := range deals {
+		key := dedupKey{dealerIndex: d.Index, recipientIndex: d.RecipientIndex}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+
+		seen[key] = struct{}{}
+
+		result = append(result, d)
+	}
+
+	return result
+}
+
+// deduplicateResponses removes duplicate responses by (responderIndex, dealerIndex).
+func deduplicateResponses(responses []types.Response) []types.Response {
+	type dedupKey struct {
+		responderIndex uint32
+		dealerIndex    uint32
+	}
+
+	seen := make(map[dedupKey]struct{})
+	result := make([]types.Response, 0, len(responses))
+
+	for _, r := range responses {
+		var dealerIdx uint32
+		if r.VssResponse != nil {
+			dealerIdx = r.VssResponse.Index
+		}
+
+		key := dedupKey{responderIndex: r.Index, dealerIndex: dealerIdx}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+
+		seen[key] = struct{}{}
+
+		result = append(result, r)
+	}
+
+	return result
+}
+
+// deduplicateJustifications removes duplicate justifications by (dealerIndex, recipientIndex).
+// When multiple validators broadcast the same justification, only the first is processed.
+func deduplicateJustifications(justifications []types.Justification) []types.Justification {
+	type dedupKey struct {
+		dealerIndex    uint32
+		recipientIndex uint32
+	}
+
+	seen := make(map[dedupKey]struct{})
+	result := make([]types.Justification, 0, len(justifications))
+
+	for _, j := range justifications {
+		var recipientIdx uint32
+
+		if vssJ := j.GetVssJustification(); vssJ != nil {
+			if pd := vssJ.GetPlainDeal(); pd != nil {
+				if ss := pd.GetSecShare(); ss != nil {
+					recipientIdx = ss.GetI()
+				}
+			}
+		}
+
+		key := dedupKey{dealerIndex: j.Index, recipientIndex: recipientIdx}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+
+		seen[key] = struct{}{}
+
+		result = append(result, j)
+	}
+
+	return result
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.

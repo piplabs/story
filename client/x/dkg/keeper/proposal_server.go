@@ -15,7 +15,10 @@ type proposalServer struct {
 // AddVotes verifies all aggregated votes included in a proposed block.
 func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
-	// TODO: add verification of deals and responses
+	if msg.Authority != s.Keeper.GetAuthority() {
+		return nil, errors.New("unauthorized")
+	}
+
 	if s.isDKGSvcEnabled {
 		latestRound, err := s.GetLatestDKGRound(ctx)
 		if err != nil {

@@ -35,6 +35,11 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 			// Round has ended, should initiate new round (resharing)
 			return types.DKGStageRegistration, true
 		}
+	case types.DKGStageFailed:
+		return types.DKGStageFailed, false
+	case types.DKGStageEnded:
+		// Ended rounds do not transition further
+		return types.DKGStageEnded, false
 	case types.DKGStageUnspecified:
 		return types.DKGStageUnspecified, false
 	}
@@ -47,11 +52,15 @@ func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNet
 	// from being broadcast in the new round's vote extensions.
 	k.FlushAllQueues()
 
+	// Preserve the upgrade flag so the next round retries with isUpgrade=true
+	// if the failed round was an upgrade resharing round.
+	isUpgrade := currentRound.IsUpgrade
+
 	// Mark the current round as failed
 	currentRound.Stage = types.DKGStageFailed
 	if err := k.setDKGNetwork(ctx, currentRound); err != nil {
 		return errors.Wrap(err, "failed to mark the current round as failed")
 	}
 
-	return k.InitiateDKGRound(ctx, false)
+	return k.InitiateDKGRound(ctx, isUpgrade)
 }
