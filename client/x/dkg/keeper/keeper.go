@@ -50,12 +50,15 @@ type Keeper struct {
 	Schema             collections.Schema
 	ParamsStore        collections.Item[types.Params]
 	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
-	LatestDKGNetwork   collections.Item[string]                         // stores key of latest DKG network
+	LatestDKGNetwork   collections.Item[string]                         // stores round key of latest DKG network
 	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
 	DKGRegistrations   collections.Map[string, types.DKGRegistration]   // key: round_address
 	GlobalPubKeyVotes  collections.Map[string, uint32]                  // key: round_globalPubKey_hash(publicCoeffs)
-	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
+	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
+
+	DKGPartialDecrypt      collections.Map[string, []byte] // key: round_validator_pid_labelHash
+	DecryptRequestRegistry collections.Map[string, uint64] // key: requesterPubKeyHash_labelHash; value: blockHeight when request was registered
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -81,22 +84,24 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:                cdc,
-		storeService:       storeService,
-		stakingKeeper:      sk,
-		bankKeeper:         bk,
-		distributionKeeper: dk,
-		valStore:           valStore,
-		kernelRouter:       kernelRouter,
-		contractClient:     contractClient,
-		ParamsStore:        collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
-		DKGNetworks:        collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
-		LatestDKGNetwork:   collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
-		LatestActiveRound:  collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
-		DKGRegistrations:   collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
-		GlobalPubKeyVotes:  collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
-		KernelUpgradeInfos: collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
-		SettlementBalance:  collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
+		cdc:                    cdc,
+		storeService:           storeService,
+		stakingKeeper:          sk,
+		bankKeeper:             bk,
+		distributionKeeper:     dk,
+		valStore:               valStore,
+		kernelRouter:           kernelRouter,
+		contractClient:         contractClient,
+		ParamsStore:            collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
+		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
+		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
+		LatestActiveRound:      collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
+		DKGRegistrations:       collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
+		GlobalPubKeyVotes:      collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
+		SettlementBalance:      collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
+		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
+		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
+		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, collections.Uint64Value),
 	}
 
 	schema, err := sb.Build()

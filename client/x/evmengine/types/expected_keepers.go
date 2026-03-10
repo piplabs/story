@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/big"
 
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
+
 	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/contracts/bindings"
 )
 
@@ -47,7 +48,8 @@ type DKGKeeper interface {
 	Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error
 	UpgradeScheduled(ctx context.Context, activationHeight int64, upgradeVersion string) error
 	UpgradeCancelled(ctx context.Context, upgradeVersion string) error
-	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label [32]byte) error
+	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error
+	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, label []byte, signature []byte) error
 
 	// Parameter setters (driven by DKG.sol contract events)
 	SetMinReqRegisteredParticipants(ctx context.Context, value uint32) error

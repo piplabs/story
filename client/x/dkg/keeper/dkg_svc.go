@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
 	"sync/atomic"
 	"time"
 
@@ -151,6 +152,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 					"round", req.Round,
 					"ciphertext_len", len(req.Ciphertext),
 					"label_len", len(req.Label),
+					"requester_pub_key_len", len(req.RequesterPubKey),
 				)
 				remaining = append(remaining, req) // keep for retry
 
@@ -180,8 +182,8 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("session index not set")
 	}
 
-	if len(session.DKGPubKey) == 0 {
-		return errors.New("missing DKG public key for session")
+	if len(session.GlobalPubKey) == 0 {
+		return errors.New("missing global public key for session")
 	}
 
 	client, err := k.kernelRouter.GetClient(session.CodeCommitment)
@@ -195,25 +197,38 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
 		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
-		DkgPubKey:       session.DKGPubKey,
+		GlobalPubKey:    session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	if err != nil {
 		return errors.Wrap(err, "generating partial decrypt failed")
 	}
 
+	uuid, err := labelToUUID(req.Label)
+	if err != nil {
+		return errors.Wrap(err, "invalid decrypt request label")
+	}
+
 	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
 		session.Round,
-		session.CodeCommitment,
 		pid,
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,
 		resp.PubShare,
-		req.Label,
+		req.RequesterPubKey,
+		uuid,
+		resp.Signature,
 	); err != nil {
 		return errors.Wrap(err, "failed to submit partial decryption")
 	}
 
 	return nil
+}
+
+func labelToUUID(label []byte) (uint32, error) {
+	if len(label) < 32 {
+		return 0, errors.New("label must be 32 bytes")
+	}
+	return binary.BigEndian.Uint32(label[28:]), nil
 }

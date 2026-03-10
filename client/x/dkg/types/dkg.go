@@ -61,7 +61,7 @@ type DKGSession struct {
 	SigSetupNetwork    []byte    `json:"sig_setup_network"`
 	SigFinalizeNetwork []byte    `json:"sig_finalize_network"`
 	PublicCoeffs       [][]byte  `json:"public_coeffs"`
-	PubKeyShare        []byte    `json:"pub_key_share"`
+	PubKeyShare        []byte    `json:"pub_key_share"` // validator's own share of the DKG public key
 	ParticipantsRoot   []byte    `json:"participants_root"`
 	EnclaveType        [32]byte  `json:"enclave_type"`
 
@@ -83,7 +83,7 @@ type DKGSession struct {
 	// Empty for non-upgrade rounds.
 	OldCodeCommitment []byte `json:"old_code_commitment,omitempty"`
 
-	// Pending threshold decrypt requests (from contract events)
+	// Pending threshold decrypt requests (from contract events).
 	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
 }
 

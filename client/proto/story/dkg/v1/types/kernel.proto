@@ -232,8 +232,8 @@ message PartialDecryptTDH2Request {
     (gogoproto.moretags) = "yaml:\"pid\""
   ];
 
-  bytes dkg_pub_key = 6 [
-    (gogoproto.moretags) = "yaml:\"dkg_pub_key\""
+  bytes global_pub_key = 6 [
+    (gogoproto.moretags) = "yaml:\"global_pub_key\""
   ];
 
   string sealed_share_id = 7 [

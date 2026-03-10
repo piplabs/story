@@ -41,15 +41,37 @@ interface ICDR {
 
     /// @notice Emitted when a vault is read
     /// @param uuid The UUID of the vault
-    /// @param encryptedData The encrypted data
-    /// @param recipientPublicKey The uncompressed public key of the recipient
-    event VaultRead(uint32 uuid, bytes encryptedData, bytes recipientPublicKey);
+    /// @param requester The address requesting the read (msg.sender)
+    /// @param ciphertext The encrypted data (ciphertext)
+    /// @param requesterPubKey The public key of the requester
+    event VaultRead(
+        uint32 uuid,
+        address indexed requester,
+        bytes ciphertext,
+        bytes requesterPubKey
+    );
 
     /// @notice Emitted when an encrypted partial decryption is submitted
-    /// @param enclaveID The ID of the enclave
+    /// @param validator The address of the submitting validator (msg.sender)
+    /// @param round The DKG round number
+    /// @param pid The participant index of the validator
     /// @param encryptedPartial The encrypted partial decryption
-    /// @param signature The signature of the encrypted partial decryption
-    event EncryptedPartialDecryptionSubmitted(address enclaveID, bytes encryptedPartial, bytes signature);
+    /// @param ephemeralPubKey The ephemeral public key used for encryption
+    /// @param pubShare The validator's public key share
+    /// @param requesterPubKey The public key of the requester
+    /// @param uuid The UUID of the vault
+    /// @param signature The signature over the partial decryption payload
+    event EncryptedPartialDecryptionSubmitted(
+        address indexed validator,
+        uint32 round,
+        uint32 pid,
+        bytes encryptedPartial,
+        bytes ephemeralPubKey,
+        bytes pubShare,
+        bytes requesterPubKey,
+        uint32 uuid,
+        bytes signature
+    );
 
     /// @notice Sets the base fee
     /// @param newBaseFee The base fee
@@ -91,16 +113,30 @@ interface ICDR {
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for reading
-    /// @param recipientPublicKey The public key of the recipient
-    function read(uint32 uuid, bytes memory accessAuxData, bytes calldata recipientPublicKey) external payable;
+    /// @param requesterPubKey The public key of the requester
+    function read(
+        uint32 uuid,
+        bytes memory accessAuxData,
+        bytes calldata requesterPubKey
+    ) external payable;
 
     /// @notice Submits an encrypted partial decryption
-    /// @param enclaveID The ID of the enclave
+    /// @param round The DKG round number
+    /// @param pid The participant index of the validator
     /// @param encryptedPartial The encrypted partial decryption
-    /// @param signature The signature of the encrypted partial decryption
+    /// @param ephemeralPubKey The ephemeral public key used for encryption
+    /// @param pubShare The validator's public key share
+    /// @param requesterPubKey The public key of the requester
+    /// @param uuid The UUID of the vault
+    /// @param signature The signature over the partial decryption payload
     function submitEncryptedPartialDecryption(
-        address enclaveID,
+        uint32 round,
+        uint32 pid,
         bytes calldata encryptedPartial,
+        bytes calldata ephemeralPubKey,
+        bytes calldata pubShare,
+        bytes calldata requesterPubKey,
+        uint32 uuid,
         bytes calldata signature
     ) external payable;
 

@@ -147,11 +147,11 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for reading
-    /// @param recipientPublicKey The public key of the recipient
+    /// @param requesterPubKey The public key of the requester
     function read(
         uint32 uuid,
         bytes memory accessAuxData,
-        bytes calldata recipientPublicKey
+        bytes calldata requesterPubKey
     ) external payable nonReentrant whenNotPaused {
         CDRStorage storage $ = _getCDRStorage();
         // check if the vault has data to read
@@ -174,7 +174,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         // collect the read fee and burn it
         _collectFee($.readFee);
 
-        emit VaultRead(uuid, vault.encryptedData, recipientPublicKey);
+        emit VaultRead(uuid, msg.sender, vault.encryptedData, requesterPubKey);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -182,18 +182,38 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Submits an encrypted partial decryption
-    /// @param enclaveID The ID of the enclave
+    /// @param round The DKG round number
+    /// @param pid The participant index of the validator
     /// @param encryptedPartial The encrypted partial decryption
-    /// @param signature The signature of the encrypted partial decryption
+    /// @param ephemeralPubKey The ephemeral public key used for encryption
+    /// @param pubShare The validator's public key share
+    /// @param requesterPubKey The public key of the requester
+    /// @param uuid The UUID of the vault
+    /// @param signature The signature over the partial decryption payload
     function submitEncryptedPartialDecryption(
-        address enclaveID,
+        uint32 round,
+        uint32 pid,
         bytes calldata encryptedPartial,
+        bytes calldata ephemeralPubKey,
+        bytes calldata pubShare,
+        bytes calldata requesterPubKey,
+        uint32 uuid,
         bytes calldata signature
     ) external payable whenNotPaused {
         // collect the base fee and burn it
         _collectFee(_getCDRStorage().baseFee);
 
-        emit EncryptedPartialDecryptionSubmitted(enclaveID, encryptedPartial, signature);
+        emit EncryptedPartialDecryptionSubmitted(
+            msg.sender,
+            round,
+            pid,
+            encryptedPartial,
+            ephemeralPubKey,
+            pubShare,
+            requesterPubKey,
+            uuid,
+            signature
+        );
     }
 
     /*//////////////////////////////////////////////////////////////////////////
