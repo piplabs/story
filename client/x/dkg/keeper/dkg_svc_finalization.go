@@ -39,7 +39,6 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
-		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}

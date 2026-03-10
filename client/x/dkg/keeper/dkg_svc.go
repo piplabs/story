@@ -59,10 +59,10 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			k.handleDKGRegistration(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageDealing:
-		session.UpdatePhase(types.PhaseDealing)
+		session.UpdatePhase(types.PhaseInitialized)
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-			log.Error(ctx, "Failed to update session phase to dealing", err)
+			log.Error(ctx, "Failed to update session phase to initialized for dealing recovery", err)
 
 			return
 		}

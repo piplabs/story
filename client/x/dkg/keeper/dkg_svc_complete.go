@@ -23,7 +23,6 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
-		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}

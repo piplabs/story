@@ -50,13 +50,12 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session", err)
-		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping generate deals", nil,
+	if session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in initialized phase, skipping generate deals", nil,
 			"current_phase", session.Phase.String())
 		k.stateManager.MarkFailed(ctx, session)
 
@@ -100,6 +99,8 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 		return
 	}
+
+	session.Phase = types.PhaseDealing
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session after generating deals", err)

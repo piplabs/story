@@ -73,6 +73,12 @@ Each DKG round progresses through the following on-chain stages:
 | **Finalization** | 86,400 blocks (~1 day) | Validators call TEE to finalize the DKG, producing a global public key, public coefficients, and a signature. Results are submitted to DKG.sol. A quorum vote determines the accepted global public key. |
 | **Active** | 1,814,400 blocks (~21 days) | The DKG committee is live. TDH2 threshold decryption requests are processed. UBI rewards are distributed to committee members. When the period ends, a new resharing round begins automatically. |
 
+### Upgrade Resharing Priority
+
+> **Note:** During upgrade periods, the upgrade resharing takes priority over the active period lifecycle. If an upgrade
+> is scheduled and the activation height is reached, the DKG module will initiate a resharing round regardless of the
+> current round's remaining active period.
+
 ### Failure Handling
 
 If a round fails to meet minimum participation thresholds when transitioning from Registration to Dealing, or from
@@ -159,9 +165,9 @@ Once a DKG round reaches the Active stage, the committee can process threshold d
 
 The DKG module uses CometBFT vote extensions to propagate dealing data between validators without requiring on-chain transactions for every deal:
 
-- **`ExtendVote`**: Dequeues up to 10 deals and 10 responses from the in-memory queue and serializes them into the vote extension payload.
-- **`VerifyVoteExtension`**: Validates the structure of received vote extension payloads.
-- **`PrepareVotes`**: Aggregates votes from `ExtendedCommitInfo` into a `MsgAddDkgVote` transaction included in the block.
+- **`ExtendVote`**: Dequeues up to `maxItemsPerVote` (80) deals, responses, and justifications from the in-memory queue and serializes them into the vote extension payload.
+- **`VerifyVoteExtension`**: Validates the structure and enforces size/count limits (256 KB max, 80 items per type) on received vote extension payloads.
+- **`PrepareVotes`**: Aggregates votes from `ExtendedCommitInfo`, deduplicates deals/responses/justifications, and produces a `MsgAddDkgVote` transaction included in the block.
 
 ## Kernel Upgrade (TEE Binary Upgrade)
 

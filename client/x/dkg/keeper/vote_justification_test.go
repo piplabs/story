@@ -196,3 +196,135 @@ func TestExtendVote_EmptyQueues(t *testing.T) {
 	}
 	// ok may be false if all fields are empty (proto3 zero-value marshaling)
 }
+
+// TestParseAndVerifyVoteExtension_OversizedPayload verifies that a vote extension
+// exceeding maxVoteExtensionSize is rejected before parsing.
+func TestParseAndVerifyVoteExtension_OversizedPayload(t *testing.T) {
+	t.Parallel()
+
+	k, _ := setupDKGKeeper(t)
+	oversized := make([]byte, maxVoteExtensionSize+1)
+	_, _, err := k.parseAndVerifyVoteExtension(oversized)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "exceeds max")
+}
+
+// TestParseAndVerifyVoteExtension_TooManyDeals verifies that a vote with more
+// than maxItemsPerVote deals is rejected.
+func TestParseAndVerifyVoteExtension_TooManyDeals(t *testing.T) {
+	t.Parallel()
+
+	k, _ := setupDKGKeeper(t)
+	deals := make([]types.Deal, maxItemsPerVote+1)
+	for i := range deals {
+		deals[i] = types.Deal{Index: uint32(i)}
+	}
+
+	bz, err := proto.Marshal(&types.Vote{Deals: deals})
+	require.NoError(t, err)
+
+	_, _, err = k.parseAndVerifyVoteExtension(bz)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "deals")
+}
+
+// TestParseAndVerifyVoteExtension_TooManyResponses verifies that a vote with more
+// than maxItemsPerVote responses is rejected.
+func TestParseAndVerifyVoteExtension_TooManyResponses(t *testing.T) {
+	t.Parallel()
+
+	k, _ := setupDKGKeeper(t)
+	responses := make([]types.Response, maxItemsPerVote+1)
+	for i := range responses {
+		responses[i] = types.Response{Index: uint32(i)}
+	}
+
+	bz, err := proto.Marshal(&types.Vote{Responses: responses})
+	require.NoError(t, err)
+
+	_, _, err = k.parseAndVerifyVoteExtension(bz)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "responses")
+}
+
+// TestParseAndVerifyVoteExtension_TooManyJustifications verifies that a vote with more
+// than maxItemsPerVote justifications is rejected.
+func TestParseAndVerifyVoteExtension_TooManyJustifications(t *testing.T) {
+	t.Parallel()
+
+	k, _ := setupDKGKeeper(t)
+	justifications := make([]types.Justification, maxItemsPerVote+1)
+	for i := range justifications {
+		justifications[i] = types.Justification{Index: uint32(i)}
+	}
+
+	bz, err := proto.Marshal(&types.Vote{Justifications: justifications})
+	require.NoError(t, err)
+
+	_, _, err = k.parseAndVerifyVoteExtension(bz)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "justifications")
+}
+
+// TestParseAndVerifyVoteExtension_AtLimits verifies that a vote with exactly
+// the maximum allowed counts passes validation.
+func TestParseAndVerifyVoteExtension_AtLimits(t *testing.T) {
+	t.Parallel()
+
+	k, _ := setupDKGKeeper(t)
+	deals := make([]types.Deal, maxItemsPerVote)
+	responses := make([]types.Response, maxItemsPerVote)
+	justifications := make([]types.Justification, maxItemsPerVote)
+
+	bz, err := proto.Marshal(&types.Vote{
+		Deals:          deals,
+		Responses:      responses,
+		Justifications: justifications,
+	})
+	require.NoError(t, err)
+
+	votes, _, err := k.parseAndVerifyVoteExtension(bz)
+	require.NoError(t, err)
+	require.Len(t, votes, 1)
+}
+
+// TestDeduplicateDeals verifies that duplicate deals are removed by (dealerIndex, recipientIndex).
+func TestDeduplicateDeals(t *testing.T) {
+	t.Parallel()
+
+	deals := []types.Deal{
+		{Index: 1, RecipientIndex: 2},
+		{Index: 1, RecipientIndex: 2}, // duplicate
+		{Index: 1, RecipientIndex: 3}, // different recipient
+		{Index: 2, RecipientIndex: 2}, // different dealer
+	}
+	result := deduplicateDeals(deals)
+	require.Len(t, result, 3)
+}
+
+// TestDeduplicateResponses verifies that duplicate responses are removed by (responderIndex, dealerIndex).
+func TestDeduplicateResponses(t *testing.T) {
+	t.Parallel()
+
+	responses := []types.Response{
+		{Index: 1, VssResponse: &types.VSSResponse{Index: 2}},
+		{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}, // duplicate
+		{Index: 1, VssResponse: &types.VSSResponse{Index: 3}}, // different dealer
+		{Index: 2, VssResponse: &types.VSSResponse{Index: 2}}, // different responder
+	}
+	result := deduplicateResponses(responses)
+	require.Len(t, result, 3)
+}
+
+// TestDeduplicateJustifications verifies that duplicate justifications are removed.
+func TestDeduplicateJustifications(t *testing.T) {
+	t.Parallel()
+
+	justifications := []types.Justification{
+		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 2}}}},
+		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 2}}}}, // duplicate
+		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 3}}}}, // different recipient
+	}
+	result := deduplicateJustifications(justifications)
+	require.Len(t, result, 2)
+}

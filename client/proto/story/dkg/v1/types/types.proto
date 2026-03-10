@@ -23,6 +23,7 @@ enum DKGStage {
   DKG_STAGE_FINALIZATION = 3 [(gogoproto.enumvalue_customname) = "DKGStageFinalization"];
   DKG_STAGE_ACTIVE = 4 [(gogoproto.enumvalue_customname) = "DKGStageActive"];
   DKG_STAGE_FAILED = 5 [(gogoproto.enumvalue_customname) = "DKGStageFailed"];
+  DKG_STAGE_ENDED = 6 [(gogoproto.enumvalue_customname) = "DKGStageEnded"];
 }
 
 message DKGNetwork {

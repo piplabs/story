@@ -39,6 +39,7 @@ type Keeper struct {
 	kernelRouter   *KernelRouter
 	contractClient *ContractClient
 	stateManager   *StateManager
+	authority      string
 
 	bankKeeper         types.BankKeeper
 	distributionKeeper types.DistributionKeeper
@@ -92,6 +93,7 @@ func NewKeeper(
 		valStore:               valStore,
 		kernelRouter:           kernelRouter,
 		contractClient:         contractClient,
+    authority:              authority,
 		ParamsStore:            collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
@@ -139,4 +141,9 @@ func (k *Keeper) setIsDKGSvcEnabled() {
 
 func (k *Keeper) setValidatorAddress(addr common.Address) {
 	k.validatorEVMAddr = strings.ToLower(addr.Hex())
+}
+
+// GetAuthority returns the module's authority address.
+func (k *Keeper) GetAuthority() string {
+	return k.authority
 }

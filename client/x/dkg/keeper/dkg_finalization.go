@@ -71,12 +71,22 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to distribute DKG committee rewards")
 	}
 
+	// End the previous active round's stage before updating the active round pointer,
+	// so it no longer undergoes stage transitions.
+	if err := k.endPreviousActiveRound(ctx, latestRound.Round); err != nil {
+		return errors.Wrap(err, "failed to end previous active round")
+	}
+
 	if err := k.setLatestActiveRound(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to set the latest active round of DKG")
 	}
 
-	// If this was an upgrade round, log that the upgrade is complete
+	// If this was an upgrade round, delete the activated upgrade info and log completion
 	if latestRound.IsUpgrade {
+		if err := k.deleteActivatedUpgradeInfo(ctx); err != nil {
+			return errors.Wrap(err, "failed to delete activated upgrade info after successful upgrade round")
+		}
+
 		log.Info(ctx, "Upgrade resharing round completed, new TEE binary is now active",
 			"round", latestRound.Round,
 		)

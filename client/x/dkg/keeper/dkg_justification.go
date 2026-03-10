@@ -120,41 +120,6 @@ func verifyJustificationSignature(suite *edwards25519.SuiteEd25519, j types.Just
 // per block to prevent resource exhaustion from malicious or excessive inputs.
 const MaxJustificationsPerBlock = 10
 
-// deduplicateJustifications removes duplicate justifications by (dealerIndex, recipientIndex).
-// When multiple validators broadcast the same justification, only the first is processed.
-func deduplicateJustifications(justifications []types.Justification) []types.Justification {
-	type dedupKey struct {
-		dealerIndex    uint32
-		recipientIndex uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Justification, 0, len(justifications))
-
-	for _, j := range justifications {
-		var recipientIdx uint32
-
-		if vssJ := j.GetVssJustification(); vssJ != nil {
-			if pd := vssJ.GetPlainDeal(); pd != nil {
-				if ss := pd.GetSecShare(); ss != nil {
-					recipientIdx = ss.GetI()
-				}
-			}
-		}
-
-		key := dedupKey{dealerIndex: j.Index, recipientIndex: recipientIdx}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, j)
-	}
-
-	return result
-}
-
 // verifyJustification performs Pedersen VSS verification on a single justification.
 // It returns true if the revealed deal is valid (share matches commitments), false otherwise.
 //

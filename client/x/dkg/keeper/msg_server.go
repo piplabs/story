@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
 
@@ -15,6 +16,10 @@ type msgServer struct {
 // AddVotes is called with all aggregated votes included in a new finalized block.
 func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
+	if msg.Authority != s.Keeper.GetAuthority() {
+		return nil, errors.New("unauthorized")
+	}
+
 	latestRound, err := s.GetLatestDKGRound(ctx)
 	if err != nil {
 		return nil, err
