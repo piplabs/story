@@ -60,6 +60,9 @@ type Keeper struct {
 
 	DKGPartialDecrypt      collections.Map[string, []byte] // key: round_validator_pid_labelHash
 	DecryptRequestRegistry collections.Map[string, uint64] // key: requesterPubKeyHash_labelHash; value: blockHeight when request was registered
+
+	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
+	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -93,7 +96,7 @@ func NewKeeper(
 		valStore:               valStore,
 		kernelRouter:           kernelRouter,
 		contractClient:         contractClient,
-    authority:              authority,
+		authority:              authority,
 		ParamsStore:            collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
@@ -104,6 +107,8 @@ func NewKeeper(
 		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
 		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
 		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, collections.Uint64Value),
+		CDRPartialSubmitCount:  collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
+		CDRFeePoolBalance:      collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),
 	}
 
 	schema, err := sb.Build()

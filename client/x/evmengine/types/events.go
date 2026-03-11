@@ -22,6 +22,7 @@ const (
 	EventTypeDKGOperationalThresholdSetSuccess         = "dkg_operational_threshold_set_success"
 	EventTypeDKGThresholdDecryptRequestedSuccess       = "dkg_threshold_decrypt_requested_success"
 	EventTypeDKGPartialDecryptionSubmittedSuccess      = "dkg_partial_decryption_submitted_success"
+	EventTypeCDRFeeCollectedSuccess                    = "cdr_fee_collected_success"
 
 	// DKG events (failure).
 	EventTypeDKGInitializedFailure                     = "dkg_initialized_failure"
@@ -33,6 +34,7 @@ const (
 	EventTypeDKGOperationalThresholdSetFailure         = "dkg_operational_threshold_set_failure"
 	EventTypeDKGThresholdDecryptRequestedFailure       = "dkg_threshold_decrypt_requested_failure"
 	EventTypeDKGPartialDecryptionSubmittedFailure      = "dkg_partial_decryption_submitted_failure"
+	EventTypeCDRFeeCollectedFailure                    = "cdr_fee_collected_failure"
 
 	// Common attributes.
 	AttributeKeyErrorCode   = "error_code"
@@ -75,4 +77,6 @@ const (
 	AttributeKeyDKGMinReqRegisteredParticipants = "dkg_min_req_registered_participants"
 	AttributeKeyDKGMinReqFinalizedParticipants  = "dkg_min_req_finalized_participants"
 	AttributeKeyDKGOperationalThreshold         = "dkg_operational_threshold"
+	AttributeKeyCDRFeeType                      = "cdr_fee_type"
+	AttributeKeyCDRFeeAmount                    = "cdr_fee_amount"
 )

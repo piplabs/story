@@ -71,6 +71,10 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to distribute DKG committee rewards")
 	}
 
+	if err := k.distributeCDRRewardPool(ctx); err != nil {
+		return errors.Wrap(err, "failed to distribute CDR fee pool")
+	}
+
 	// End the previous active round's stage before updating the active round pointer,
 	// so it no longer undergoes stage transitions.
 	if err := k.endPreviousActiveRound(ctx, latestRound.Round); err != nil {

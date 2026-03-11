@@ -22,6 +22,11 @@ const PartialDecryptionTimeoutBlocks uint64 = 200
 // ensuring deterministic consensus-layer state transitions.
 const DecryptRequestRegistryCleanupInterval int64 = 1000
 
+// CDRFeePoolName is the module account name for the CDR reward pool.
+// Fees collected by the CDR contract are minted and held here,
+// then distributed to validators at each DKG round end.
+const CDRFeePoolName = "cdr-fee-pool"
+
 // KVStore key prefixes.
 var (
 	ParamsKey                 = collections.NewPrefix(0)
@@ -34,4 +39,6 @@ var (
 	SettlementBalanceKey      = collections.NewPrefix(7)
 	DKGPartialDecryptKey      = collections.NewPrefix(8)
 	DecryptRequestRegistryKey = collections.NewPrefix(9)
+	CDRPartialSubmitCountKey  = collections.NewPrefix(10)
+	CDRFeePoolBalanceKey      = collections.NewPrefix(11)
 )

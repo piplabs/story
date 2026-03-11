@@ -19,7 +19,6 @@ import (
 func (k *Keeper) ProcessCDREvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
 	for _, ethlog := range logs {
 		switch ethlog.Topics[0] {
-		// TODO: Add to handle VaultAllocated, VaultWritten, and EncryptedPartialDecryptionSubmitted events
 		case types.CDRVaultReadEvent.ID:
 			if err := k.ProcessCDRVaultRead(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process CDRVaultRead", err)
@@ -29,6 +28,12 @@ func (k *Keeper) ProcessCDREvents(ctx context.Context, height uint64, logs []*et
 		case types.CDREncryptedPartialDecryptionSubmittedEvent.ID:
 			if err := k.ProcessDKGPartialDecryptionSubmitted(ctx, ethlog); err != nil {
 				clog.Error(ctx, "Failed to process CDREncryptedPartialDecryptionSubmitted", err)
+				continue
+			}
+
+		case types.CDRFeeCollectedEvent.ID:
+			if err := k.ProcessCDRFeeCollected(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process CDRFeeCollected", err)
 				continue
 			}
 		}
@@ -151,7 +156,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		})
 	}()
 
-	if err = k.dkgKeeper.PartialDecryptionSubmitted(
+	partialErr := k.dkgKeeper.PartialDecryptionSubmitted(
 		cachedCtx,
 		ev.Validator,
 		ev.Round,
@@ -162,10 +167,68 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		ev.RequesterPubKey,
 		label[:],
 		ev.Signature,
-	); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "handle PartialDecryptionSubmitted")
+	)
+
+	if partialErr == nil {
+		if err := k.dkgKeeper.IncrementCDRPartialSubmitCount(cachedCtx, ev.Validator); err != nil {
+			partialErr = errors.Wrap(err, "increment CDR submit count")
+		} else if ev.Fee != nil && ev.Fee.Sign() > 0 {
+			if err := k.dkgKeeper.RefundCDRFee(cachedCtx, ev.Validator, ev.Fee); err != nil {
+				partialErr = errors.Wrap(err, "refund CDR fee")
+			}
+		}
+	}
+
+	if errors.Is(partialErr, sdkerrors.ErrInvalidRequest) {
+		err = errors.WrapErrWithCode(errors.InvalidRequest, partialErr)
+	} else if partialErr != nil {
+		err = errors.Wrap(partialErr, "handle PartialDecryptionSubmitted")
+	}
+
+	return err
+}
+
+// ProcessCDRFeeCollected handles FeeCollected events, routing all CDR fees to the reward pool.
+func (k *Keeper) ProcessCDRFeeCollected(ctx context.Context, ethlog *ethtypes.Log) (err error) {
+	ev, err := k.cdrContract.ParseFeeCollected(*ethlog)
+	if err != nil {
+		return errors.Wrap(err, "parse FeeCollected log")
+	}
+
+	if ev.Amount == nil || ev.Amount.Sign() == 0 {
+		return nil
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	cachedCtx, writeCache := sdkCtx.CacheContext()
+
+	defer func() {
+		var e sdk.Event
+
+		if err == nil {
+			writeCache()
+			e = sdk.NewEvent(types.EventTypeCDRFeeCollectedSuccess)
+		}
+		if err != nil {
+			e = sdk.NewEvent(
+				types.EventTypeCDRFeeCollectedFailure,
+				sdk.NewAttribute(types.AttributeKeyErrorCode, errors.UnwrapErrCode(err).String()),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvents(sdk.Events{
+			e.AppendAttributes(
+				sdk.NewAttribute(types.AttributeKeyBlockHeight, strconv.FormatInt(sdkCtx.BlockHeight(), 10)),
+				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ethlog.TxHash.Bytes())),
+				sdk.NewAttribute(types.AttributeKeyCDRFeeType, strconv.FormatUint(uint64(ev.FeeType), 10)),
+				sdk.NewAttribute(types.AttributeKeyCDRFeeAmount, ev.Amount.String()),
+			),
+		})
+	}()
+
+	if err = k.dkgKeeper.AddCDRFeeToPool(cachedCtx, ev.Amount); err != nil {
+		clog.Error(ctx, "Failed to add CDR fee to pool", err, "fee_type", ev.FeeType, "amount", ev.Amount.String())
+		return errors.Wrap(err, "add CDR fee to pool")
 	}
 
 	return nil

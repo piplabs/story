@@ -51,6 +51,11 @@ type DKGKeeper interface {
 	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error
 	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, label []byte, signature []byte) error
 
+	// CDR fee pool operations
+	AddCDRFeeToPool(ctx context.Context, amount *big.Int) error
+	RefundCDRFee(ctx context.Context, validator common.Address, amount *big.Int) error
+	IncrementCDRPartialSubmitCount(ctx context.Context, validator common.Address) error
+
 	// Parameter setters (driven by DKG.sol contract events)
 	SetMinReqRegisteredParticipants(ctx context.Context, value uint32) error
 	SetMinReqFinalizedParticipants(ctx context.Context, value uint32) error

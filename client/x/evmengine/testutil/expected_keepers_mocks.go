@@ -333,6 +333,20 @@ func (m *MockDKGKeeper) EXPECT() *MockDKGKeeperMockRecorder {
 	return m.recorder
 }
 
+// AddCDRFeeToPool mocks base method.
+func (m *MockDKGKeeper) AddCDRFeeToPool(ctx context.Context, amount *big.Int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddCDRFeeToPool", ctx, amount)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddCDRFeeToPool indicates an expected call of AddCDRFeeToPool.
+func (mr *MockDKGKeeperMockRecorder) AddCDRFeeToPool(ctx, amount any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCDRFeeToPool", reflect.TypeOf((*MockDKGKeeper)(nil).AddCDRFeeToPool), ctx, amount)
+}
+
 // Finalized mocks base method.
 func (m *MockDKGKeeper) Finalized(ctx context.Context, round uint32, msgSender common.Address, codeCommitment, participantsRoot [32]byte, signature, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) error {
 	m.ctrl.T.Helper()
@@ -360,6 +374,48 @@ func (m *MockDKGKeeper) GetLatestActiveRound(ctx context.Context) (*types2.DKGNe
 func (mr *MockDKGKeeperMockRecorder) GetLatestActiveRound(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestActiveRound", reflect.TypeOf((*MockDKGKeeper)(nil).GetLatestActiveRound), ctx)
+}
+
+// IncrementCDRPartialSubmitCount mocks base method.
+func (m *MockDKGKeeper) IncrementCDRPartialSubmitCount(ctx context.Context, validator common.Address) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementCDRPartialSubmitCount", ctx, validator)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementCDRPartialSubmitCount indicates an expected call of IncrementCDRPartialSubmitCount.
+func (mr *MockDKGKeeperMockRecorder) IncrementCDRPartialSubmitCount(ctx, validator any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementCDRPartialSubmitCount", reflect.TypeOf((*MockDKGKeeper)(nil).IncrementCDRPartialSubmitCount), ctx, validator)
+}
+
+// PartialDecryptionSubmitted mocks base method.
+func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
+func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
+}
+
+// RefundCDRFee mocks base method.
+func (m *MockDKGKeeper) RefundCDRFee(ctx context.Context, validator common.Address, amount *big.Int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefundCDRFee", ctx, validator, amount)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefundCDRFee indicates an expected call of RefundCDRFee.
+func (mr *MockDKGKeeperMockRecorder) RefundCDRFee(ctx, validator, amount any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefundCDRFee", reflect.TypeOf((*MockDKGKeeper)(nil).RefundCDRFee), ctx, validator, amount)
 }
 
 // Registered mocks base method.
@@ -418,22 +474,8 @@ func (mr *MockDKGKeeperMockRecorder) SetOperationalThreshold(ctx, value any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOperationalThreshold", reflect.TypeOf((*MockDKGKeeper)(nil).SetOperationalThreshold), ctx, value)
 }
 
-// PartialDecryptionSubmitted mocks base method.
-func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
-func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
-}
-
 // ThresholdDecryptRequested mocks base method.
-func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+func (m *MockDKGKeeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey, ciphertext, label []byte, blockHeight uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ThresholdDecryptRequested", ctx, round, requesterPubKey, ciphertext, label, blockHeight)
 	ret0, _ := ret[0].(error)
