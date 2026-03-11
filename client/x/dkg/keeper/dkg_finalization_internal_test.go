@@ -3,12 +3,17 @@ package keeper
 import (
 	"testing"
 
+	"cosmossdk.io/collections"
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
@@ -142,4 +147,56 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
+	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	params := types.DefaultParams()
+	params.MinReqFinalizedParticipants = 1
+	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
+	require.NoError(t, k.SetParams(ctx, params))
+
+	prevActive := createTestDKGNetwork(t, k, ctx, 1)
+	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
+
+	latestRound := &types.DKGNetwork{
+		Round:        2,
+		ActiveValSet: []string{},
+		Total:        2,
+		Threshold:    1,
+		Stage:        types.DKGStageFinalization,
+	}
+	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
+
+	val1 := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	val2 := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+
+	setRegistration(t, k, ctx, latestRound, val1, types.DKGRegStatusFinalized)
+	setRegistration(t, k, ctx, latestRound, val2, types.DKGRegStatusFinalized)
+
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val1), 3))
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val2), 1))
+	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "100"))
+
+	var sent []int64
+	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.CDRFeePoolName, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ interface{}, _ string, _ sdk.AccAddress, coins sdk.Coins) error {
+			sent = append(sent, coins[0].Amount.Int64())
+			return nil
+		}).Times(2)
+
+	err := k.FinalizeDKGRound(ctx, latestRound)
+	require.NoError(t, err)
+
+	require.ElementsMatch(t, []int64{75, 25}, sent)
+
+	_, err = k.CDRPartialSubmitCount.Get(ctx, cdrSubmitCountKey(val1))
+	require.ErrorIs(t, err, collections.ErrNotFound)
+	_, err = k.CDRPartialSubmitCount.Get(ctx, cdrSubmitCountKey(val2))
+	require.ErrorIs(t, err, collections.ErrNotFound)
+
+	_, err = k.CDRFeePoolBalance.Get(ctx)
+	require.ErrorIs(t, err, collections.ErrNotFound)
 }

@@ -11,6 +11,7 @@ import { ICDRWriteCondition } from "../interfaces/ICDRWriteCondition.sol";
 import { ICDRReadCondition } from "../interfaces/ICDRReadCondition.sol";
 
 contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+
     /// @dev Storage structure for the CDR
     /// @param uuid The UUID of the vault
     /// @param baseFee The base fee
@@ -81,7 +82,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
 
         CDRStorage storage $ = _getCDRStorage();
         // collect allocation fee and burn it
-        _collectFee($.allocateFee);
+        _collectFee($.allocateFee, ICDR.FeeType.Allocate);
 
         uint32 newVaultUuid = $.uuid++;
         $.vaults[newVaultUuid] = Vault(
@@ -136,7 +137,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         if (vault.encryptedData.length > 0) require(vault.updatable, "CDR: Vault is not updatable");
 
         // collect the write fee and burn it
-        _collectFee($.writeFee);
+        _collectFee($.writeFee, ICDR.FeeType.Write);
 
         // update the data on the vault
         $.vaults[uuid].encryptedData = encryptedData;
@@ -172,7 +173,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         }
 
         // collect the read fee and burn it
-        _collectFee($.readFee);
+        _collectFee($.readFee, ICDR.FeeType.Read);
 
         emit VaultRead(uuid, msg.sender, vault.encryptedData, requesterPubKey);
     }
@@ -201,7 +202,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata signature
     ) external payable whenNotPaused {
         // collect the base fee and burn it
-        _collectFee(_getCDRStorage().baseFee);
+        uint256 fee = _getCDRStorage().baseFee;
+        _collectFee(fee, ICDR.FeeType.SubmitPartial);
 
         emit EncryptedPartialDecryptionSubmitted(
             msg.sender,
@@ -212,7 +214,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
             pubShare,
             requesterPubKey,
             uuid,
-            signature
+            signature,
+            fee
         );
     }
 
@@ -285,11 +288,13 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         _getCDRStorage().allocateFee = newAllocateFee;
     }
 
-    /// @notice Collects a fee
+    /// @notice Collects a fee and emits a FeeCollected event
     /// @param feeAmountToCollect The fee amount to collect
-    function _collectFee(uint256 feeAmountToCollect) internal {
+    /// @param feeType The type of operation generating the fee
+    function _collectFee(uint256 feeAmountToCollect, ICDR.FeeType feeType) internal {
         require(msg.value == feeAmountToCollect, "CDR: Invalid fee amount");
         payable(address(0x0)).transfer(feeAmountToCollect);
+        emit FeeCollected(msg.sender, feeAmountToCollect, feeType);
     }
 
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
