@@ -2,6 +2,12 @@
 pragma solidity 0.8.23;
 
 interface ICDR {
+    enum FeeType {
+        Allocate,
+        Write,
+        Read,
+        SubmitPartial
+    }
     /// @notice Struct for the vault
     /// @param updatable Whether the vault is updatable
     /// @param writeConditionAddr The address of the write condition
@@ -79,7 +85,7 @@ interface ICDR {
     /// @param payer The address that paid the fee (msg.sender)
     /// @param amount The fee amount collected
     /// @param feeType The type of operation: 0=allocate, 1=write, 2=read, 3=submitPartialDecrypt
-    event FeeCollected(address indexed payer, uint256 amount, uint8 feeType);
+    event FeeCollected(address indexed payer, uint256 amount, FeeType feeType);
 
     /// @notice Sets the base fee
     /// @param newBaseFee The base fee
