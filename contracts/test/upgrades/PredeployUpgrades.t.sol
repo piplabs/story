@@ -8,6 +8,8 @@ import { ITransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/tran
 import { IPTokenStaking } from "../../src/protocol/IPTokenStaking.sol";
 import { UpgradeEntrypoint } from "../../src/protocol/UpgradeEntrypoint.sol";
 import { UBIPool } from "../../src/protocol/UBIPool.sol";
+import { DKG } from "../../src/protocol/DKG.sol";
+import { CDR } from "../../src/protocol/CDR.sol";
 
 import { EIP1967Helper } from "../../script/utils/EIP1967Helper.sol";
 import { Predeploys } from "../../src/libraries/Predeploys.sol";
@@ -30,6 +32,10 @@ contract UpgradeEntrypointV2 is UpgradeEntrypoint, MockNewFeatures {}
 contract UBIPoolV2 is UBIPool, MockNewFeatures {
     constructor(uint32 maxUBIPercentage) UBIPool(maxUBIPercentage) {}
 }
+
+contract DKGV2 is DKG, MockNewFeatures {}
+
+contract CDRV2 is CDR, MockNewFeatures {}
 
 contract InitialImplementation {
     function foo() external pure returns (string memory) {
@@ -115,6 +121,57 @@ contract PredeployUpgrades is Test {
             keccak256(abi.encode("bar")),
             "Upgraded to wrong iface"
         );
+    }
+
+    function testUpgradeDKG() public {
+        address newImpl = address(new DKGV2());
+        ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.DKG));
+        assertEq(proxyAdmin.owner(), address(timelock));
+
+        performTimelocked(
+            address(proxyAdmin),
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.DKG),
+                newImpl,
+                ""
+            )
+        );
+
+        assertEq(EIP1967Helper.getImplementation(Predeploys.DKG), newImpl, "DKG not upgraded");
+        assertEq(
+            keccak256(abi.encode(DKGV2(Predeploys.DKG).foo())),
+            keccak256(abi.encode("bar")),
+            "Upgraded to wrong iface"
+        );
+        // Verify existing state is preserved after upgrade
+        assertEq(DKG(Predeploys.DKG).minReqRegisteredParticipants(), 3);
+        assertEq(DKG(Predeploys.DKG).fee(), 1 ether);
+    }
+
+    function testUpgradeCDR() public {
+        address newImpl = address(new CDRV2());
+        ProxyAdmin proxyAdmin = ProxyAdmin(EIP1967Helper.getAdmin(Predeploys.CDR));
+        assertEq(proxyAdmin.owner(), address(timelock));
+
+        performTimelocked(
+            address(proxyAdmin),
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.CDR),
+                newImpl,
+                ""
+            )
+        );
+
+        assertEq(EIP1967Helper.getImplementation(Predeploys.CDR), newImpl, "CDR not upgraded");
+        assertEq(
+            keccak256(abi.encode(CDRV2(Predeploys.CDR).foo())),
+            keccak256(abi.encode("bar")),
+            "Upgraded to wrong iface"
+        );
+        // Verify existing state is preserved after upgrade
+        assertEq(CDR(Predeploys.CDR).owner(), address(timelock));
     }
 
     function testUpgradeUnusedProxies() public {

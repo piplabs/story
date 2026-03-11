@@ -32,6 +32,34 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     // keccak256(abi.encode(uint256(keccak256("story.CDR")) - 1)) & ~bytes32(uint256(0xff));
     bytes32 private constant CDRStorageLocation = 0x38eb98a52971d8773d43e336c762a70f1492f62ea143e494a29d8ec99eadf600;
 
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the contract
+    /// @param owner The address of the owner of the contract
+    /// @param baseFee The base fee for partial decryption submissions
+    /// @param writeFee The fee for writing data to a vault
+    /// @param readFee The fee for reading data from a vault
+    /// @param allocateFee The fee for allocating a new vault
+    function initialize(
+        address owner,
+        uint256 baseFee,
+        uint256 writeFee,
+        uint256 readFee,
+        uint256 allocateFee
+    ) external initializer {
+        __Ownable_init(owner);
+        __ReentrancyGuard_init();
+        __Pausable_init();
+        __UUPSUpgradeable_init();
+
+        _setBaseFee(baseFee);
+        _setWriteFee(writeFee);
+        _setReadFee(readFee);
+        _setAllocateFee(allocateFee);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                             Admin Setters                              //
     //////////////////////////////////////////////////////////////////////////*/

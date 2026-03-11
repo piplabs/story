@@ -50,12 +50,7 @@ interface ICDR {
     /// @param requester The address requesting the read (msg.sender)
     /// @param ciphertext The encrypted data (ciphertext)
     /// @param requesterPubKey The public key of the requester
-    event VaultRead(
-        uint32 uuid,
-        address indexed requester,
-        bytes ciphertext,
-        bytes requesterPubKey
-    );
+    event VaultRead(uint32 uuid, address indexed requester, bytes ciphertext, bytes requesterPubKey);
 
     /// @notice Emitted when an encrypted partial decryption is submitted
     /// @param validator The address of the submitting validator (msg.sender)
@@ -128,11 +123,7 @@ interface ICDR {
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for reading
     /// @param requesterPubKey The public key of the requester
-    function read(
-        uint32 uuid,
-        bytes memory accessAuxData,
-        bytes calldata requesterPubKey
-    ) external payable;
+    function read(uint32 uuid, bytes memory accessAuxData, bytes calldata requesterPubKey) external payable;
 
     /// @notice Submits an encrypted partial decryption
     /// @param round The DKG round number
