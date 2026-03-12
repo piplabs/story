@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"slices"
 
-	"cosmossdk.io/collections"
-
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -16,9 +14,12 @@ import (
 )
 
 // handleDKGDealing handles the dealing phase event.
-func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+// shouldDeal must be pre-computed by the caller while the SDK context is available,
+// because async goroutines cannot access the KV store.
+func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork, shouldDeal bool) {
 	log.Info(ctx, "Handling DKG dealing",
 		"round", dkgNetwork.Round,
+		"should_deal", shouldDeal,
 	)
 
 	if !dkgSvcRunning.CompareAndSwap(false, true) {
@@ -30,13 +31,6 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	if dkgNetwork.Stage != types.DKGStageDealing {
 		log.Info(ctx, "DKG Dealing is skipped because the current network stage is not dealing stage")
-
-		return
-	}
-
-	shouldDeal, err := k.shouldDeal(ctx, dkgNetwork)
-	if err != nil {
-		log.Error(ctx, "Failed to check whether the validator should deal or not", err)
 
 		return
 	}
@@ -118,6 +112,10 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 // handleDKGProcessDeals handles the deals from other committee members.
 func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []types.Deal) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process deals",
 		"round", dkgNetwork.Round,
 		"num_deals", len(deals),
@@ -136,8 +134,14 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process deals", nil,
+	// Accept deals in both Initialized and Dealing phases.
+	// Deals from other validators arrive via vote extensions as soon as the DKG stage
+	// transitions to Dealing. However, the local session only transitions from
+	// Initialized to Dealing after GenerateDeals completes (which can take ~30s).
+	// If we reject deals during Initialized phase, they are permanently lost because
+	// vote extensions deliver each deal exactly once.
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process deals", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -160,7 +164,9 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		}
 
 		for _, deal := range deals {
-			if deal.RecipientIndex == session.Index {
+			// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
+			// Guard against unset index (0) to avoid uint32 underflow.
+			if session.Index > 0 && deal.RecipientIndex == session.Index-1 {
 				req.Deals = append(req.Deals, deal)
 			}
 		}
@@ -196,18 +202,17 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 }
 
 // handleDKGProcessResponses handles the responses of processDeals from other committee members.
-func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response) {
+// shouldProcess must be pre-computed by the caller while the SDK context is available.
+func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response, shouldProcess bool) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process responses",
 		"round", dkgNetwork.Round,
 		"num_responses", len(responses),
+		"should_process", shouldProcess,
 	)
-
-	shouldProcess, err := k.shouldProcessResponses(ctx, dkgNetwork)
-	if err != nil {
-		log.Error(ctx, "Failed to check whether the validator should process responses", err)
-
-		return
-	}
 
 	if !shouldProcess {
 		log.Info(ctx, "Skip processing of responses")
@@ -222,8 +227,9 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process responses", nil,
+	// Accept responses in both Initialized and Dealing phases (same reasoning as deals).
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process responses", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -240,7 +246,9 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 	filteredResponses := make([]types.Response, 0, len(responses))
 	for _, resp := range responses {
-		if resp.VssResponse.Index != session.Index {
+		// VssResponse.Index is 0-based (Kyber), session.Index is 1-based (on-chain).
+		// If session.Index is 0 (unset), include all responses (no self-filtering).
+		if session.Index == 0 || resp.VssResponse.Index != session.Index-1 {
 			filteredResponses = append(filteredResponses, resp)
 		}
 	}
@@ -308,17 +316,19 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
-	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// First DKG round: only current set of validators deal
-			return inCurSet, nil
-		}
-
 		return false, err
 	}
 
+	if prevActive == nil {
+		// First DKG round (no previous active round): current set of validators deal
+		return inCurSet, nil
+	}
+
 	// Resharing round: only previous set of validators deal (they hold the existing key shares)
+	inPrevSet := slices.Contains(prevActive.ActiveValSet, k.validatorEVMAddr)
+
 	return inPrevSet, nil
 }
 
@@ -329,6 +339,10 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 //  3. Schnorr signature verification → deduplication → Pedersen VSS verification
 //  4. Forward only valid justifications to story-kernel
 func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process justifications",
 		"round", dkgNetwork.Round,
 		"num_justifications", len(justifications),
@@ -360,8 +374,9 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process justifications", nil,
+	// Accept justifications in both Initialized and Dealing phases (same reasoning as deals).
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process justifications", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -479,16 +494,18 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 func (k *Keeper) shouldProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
-	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// First DKG round: only current set of validators process deals or responses
-			return inCurSet, nil
-		}
-
 		return false, err
 	}
 
+	if prevActive == nil {
+		// First DKG round (no previous active round): current set of validators process
+		return inCurSet, nil
+	}
+
 	// Resharing round: both previous and current set of validators process deals or responses
+	inPrevSet := slices.Contains(prevActive.ActiveValSet, k.validatorEVMAddr)
+
 	return inCurSet || inPrevSet, nil
 }

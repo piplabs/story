@@ -161,18 +161,28 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 }
 
 // validateParticipantsRoot validates the root hash of the participants.
+// It considers both Verified and Finalized registrations because earlier
+// finalization events transition registrations from Verified to Finalized,
+// so by the time later validators finalize, some registrations are already Finalized.
 func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, participantsRoot [32]byte) error {
 	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, round, types.DKGRegStatusVerified)
 	if err != nil {
 		return errors.Wrap(err, "failed to get verified DKG registration")
 	}
 
-	if len(verifiedRegs) == 0 {
-		return errors.New("no verified DKG registrations found")
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, round, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to get finalized DKG registration")
 	}
 
-	addrs := make([]string, 0, len(verifiedRegs))
-	for _, reg := range verifiedRegs {
+	allRegs := append(verifiedRegs, finalizedRegs...)
+
+	if len(allRegs) == 0 {
+		return errors.New("no verified or finalized DKG registrations found")
+	}
+
+	addrs := make([]string, 0, len(allRegs))
+	for _, reg := range allRegs {
 		addr := strings.ToLower(strings.TrimSpace(reg.ValidatorAddr))
 		if !common.IsHexAddress(addr) {
 			return errors.New("invalid validator evm address in verified registrations", "validator_addr", reg.ValidatorAddr)

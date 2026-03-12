@@ -28,6 +28,12 @@ var (
 	responses        []types.Response
 	justificationsMu sync.Mutex
 	justifications   []types.Justification
+
+	// dkgKernelMu serializes kernel DKG operations (ProcessDeals, ProcessResponses,
+	// ProcessJustifications) that all mutate the same cached DistKeyGenerator in
+	// story-kernel. Without this, concurrent goroutines corrupt the DKG state and
+	// cause "different number of coefficients" errors during finalization.
+	dkgKernelMu sync.Mutex
 )
 
 // Keeper of the dkg store.
@@ -93,7 +99,7 @@ func NewKeeper(
 		valStore:               valStore,
 		kernelRouter:           kernelRouter,
 		contractClient:         contractClient,
-    authority:              authority,
+		authority:              authority,
 		ParamsStore:            collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
