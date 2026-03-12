@@ -28,6 +28,12 @@ var (
 	responses        []types.Response
 	justificationsMu sync.Mutex
 	justifications   []types.Justification
+
+	// dkgKernelMu serializes kernel DKG operations (ProcessDeals, ProcessResponses,
+	// ProcessJustifications) that all mutate the same cached DistKeyGenerator in
+	// story-kernel. Without this, concurrent goroutines corrupt the DKG state and
+	// cause "different number of coefficients" errors during finalization.
+	dkgKernelMu sync.Mutex
 )
 
 // Keeper of the dkg store.

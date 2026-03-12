@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -51,12 +53,30 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	if k.isDKGSvcEnabled {
+		// Set session.Index from on-chain registration while SDK context is available.
+		// Session.Index stores the 1-based registration index used for deal/response
+		// routing (converted to 0-based for Kyber) and threshold decryption PID.
+		if err := k.ensureSessionIndex(ctx, latestRound.Round); err != nil {
+			log.Warn(ctx, "Failed to set session index from registration", err,
+				"round", latestRound.Round,
+			)
+		}
+
+		// Pre-compute shouldDeal while SDK context is available.
+		// The async goroutine cannot access the KV store.
+		deal, err := k.shouldDeal(ctx, latestRound)
+		if err != nil {
+			log.Error(ctx, "Failed to check whether the validator should deal", err)
+
+			return nil
+		}
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGDealing(asyncCtx, latestRound)
+			k.handleDKGDealing(asyncCtx, latestRound, deal)
 		}()
 	}
 
@@ -122,14 +142,51 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 	}
 
 	if k.isDKGSvcEnabled {
+		// Pre-compute shouldProcessResponses while SDK context is available.
+		shouldProcess, err := k.shouldProcessResponses(ctx, latestRound)
+		if err != nil {
+			log.Error(ctx, "Failed to check shouldProcessResponses", err)
+
+			return nil
+		}
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessResponses(asyncCtx, latestRound, responses)
+			k.handleDKGProcessResponses(asyncCtx, latestRound, responses, shouldProcess)
 		}()
 	}
 
 	return nil
+}
+
+// ensureSessionIndex sets the session's 1-based index from the on-chain registration,
+// if not already set. Must be called from a context where the KV store is accessible.
+// For old-only resharing members who have no registration in the current round,
+// the index remains 0 (unset).
+func (k *Keeper) ensureSessionIndex(ctx context.Context, round uint32) error {
+	session, err := k.stateManager.GetSession(round)
+	if err != nil {
+		return err
+	}
+
+	if session.Index != 0 {
+		return nil
+	}
+
+	reg, err := k.getDKGRegistration(ctx, round, common.HexToAddress(k.validatorEVMAddr))
+	if err != nil {
+		return errors.Wrap(err, "registration lookup failed")
+	}
+
+	session.Index = reg.Index
+
+	log.Info(ctx, "Session index set from on-chain registration",
+		"round", round,
+		"index", session.Index,
+	)
+
+	return k.stateManager.UpdateSession(ctx, session)
 }

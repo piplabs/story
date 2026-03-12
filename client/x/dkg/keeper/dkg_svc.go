@@ -70,12 +70,27 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
+		// Set session.Index from on-chain registration for deal/response routing.
+		if err := k.ensureSessionIndex(ctx, dkgNetwork.Round); err != nil {
+			log.Warn(ctx, "Failed to set session index during resume", err,
+				"round", dkgNetwork.Round,
+			)
+		}
+
+		// Pre-compute shouldDeal while SDK context is available.
+		deal, err := k.shouldDeal(ctx, dkgNetwork)
+		if err != nil {
+			log.Error(ctx, "Failed to check shouldDeal during resume", err)
+
+			return
+		}
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGDealing(asyncCtx, dkgNetwork)
+			k.handleDKGDealing(asyncCtx, dkgNetwork, deal)
 		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)

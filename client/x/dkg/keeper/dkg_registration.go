@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cosmossdk.io/collections"
 
@@ -13,8 +14,9 @@ import (
 )
 
 // setDKGRegistration stores a DKG registration in the store using round_address as the key.
+// The address is lowercased to match the format used in DKGNetwork.ActiveValSet and story-kernel queries.
 func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
-	key := fmt.Sprintf("%d_%s", dkgReg.Round, validatorAddr.Hex())
+	key := fmt.Sprintf("%d_%s", dkgReg.Round, strings.ToLower(validatorAddr.Hex()))
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
 		return errors.Wrap(err, "failed to set dkg registration")
 	}
@@ -24,7 +26,7 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Ad
 
 // getDKGRegistration retrieves a DKG registration by round and validator address.
 func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
-	key := fmt.Sprintf("%d_%s", round, validatorAddr.Hex())
+	key := fmt.Sprintf("%d_%s", round, strings.ToLower(validatorAddr.Hex()))
 
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {

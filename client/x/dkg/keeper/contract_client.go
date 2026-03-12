@@ -151,7 +151,15 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, enclaveType
 		return nil, errors.Wrap(err, "failed to pack register call data")
 	}
 
-	return c.sendWithRetry(ctx, "Register", c.dkgContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	// Query the registration fee from the DKG contract
+	fee, err := c.dkgContract.Fee(nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query DKG fee")
+	}
+
+	log.Info(ctx, "DKG registration fee queried", "fee_wei", fee.String())
+
+	return c.sendWithRetry(ctx, "Register", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.dkgContract.Register(auth, enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
 	})
 }
@@ -185,7 +193,15 @@ func (c *ContractClient) Finalize(
 		return nil, errors.Wrap(err, "failed to pack finalize call data")
 	}
 
-	return c.sendWithRetry(ctx, "Finalize", c.dkgContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	// Query the DKG fee — the contract requires it for finalization as well.
+	fee, err := c.dkgContract.Fee(nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query DKG fee for finalize")
+	}
+
+	log.Info(ctx, "DKG finalization fee queried", "fee_wei", fee.String())
+
+	return c.sendWithRetry(ctx, "Finalize", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.dkgContract.Finalize(auth, round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
 	})
 }
@@ -218,13 +234,14 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
 
-	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, nil, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
 	})
 }
 
 // createTransactOpts creates transaction options for contract calls.
-func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64) (*bind.TransactOpts, error) {
+// If value is nil, it defaults to 0.
+func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64, value *big.Int) (*bind.TransactOpts, error) {
 	nonce, err := c.ethClient.PendingNonceAt(ctx, c.fromAddress)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get pending nonce")
@@ -240,8 +257,12 @@ func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64
 		return nil, errors.Wrap(err, "failed to create transactor")
 	}
 
+	if value == nil {
+		value = big.NewInt(0)
+	}
+
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0) // in wei
+	auth.Value = value
 	auth.GasLimit = gasLimit
 	auth.GasPrice = gasPrice
 	auth.Context = ctx
@@ -250,11 +271,12 @@ func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64
 }
 
 // estimateGasWithBuffer estimates gas for a contract transaction and adds a safety buffer.
-func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, to common.Address, data []byte) (uint64, error) {
+func (c *ContractClient) estimateGasWithBuffer(ctx context.Context, to common.Address, data []byte, value *big.Int) (uint64, error) {
 	msg := ethereum.CallMsg{
-		From: c.fromAddress,
-		To:   &to,
-		Data: data,
+		From:  c.fromAddress,
+		To:    &to,
+		Data:  data,
+		Value: value,
 	}
 
 	gasLimit, err := c.ethClient.EstimateGas(ctx, msg)
@@ -289,6 +311,7 @@ func (c *ContractClient) sendWithRetry(
 	methodName string,
 	to common.Address,
 	callData []byte,
+	value *big.Int,
 	sendTx func(auth *bind.TransactOpts) (*types.Transaction, error),
 ) (*types.Receipt, error) {
 	var (
@@ -298,12 +321,12 @@ func (c *ContractClient) sendWithRetry(
 	)
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		gasLimit, err = c.estimateGasWithBuffer(ctx, to, callData)
+		gasLimit, err = c.estimateGasWithBuffer(ctx, to, callData, value)
 		if err != nil {
 			return nil, err
 		}
 
-		auth, err := c.createTransactOpts(ctx, gasLimit)
+		auth, err := c.createTransactOpts(ctx, gasLimit, value)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create transact opts", "method_name", methodName)
 		}

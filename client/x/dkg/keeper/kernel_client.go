@@ -26,7 +26,13 @@ func CreateKernelClient(endpoint string) (types.KernelServiceClient, io.Closer, 
 		creds = insecure.NewCredentials()
 	}
 
-	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(creds))
+	// Use passthrough resolver for direct IP:port endpoints (grpc.NewClient defaults to DNS resolver)
+	target := endpoint
+	if !strings.Contains(endpoint, "://") {
+		target = "passthrough:///" + endpoint
+	}
+
+	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to connect to story-kernel client")
 	}
