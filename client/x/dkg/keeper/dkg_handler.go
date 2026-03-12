@@ -531,8 +531,17 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		encryptedPartial,
 		ephemeralPubKey,
 		pubShare,
+		requesterPubKey,
 		label,
 	); err != nil {
+		if errors.Is(err, ErrDuplicatePartialDecryptionSubmission) {
+			log.Info(ctx, "Duplicate partial decryption submission received; ignoring",
+				"validator", validator.Hex(),
+				"round", round,
+				"pid", pid,
+			)
+			return nil
+		}
 		return errors.Wrap(err, "failed to store partial decryption submission")
 	}
 

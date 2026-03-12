@@ -7,21 +7,27 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
 
-type partialDecryptionSubmission struct {
-	Validator        string `json:"validator"`
-	Round            uint32 `json:"round"`
-	Pid              uint32 `json:"pid"`
-	EncryptedPartial []byte `json:"encrypted_partial"`
-	EphemeralPubKey  []byte `json:"ephemeral_pub_key"`
-	PubShare         []byte `json:"pub_share"`
-	Label            []byte `json:"label"`
+var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
+
+func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, round uint32, validator common.Address) string {
+	requesterHash := crypto.Keccak256(requesterPubKey)
+	return fmt.Sprintf(
+		"%s_%s_%d_%s",
+		hex.EncodeToString(requesterHash),
+		hex.EncodeToString(label),
+		round,
+		validator.Hex(),
+	)
 }
 
-func dkgPartialDecryptKey(round uint32, label []byte) string {
-	return fmt.Sprintf("%d_%s", round, hex.EncodeToString(label))
+func dkgPartialDecryptPrefix(requesterPubKey []byte, label []byte) string {
+	requesterHash := crypto.Keccak256(requesterPubKey)
+	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash), hex.EncodeToString(label))
 }
 
 func (k *Keeper) setPartialDecryptionSubmission(
@@ -32,9 +38,19 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	encryptedPartial []byte,
 	ephemeralPubKey []byte,
 	pubShare []byte,
+	requesterPubKey []byte,
 	label []byte,
 ) error {
-	bz, err := json.Marshal(partialDecryptionSubmission{
+	key := dkgPartialDecryptKey(requesterPubKey, label, round, validator)
+	exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+	if err != nil {
+		return errors.Wrap(err, "check partial decryption submission")
+	}
+	if exists {
+		return ErrDuplicatePartialDecryptionSubmission
+	}
+
+	bz, err := json.Marshal(types.DKGPartialDecryptionSubmission{
 		Validator:        validator.Hex(),
 		Round:            round,
 		Pid:              pid,
@@ -47,9 +63,18 @@ func (k *Keeper) setPartialDecryptionSubmission(
 		return errors.Wrap(err, "marshal partial decryption submission")
 	}
 
-	if err := k.DKGPartialDecrypt.Set(ctx, dkgPartialDecryptKey(round, label), bz); err != nil {
+	if err := k.DKGPartialDecrypt.Set(ctx, key, bz); err != nil {
 		return errors.Wrap(err, "set partial decryption submission")
 	}
 
 	return nil
+}
+
+func decodePartialDecryptionSubmission(bz []byte) (*types.DKGPartialDecryptionSubmission, error) {
+	var submission types.DKGPartialDecryptionSubmission
+	if err := json.Unmarshal(bz, &submission); err != nil {
+		return nil, errors.Wrap(err, "unmarshal partial decryption submission")
+	}
+
+	return &submission, nil
 }

@@ -2,6 +2,11 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/hex"
+	"sort"
+
+	"cosmossdk.io/collections"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 
@@ -125,4 +130,57 @@ func (k *Keeper) GetLatestActiveDKGNetwork(ctx context.Context, request *types.Q
 	}
 
 	return &types.QueryGetLatestActiveDKGNetworkResponse{Network: *latest}, nil
+}
+
+// GetCDRPartials queries partial decryption submissions for a requester+label pair.
+func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRPartialsRequest) (*types.QueryGetCDRPartialsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	var label [32]byte
+	binary.BigEndian.PutUint32(label[28:], req.Uuid)
+	requesterPubKey, err := hex.DecodeString(req.RequesterPubKeyHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid requester pubkey hex")
+	}
+
+	prefix := dkgPartialDecryptPrefix(requesterPubKey, label[:])
+	rangePrefix := (&collections.Range[string]{}).Prefix(prefix)
+	iter, err := k.DKGPartialDecrypt.Iterate(ctx, rangePrefix)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	defer iter.Close()
+
+	grouped := make(map[uint32][]types.DKGPartialDecryptionSubmission)
+	for ; iter.Valid(); iter.Next() {
+		bz, err := iter.Value()
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		submissionTmp, err := decodePartialDecryptionSubmission(bz)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		grouped[submissionTmp.Round] = append(grouped[submissionTmp.Round], *submissionTmp)
+	}
+
+	if len(grouped) == 0 {
+		return nil, status.Error(codes.NotFound, "partial decryption submission not found")
+	}
+
+	groupedResp := make([]types.DKGPartialDecryptionSubmissionsByRound, 0, len(grouped))
+	for round, submissions := range grouped {
+		groupedResp = append(groupedResp, types.DKGPartialDecryptionSubmissionsByRound{
+			Round:       round,
+			Submissions: submissions,
+		})
+	}
+
+	sort.Slice(groupedResp, func(i, j int) bool {
+		return groupedResp[i].Round < groupedResp[j].Round
+	})
+
+	return &types.QueryGetCDRPartialsResponse{Submissions: groupedResp}, nil
 }
