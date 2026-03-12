@@ -84,7 +84,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         // collect allocation fee and burn it
         _collectFee($.allocateFee, ICDR.FeeType.Allocate);
 
-        uint32 newVaultUuid = $.uuid++;
+        newVaultUuid = $.uuid++;
         $.vaults[newVaultUuid] = Vault(
             updatable,
             writeConditionAddr,
