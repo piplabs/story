@@ -68,6 +68,16 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     //                             Admin Setters                              //
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @notice Pauses the contract
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpauses the contract
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice Sets the minimum number of participants needed to be registered for each round
     /// @param newMinReqRegisteredParticipants The minimum number of participants needed to be registered for each round
     function setMinReqRegisteredParticipants(uint256 newMinReqRegisteredParticipants) external onlyOwner {
