@@ -10,6 +10,7 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
@@ -338,7 +339,7 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 //  2. ActiveValSet / session / phase check
 //  3. Schnorr signature verification → deduplication → Pedersen VSS verification
 //  4. Forward only valid justifications to story-kernel
-func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification, dealerPubKeys map[uint32]kyber.Point) {
 	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
 	dkgKernelMu.Lock()
 	defer dkgKernelMu.Unlock()
@@ -384,14 +385,6 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	}
 
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-
-	// Build dealer public key map once for all justifications (avoids O(N) registration scan per justification).
-	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, dkgNetwork, suite)
-	if err != nil {
-		log.Error(ctx, "Failed to build dealer public key map", err)
-
-		return
-	}
 
 	// Step 1: Verify Schnorr signature FIRST, filter out unsigned/forged justifications.
 	// This MUST happen before deduplication so that an attacker cannot preempt a valid

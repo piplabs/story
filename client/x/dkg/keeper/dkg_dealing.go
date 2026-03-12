@@ -8,6 +8,8 @@ import (
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+
+	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork) error {
@@ -106,12 +108,20 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 	}
 
 	if k.isDKGSvcEnabled {
+		// Pre-compute dealer pub key map while SDK context is available,
+		// because async goroutines cannot access the KV store.
+		suite := edwards25519.NewBlakeSHA256Ed25519()
+		dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, latestRound, suite)
+		if err != nil {
+			return errors.Wrap(err, "build dealer pub key map")
+		}
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessJustifications(asyncCtx, latestRound, justifications)
+			k.handleDKGProcessJustifications(asyncCtx, latestRound, justifications, dealerPubKeys)
 		}()
 	}
 
