@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -237,6 +238,29 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, nil, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
 	})
+}
+
+// ResolveEnclaveType finds the whitelisted enclave type whose code commitment
+// matches the given cc. It checks types 1..maxEnclaveTypes and returns the first match.
+func (c *ContractClient) ResolveEnclaveType(cc []byte) ([32]byte, error) {
+	const maxEnclaveTypes = 10
+	for i := 1; i <= maxEnclaveTypes; i++ {
+		var enclaveType [32]byte
+		enclaveType[31] = byte(i)
+		data, err := c.dkgContract.EnclaveTypeData(nil, enclaveType)
+		if err != nil {
+			continue
+		}
+		if data.CodeCommitment == [32]byte{} {
+			continue
+		}
+		if bytes.Equal(data.CodeCommitment[:], cc) {
+			return enclaveType, nil
+		}
+	}
+
+	return [32]byte{}, errors.New("no whitelisted enclave type found for code commitment",
+		"code_commitment", hex.EncodeToString(cc))
 }
 
 // createTransactOpts creates transaction options for contract calls.

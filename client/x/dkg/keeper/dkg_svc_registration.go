@@ -85,6 +85,36 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
+	// Resolve the on-chain enclave type whose code commitment matches the kernel's CC.
+	// This is needed for all rounds, not just upgrades: after an upgrade resharing
+	// completes, k.enclaveType still holds the old type, so non-upgrade rounds would
+	// register with a stale enclave type causing finalization signature mismatches.
+	if len(session.CodeCommitment) > 0 {
+		resolvedType, err := k.contractClient.ResolveEnclaveType(session.CodeCommitment)
+		if err != nil {
+			log.Error(ctx, "Failed to resolve enclave type", err)
+			k.stateManager.MarkFailed(ctx, session)
+
+			return
+		}
+
+		session.EnclaveType = resolvedType
+		k.enclaveType = resolvedType
+
+		log.Info(ctx, "Resolved enclave type for registration",
+			"enclave_type", hex.EncodeToString(resolvedType[:]),
+			"code_commitment", hex.EncodeToString(session.CodeCommitment),
+			"is_upgrade", session.IsUpgrade,
+		)
+
+		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+			log.Error(ctx, "Failed to update session after resolving enclave type", err)
+			k.stateManager.MarkFailed(ctx, session)
+
+			return
+		}
+	}
+
 	if err := k.callContractRegister(ctx, session); err != nil {
 		log.Error(ctx, "Failed to call register method", err)
 		k.stateManager.MarkFailed(ctx, session)
