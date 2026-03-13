@@ -79,12 +79,17 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	}
 
 	if k.isDKGSvcEnabled {
+		// Pre-compute old code commitment while we still have SDK context.
+		// The async goroutine uses context.Background() which cannot access
+		// the Cosmos KV store.
+		oldCC, _ := k.getOldCodeCommitment(ctx)
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, &dkgNetwork)
+			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC)
 		}()
 	}
 

@@ -51,12 +51,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
+		// Pre-compute old code commitment while SDK context is available.
+		oldCC, _ := k.getOldCodeCommitment(ctx)
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, dkgNetwork)
+			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC)
 		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseInitialized)
