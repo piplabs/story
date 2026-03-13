@@ -17,6 +17,9 @@ contract DKGTest is Test {
     // Genesis enclave type set by GenerateAlloc.setSGXValidationHook()
     bytes32 internal constant GENESIS_ENCLAVE_TYPE = bytes32(uint256(1));
 
+    // NOTE: Must match TEST_DKG_OWNER in GenerateAlloc.s.sol. NEVER use in production.
+    address internal constant TEST_DKG_OWNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
     function setUp() public virtual override {
         super.setUp();
         dkg = DKG(Predeploys.DKG);
@@ -25,7 +28,7 @@ contract DKGTest is Test {
     function testDKG_Initialize() public view {
         assertEq(dkg.minReqRegisteredParticipants(), 3);
         assertEq(dkg.minReqFinalizedParticipants(), 3);
-        assertEq(dkg.operationalThreshold(), 670);
+        assertEq(dkg.operationalThreshold(), 500);
         assertEq(dkg.fee(), 1 ether);
     }
 
@@ -33,18 +36,8 @@ contract DKGTest is Test {
         assertTrue(dkg.isEnclaveTypeWhitelisted(GENESIS_ENCLAVE_TYPE));
 
         IDKG.EnclaveTypeData memory data = dkg.enclaveTypeData(GENESIS_ENCLAVE_TYPE);
-        assertEq(data.codeCommitment, bytes32(uint256(1)));
+        assertEq(data.codeCommitment, hex"8518404aed711077ddf6738f51c76a87c0258f158e2e7b7ee6f000369f9394d3");
         assertTrue(data.validationHookAddr != address(0));
-    }
-
-    function testDKG_GenesisSGXValidationHook() public view {
-        IDKG.EnclaveTypeData memory data = dkg.enclaveTypeData(GENESIS_ENCLAVE_TYPE);
-        SGXValidationHook sgxHook = SGXValidationHook(data.validationHookAddr);
-
-        assertEq(sgxHook.owner(), address(timelock));
-        assertEq(sgxHook.DKG(), Predeploys.DKG);
-        assertEq(sgxHook.automataValidationAddr(), address(uint160(1000)));
-        assertEq(sgxHook.tcbEvaluationDataNumber(), 0);
     }
 
     function testDKG_WhitelistNewEnclaveType() public {
@@ -52,7 +45,7 @@ contract DKGTest is Test {
         address sgxHookProxy = address(
             new ERC1967Proxy(
                 sgxHookImpl,
-                abi.encodeCall(SGXValidationHook.initialize, (address(timelock), address(2000), 1))
+                abi.encodeCall(SGXValidationHook.initialize, (TEST_DKG_OWNER, address(2000), 1))
             )
         );
 
@@ -61,10 +54,8 @@ contract DKGTest is Test {
             codeCommitment: bytes32(uint256(42)),
             validationHookAddr: sgxHookProxy
         });
-        performTimelocked(
-            address(dkg),
-            abi.encodeWithSelector(DKG.whitelistEnclaveType.selector, newEnclaveType, enclaveTypeData, true)
-        );
+        vm.prank(TEST_DKG_OWNER);
+        dkg.whitelistEnclaveType(newEnclaveType, enclaveTypeData, true);
 
         assertTrue(dkg.isEnclaveTypeWhitelisted(newEnclaveType));
         assertEq(dkg.enclaveTypeData(newEnclaveType).validationHookAddr, sgxHookProxy);

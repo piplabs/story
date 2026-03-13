@@ -15,4 +15,6 @@ const (
 
 	// StoryLocalnetID is the chain ID of Story Localnet (https://github.com/piplabs/story-localnet).
 	StoryLocalnetID = "story-localnet"
+
+	DKGTestChainID = "story-68930"
 )

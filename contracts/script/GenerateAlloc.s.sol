@@ -13,7 +13,6 @@ import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 import { UBIPool } from "../src/protocol/UBIPool.sol";
 import { DKG } from "../src/protocol/DKG.sol";
 import { CDR } from "../src/protocol/CDR.sol";
-import { SGXValidationHook } from "../src/protocol/SGXValidationHook.sol";
 import { IDKG } from "../src/interfaces/IDKG.sol";
 
 import { ChainIds } from "./utils/ChainIds.sol";
@@ -59,9 +58,14 @@ contract GenerateAlloc is Script {
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
 
+    // NOTE: TEST_DKG_OWNER_KEY is a well-known Foundry test private key.
+    // NEVER use this in production. It is ONLY for devnet/testnet DKG upgrade testing.
+    uint256 private constant TEST_DKG_OWNER_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80; //gitleaks:allow
+    address private constant TEST_DKG_OWNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
     // SGXValidationHook configuration — edit before running the script
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"0000000000000000000000000000000000000000000000000000000000000001";
+        hex"8518404aed711077ddf6738f51c76a87c0258f158e2e7b7ee6f000369f9394d3";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
@@ -364,10 +368,12 @@ contract GenerateAlloc is Script {
 
         uint256 minReqRegisteredParticipants = 3;
         uint256 minReqFinalizedParticipants = 3;
-        uint256 operationalThreshold = 670; // 67%
+        uint256 operationalThreshold = 500; // 50% (2/3 for devnet with 3 validators)
         uint256 fee = 1 ether; // 1 IP
+        // Use TEST_DKG_OWNER EOA as owner for devnet upgrade testing.
+        // On mainnet, this should be set to the timelock address.
         DKG(Predeploys.DKG).initialize(
-            timelock,
+            TEST_DKG_OWNER,
             minReqRegisteredParticipants,
             minReqFinalizedParticipants,
             operationalThreshold,
@@ -408,44 +414,27 @@ contract GenerateAlloc is Script {
     /// @notice Deploys SGXValidationHook (impl + proxy) via Create3 and whitelists it on DKG
     /// @dev Edit SGX_CODE_COMMITMENT, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER constants above
     function setSGXValidationHook() internal {
-        // Deploy SGXValidationHook implementation via Create3
-        bytes memory implCreationCode = abi.encodePacked(
-            type(SGXValidationHook).creationCode,
-            abi.encode(Predeploys.DKG)
-        );
-        address sgxHookImpl = Create3(Predeploys.Create3).deploy(
-            keccak256("STORY_SGX_VALIDATION_HOOK_IMPL"),
-            implCreationCode
+        // Deploy MockValidationHook for devnet — bypasses all SGX attestation checks
+        address mockHookTmp = address(new MockValidationHook());
+        address mockHookAddr = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_MOCK_VALIDATION_HOOK"),
+            type(MockValidationHook).creationCode
         );
 
-        // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
-        bytes memory initData = abi.encodeCall(
-            SGXValidationHook.initialize,
-            (timelock, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
-        );
-        bytes memory proxyCreationCode = abi.encodePacked(
-            type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(sgxHookImpl, timelock, initData)
-        );
-        address sgxHookProxy = Create3(Predeploys.Create3).deploy(
-            keccak256("STORY_SGX_VALIDATION_HOOK_PROXY"),
-            proxyCreationCode
-        );
+        vm.etch(mockHookTmp, "");
 
-        // Whitelist SGX enclave type on DKG (owner=timelock)
+        // Whitelist SGX enclave type on DKG (owner=TEST_DKG_OWNER) using mock hook
         bytes32 enclaveType = bytes32(uint256(1));
         IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
             codeCommitment: SGX_CODE_COMMITMENT,
-            validationHookAddr: sgxHookProxy
+            validationHookAddr: mockHookAddr
         });
         vm.stopPrank();
-        vm.prank(timelock);
+        vm.prank(TEST_DKG_OWNER);
         DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
         vm.startPrank(deployer);
 
-        console2.log("SGXValidationHook impl deployed at:", sgxHookImpl);
-        console2.log("SGXValidationHook proxy deployed at:", sgxHookProxy);
-        console2.log("SGXValidationHook owner:", SGXValidationHook(sgxHookProxy).owner());
+        console2.log("MockValidationHook deployed at:", mockHookAddr);
     }
 
     /// @notice Sets the bytecode for Create3 factory as a predeploy
@@ -533,6 +522,10 @@ contract GenerateAlloc is Script {
             vm.deal(0xcA93A8f7a3971D208670876202D8353Ca3D6869a, 200000000 ether);
             vm.deal(0x8Ffc89da28DD2F5f7582B0459505E9a615623791, 10000000 ether);
             vm.deal(0xE8DA8e345Ab1556E5DeE19F9c369C827561Ff712, 10000000 ether);
+            // DKG devnet validator addresses
+            vm.deal(0xdb8E606AD7c02F37E43D10A10126791DC94b0434, 100000000 ether);
+            vm.deal(0xcd5faabCA5bea3c5fc5e2371c7B397604720c2C2, 100000000 ether);
+            vm.deal(0xcd29b70ff04C0aa386F7b3453dF0E5eD3d4F67bb, 100000000 ether);
         } else {
             // Default network alloc
             vm.deal(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 100000000 ether);
@@ -544,6 +537,9 @@ contract GenerateAlloc is Script {
             vm.deal(0xb5350B7CaE94C2bF6B2b56Ef6A06cC1153900000, 100000000 ether);
             vm.deal(0x13919a0d8603c35DAC923f92D7E4e1D55e993898, 100000000 ether);
             vm.deal(0x64a2fdc6f7CD8AA42e0bb59bf80bC47bFFbe4a73, 100000000 ether);
+            vm.deal(0xdb8E606AD7c02F37E43D10A10126791DC94b0434, 100000000 ether);
+            vm.deal(0xcd5faabCA5bea3c5fc5e2371c7B397604720c2C2, 100000000 ether);
+            vm.deal(0xcd29b70ff04C0aa386F7b3453dF0E5eD3d4F67bb, 100000000 ether);
         }
         if (ALLOCATE_1K_TEST_ACCOUNTS && block.chainid != ChainIds.STORY_MAINNET) {
             setTestAllocations();
@@ -556,5 +552,13 @@ contract GenerateAlloc is Script {
         for (uint160 i = 1; i <= 1000; i++) {
             vm.deal(address(uint160(allocSpace) + i), 1_000_000 ether);
         }
+    }
+}
+
+/// @dev Mock attestation report validator for devnet testing.
+/// Always returns true to bypass real SGX remote attestation validation.
+contract MockValidationHook {
+    function validateReport(bytes32, bytes32, bytes calldata, bytes calldata) external pure returns (bool) {
+        return true;
     }
 }

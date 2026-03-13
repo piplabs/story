@@ -14,6 +14,7 @@ import (
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func CreateUpgradeHandler(
@@ -33,12 +34,10 @@ func CreateUpgradeHandler(
 			return vm, err
 		}
 
-		// Explicitly set DKG params to ensure they are initialized regardless
-		// of whether RunMigrations called InitGenesis for DKG or not. This
-		// covers the fresh-genesis case where DKG was in the module list but
-		// had no genesis state in the static genesis.json.
-		if err := keepers.DKGKeeper.SetParams(ctx, dkgtypes.DefaultParams()); err != nil {
-			return newVM, errors.Wrap(err, "set DKG default params")
+		// Set DKG params, using shorter periods for devnet/test chains.
+		dkgParams := dkgParamsForChain(ctx)
+		if err := keepers.DKGKeeper.SetParams(ctx, dkgParams); err != nil {
+			return newVM, errors.Wrap(err, "set DKG params")
 		}
 
 		// Enable vote extensions at this upgrade height. The DKG module
@@ -52,6 +51,30 @@ func CreateUpgradeHandler(
 
 		return newVM, nil
 	}
+}
+
+// dkgParamsForChain returns DKG params appropriate for the current chain.
+// Devnet/test chains use shorter stage periods for faster iteration.
+func dkgParamsForChain(ctx context.Context) dkgtypes.Params {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	chainID := sdkCtx.ChainID()
+
+	if chainID == netconf.DKGTestChainID || chainID == netconf.LocalChainID {
+		log.Info(ctx, "Using devnet DKG params with short stage periods", "chain_id", chainID)
+
+		return dkgtypes.NewParams(
+			200, // registration: ~6.5 min at 2s blocks
+			300, // dealing: ~10 min (kernel light client needs time to sync)
+			300, // finalization: ~10 min
+			600, // active: ~20 min
+			dkgtypes.DefaultDkgCommitteeRewardPortion,
+			dkgtypes.DefaultMinReqRegisteredParticipants,
+			dkgtypes.DefaultMinReqFinalizedParticipants,
+			dkgtypes.DefaultOperationalThreshold,
+		)
+	}
+
+	return dkgtypes.DefaultParams()
 }
 
 // enableVoteExtensions updates the consensus params to enable vote extensions
