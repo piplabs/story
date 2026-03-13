@@ -58,8 +58,8 @@ type Keeper struct {
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt      collections.Map[string, []byte] // key: round_validator_pid_labelHash
-	DecryptRequestRegistry collections.Map[string, uint64] // key: requesterPubKeyHash_labelHash; value: blockHeight when request was registered
+	DKGPartialDecrypt      collections.Map[string, []byte]               // key: round_validator_pid_labelHash
+	DecryptRequestRegistry collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_labelHash; value: decrypt request
 
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
@@ -106,7 +106,7 @@ func NewKeeper(
 		SettlementBalance:      collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
 		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
 		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
-		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, collections.Uint64Value),
+		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, codec.CollValue[types.DecryptRequest](cdc)),
 		CDRPartialSubmitCount:  collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
 		CDRFeePoolBalance:      collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),
 	}

@@ -194,6 +194,11 @@ message DecryptRequest {
   bytes requester_pub_key = 4 [
     (gogoproto.moretags) = "yaml:\"requester_pub_key\""
   ];
+
+  // block height when the request was registered
+  uint64 height = 5 [
+    (gogoproto.moretags) = "yaml:\"height\""
+  ];
 }
 
 message Response {

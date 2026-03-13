@@ -19,32 +19,32 @@ func decryptRequestRegistryKey(requesterPubKey []byte, label []byte) string {
 	return fmt.Sprintf("%s_%s", hex.EncodeToString(requesterHash[:]), label)
 }
 
-// setDecryptRequestHeight records the block height at which a threshold decrypt
-// request was registered. Called by all consensus nodes in ThresholdDecryptRequested.
-func (k *Keeper) setDecryptRequestHeight(ctx context.Context, requesterPubKey []byte, label []byte, blockHeight uint64) error {
+// setDecryptRequest registers a threshold decrypt request in the registry.
+// Called by all consensus nodes in ThresholdDecryptRequested.
+func (k *Keeper) setDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte, req types.DecryptRequest) error {
 	key := decryptRequestRegistryKey(requesterPubKey, label)
-	if err := k.DecryptRequestRegistry.Set(ctx, key, blockHeight); err != nil {
+	if err := k.DecryptRequestRegistry.Set(ctx, key, req); err != nil {
 		return errors.Wrap(err, "set decrypt request registry")
 	}
 	return nil
 }
 
-// getDecryptRequestHeight retrieves the block height stored for a decrypt request.
-// Returns (height, true, nil) if found, or (0, false, nil) if not found.
-func (k *Keeper) getDecryptRequestHeight(ctx context.Context, requesterPubKey []byte, label []byte) (uint64, bool, error) {
+// getDecryptRequest retrieves the stored decrypt request.
+// Returns (req, true, nil) if found, or (zero, false, nil) if not found.
+func (k *Keeper) getDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte) (types.DecryptRequest, bool, error) {
 	key := decryptRequestRegistryKey(requesterPubKey, label)
-	height, err := k.DecryptRequestRegistry.Get(ctx, key)
+	req, err := k.DecryptRequestRegistry.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
-			return 0, false, nil
+			return types.DecryptRequest{}, false, nil
 		}
-		return 0, false, errors.Wrap(err, "get decrypt request registry")
+		return types.DecryptRequest{}, false, errors.Wrap(err, "get decrypt request registry")
 	}
-	return height, true, nil
+	return req, true, nil
 }
 
-// deleteDecryptRequestHeight removes a single registry entry by label.
-func (k *Keeper) deleteDecryptRequestHeight(ctx context.Context, requesterPubKey []byte, label []byte) error {
+// deleteDecryptRequest removes a single registry entry by label.
+func (k *Keeper) deleteDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte) error {
 	key := decryptRequestRegistryKey(requesterPubKey, label)
 	if err := k.DecryptRequestRegistry.Remove(ctx, key); err != nil {
 		return errors.Wrap(err, "delete decrypt request registry entry")
@@ -63,8 +63,7 @@ func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight
 	defer iter.Close()
 
 	type entry struct {
-		key    string
-		height uint64
+		key string
 	}
 	var expired []entry
 	for ; iter.Valid(); iter.Next() {
@@ -72,12 +71,12 @@ func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight
 		if err != nil {
 			return errors.Wrap(err, "iterate decrypt request registry key")
 		}
-		height, err := iter.Value()
+		req, err := iter.Value()
 		if err != nil {
 			return errors.Wrap(err, "iterate decrypt request registry value")
 		}
-		if currentHeight > height && currentHeight-height > types.PartialDecryptionTimeoutBlocks {
-			expired = append(expired, entry{key, height})
+		if currentHeight > req.Height && currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
+			expired = append(expired, entry{key})
 		}
 	}
 
