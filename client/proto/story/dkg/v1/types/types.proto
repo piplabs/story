@@ -240,6 +240,14 @@ message DKGPartialDecryptionSubmissionsByRound {
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"submissions\""
   ];
+
+  uint32 threshold = 3 [
+    (gogoproto.moretags) = "yaml:\"threshold\""
+  ];
+
+  bool threshold_met = 4 [
+    (gogoproto.moretags) = "yaml:\"threshold_met\""
+  ];
 }
 
 

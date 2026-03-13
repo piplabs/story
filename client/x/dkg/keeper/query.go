@@ -172,9 +172,17 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 
 	groupedResp := make([]types.DKGPartialDecryptionSubmissionsByRound, 0, len(grouped))
 	for round, submissions := range grouped {
+		network, err := k.getDKGNetwork(ctx, round)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		threshold := network.Threshold
+		thresholdMet := uint32(len(submissions)) >= threshold
 		groupedResp = append(groupedResp, types.DKGPartialDecryptionSubmissionsByRound{
-			Round:       round,
-			Submissions: submissions,
+			Round:        round,
+			Submissions:  submissions,
+			Threshold:    threshold,
+			ThresholdMet: thresholdMet,
 		})
 	}
 
