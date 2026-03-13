@@ -44,7 +44,7 @@ service Query {
   }
 
   rpc GetCDRPartials(QueryGetCDRPartialsRequest) returns (QueryGetCDRPartialsResponse) {
-    option (google.api.http).get = "/story/dkg/v1/partial_decrypt/{requester_pub_key_hex}/{uuid}";
+    option (google.api.http).get = "/story/dkg/v1/partial_decrypt/{uuid}/{requester_pub_key_hex}";
   }
 }
 
@@ -162,12 +162,12 @@ message QueryGetLatestActiveDKGNetworkResponse {
 }
 
 message QueryGetCDRPartialsRequest {
-  string requester_pub_key_hex = 1 [
-    (gogoproto.moretags) = "yaml:\"requester_pub_key_hex\""
+  uint32 uuid = 1 [
+    (gogoproto.moretags) = "yaml:\"uuid\""
   ];
 
-  uint32 uuid = 2 [
-    (gogoproto.moretags) = "yaml:\"uuid\""
+  string requester_pub_key_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"requester_pub_key_hex\""
   ];
 }
 
