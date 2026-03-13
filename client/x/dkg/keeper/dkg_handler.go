@@ -393,10 +393,15 @@ func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, encrypted
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
 func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
-	// Consensus-level: all nodes record the request's block height so that
-	// PartialDecryptionSubmitted can enforce the timeout consistently.
-	if err := k.setDecryptRequestHeight(ctx, requesterPubKey, label, blockHeight); err != nil {
-		return errors.Wrap(err, "failed to register decrypt request height")
+	// Consensus-level: all nodes record the request so PartialDecryptionSubmitted can enforce the timeout consistently.
+	if err := k.setDecryptRequest(ctx, requesterPubKey, label, types.DecryptRequest{
+		Round:           round,
+		Ciphertext:      ciphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+		Height:          blockHeight,
+	}); err != nil {
+		return errors.Wrap(err, "failed to register decrypt request")
 	}
 
 	if !k.isDKGSvcEnabled {
@@ -447,6 +452,7 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		Ciphertext:      ciphertext,
 		Label:           label[:],
 		RequesterPubKey: requesterPubKey,
+		Height:          blockHeight,
 	})
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -476,7 +482,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	signature []byte,
 ) error {
 	// Enforce timeout: reject partial decryptions submitted too late.
-	reqHeight, found, err := k.getDecryptRequestHeight(ctx, requesterPubKey, label)
+	req, found, err := k.getDecryptRequest(ctx, requesterPubKey, label)
 	if err != nil {
 		return errors.Wrap(err, "failed to look up decrypt request registry")
 	}
@@ -488,39 +494,39 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		return nil
 	}
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-reqHeight > types.PartialDecryptionTimeoutBlocks {
+	if currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
-			"request_height", reqHeight,
+			"request_height", req.Height,
 			"current_height", currentHeight,
 			"timeout_blocks", types.PartialDecryptionTimeoutBlocks,
 			"validator", validator.Hex(),
 		)
-		if err := k.deleteDecryptRequestHeight(ctx, requesterPubKey, label); err != nil {
+		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label); err != nil {
 			return errors.Wrap(err, "failed to delete expired decrypt request registry entry")
 		}
 		return nil
 	}
 
-	reg, err := k.getDKGRegistration(ctx, round, validator)
+	reg, err := k.getDKGRegistration(ctx, req.Round, validator)
 	if err != nil {
 		return errors.Wrap(err, "failed to get DKG registration for signature verification")
 	}
 
-	if err := verifyPartialDecryptionSignature(reg.CommPubKey, round, encryptedPartial, ephemeralPubKey, pubShare, signature); err != nil {
+	if err := verifyPartialDecryptionSignature(reg.CommPubKey, req.Round, encryptedPartial, ephemeralPubKey, pubShare, signature); err != nil {
 		return errors.Wrap(err, "partial decryption signature verification failed")
 	}
 
 	if !bytes.Equal(pubShare, reg.PubKeyShare) {
 		return errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
 			"validator", validator.Hex(),
-			"round", round,
+			"round", req.Round,
 		)
 	}
 
 	if err := k.setPartialDecryptionSubmission(
 		ctx,
 		validator,
-		round,
+		req.Round,
 		pid,
 		encryptedPartial,
 		ephemeralPubKey,
@@ -532,7 +538,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 
 	log.Info(ctx, "DKG PartialDecryptionSubmitted event received",
 		"validator", validator.Hex(),
-		"round", round,
+		"round", req.Round,
 		"pid", pid,
 		"encrypted_partial_len", len(encryptedPartial),
 		"ephemeral_pub_key_len", len(ephemeralPubKey),
