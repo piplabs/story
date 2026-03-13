@@ -103,10 +103,6 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
 	}
 
-	if err := k.validateParticipantsRoot(ctx, round, participantsRoot); err != nil {
-		return errors.Wrap(err, "failed to validate participants root")
-	}
-
 	if latest.Stage != types.DKGStageFinalization {
 		return errors.New("round is not in network set stage")
 	}
@@ -125,6 +121,10 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 	// Reject finalization by invalidated dealers (deal complaint found invalid via VSS verification)
 	if reg.Status == types.DKGRegStatusInvalidated {
 		return errors.New("dealer has been invalidated and cannot finalize")
+	}
+
+	if err := k.validateParticipantsRoot(ctx, round, participantsRoot); err != nil {
+		return errors.Wrap(err, "failed to validate participants root")
 	}
 
 	if err := verifyFinalizationSignature(reg.CommPubKey, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare, signature); err != nil {

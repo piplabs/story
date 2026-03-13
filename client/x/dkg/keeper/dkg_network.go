@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"slices"
 	"strconv"
 
 	"cosmossdk.io/collections"
@@ -235,17 +234,4 @@ func (k *Keeper) endPreviousActiveRound(ctx context.Context, currentRound uint32
 	}
 
 	return nil
-}
-
-func (k *Keeper) isInPrevActiveValSet(ctx context.Context) (bool, error) {
-	latestActive, err := k.getLatestActiveDKGNetwork(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	if latestActive == nil {
-		return false, nil
-	}
-
-	return slices.Contains(latestActive.ActiveValSet, k.validatorEVMAddr), nil
 }

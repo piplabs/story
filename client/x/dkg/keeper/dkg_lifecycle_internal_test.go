@@ -102,11 +102,6 @@ func (env *dkgLifecycleEnv) expectZeroUbiBalance() {
 	env.dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), sdk.DefaultBondDenom).Return(math.ZeroInt(), nil)
 }
 
-// advanceBlock increments the block height by 1 on the SDK context.
-func (env *dkgLifecycleEnv) advanceBlock() {
-	env.sdkCtx = env.sdkCtx.WithBlockHeight(env.sdkCtx.BlockHeight() + 1)
-}
-
 // advanceToHeight sets the block height to the specified value.
 func (env *dkgLifecycleEnv) advanceToHeight(h int64) {
 	env.sdkCtx = env.sdkCtx.WithBlockHeight(h)
