@@ -52,10 +52,10 @@ func setupDKGLifecycleEnv(t *testing.T, numValidators int) *dkgLifecycleEnv {
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Use DKGTestChainID where V200 activates at block 100.
+	// Use TestChainID where V200 activates at block 110.
 	// Set a non-nil HeaderHash so DKG network's StartBlockHash is populated.
 	testHeaderHash := common.HexToHash("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
-	sdkCtx = sdkCtx.WithChainID(netconf.DKGTestChainID).WithBlockHeight(100).WithHeaderHash(testHeaderHash.Bytes())
+	sdkCtx = sdkCtx.WithChainID(netconf.TestChainID).WithBlockHeight(110).WithHeaderHash(testHeaderHash.Bytes())
 
 	// Set short stage durations for testing
 	require.NoError(t, k.SetParams(sdkCtx, testDKGParams()))
@@ -479,8 +479,8 @@ func TestDKGLifecycle_BeginBlockerPreV200Noop(t *testing.T) {
 	t.Parallel()
 	env := setupDKGLifecycleEnv(t, 3)
 
-	// DKGTestChainID has V200 at block 100. Set height to 99 (before V200).
-	env.advanceToHeight(99)
+	// TestChainID has V200 at block 110. Set height to 109 (before V200).
+	env.advanceToHeight(109)
 
 	// BeginBlocker should return nil without doing anything
 	require.NoError(t, env.keeper.BeginBlocker(env.sdkCtx))
