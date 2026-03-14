@@ -16,12 +16,14 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 		"round", dkgNetwork.Round,
 	)
 
-	if !dkgSvcRunning.CompareAndSwap(false, true) {
-		log.Info(ctx, "DKG service already running; skipping finalization")
+	if !tryAcquireDKGSvc(dkgNetwork.Round) {
+		log.Info(ctx, "DKG service already running for this round; skipping finalization",
+			"round", dkgNetwork.Round,
+		)
 
 		return
 	}
-	defer dkgSvcRunning.Store(false)
+	defer releaseDKGSvc(dkgNetwork.Round)
 
 	if dkgNetwork.Stage != types.DKGStageFinalization {
 		log.Info(ctx, "DKG Finalization is skipped because the current network stage is not in the finalization stage")

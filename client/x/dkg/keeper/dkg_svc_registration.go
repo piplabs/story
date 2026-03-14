@@ -21,12 +21,14 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 		"round", dkgNetwork.Round,
 	)
 
-	if !dkgSvcRunning.CompareAndSwap(false, true) {
-		log.Info(ctx, "DKG service already running; skipping registration")
+	if !tryAcquireDKGSvc(dkgNetwork.Round) {
+		log.Info(ctx, "DKG service already running for this round; skipping registration",
+			"round", dkgNetwork.Round,
+		)
 
 		return
 	}
-	defer dkgSvcRunning.Store(false)
+	defer releaseDKGSvc(dkgNetwork.Round)
 
 	if dkgNetwork.Stage != types.DKGStageRegistration {
 		log.Info(ctx, "DKG registration is skipped because the current network stage is not in the registration stage")

@@ -11,6 +11,52 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// dkgSvcRound tracks which DKG round is currently being processed by async
+// goroutines. Zero means no round is running. A higher round number always
+// supersedes a stale lock from a previous round, preventing cross-round
+// blocking where a slow/retrying goroutine from round N blocks round N+1.
+var dkgSvcRound atomic.Uint64
+
+// tryAcquireDKGSvc attempts to acquire the DKG service lock for the given round.
+// Returns true if acquired. Duplicate calls for the same round return false
+// (deduplication). A newer (higher) round always preempts an older one.
+func tryAcquireDKGSvc(round uint32) bool {
+	const maxCASRetries = 10
+
+	r := uint64(round)
+	for range maxCASRetries {
+		current := dkgSvcRound.Load()
+		if current == r {
+			return false // same round already running, deduplicate
+		}
+
+		if current == 0 || r > current {
+			if dkgSvcRound.CompareAndSwap(current, r) {
+				if current > 0 {
+					log.Info(context.Background(), "Superseded stale DKG lock from previous round",
+						"old_round", current,
+						"new_round", r,
+					)
+				}
+
+				return true
+			}
+
+			continue // CAS failed, retry
+		}
+
+		return false // round going backwards, skip
+	}
+
+	return false // max retries exhausted
+}
+
+// releaseDKGSvc releases the lock only if this round still holds it.
+// If a newer round has superseded, this is a no-op.
+func releaseDKGSvc(round uint32) {
+	dkgSvcRound.CompareAndSwap(uint64(round), 0)
+}
+
 // dkgAsyncTimeout is the maximum duration for async DKG goroutines that
 // communicate with the story-kernel. These goroutines must NOT use the CometBFT
 // consensus context because it gets canceled when block processing completes,
@@ -23,7 +69,6 @@ func dkgAsyncContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), dkgAsyncTimeout)
 }
 
-var dkgSvcRunning atomic.Bool
 var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
