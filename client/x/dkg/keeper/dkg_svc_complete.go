@@ -13,12 +13,14 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		"round", dkgNetwork.Round,
 	)
 
-	if !dkgSvcRunning.CompareAndSwap(false, true) {
-		log.Info(ctx, "DKG service already running; skipping completion")
+	if !tryAcquireDKGSvc(dkgNetwork.Round) {
+		log.Info(ctx, "DKG service already running for this round; skipping completion",
+			"round", dkgNetwork.Round,
+		)
 
 		return
 	}
-	defer dkgSvcRunning.Store(false)
+	defer releaseDKGSvc(dkgNetwork.Round)
 
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
