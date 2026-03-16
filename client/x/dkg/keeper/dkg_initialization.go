@@ -80,16 +80,15 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	}
 
 	if k.isDKGSvcEnabled {
-		// Skip registration if this validator already has an on-chain registration
-		// for this round. This prevents overwriting a valid registration with
-		// different keys after a reset where sealed_keys were deleted.
-		if k.isAlreadyRegistered(ctx, roundNum) {
+		// Pre-compute registration check while we still have SDK context.
+		// The async goroutine uses context.Background() which cannot access
+		// the Cosmos KV store.
+		alreadyRegistered := k.isAlreadyRegistered(ctx, roundNum)
+		if alreadyRegistered {
 			return nil
 		}
 
 		// Pre-compute old code commitment while we still have SDK context.
-		// The async goroutine uses context.Background() which cannot access
-		// the Cosmos KV store.
 		oldCC, _ := k.getOldCodeCommitment(ctx)
 
 		asyncCtx, cancel := dkgAsyncContext()
@@ -97,7 +96,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC)
+			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	}
 

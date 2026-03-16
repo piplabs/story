@@ -138,9 +138,9 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
-		// Skip re-registration if already registered on-chain. Prevents overwriting
-		// a valid registration with different keys after sealed_keys deletion.
-		if k.isAlreadyRegistered(ctx, dkgNetwork.Round) {
+		// Pre-compute registration check while SDK context is available.
+		alreadyRegistered := k.isAlreadyRegistered(ctx, dkgNetwork.Round)
+		if alreadyRegistered {
 			session.UpdatePhase(types.PhaseInitialized)
 
 			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -166,7 +166,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC)
+			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseInitialized)
