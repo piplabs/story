@@ -234,7 +234,14 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
 
-	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, nil, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+	fee, err := c.cdrContract.BaseFee(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query CDR base fee for partial decryption")
+	}
+
+	log.Info(ctx, "CDR base fee queried for partial decryption", "fee_wei", fee.String())
+
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
 	})
 }
