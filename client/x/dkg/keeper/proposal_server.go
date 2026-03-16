@@ -19,17 +19,6 @@ func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 		return nil, errors.New("unauthorized")
 	}
 
-	if s.isDKGSvcEnabled {
-		latestRound, err := s.GetLatestDKGRound(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get latest DKG round")
-		}
-
-		if latestRound != nil {
-			s.ResumeDKGService(ctx, latestRound)
-		}
-	}
-
 	return &types.AddDkgVoteResponse{}, nil
 }
 

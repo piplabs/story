@@ -77,6 +77,15 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		}
 	}
 
+	if k.isDKGSvcEnabled {
+		// Resume stuck or failed DKG sessions every block.
+		k.ResumeDKGService(ctx, latestRound)
+
+		// Retry cached deals/responses/justifications that failed kernel processing.
+		// Deals are replayed before responses (kyber requires deal-before-response order).
+		k.reprocessPendingIncomingData(latestRound)
+	}
+
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)
 	if shouldTransition {
 		// Update the stage of this round before emitting events

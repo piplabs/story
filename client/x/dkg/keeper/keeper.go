@@ -34,6 +34,20 @@ var (
 	// story-kernel. Without this, concurrent goroutines corrupt the DKG state and
 	// cause "different number of coefficients" errors during finalization.
 	dkgKernelMu sync.Mutex
+
+	// pendingIncoming* hold deals/responses that failed kernel processing (e.g., kernel
+	// unreachable). They are retried on subsequent blocks when the kernel recovers.
+	// In-memory only — lost on process restart (round will fail and retry naturally).
+	// Deals MUST be replayed before responses (kyber's ErrNoDealBeforeResponse).
+	pendingIncomingDealsMu          sync.Mutex
+	pendingIncomingDeals            []types.Deal
+	pendingIncomingResponsesMu      sync.Mutex
+	pendingIncomingResponses        []types.Response
+	pendingIncomingJustificationsMu sync.Mutex
+	pendingIncomingJustifications   []types.Justification
+
+	// maxPendingIncoming caps the pending queue to prevent memory exhaustion.
+	maxPendingIncoming = 80
 )
 
 // Keeper of the dkg store.
