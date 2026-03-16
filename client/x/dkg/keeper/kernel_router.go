@@ -16,6 +16,7 @@ import (
 type KernelRouter struct {
 	mu        sync.RWMutex
 	endpoints []string                             // configured endpoints
+	tlsCfg    *TLSConfig                           // TLS configuration for client connections (nil = insecure)
 	clients   map[string]types.KernelServiceClient // codeCommitmentHex -> KernelServiceClient
 	closers   map[string]io.Closer                 // codeCommitmentHex -> underlying gRPC connection
 	ccByEP    map[string]string                    // endpoint -> codeCommitmentHex (reverse lookup)
@@ -23,15 +24,17 @@ type KernelRouter struct {
 
 const maxKernelEndpoints = 2
 
-// NewKernelRouter creates a new router with the given endpoint list.
+// NewKernelRouter creates a new router with the given endpoint list and optional TLS configuration.
 // At most 2 endpoints are supported (old + new binary for upgrade resharing).
-func NewKernelRouter(endpoints []string) *KernelRouter {
+// Pass nil for tlsCfg to use insecure connections.
+func NewKernelRouter(endpoints []string, tlsCfg *TLSConfig) *KernelRouter {
 	if len(endpoints) > maxKernelEndpoints {
 		panic(fmt.Sprintf("kernel router supports at most %d endpoints, got %d", maxKernelEndpoints, len(endpoints)))
 	}
 
 	return &KernelRouter{
 		endpoints: endpoints,
+		tlsCfg:    tlsCfg,
 		clients:   make(map[string]types.KernelServiceClient),
 		closers:   make(map[string]io.Closer),
 		ccByEP:    make(map[string]string),
@@ -41,7 +44,7 @@ func NewKernelRouter(endpoints []string) *KernelRouter {
 // ConnectAndDiscover connects to an endpoint, calls GetCodeCommitment to discover
 // the code commitment, and registers the client keyed by code commitment.
 func (r *KernelRouter) ConnectAndDiscover(ctx context.Context, endpoint string) error {
-	client, closer, err := CreateKernelClient(endpoint)
+	client, closer, err := CreateKernelClient(endpoint, r.tlsCfg)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to kernel endpoint", "endpoint", endpoint)
 	}

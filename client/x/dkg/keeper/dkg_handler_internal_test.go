@@ -1174,7 +1174,7 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 	mockKernelServiceClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 
 	// Wrap mock TEE client in a KernelRouter for testing
-	kernelRouter := NewKernelRouter(nil)
+	kernelRouter := NewKernelRouter(nil, nil)
 	kernelRouter.RegisterClient([]byte("test"), mockKernelServiceClient)
 
 	k := NewKeeper(

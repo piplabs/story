@@ -18,7 +18,7 @@ func TestKernelRouter_RegisterAndGetClient(t *testing.T) {
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient(cc, mockClient)
 
 	// Should find the client by exact code commitment
@@ -34,7 +34,7 @@ func TestKernelRouter_GetClientNoFallback(t *testing.T) {
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient(cc, mockClient)
 
 	// Should return error when code commitment doesn't match — no fallback
@@ -45,7 +45,7 @@ func TestKernelRouter_GetClientNoFallback(t *testing.T) {
 }
 
 func TestKernelRouter_GetClientEmpty(t *testing.T) {
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 
 	// Should return error when no clients are available
 	_, err := router.GetClient([]byte{0x01})
@@ -58,7 +58,7 @@ func TestKernelRouter_HasClients(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 
 	require.False(t, router.HasClients())
 
@@ -73,7 +73,7 @@ func TestKernelRouter_Disconnect(t *testing.T) {
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
 	cc := []byte{0x01, 0x02, 0x03}
 
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient(cc, mockClient)
 
 	require.True(t, router.HasClients())
@@ -91,7 +91,7 @@ func TestKernelRouter_GetAllCodeCommitments(t *testing.T) {
 	cc1 := []byte{0x01, 0x02}
 	cc2 := []byte{0x03, 0x04}
 
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient(cc1, mock1)
 	router.RegisterClient(cc2, mock2)
 
@@ -117,7 +117,7 @@ func TestKernelRouter_MultipleClients(t *testing.T) {
 	cc1 := []byte{0x01, 0x02}
 	cc2 := []byte{0x03, 0x04}
 
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient(cc1, mock1)
 	router.RegisterClient(cc2, mock2)
 
@@ -136,7 +136,7 @@ func TestKernelRouter_GetClientWithNilCodeCommitment(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient([]byte{0x01}, mockClient)
 
 	// Nil code commitment should return error — no fallback
@@ -150,7 +150,7 @@ func TestKernelRouter_GetClientWithEmptyCodeCommitment(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
-	router := keeper.NewKernelRouter(nil)
+	router := keeper.NewKernelRouter(nil, nil)
 	router.RegisterClient([]byte{0x01}, mockClient)
 
 	// Empty code commitment should return error — no fallback
