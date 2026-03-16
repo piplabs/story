@@ -155,7 +155,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         EnclaveInstanceData calldata enclaveInstanceData,
         bytes calldata validationContext
     ) external payable chargesFee whenNotPaused {
-        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, validationContext);
+        _authenticateEnclaveReport(
+            enclaveReport,
+            enclaveInstanceData,
+            keccak256(abi.encode(enclaveInstanceData)),
+            validationContext
+        );
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -182,7 +187,20 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(enclaveInstanceData.enclaveCommKey.length != 0, "DKG: Enclave communication key cannot be empty");
         require(enclaveInstanceData.dkgPubKey.length != 0, "DKG: DKG public key cannot be empty");
 
-        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, validationContext);
+        // Compute expectedDataCommitment matching kernel's calculateReportData:
+        // keccak256(validatorAddr(20) || round(4) || startBlockHeight(8) || startBlockHash(32) ||
+        //           dkgPubKey(64) || enclaveCommKey(65))
+        bytes32 expectedDataCommitment = keccak256(
+            abi.encodePacked(
+                enclaveInstanceData.validatorAddr,
+                enclaveInstanceData.round,
+                uint64(startBlockHeight),
+                startBlockHash,
+                enclaveInstanceData.dkgPubKey,
+                enclaveInstanceData.enclaveCommKey
+            )
+        );
+        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, expectedDataCommitment, validationContext);
 
         emit Registered(
             enclaveReport,
@@ -322,10 +340,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @dev Authenticates an enclave report
     /// @param enclaveReport The enclave report
     /// @param enclaveInstanceData The data of the enclave instance
+    /// @param expectedDataCommitment The expected data commitment to verify against the quote
     /// @param validationContext The validation context
     function _authenticateEnclaveReport(
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
+        bytes32 expectedDataCommitment,
         bytes calldata validationContext
     ) internal {
         DKGStorage storage $ = _getDKGStorage();
@@ -334,7 +354,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
 
         bool isValidReport = IAttestationReportValidator(enclaveTypeData.validationHookAddr).validateReport(
             enclaveTypeData.codeCommitment,
-            keccak256(abi.encode(enclaveInstanceData)),
+            expectedDataCommitment,
             enclaveReport,
             validationContext
         );
