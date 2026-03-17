@@ -80,14 +80,76 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	if session.Phase != types.PhaseFailed {
-		log.Debug(ctx, "No failed DKG session found; skipping resume process", "round", dkgNetwork.Round)
+	if session.Phase == types.PhaseFailed {
+		k.resumeFailedSession(ctx, session, dkgNetwork)
 
 		return
 	}
 
+	// Recover sessions stuck in intermediate phases after an unexpected process crash.
+	// A session is stuck when its phase has NOT advanced to the expected completion
+	// state for the current stage AND no goroutine is actively processing it.
+	//
+	// Valid (non-stuck) completion states per stage:
+	//   Registration → PhaseInitialized (registration done, waiting for dealing)
+	//   Dealing      → PhaseDealing     (deals generated, processing responses via VE)
+	//   Finalization → PhaseFinalized   (finalization done, waiting for active)
+	//   Active       → PhaseCompleted
+	if isSessionStuckForStage(session.Phase, dkgNetwork.Stage) {
+		if tryAcquireDKGSvc(dkgNetwork.Round) {
+			releaseDKGSvc(dkgNetwork.Round)
+
+			log.Info(ctx, "Recovering stuck DKG session: no active goroutine for intermediate phase",
+				"round", dkgNetwork.Round,
+				"phase", session.Phase.String(),
+				"stage", dkgNetwork.Stage.String(),
+			)
+
+			k.stateManager.MarkFailed(ctx, session)
+			// Will be picked up as PhaseFailed on next block's ResumeDKGService call.
+		}
+	}
+}
+
+// isSessionStuckForStage returns true if the session phase is behind the expected
+// completion state for the current DKG stage. A session that reached the valid
+// completion phase for its stage is NOT stuck — it completed successfully and is
+// waiting for the next stage transition.
+func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
+	switch stage {
+	case types.DKGStageRegistration:
+		// PhaseInitialized = registration done → not stuck
+		return phase != types.PhaseInitialized && phase != types.PhaseCompleted
+	case types.DKGStageDealing:
+		// PhaseDealing = deals generated → not stuck
+		return phase != types.PhaseDealing && phase != types.PhaseCompleted
+	case types.DKGStageFinalization:
+		// PhaseFinalized = finalization done → not stuck
+		return phase != types.PhaseFinalized && phase != types.PhaseCompleted
+	case types.DKGStageActive:
+		return phase != types.PhaseCompleted
+	default:
+		return false
+	}
+}
+
+// resumeFailedSession dispatches a PhaseFailed session to the appropriate handler
+// based on the current DKG network stage.
+func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
+		// Skip re-registration if already registered on-chain. Prevents overwriting
+		// a valid registration with different keys after sealed_keys deletion.
+		if k.isAlreadyRegistered(ctx, dkgNetwork.Round) {
+			session.UpdatePhase(types.PhaseInitialized)
+
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to update session phase after existing registration check", err)
+			}
+
+			return
+		}
+
 		session.UpdatePhase(types.PhaseInitializing)
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
