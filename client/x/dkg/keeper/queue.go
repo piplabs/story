@@ -92,7 +92,7 @@ func (*Keeper) DequeueJustifications(count int) []types.Justification {
 	return out
 }
 
-// FlushAllQueues clears all deal, response, and justification queues.
+// FlushAllQueues clears all deal, response, justification, and pending incoming queues.
 // This should be called when a DKG round transitions to prevent stale data
 // from a previous round from being broadcast in the new round.
 func (*Keeper) FlushAllQueues() {
@@ -113,4 +113,7 @@ func (*Keeper) FlushAllQueues() {
 	justifications = nil
 
 	justificationsMu.Unlock()
+
+	// Also flush pending incoming data from failed kernel calls.
+	flushPendingIncoming()
 }

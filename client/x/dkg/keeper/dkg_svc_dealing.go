@@ -6,37 +6,34 @@ import (
 	"encoding/hex"
 	"slices"
 
-	"cosmossdk.io/collections"
-
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 // handleDKGDealing handles the dealing phase event.
-func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+// shouldDeal must be pre-computed by the caller while the SDK context is available,
+// because async goroutines cannot access the KV store.
+func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetwork, shouldDeal bool) {
 	log.Info(ctx, "Handling DKG dealing",
 		"round", dkgNetwork.Round,
+		"should_deal", shouldDeal,
 	)
 
-	if !dkgSvcRunning.CompareAndSwap(false, true) {
-		log.Info(ctx, "DKG service already running; skipping dealing")
+	if !tryAcquireDKGSvc(dkgNetwork.Round) {
+		log.Info(ctx, "DKG service already running for this round; skipping dealing",
+			"round", dkgNetwork.Round,
+		)
 
 		return
 	}
-	defer dkgSvcRunning.Store(false)
+	defer releaseDKGSvc(dkgNetwork.Round)
 
 	if dkgNetwork.Stage != types.DKGStageDealing {
 		log.Info(ctx, "DKG Dealing is skipped because the current network stage is not dealing stage")
-
-		return
-	}
-
-	shouldDeal, err := k.shouldDeal(ctx, dkgNetwork)
-	if err != nil {
-		log.Error(ctx, "Failed to check whether the validator should deal or not", err)
 
 		return
 	}
@@ -118,6 +115,10 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 // handleDKGProcessDeals handles the deals from other committee members.
 func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []types.Deal) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process deals",
 		"round", dkgNetwork.Round,
 		"num_deals", len(deals),
@@ -136,8 +137,14 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process deals", nil,
+	// Accept deals in both Initialized and Dealing phases.
+	// Deals from other validators arrive via vote extensions as soon as the DKG stage
+	// transitions to Dealing. However, the local session only transitions from
+	// Initialized to Dealing after GenerateDeals completes (which can take ~30s).
+	// If we reject deals during Initialized phase, they are permanently lost because
+	// vote extensions deliver each deal exactly once.
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process deals", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -160,7 +167,9 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		}
 
 		for _, deal := range deals {
-			if deal.RecipientIndex == session.Index {
+			// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
+			// Guard against unset index (0) to avoid uint32 underflow.
+			if session.Index > 0 && deal.RecipientIndex == session.Index-1 {
 				req.Deals = append(req.Deals, deal)
 			}
 		}
@@ -183,7 +192,14 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 		return nil
 	}); err != nil {
-		log.Error(ctx, "Failed to process deals", err)
+		// Cache unprocessed deals in memory for retry when kernel recovers.
+		// Not persisted to disk — process restart loses them (round will fail and retry).
+		cached := cachePendingIncomingDeals(deals, session.Index)
+
+		log.Error(ctx, "Failed to process deals; cached for retry", err,
+			"round", dkgNetwork.Round,
+			"cached_deals", cached,
+		)
 
 		return
 	}
@@ -195,19 +211,40 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	)
 }
 
+// cachePendingIncomingDeals saves deals that failed kernel processing for later retry.
+// Only deals addressed to this validator (matching recipientIndex) are cached.
+// Returns the number of deals cached.
+func cachePendingIncomingDeals(allDeals []types.Deal, sessionIndex uint32) int {
+	pendingIncomingDealsMu.Lock()
+	defer pendingIncomingDealsMu.Unlock()
+
+	cached := 0
+	for _, deal := range allDeals {
+		if sessionIndex > 0 && deal.RecipientIndex == sessionIndex-1 {
+			if len(pendingIncomingDeals) >= maxPendingIncoming {
+				return cached
+			}
+
+			pendingIncomingDeals = append(pendingIncomingDeals, deal)
+			cached++
+		}
+	}
+
+	return cached
+}
+
 // handleDKGProcessResponses handles the responses of processDeals from other committee members.
-func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response) {
+// shouldProcess must be pre-computed by the caller while the SDK context is available.
+func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response, shouldProcess bool) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process responses",
 		"round", dkgNetwork.Round,
 		"num_responses", len(responses),
+		"should_process", shouldProcess,
 	)
-
-	shouldProcess, err := k.shouldProcessResponses(ctx, dkgNetwork)
-	if err != nil {
-		log.Error(ctx, "Failed to check whether the validator should process responses", err)
-
-		return
-	}
 
 	if !shouldProcess {
 		log.Info(ctx, "Skip processing of responses")
@@ -222,8 +259,9 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process responses", nil,
+	// Accept responses in both Initialized and Dealing phases (same reasoning as deals).
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process responses", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -240,7 +278,9 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 	filteredResponses := make([]types.Response, 0, len(responses))
 	for _, resp := range responses {
-		if resp.VssResponse.Index != session.Index {
+		// VssResponse.Index is 0-based (Kyber), session.Index is 1-based (on-chain).
+		// If session.Index is 0 (unset), include all responses (no self-filtering).
+		if session.Index == 0 || resp.VssResponse.Index != session.Index-1 {
 			filteredResponses = append(filteredResponses, resp)
 		}
 	}
@@ -283,6 +323,14 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
+			// Cache unprocessed responses for retry when kernel recovers.
+			cachePendingIncomingResponses(filteredResponses)
+
+			log.Info(ctx, "Cached responses for retry",
+				"round", session.Round,
+				"cached_responses", len(filteredResponses),
+			)
+
 			continue
 		}
 
@@ -308,17 +356,19 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
-	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// First DKG round: only current set of validators deal
-			return inCurSet, nil
-		}
-
 		return false, err
 	}
 
+	if prevActive == nil {
+		// First DKG round (no previous active round): current set of validators deal
+		return inCurSet, nil
+	}
+
 	// Resharing round: only previous set of validators deal (they hold the existing key shares)
+	inPrevSet := slices.Contains(prevActive.ActiveValSet, k.validatorEVMAddr)
+
 	return inPrevSet, nil
 }
 
@@ -328,7 +378,11 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 //  2. ActiveValSet / session / phase check
 //  3. Schnorr signature verification → deduplication → Pedersen VSS verification
 //  4. Forward only valid justifications to story-kernel
-func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification, dealerPubKeys map[uint32]kyber.Point) {
+	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
 	log.Info(ctx, "Handling DKG process justifications",
 		"round", dkgNetwork.Round,
 		"num_justifications", len(justifications),
@@ -360,8 +414,9 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
-		log.Warn(ctx, "Session not in dealing phase, skipping process justifications", nil,
+	// Accept justifications in both Initialized and Dealing phases (same reasoning as deals).
+	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process justifications", nil,
 			"current_phase", session.Phase.String(),
 		)
 
@@ -369,14 +424,6 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	}
 
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-
-	// Build dealer public key map once for all justifications (avoids O(N) registration scan per justification).
-	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, dkgNetwork, suite)
-	if err != nil {
-		log.Error(ctx, "Failed to build dealer public key map", err)
-
-		return
-	}
 
 	// Step 1: Verify Schnorr signature FIRST, filter out unsigned/forged justifications.
 	// This MUST happen before deduplication so that an attacker cannot preempt a valid
@@ -467,6 +514,14 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
+			// Cache for retry when kernel recovers.
+			cachePendingIncomingJustifications(validJustifications)
+
+			log.Info(ctx, "Cached justifications for retry",
+				"round", session.Round,
+				"cached_responses", len(validJustifications),
+			)
+
 			continue
 		}
 	}
@@ -476,19 +531,233 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	)
 }
 
+// cachePendingIncomingResponses saves responses that failed kernel processing for later retry.
+func cachePendingIncomingResponses(filteredResponses []types.Response) {
+	pendingIncomingResponsesMu.Lock()
+	defer pendingIncomingResponsesMu.Unlock()
+
+	remaining := maxPendingIncoming - len(pendingIncomingResponses)
+	if remaining <= 0 {
+		return
+	}
+
+	if len(filteredResponses) > remaining {
+		filteredResponses = filteredResponses[:remaining]
+	}
+
+	pendingIncomingResponses = append(pendingIncomingResponses, filteredResponses...)
+}
+
+func cachePendingIncomingJustifications(justifications []types.Justification) {
+	pendingIncomingJustificationsMu.Lock()
+	defer pendingIncomingJustificationsMu.Unlock()
+
+	remaining := maxPendingIncoming - len(pendingIncomingJustifications)
+	if remaining <= 0 {
+		return
+	}
+
+	if len(justifications) > remaining {
+		justifications = justifications[:remaining]
+	}
+
+	pendingIncomingJustifications = append(pendingIncomingJustifications, justifications...)
+}
+
+// reprocessPendingIncomingData retries cached deals, responses, and justifications when the kernel recovers.
+// Deals are processed FIRST (kyber requires deals before responses can be accepted).
+// Called from BeginBlocker via the DKG service loop.
+func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
+	hasPendingDeals := func() bool {
+		pendingIncomingDealsMu.Lock()
+		defer pendingIncomingDealsMu.Unlock()
+
+		return len(pendingIncomingDeals) > 0
+	}()
+
+	hasPendingResponses := func() bool {
+		pendingIncomingResponsesMu.Lock()
+		defer pendingIncomingResponsesMu.Unlock()
+
+		return len(pendingIncomingResponses) > 0
+	}()
+
+	hasPendingJustifications := func() bool {
+		pendingIncomingJustificationsMu.Lock()
+		defer pendingIncomingJustificationsMu.Unlock()
+
+		return len(pendingIncomingJustifications) > 0
+	}()
+
+	if !hasPendingDeals && !hasPendingResponses && !hasPendingJustifications {
+		return
+	}
+
+	// Only retry during Dealing stage (pending data is stale after stage transitions).
+	if dkgNetwork.Stage != types.DKGStageDealing {
+		flushPendingIncoming()
+
+		return
+	}
+
+	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
+		return // kernel still unavailable, wait
+	}
+
+	asyncCtx, cancel := dkgAsyncContext()
+
+	go func() {
+		defer cancel()
+
+		// Process deals FIRST — kyber returns ErrNoDealBeforeResponse if
+		// a response arrives for a dealer whose deal hasn't been processed.
+		if hasPendingDeals {
+			drainedDeals := drainPendingIncomingDeals()
+
+			log.Info(asyncCtx, "Replaying cached deals after kernel recovery",
+				"round", dkgNetwork.Round,
+				"num_deals", len(drainedDeals),
+			)
+
+			k.handleDKGProcessDeals(asyncCtx, dkgNetwork, drainedDeals)
+		}
+
+		// Then process responses.
+		if hasPendingResponses {
+			drainedResponses := drainPendingIncomingResponses()
+
+			log.Info(asyncCtx, "Replaying cached responses after kernel recovery",
+				"round", dkgNetwork.Round,
+				"num_responses", len(drainedResponses),
+			)
+
+			k.handleDKGProcessResponses(asyncCtx, dkgNetwork, drainedResponses, true)
+		}
+
+		// Finally process justifications (already verified before caching,
+		// so forward directly to kernel without re-verification).
+		if hasPendingJustifications {
+			drainedJustifications := drainPendingIncomingJustifications()
+
+			log.Info(asyncCtx, "Replaying cached justifications after kernel recovery",
+				"round", dkgNetwork.Round,
+				"num_justifications", len(drainedJustifications),
+			)
+
+			k.forwardJustificationsToKernel(asyncCtx, dkgNetwork, drainedJustifications)
+		}
+	}()
+}
+
+func drainPendingIncomingDeals() []types.Deal {
+	pendingIncomingDealsMu.Lock()
+	defer pendingIncomingDealsMu.Unlock()
+
+	out := pendingIncomingDeals
+	pendingIncomingDeals = nil
+
+	return out
+}
+
+func drainPendingIncomingResponses() []types.Response {
+	pendingIncomingResponsesMu.Lock()
+	defer pendingIncomingResponsesMu.Unlock()
+
+	out := pendingIncomingResponses
+	pendingIncomingResponses = nil
+
+	return out
+}
+
+func drainPendingIncomingJustifications() []types.Justification {
+	pendingIncomingJustificationsMu.Lock()
+	defer pendingIncomingJustificationsMu.Unlock()
+
+	out := pendingIncomingJustifications
+	pendingIncomingJustifications = nil
+
+	return out
+}
+
+func flushPendingIncoming() {
+	pendingIncomingDealsMu.Lock()
+	pendingIncomingDeals = nil
+	pendingIncomingDealsMu.Unlock()
+
+	pendingIncomingResponsesMu.Lock()
+	pendingIncomingResponses = nil
+	pendingIncomingResponsesMu.Unlock()
+
+	pendingIncomingJustificationsMu.Lock()
+	pendingIncomingJustifications = nil
+	pendingIncomingJustificationsMu.Unlock()
+}
+
+// forwardJustificationsToKernel sends already-verified justifications to the kernel.
+// Used for replaying cached justifications that passed Schnorr + VSS verification
+// before caching but failed the kernel gRPC call.
+func (k *Keeper) forwardJustificationsToKernel(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
+	if err != nil {
+		log.Error(ctx, "Failed to get DKG session for justification replay", err)
+
+		return
+	}
+
+	ccsToProcess := [][]byte{session.CodeCommitment}
+	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
+		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
+	}
+
+	for _, cc := range ccsToProcess {
+		if err := retry(ctx, func(ctx context.Context) error {
+			req := &types.ProcessJustificationRequest{
+				CodeCommitment: cc,
+				Round:          session.Round,
+				Justifications: justifications,
+				IsResharing:    session.IsResharing,
+			}
+
+			client, cErr := k.kernelRouter.GetClient(cc)
+			if cErr != nil {
+				return errors.Wrap(cErr, "no kernel client for session")
+			}
+
+			if _, err := client.ProcessJustification(ctx, req); err != nil {
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			log.Error(ctx, "Failed to replay justifications", err,
+				"code_commitment", hex.EncodeToString(cc),
+			)
+
+			cachePendingIncomingJustifications(justifications)
+
+			continue
+		}
+	}
+}
+
 func (k *Keeper) shouldProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
-	inPrevSet, err := k.isInPrevActiveValSet(ctx)
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		if errors.Is(err, collections.ErrNotFound) {
-			// First DKG round: only current set of validators process deals or responses
-			return inCurSet, nil
-		}
-
 		return false, err
 	}
 
+	if prevActive == nil {
+		// First DKG round (no previous active round): current set of validators process
+		return inCurSet, nil
+	}
+
 	// Resharing round: both previous and current set of validators process deals or responses
+	inPrevSet := slices.Contains(prevActive.ActiveValSet, k.validatorEVMAddr)
+
 	return inCurSet || inPrevSet, nil
 }
