@@ -18,6 +18,7 @@ import (
 	evmenginetypes "github.com/piplabs/story/client/x/evmengine/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // processTimeout is the maximum time to process a proposal.
@@ -75,7 +76,16 @@ func makeProcessProposalHandler(router *baseapp.MsgServiceRouter, txConfig clien
 		// Ensure only expected messages types are included the expected number of times.
 		expectedMsgCounts := map[string]int{
 			sdk.MsgTypeURL(&evmenginetypes.MsgExecutionPayload{}): 1, // Only a single EVM execution payload is allowed.
-			sdk.MsgTypeURL(&dkgtypes.MsgAddDkgVote{}):             1,
+		}
+
+		// MsgAddDkgVote is only expected after v2.0.0 activation (+2 blocks
+		// for vote extensions to propagate through LocalLastCommit).
+		v200Height, v200Err := netconf.GetUpgradeHeight(ctx.ChainID(), netconf.V200)
+		if v200Err != nil {
+			return rejectProposal(ctx, errors.Wrap(v200Err, "get v2.0.0 upgrade height"))
+		}
+		if req.Height > v200Height+1 {
+			expectedMsgCounts[sdk.MsgTypeURL(&dkgtypes.MsgAddDkgVote{})] = 1
 		}
 
 		rawTX := req.Txs[0]

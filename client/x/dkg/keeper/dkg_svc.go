@@ -11,6 +11,52 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// dkgSvcRound tracks which DKG round is currently being processed by async
+// goroutines. Zero means no round is running. A higher round number always
+// supersedes a stale lock from a previous round, preventing cross-round
+// blocking where a slow/retrying goroutine from round N blocks round N+1.
+var dkgSvcRound atomic.Uint64
+
+// tryAcquireDKGSvc attempts to acquire the DKG service lock for the given round.
+// Returns true if acquired. Duplicate calls for the same round return false
+// (deduplication). A newer (higher) round always preempts an older one.
+func tryAcquireDKGSvc(round uint32) bool {
+	const maxCASRetries = 10
+
+	r := uint64(round)
+	for range maxCASRetries {
+		current := dkgSvcRound.Load()
+		if current == r {
+			return false // same round already running, deduplicate
+		}
+
+		if current == 0 || r > current {
+			if dkgSvcRound.CompareAndSwap(current, r) {
+				if current > 0 {
+					log.Info(context.Background(), "Superseded stale DKG lock from previous round",
+						"old_round", current,
+						"new_round", r,
+					)
+				}
+
+				return true
+			}
+
+			continue // CAS failed, retry
+		}
+
+		return false // round going backwards, skip
+	}
+
+	return false // max retries exhausted
+}
+
+// releaseDKGSvc releases the lock only if this round still holds it.
+// If a newer round has superseded, this is a no-op.
+func releaseDKGSvc(round uint32) {
+	dkgSvcRound.CompareAndSwap(uint64(round), 0)
+}
+
 // dkgAsyncTimeout is the maximum duration for async DKG goroutines that
 // communicate with the story-kernel. These goroutines must NOT use the CometBFT
 // consensus context because it gets canceled when block processing completes,
@@ -23,7 +69,6 @@ func dkgAsyncContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), dkgAsyncTimeout)
 }
 
-var dkgSvcRunning atomic.Bool
 var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
@@ -35,14 +80,76 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	if session.Phase != types.PhaseFailed {
-		log.Debug(ctx, "No failed DKG session found; skipping resume process", "round", dkgNetwork.Round)
+	if session.Phase == types.PhaseFailed {
+		k.resumeFailedSession(ctx, session, dkgNetwork)
 
 		return
 	}
 
+	// Recover sessions stuck in intermediate phases after an unexpected process crash.
+	// A session is stuck when its phase has NOT advanced to the expected completion
+	// state for the current stage AND no goroutine is actively processing it.
+	//
+	// Valid (non-stuck) completion states per stage:
+	//   Registration → PhaseInitialized (registration done, waiting for dealing)
+	//   Dealing      → PhaseDealing     (deals generated, processing responses via VE)
+	//   Finalization → PhaseFinalized   (finalization done, waiting for active)
+	//   Active       → PhaseCompleted
+	if isSessionStuckForStage(session.Phase, dkgNetwork.Stage) {
+		if tryAcquireDKGSvc(dkgNetwork.Round) {
+			releaseDKGSvc(dkgNetwork.Round)
+
+			log.Info(ctx, "Recovering stuck DKG session: no active goroutine for intermediate phase",
+				"round", dkgNetwork.Round,
+				"phase", session.Phase.String(),
+				"stage", dkgNetwork.Stage.String(),
+			)
+
+			k.stateManager.MarkFailed(ctx, session)
+			// Will be picked up as PhaseFailed on next block's ResumeDKGService call.
+		}
+	}
+}
+
+// isSessionStuckForStage returns true if the session phase is behind the expected
+// completion state for the current DKG stage. A session that reached the valid
+// completion phase for its stage is NOT stuck — it completed successfully and is
+// waiting for the next stage transition.
+func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
+	switch stage {
+	case types.DKGStageRegistration:
+		// PhaseInitialized = registration done → not stuck
+		return phase != types.PhaseInitialized && phase != types.PhaseCompleted
+	case types.DKGStageDealing:
+		// PhaseDealing = deals generated → not stuck
+		return phase != types.PhaseDealing && phase != types.PhaseCompleted
+	case types.DKGStageFinalization:
+		// PhaseFinalized = finalization done → not stuck
+		return phase != types.PhaseFinalized && phase != types.PhaseCompleted
+	case types.DKGStageActive:
+		return phase != types.PhaseCompleted
+	default:
+		return false
+	}
+}
+
+// resumeFailedSession dispatches a PhaseFailed session to the appropriate handler
+// based on the current DKG network stage.
+func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
+		// Skip re-registration if already registered on-chain. Prevents overwriting
+		// a valid registration with different keys after sealed_keys deletion.
+		if k.isAlreadyRegistered(ctx, dkgNetwork.Round) {
+			session.UpdatePhase(types.PhaseInitialized)
+
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to update session phase after existing registration check", err)
+			}
+
+			return
+		}
+
 		session.UpdatePhase(types.PhaseInitializing)
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -51,12 +158,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
+		// Pre-compute old code commitment while SDK context is available.
+		oldCC, _ := k.getOldCodeCommitment(ctx)
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, dkgNetwork)
+			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC)
 		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseInitialized)
@@ -67,12 +177,27 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			return
 		}
 
+		// Set session.Index from on-chain registration for deal/response routing.
+		if err := k.ensureSessionIndex(ctx, dkgNetwork.Round); err != nil {
+			log.Warn(ctx, "Failed to set session index during resume", err,
+				"round", dkgNetwork.Round,
+			)
+		}
+
+		// Pre-compute shouldDeal while SDK context is available.
+		deal, err := k.shouldDeal(ctx, dkgNetwork)
+		if err != nil {
+			log.Error(ctx, "Failed to check shouldDeal during resume", err)
+
+			return
+		}
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGDealing(asyncCtx, dkgNetwork)
+			k.handleDKGDealing(asyncCtx, dkgNetwork, deal)
 		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)

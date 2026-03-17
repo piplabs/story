@@ -8,16 +8,22 @@ import (
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
-
-const dkgStartBlock = 10
 
 func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
 
-	// TODO: temporal code for delaying the DKG setup
-	if currentHeight < dkgStartBlock {
+	// DKG module activates at the v2.0.0 upgrade height. Before that,
+	// BeginBlocker is a complete no-op to ensure identical behavior to
+	// the pre-upgrade binary during rolling upgrades.
+	isV200, err := netconf.IsV200(sdkCtx.ChainID(), currentHeight)
+	if err != nil {
+		return errors.Wrap(err, "check v2.0.0 upgrade height")
+	}
+
+	if !isV200 {
 		return nil
 	}
 
@@ -69,6 +75,15 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		if err := k.pruneTimedOutDecryptRequests(ctx, uint64(currentHeight)); err != nil {
 			log.Error(ctx, "Failed to prune timed-out decrypt request registry", err)
 		}
+	}
+
+	if k.isDKGSvcEnabled {
+		// Resume stuck or failed DKG sessions every block.
+		k.ResumeDKGService(ctx, latestRound)
+
+		// Retry cached deals/responses/justifications that failed kernel processing.
+		// Deals are replayed before responses (kyber requires deal-before-response order).
+		k.reprocessPendingIncomingData(latestRound)
 	}
 
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)

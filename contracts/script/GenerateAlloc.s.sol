@@ -12,6 +12,9 @@ import { IPTokenStaking } from "../src/protocol/IPTokenStaking.sol";
 import { UpgradeEntrypoint } from "../src/protocol/UpgradeEntrypoint.sol";
 import { UBIPool } from "../src/protocol/UBIPool.sol";
 import { DKG } from "../src/protocol/DKG.sol";
+import { CDR } from "../src/protocol/CDR.sol";
+import { SGXValidationHook } from "../src/protocol/SGXValidationHook.sol";
+import { IDKG } from "../src/interfaces/IDKG.sol";
 
 import { ChainIds } from "./utils/ChainIds.sol";
 import { EIP1967Helper } from "./utils/EIP1967Helper.sol";
@@ -55,6 +58,12 @@ contract GenerateAlloc is Script {
     bool private constant ALLOCATE_1K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
+
+    // SGXValidationHook configuration — edit before running the script
+    bytes32 private constant SGX_CODE_COMMITMENT =
+        hex"0000000000000000000000000000000000000000000000000000000000000001";
+    address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
+    uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
@@ -185,6 +194,8 @@ contract GenerateAlloc is Script {
         setUpgrade();
         setUBIPool();
         setDKG();
+        setCDR();
+        setSGXValidationHook();
     }
 
     /// @dev Populates the upgradeable predeploys namespace with proxies, to reserve the addresses
@@ -338,10 +349,16 @@ contract GenerateAlloc is Script {
         console2.log("UBIPool owner:", UBIPool(Predeploys.UBIPool).owner());
     }
 
+    /// @notice Sets the bytecode for the implementation of DKG predeploy
     function setDKG() internal {
         address impl = Predeploys.getImplAddress(Predeploys.DKG);
         address tmp = address(new DKG());
         vm.etch(impl, tmp.code);
+
+        // reset tmp
+        vm.etch(tmp, "");
+        vm.store(tmp, 0, "0x");
+        vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
 
@@ -357,10 +374,78 @@ contract GenerateAlloc is Script {
             fee
         );
 
+        console2.log("DKG proxy deployed at:", Predeploys.DKG);
+        console2.log("DKG ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.DKG));
+        console2.log("DKG impl at:", EIP1967Helper.getImplementation(Predeploys.DKG));
+        console2.log("DKG owner:", DKG(Predeploys.DKG).owner());
+    }
+
+    /// @notice Sets the bytecode for the implementation of CDR predeploy
+    function setCDR() internal {
+        address impl = Predeploys.getImplAddress(Predeploys.CDR);
+        address tmp = address(new CDR());
+        vm.etch(impl, tmp.code);
+
         // reset tmp
         vm.etch(tmp, "");
         vm.store(tmp, 0, "0x");
         vm.resetNonce(tmp);
+
+        InitializableHelper.disableInitializers(impl);
+
+        uint256 baseFee = 0;
+        uint256 writeFee = 0;
+        uint256 readFee = 0;
+        uint256 allocateFee = 0;
+        CDR(Predeploys.CDR).initialize(timelock, baseFee, writeFee, readFee, allocateFee);
+
+        console2.log("CDR proxy deployed at:", Predeploys.CDR);
+        console2.log("CDR ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.CDR));
+        console2.log("CDR impl at:", EIP1967Helper.getImplementation(Predeploys.CDR));
+        console2.log("CDR owner:", CDR(Predeploys.CDR).owner());
+    }
+
+    /// @notice Deploys SGXValidationHook (impl + proxy) via Create3 and whitelists it on DKG
+    /// @dev Edit SGX_CODE_COMMITMENT, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER constants above
+    function setSGXValidationHook() internal {
+        // Deploy SGXValidationHook implementation via Create3
+        bytes memory implCreationCode = abi.encodePacked(
+            type(SGXValidationHook).creationCode,
+            abi.encode(Predeploys.DKG)
+        );
+        address sgxHookImpl = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_SGX_VALIDATION_HOOK_IMPL"),
+            implCreationCode
+        );
+
+        // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
+        bytes memory initData = abi.encodeCall(
+            SGXValidationHook.initialize,
+            (timelock, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
+        );
+        bytes memory proxyCreationCode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(sgxHookImpl, timelock, initData)
+        );
+        address sgxHookProxy = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_SGX_VALIDATION_HOOK_PROXY"),
+            proxyCreationCode
+        );
+
+        // Whitelist SGX enclave type on DKG (owner=timelock)
+        bytes32 enclaveType = bytes32(uint256(1));
+        IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
+            codeCommitment: SGX_CODE_COMMITMENT,
+            validationHookAddr: sgxHookProxy
+        });
+        vm.stopPrank();
+        vm.prank(timelock);
+        DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
+        vm.startPrank(deployer);
+
+        console2.log("SGXValidationHook impl deployed at:", sgxHookImpl);
+        console2.log("SGXValidationHook proxy deployed at:", sgxHookProxy);
+        console2.log("SGXValidationHook owner:", SGXValidationHook(sgxHookProxy).owner());
     }
 
     /// @notice Sets the bytecode for Create3 factory as a predeploy

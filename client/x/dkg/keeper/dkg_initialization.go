@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/server/utils"
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -79,16 +80,50 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	}
 
 	if k.isDKGSvcEnabled {
+		// Skip registration if this validator already has an on-chain registration
+		// for this round. This prevents overwriting a valid registration with
+		// different keys after a reset where sealed_keys were deleted.
+		if k.isAlreadyRegistered(ctx, roundNum) {
+			return nil
+		}
+
+		// Pre-compute old code commitment while we still have SDK context.
+		// The async goroutine uses context.Background() which cannot access
+		// the Cosmos KV store.
+		oldCC, _ := k.getOldCodeCommitment(ctx)
+
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, &dkgNetwork)
+			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC)
 		}()
 	}
 
 	return nil
+}
+
+// isAlreadyRegistered checks whether this validator has an existing on-chain
+// registration for the given round. Used to prevent re-registration with
+// potentially different keys after sealed_keys deletion or kernel restart.
+func (k *Keeper) isAlreadyRegistered(ctx context.Context, round uint32) bool {
+	addr := ethcommon.HexToAddress(k.validatorEVMAddr)
+	reg, err := k.getDKGRegistration(ctx, round, addr)
+	if err != nil || reg == nil {
+		return false
+	}
+
+	if len(reg.DkgPubKey) > 0 {
+		log.Info(ctx, "Validator already registered on-chain; skipping re-registration",
+			"round", round,
+			"status", reg.Status.String(),
+		)
+
+		return true
+	}
+
+	return false
 }
 
 func (k *Keeper) shouldReshare(ctx context.Context) (bool, error) {
