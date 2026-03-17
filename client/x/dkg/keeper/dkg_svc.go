@@ -342,6 +342,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		resp.EphemeralPubKey,
 		resp.PubShare,
 		req.RequesterPubKey,
+		req.Ciphertext,
 		uuid,
 		resp.Signature,
 	); err != nil {

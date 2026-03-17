@@ -150,6 +150,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 				sdk.NewAttribute(types.AttributeKeyDKGEphemeralKeyLen, strconv.Itoa(len(ev.EphemeralPubKey))),
 				sdk.NewAttribute(types.AttributeKeyDKGPubShareLen, strconv.Itoa(len(ev.PubShare))),
 				sdk.NewAttribute(types.AttributeKeyDKGRequesterPubKeyLen, strconv.Itoa(len(ev.RequesterPubKey))),
+				sdk.NewAttribute(types.AttributeKeyDKGCiphertextLen, strconv.Itoa(len(ev.Ciphertext))),
 				sdk.NewAttribute(types.AttributeKeyDKGLabelLen, strconv.Itoa(len(label))),
 				sdk.NewAttribute(types.AttributeKeyTxHash, hex.EncodeToString(ethlog.TxHash.Bytes())),
 			),
@@ -165,6 +166,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		ev.EphemeralPubKey,
 		ev.PubShare,
 		ev.RequesterPubKey,
+		ev.Ciphertext,
 		label[:],
 		ev.Signature,
 	)

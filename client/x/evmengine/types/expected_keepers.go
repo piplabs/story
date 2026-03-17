@@ -49,7 +49,7 @@ type DKGKeeper interface {
 	UpgradeScheduled(ctx context.Context, activationHeight int64, upgradeVersion string) error
 	UpgradeCancelled(ctx context.Context, upgradeVersion string) error
 	ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error
-	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, label []byte, signature []byte) error
+	PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, label []byte, signature []byte) error
 
 	// CDR fee pool operations
 	AddCDRFeeToPool(ctx context.Context, amount *big.Int) error

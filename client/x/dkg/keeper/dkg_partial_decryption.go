@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,12 +15,14 @@ import (
 
 var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
 
-func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, round uint32, validator common.Address) string {
+func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, ciphertext []byte, round uint32, validator common.Address) string {
 	requesterHash := crypto.Keccak256(requesterPubKey)
+	ciphertextHash := sha256.Sum256(ciphertext)
 	return fmt.Sprintf(
-		"%s_%s_%d_%s",
+		"%s_%s_%s_%d_%s",
 		hex.EncodeToString(requesterHash),
 		hex.EncodeToString(label),
+		hex.EncodeToString(ciphertextHash[:]),
 		round,
 		validator.Hex(),
 	)
@@ -40,8 +43,9 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	pubShare []byte,
 	requesterPubKey []byte,
 	label []byte,
+	ciphertext []byte,
 ) error {
-	key := dkgPartialDecryptKey(requesterPubKey, label, round, validator)
+	key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, validator)
 	exists, err := k.DKGPartialDecrypt.Has(ctx, key)
 	if err != nil {
 		return errors.Wrap(err, "check partial decryption submission")
@@ -58,6 +62,7 @@ func (k *Keeper) setPartialDecryptionSubmission(
 		EphemeralPubKey:  ephemeralPubKey,
 		PubShare:         pubShare,
 		Label:            label,
+		Ciphertext:       ciphertext,
 	})
 	if err != nil {
 		return errors.Wrap(err, "marshal partial decryption submission")

@@ -217,6 +217,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param ephemeralPubKey The ephemeral public key used for encryption
     /// @param pubShare The validator's public key share
     /// @param requesterPubKey The public key of the requester
+    /// @param ciphertext The ciphertext associated with the request
     /// @param uuid The UUID of the vault
     /// @param signature The signature over the partial decryption payload
     function submitEncryptedPartialDecryption(
@@ -226,6 +227,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata ephemeralPubKey,
         bytes calldata pubShare,
         bytes calldata requesterPubKey,
+        bytes calldata ciphertext,
         uint32 uuid,
         bytes calldata signature
     ) external payable whenNotPaused {
@@ -241,6 +243,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
             ephemeralPubKey,
             pubShare,
             requesterPubKey,
+            ciphertext,
             uuid,
             signature,
             fee

@@ -13,16 +13,23 @@ import (
 )
 
 // decryptRequestRegistryKey builds the key for the DecryptRequestRegistry map:
-// hex(sha256(requesterPubKey))_hex(sha256(label))
-func decryptRequestRegistryKey(requesterPubKey []byte, label []byte) string {
+// hex(sha256(requesterPubKey))_hex(sha256(label))_round_hex(sha256(ciphertext))
+func decryptRequestRegistryKey(requesterPubKey []byte, label []byte, round uint32, ciphertext []byte) string {
 	requesterHash := sha256.Sum256(requesterPubKey)
-	return fmt.Sprintf("%s_%s", hex.EncodeToString(requesterHash[:]), label)
+	ciphertextHash := sha256.Sum256(ciphertext)
+	return fmt.Sprintf(
+		"%s_%s_%d_%s",
+		hex.EncodeToString(requesterHash[:]),
+		label,
+		round,
+		hex.EncodeToString(ciphertextHash[:]),
+	)
 }
 
 // setDecryptRequest registers a threshold decrypt request in the registry.
 // Called by all consensus nodes in ThresholdDecryptRequested.
 func (k *Keeper) setDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte, req types.DecryptRequest) error {
-	key := decryptRequestRegistryKey(requesterPubKey, label)
+	key := decryptRequestRegistryKey(requesterPubKey, label, req.Round, req.Ciphertext)
 	if err := k.DecryptRequestRegistry.Set(ctx, key, req); err != nil {
 		return errors.Wrap(err, "set decrypt request registry")
 	}
@@ -31,8 +38,8 @@ func (k *Keeper) setDecryptRequest(ctx context.Context, requesterPubKey []byte, 
 
 // getDecryptRequest retrieves the stored decrypt request.
 // Returns (req, true, nil) if found, or (zero, false, nil) if not found.
-func (k *Keeper) getDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte) (types.DecryptRequest, bool, error) {
-	key := decryptRequestRegistryKey(requesterPubKey, label)
+func (k *Keeper) getDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte, round uint32, ciphertext []byte) (types.DecryptRequest, bool, error) {
+	key := decryptRequestRegistryKey(requesterPubKey, label, round, ciphertext)
 	req, err := k.DecryptRequestRegistry.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, collections.ErrNotFound) {
@@ -44,8 +51,8 @@ func (k *Keeper) getDecryptRequest(ctx context.Context, requesterPubKey []byte, 
 }
 
 // deleteDecryptRequest removes a single registry entry by label.
-func (k *Keeper) deleteDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte) error {
-	key := decryptRequestRegistryKey(requesterPubKey, label)
+func (k *Keeper) deleteDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte, round uint32, ciphertext []byte) error {
+	key := decryptRequestRegistryKey(requesterPubKey, label, round, ciphertext)
 	if err := k.DecryptRequestRegistry.Remove(ctx, key); err != nil {
 		return errors.Wrap(err, "delete decrypt request registry entry")
 	}
