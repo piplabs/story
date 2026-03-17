@@ -103,10 +103,6 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		return errors.New(fmt.Sprintf("round mismatch: expected %d, got %d)", latest.Round, round))
 	}
 
-	if err := k.validateParticipantsRoot(ctx, round, participantsRoot); err != nil {
-		return errors.Wrap(err, "failed to validate participants root")
-	}
-
 	if latest.Stage != types.DKGStageFinalization {
 		return errors.New("round is not in network set stage")
 	}
@@ -125,6 +121,10 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 	// Reject finalization by invalidated dealers (deal complaint found invalid via VSS verification)
 	if reg.Status == types.DKGRegStatusInvalidated {
 		return errors.New("dealer has been invalidated and cannot finalize")
+	}
+
+	if err := k.validateParticipantsRoot(ctx, round, participantsRoot); err != nil {
+		return errors.Wrap(err, "failed to validate participants root")
 	}
 
 	if err := verifyFinalizationSignature(reg.CommPubKey, round, codeCommitment, participantsRoot, globalPubKey, publicCoeffs, pubKeyShare, signature); err != nil {
@@ -161,18 +161,28 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 }
 
 // validateParticipantsRoot validates the root hash of the participants.
+// It considers both Verified and Finalized registrations because earlier
+// finalization events transition registrations from Verified to Finalized,
+// so by the time later validators finalize, some registrations are already Finalized.
 func (k *Keeper) validateParticipantsRoot(ctx context.Context, round uint32, participantsRoot [32]byte) error {
 	verifiedRegs, err := k.getDKGRegistrationsByStatus(ctx, round, types.DKGRegStatusVerified)
 	if err != nil {
 		return errors.Wrap(err, "failed to get verified DKG registration")
 	}
 
-	if len(verifiedRegs) == 0 {
-		return errors.New("no verified DKG registrations found")
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, round, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to get finalized DKG registration")
 	}
 
-	addrs := make([]string, 0, len(verifiedRegs))
-	for _, reg := range verifiedRegs {
+	allRegs := append(verifiedRegs, finalizedRegs...)
+
+	if len(allRegs) == 0 {
+		return errors.New("no verified or finalized DKG registrations found")
+	}
+
+	addrs := make([]string, 0, len(allRegs))
+	for _, reg := range allRegs {
 		addr := strings.ToLower(strings.TrimSpace(reg.ValidatorAddr))
 		if !common.IsHexAddress(addr) {
 			return errors.New("invalid validator evm address in verified registrations", "validator_addr", reg.ValidatorAddr)

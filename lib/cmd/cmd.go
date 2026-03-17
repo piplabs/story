@@ -157,6 +157,16 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) error {
 				val = strings.Join(kvs, ",")
 			}
 
+			// Special case handling of stringSlice flags.
+			// viper returns []interface{} for TOML arrays, fmt.Sprintf produces "[a b]"
+			// which pflag's StringSlice parses as a single element "[a b]" including brackets.
+			// Convert to CSV format "a,b" which pflag expects.
+			if f.Value.Type() == "stringSlice" {
+				if ss := v.GetStringSlice(name); len(ss) > 0 {
+					val = strings.Join(ss, ",")
+				}
+			}
+
 			err := cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
 			if err != nil {
 				lastErr = err
