@@ -514,7 +514,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		)
 	}
 
-	if ciphertext != nil && !bytes.Equal(ciphertext, req.Ciphertext) {
+	if !bytes.Equal(ciphertext, req.Ciphertext) {
 		return errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
 			"validator", validator.Hex(),
 			"label", hex.EncodeToString(label),
