@@ -734,19 +734,19 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 	require.NoError(t, err)
 	commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:]
 
-	codeCommitment := [32]byte{0x0A, 0x0B, 0x0C, 0x0D}
 	round := uint32(7)
+	ciphertext := []byte("ciphertext")
 	encryptedPartial := []byte("encrypted-partial")
 	ephemeralPubKey := []byte("ephemeral-pub-key")
 	pubShare := []byte("pub-share")
 
-	validSig := signPartialDecryptionData(t, sigKey, round, encryptedPartial, ephemeralPubKey, pubShare)
+	validSig := signPartialDecryptionData(t, sigKey, round, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
 
 	tcs := []struct {
 		name             string
 		commPubKey       []byte
-		codeCommitment   [32]byte
 		round            uint32
+		ciphertext       []byte
 		encryptedPartial []byte
 		ephemeralPubKey  []byte
 		pubShare         []byte
@@ -756,8 +756,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "pass: valid signature",
 			commPubKey:       commPubKey,
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -766,9 +766,20 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: tampered encryptedPartial",
 			commPubKey:       commPubKey,
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: []byte("tampered-partial"),
+			ephemeralPubKey:  ephemeralPubKey,
+			pubShare:         pubShare,
+			signature:        validSig,
+			expectedErr:      "partial decryption signature address mismatch",
+		},
+		{
+			name:             "fail: tampered ciphertext",
+			commPubKey:       commPubKey,
+			round:            round,
+			ciphertext:       []byte("tampered-ciphertext"),
+			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
 			signature:        validSig,
@@ -777,8 +788,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: tampered ephemeralPubKey",
 			commPubKey:       commPubKey,
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  []byte("tampered-ephemeral"),
 			pubShare:         pubShare,
@@ -788,8 +799,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: wrong commPubKey (64 bytes but different key)",
 			commPubKey:       make([]byte, 64),
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -799,8 +810,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: commPubKey too short",
 			commPubKey:       []byte("short"),
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -810,8 +821,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: commPubKey 65 bytes (with 0x04 prefix)",
 			commPubKey:       append([]byte{0x04}, commPubKey...),
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -821,8 +832,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: invalid signature bytes",
 			commPubKey:       commPubKey,
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -832,8 +843,8 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 		{
 			name:             "fail: corrupted 65-byte signature",
 			commPubKey:       commPubKey,
-			codeCommitment:   codeCommitment,
 			round:            round,
+			ciphertext:       ciphertext,
 			encryptedPartial: encryptedPartial,
 			ephemeralPubKey:  ephemeralPubKey,
 			pubShare:         pubShare,
@@ -844,7 +855,7 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := verifyPartialDecryptionSignature(tc.commPubKey, tc.round, tc.encryptedPartial, tc.ephemeralPubKey, tc.pubShare, tc.signature)
+			err := verifyPartialDecryptionSignature(tc.commPubKey, tc.round, tc.ciphertext, tc.encryptedPartial, tc.ephemeralPubKey, tc.pubShare, tc.signature)
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
@@ -855,14 +866,15 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 	}
 }
 
-func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, round uint32, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
+func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, round uint32, ciphertext []byte, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
 	t.Helper()
 
 	roundBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(roundBytes, round)
 
-	encoded := make([]byte, 0, 4+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
+	encoded := make([]byte, 0, 4+len(ciphertext)+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
 	encoded = append(encoded, roundBytes...)
+	encoded = append(encoded, ciphertext...)
 	encoded = append(encoded, encryptedPartial...)
 	encoded = append(encoded, ephemeralPubKey...)
 	encoded = append(encoded, pubShare...)

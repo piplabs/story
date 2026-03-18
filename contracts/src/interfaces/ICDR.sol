@@ -60,6 +60,7 @@ interface ICDR {
     /// @param ephemeralPubKey The ephemeral public key used for encryption
     /// @param pubShare The validator's public key share
     /// @param requesterPubKey The public key of the requester
+    /// @param ciphertext The ciphertext associated with the request
     /// @param uuid The UUID of the vault
     /// @param signature The signature over the partial decryption payload
     /// @param fee The fee collected for the submission
@@ -71,6 +72,7 @@ interface ICDR {
         bytes ephemeralPubKey,
         bytes pubShare,
         bytes requesterPubKey,
+        bytes ciphertext,
         uint32 uuid,
         bytes signature,
         uint256 fee
@@ -132,6 +134,7 @@ interface ICDR {
     /// @param ephemeralPubKey The ephemeral public key used for encryption
     /// @param pubShare The validator's public key share
     /// @param requesterPubKey The public key of the requester
+    /// @param ciphertext The ciphertext associated with the request
     /// @param uuid The UUID of the vault
     /// @param signature The signature over the partial decryption payload
     function submitEncryptedPartialDecryption(
@@ -141,6 +144,7 @@ interface ICDR {
         bytes calldata ephemeralPubKey,
         bytes calldata pubShare,
         bytes calldata requesterPubKey,
+        bytes calldata ciphertext,
         uint32 uuid,
         bytes calldata signature
     ) external payable;

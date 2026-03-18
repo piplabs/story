@@ -2,32 +2,34 @@ package keeper
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
 
 var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
 
-func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, round uint32, validator common.Address) string {
-	requesterHash := crypto.Keccak256(requesterPubKey)
+func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, ciphertext []byte, round uint32, validator common.Address) string {
+	requesterHash := sha256.Sum256(requesterPubKey)
+	ciphertextHash := sha256.Sum256(ciphertext)
 	return fmt.Sprintf(
-		"%s_%s_%d_%s",
-		hex.EncodeToString(requesterHash),
+		"%s_%s_%s_%d_%s",
+		hex.EncodeToString(requesterHash[:]),
 		hex.EncodeToString(label),
+		hex.EncodeToString(ciphertextHash[:]),
 		round,
 		validator.Hex(),
 	)
 }
 
 func dkgPartialDecryptPrefix(requesterPubKey []byte, label []byte) string {
-	requesterHash := crypto.Keccak256(requesterPubKey)
-	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash), hex.EncodeToString(label))
+	requesterHash := sha256.Sum256(requesterPubKey)
+	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash[:]), hex.EncodeToString(label))
 }
 
 func (k *Keeper) setPartialDecryptionSubmission(
@@ -40,8 +42,9 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	pubShare []byte,
 	requesterPubKey []byte,
 	label []byte,
+	ciphertext []byte,
 ) error {
-	key := dkgPartialDecryptKey(requesterPubKey, label, round, validator)
+	key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, validator)
 	exists, err := k.DKGPartialDecrypt.Has(ctx, key)
 	if err != nil {
 		return errors.Wrap(err, "check partial decryption submission")
@@ -58,6 +61,7 @@ func (k *Keeper) setPartialDecryptionSubmission(
 		EphemeralPubKey:  ephemeralPubKey,
 		PubShare:         pubShare,
 		Label:            label,
+		Ciphertext:       ciphertext,
 	})
 	if err != nil {
 		return errors.Wrap(err, "marshal partial decryption submission")

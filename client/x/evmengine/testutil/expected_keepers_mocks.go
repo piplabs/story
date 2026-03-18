@@ -391,17 +391,17 @@ func (mr *MockDKGKeeperMockRecorder) IncrementCDRPartialSubmitCount(ctx, validat
 }
 
 // PartialDecryptionSubmitted mocks base method.
-func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature []byte) error {
+func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
+	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
-func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature any) *gomock.Call {
+func (mr *MockDKGKeeperMockRecorder) PartialDecryptionSubmitted(ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, label, signature)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartialDecryptionSubmitted", reflect.TypeOf((*MockDKGKeeper)(nil).PartialDecryptionSubmitted), ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature)
 }
 
 // RefundCDRFee mocks base method.

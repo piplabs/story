@@ -215,6 +215,7 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 	ephemeralPubKey []byte,
 	pubShare []byte,
 	requesterPubKey []byte,
+	ciphertext []byte,
 	uuid uint32,
 	signature []byte,
 ) (*types.Receipt, error) {
@@ -225,11 +226,12 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 		"eph_pub_len", len(ephemeralPubKey),
 		"pub_share_len", len(pubShare),
 		"requester_pub_key_len", len(requesterPubKey),
+		"ciphertext_len", len(ciphertext),
 		"uuid", uuid,
 		"signature_len", len(signature),
 	)
 
-	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryption", round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryption call data")
 	}
@@ -242,7 +244,7 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 	log.Info(ctx, "CDR base fee queried for partial decryption", "fee_wei", fee.String())
 
 	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, uuid, signature)
+		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
 	})
 }
 

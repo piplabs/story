@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"sort"
 
 	"cosmossdk.io/collections"
@@ -153,7 +154,11 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 	}
 	defer iter.Close()
 
-	grouped := make(map[uint32][]types.DKGPartialDecryptionSubmission)
+	grouped := make(map[string]struct {
+		round      uint32
+		ciphertext []byte
+		items      []types.DKGPartialDecryptionSubmission
+	})
 	for ; iter.Valid(); iter.Next() {
 		bz, err := iter.Value()
 		if err != nil {
@@ -163,7 +168,14 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		grouped[submissionTmp.Round] = append(grouped[submissionTmp.Round], *submissionTmp)
+		groupKey := fmt.Sprintf("%d:%s", submissionTmp.Round, hex.EncodeToString(submissionTmp.Ciphertext))
+		entry := grouped[groupKey]
+		if entry.items == nil {
+			entry.round = submissionTmp.Round
+			entry.ciphertext = submissionTmp.Ciphertext
+		}
+		entry.items = append(entry.items, *submissionTmp)
+		grouped[groupKey] = entry
 	}
 
 	if len(grouped) == 0 {
@@ -171,23 +183,27 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 	}
 
 	groupedResp := make([]types.DKGPartialDecryptionSubmissionsByRound, 0, len(grouped))
-	for round, submissions := range grouped {
-		network, err := k.getDKGNetwork(ctx, round)
+	for _, entry := range grouped {
+		network, err := k.getDKGNetwork(ctx, entry.round)
 		if err != nil {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		threshold := network.Threshold
-		thresholdMet := uint32(len(submissions)) >= threshold
+		thresholdMet := uint32(len(entry.items)) >= threshold
 		groupedResp = append(groupedResp, types.DKGPartialDecryptionSubmissionsByRound{
-			Round:        round,
-			Submissions:  submissions,
+			Round:        entry.round,
+			Submissions:  entry.items,
+			Ciphertext:   entry.ciphertext,
 			Threshold:    threshold,
 			ThresholdMet: thresholdMet,
 		})
 	}
 
 	sort.Slice(groupedResp, func(i, j int) bool {
-		return groupedResp[i].Round < groupedResp[j].Round
+		if groupedResp[i].Round != groupedResp[j].Round {
+			return groupedResp[i].Round < groupedResp[j].Round
+		}
+		return hex.EncodeToString(groupedResp[i].Ciphertext) < hex.EncodeToString(groupedResp[j].Ciphertext)
 	})
 
 	return &types.QueryGetCDRPartialsResponse{Submissions: groupedResp}, nil

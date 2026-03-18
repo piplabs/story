@@ -229,6 +229,10 @@ message DKGPartialDecryptionSubmission {
   bytes label = 7 [
     (gogoproto.moretags) = "yaml:\"label\""
   ];
+
+  bytes ciphertext = 8 [
+    (gogoproto.moretags) = "yaml:\"ciphertext\""
+  ];
 }
 
 message DKGPartialDecryptionSubmissionsByRound {
@@ -241,11 +245,15 @@ message DKGPartialDecryptionSubmissionsByRound {
     (gogoproto.moretags) = "yaml:\"submissions\""
   ];
 
-  uint32 threshold = 3 [
+  bytes ciphertext = 3 [
+    (gogoproto.moretags) = "yaml:\"ciphertext\""
+  ];
+
+  uint32 threshold = 4 [
     (gogoproto.moretags) = "yaml:\"threshold\""
   ];
 
-  bool threshold_met = 4 [
+  bool threshold_met = 5 [
     (gogoproto.moretags) = "yaml:\"threshold_met\""
   ];
 }
