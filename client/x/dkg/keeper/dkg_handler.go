@@ -505,6 +505,25 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		)
 		return nil
 	}
+
+	if round != req.Round {
+		return errors.New("round mismatch between partial decryption submission and decrypt request",
+			"validator", validator.Hex(),
+			"submission_round", round,
+			"request_round", req.Round,
+		)
+	}
+
+	if ciphertext != nil && !bytes.Equal(ciphertext, req.Ciphertext) {
+		return errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
+			"validator", validator.Hex(),
+			"label", hex.EncodeToString(label),
+			"round", round,
+			"submission_ciphertext", hex.EncodeToString(ciphertext),
+			"request_ciphertext", hex.EncodeToString(req.Ciphertext),
+		)
+	}
+
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
 	if currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
@@ -528,24 +547,6 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		return errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
 			"validator", validator.Hex(),
 			"round", req.Round,
-		)
-	}
-
-	if round != req.Round {
-		return errors.New("round mismatch between partial decryption submission and decrypt request",
-			"validator", validator.Hex(),
-			"submission_round", round,
-			"request_round", req.Round,
-		)
-	}
-
-	if ciphertext != nil && !bytes.Equal(ciphertext, req.Ciphertext) {
-		return errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
-			"validator", validator.Hex(),
-			"label", hex.EncodeToString(label),
-			"round", round,
-			"submission_ciphertext", hex.EncodeToString(ciphertext),
-			"request_ciphertext", hex.EncodeToString(req.Ciphertext),
 		)
 	}
 

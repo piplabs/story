@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 )
@@ -16,11 +15,11 @@ import (
 var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
 
 func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, ciphertext []byte, round uint32, validator common.Address) string {
-	requesterHash := crypto.Keccak256(requesterPubKey)
+	requesterHash := sha256.Sum256(requesterPubKey)
 	ciphertextHash := sha256.Sum256(ciphertext)
 	return fmt.Sprintf(
 		"%s_%s_%s_%d_%s",
-		hex.EncodeToString(requesterHash),
+		hex.EncodeToString(requesterHash[:]),
 		hex.EncodeToString(label),
 		hex.EncodeToString(ciphertextHash[:]),
 		round,
@@ -29,8 +28,8 @@ func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, ciphertext []byt
 }
 
 func dkgPartialDecryptPrefix(requesterPubKey []byte, label []byte) string {
-	requesterHash := crypto.Keccak256(requesterPubKey)
-	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash), hex.EncodeToString(label))
+	requesterHash := sha256.Sum256(requesterPubKey)
+	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash[:]), hex.EncodeToString(label))
 }
 
 func (k *Keeper) setPartialDecryptionSubmission(
