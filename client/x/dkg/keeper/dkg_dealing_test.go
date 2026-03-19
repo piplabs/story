@@ -430,7 +430,7 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 
 // TestMaxJustificationsPerBlock verifies that the truncation slice operation
 // correctly caps justifications to MaxJustificationsPerBlock, matching the
-// logic used inside handleDKGProcessJustifications.
+// logic used inside ProcessJustifications.
 func TestMaxJustificationsPerBlock(t *testing.T) {
 	const overCount = MaxJustificationsPerBlock + 50
 
@@ -448,7 +448,7 @@ func TestMaxJustificationsPerBlock(t *testing.T) {
 		}
 	}
 
-	// Apply the same truncation logic used in handleDKGProcessJustifications.
+	// Apply the same truncation logic used in ProcessJustifications.
 	if len(input) > MaxJustificationsPerBlock {
 		input = input[:MaxJustificationsPerBlock]
 	}
@@ -467,7 +467,7 @@ func TestMaxJustificationsPerBlock(t *testing.T) {
 
 // TestJustificationPipeline_SignatureThenDedupThenVSS verifies the full
 // signature → deduplication → VSS verification pipeline that mirrors the
-// logic inside handleDKGProcessJustifications.
+// logic inside ProcessJustifications.
 //
 // Three sub-scenarios exercise every branch of the pipeline:
 //  1. Valid-signature justifications pass through; invalid-signature ones are dropped.
@@ -583,7 +583,7 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 
 		input := []types.Justification{jValid, jBadSig, jBadVSS}
 
-		// Apply the same three-step pipeline used by handleDKGProcessJustifications.
+		// Apply the same three-step pipeline used by ProcessJustifications.
 
 		// Step 1: filter by Schnorr signature.
 		var sigVerified []types.Justification
@@ -614,5 +614,101 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 		require.Len(t, finalValid, 1, "only the VSS-valid justification should survive")
 		require.Equal(t, uint32(0), finalValid[0].Index,
 			"surviving justification must come from dealer 0")
+	})
+}
+
+// TestProcessJustifications_InvalidatesDealer verifies that ProcessJustifications
+// invalidates a dealer's on-chain registration when VSS verification fails,
+// while leaving valid dealers untouched. This is the core fix for issue #717:
+// previously, VSS failure only logged a message in the async goroutine and
+// could not update on-chain state.
+func TestProcessJustifications_InvalidatesDealer(t *testing.T) {
+	const n = 3
+
+	k, ctx := setupDKGKeeper(t)
+	k.isDKGSvcEnabled = true
+
+	// Initialize stateManager so handleDKGProcessJustifications doesn't panic
+	// when forwarding valid justifications to kernel in async goroutine.
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	k.stateManager = sm
+
+	round := uint32(1)
+
+	// Set up two dealers with real crypto keys
+	dealer0 := newDealerTestContext(t, n, dealingTestThreshold)
+	addr0 := common.HexToAddress("0x0000000000000000000000000000000000000001")
+	setupDealerRegistrationWithKey(t, k, ctx, round, addr0, 0, dealer0.pubBytes)
+
+	dealer1 := newDealerTestContext(t, n, dealingTestThreshold)
+	addr1 := common.HexToAddress("0x0000000000000000000000000000000000000002")
+	setupDealerRegistrationWithKey(t, k, ctx, round, addr1, 1, dealer1.pubBytes)
+
+	network := &types.DKGNetwork{
+		Round:     round,
+		Total:     uint32(n),
+		Threshold: dealingTestThreshold,
+	}
+
+	t.Run("VSS failure invalidates dealer registration", func(t *testing.T) {
+		// dealer1 produces a justification with valid signature but invalid share
+		jBadVSS := dealer1.makeInvalidDealJustification(t, 1)
+
+		err := k.ProcessJustifications(ctx, network, []types.Justification{jBadVSS})
+		require.NoError(t, err)
+
+		// Dealer 1's registration must now be Invalidated
+		reg1, err := k.getDKGRegistration(ctx, round, addr1)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusInvalidated, reg1.Status,
+			"dealer with invalid VSS must be invalidated")
+
+		// Dealer 0's registration must remain Verified (unaffected)
+		reg0, err := k.getDKGRegistration(ctx, round, addr0)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg0.Status,
+			"uninvolved dealer must remain Verified")
+	})
+
+	t.Run("valid justification does not invalidate dealer", func(t *testing.T) {
+		// Reset dealer0 to Verified for a clean test
+		setupDealerRegistrationWithKey(t, k, ctx, round, addr0, 0, dealer0.pubBytes)
+
+		jValid := dealer0.makeSignedJustification(t, 0, 0)
+
+		err := k.ProcessJustifications(ctx, network, []types.Justification{jValid})
+		require.NoError(t, err)
+
+		// Dealer 0's registration must still be Verified
+		reg0, err := k.getDKGRegistration(ctx, round, addr0)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg0.Status,
+			"dealer with valid VSS must remain Verified")
+	})
+
+	t.Run("mixed valid and invalid justifications", func(t *testing.T) {
+		// Reset both dealers
+		setupDealerRegistrationWithKey(t, k, ctx, round, addr0, 0, dealer0.pubBytes)
+		setupDealerRegistrationWithKey(t, k, ctx, round, addr1, 1, dealer1.pubBytes)
+
+		jValid := dealer0.makeSignedJustification(t, 0, 0)
+		jBadVSS := dealer1.makeInvalidDealJustification(t, 1)
+
+		err := k.ProcessJustifications(ctx, network, []types.Justification{jValid, jBadVSS})
+		require.NoError(t, err)
+
+		// Dealer 0 (valid) must remain Verified
+		reg0, err := k.getDKGRegistration(ctx, round, addr0)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg0.Status,
+			"dealer with valid justification must remain Verified")
+
+		// Dealer 1 (invalid VSS) must be Invalidated
+		reg1, err := k.getDKGRegistration(ctx, round, addr1)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusInvalidated, reg1.Status,
+			"dealer with invalid VSS must be Invalidated")
 	})
 }
