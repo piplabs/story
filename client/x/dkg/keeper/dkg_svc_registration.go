@@ -16,7 +16,10 @@ import (
 // handleDKGRegistration handles the DKG registration.
 // oldCC is the pre-computed old code commitment from the previous active DKG round,
 // resolved before the goroutine (which requires SDK context for KV store access).
-func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork, oldCC []byte) {
+// alreadyRegistered indicates whether this validator already has an on-chain
+// registration for this round (pre-computed with SDK context before the goroutine).
+// When true, the contract call is skipped and the session advances directly.
+func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork, oldCC []byte, alreadyRegistered bool) {
 	log.Info(ctx, "Handling DKG registration",
 		"round", dkgNetwork.Round,
 	)
@@ -87,7 +90,11 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if err := k.callContractRegister(ctx, session); err != nil {
+	if alreadyRegistered {
+		log.Info(ctx, "Validator already registered on-chain; skipping contract call",
+			"round", session.Round,
+		)
+	} else if err := k.callContractRegister(ctx, session); err != nil {
 		log.Error(ctx, "Failed to call register method", err)
 		k.stateManager.MarkFailed(ctx, session)
 
