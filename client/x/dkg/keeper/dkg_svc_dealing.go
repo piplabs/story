@@ -9,9 +9,6 @@ import (
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-
-	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -353,6 +350,57 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	)
 }
 
+// handleDKGProcessJustifications sends already-verified justifications to the kernel.
+// Justifications have passed Schnorr signature and VSS verification in ProcessJustifications
+// (FinalizeBlock context). This function only forwards them to the kernel via gRPC.
+// Also used for replaying cached justifications that failed the kernel gRPC call.
+func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
+	dkgKernelMu.Lock()
+	defer dkgKernelMu.Unlock()
+
+	session, err := k.stateManager.GetSession(dkgNetwork.Round)
+	if err != nil {
+		log.Error(ctx, "Failed to get DKG session for justification processing", err)
+
+		return
+	}
+
+	ccsToProcess := [][]byte{session.CodeCommitment}
+	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
+		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
+	}
+
+	for _, cc := range ccsToProcess {
+		if err := retry(ctx, func(ctx context.Context) error {
+			req := &types.ProcessJustificationRequest{
+				CodeCommitment: cc,
+				Round:          session.Round,
+				Justifications: justifications,
+				IsResharing:    session.IsResharing,
+			}
+
+			client, cErr := k.kernelRouter.GetClient(cc)
+			if cErr != nil {
+				return errors.Wrap(cErr, "no kernel client for session")
+			}
+
+			if _, err := client.ProcessJustification(ctx, req); err != nil {
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			log.Error(ctx, "Failed to process justifications via kernel", err,
+				"code_commitment", hex.EncodeToString(cc),
+			)
+
+			cachePendingIncomingJustifications(justifications)
+
+			continue
+		}
+	}
+}
+
 func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
 	inCurSet := slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr)
 
@@ -370,165 +418,6 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 	inPrevSet := slices.Contains(prevActive.ActiveValSet, k.validatorEVMAddr)
 
 	return inPrevSet, nil
-}
-
-// handleDKGProcessJustifications verifies and forwards valid justifications to story-kernel
-// for DKG state restoration. This is the off-chain (goroutine) handler that performs:
-//  1. Empty check and MaxJustificationsPerBlock cap
-//  2. ActiveValSet / session / phase check
-//  3. Schnorr signature verification → deduplication → Pedersen VSS verification
-//  4. Forward only valid justifications to story-kernel
-func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification, dealerPubKeys map[uint32]kyber.Point) {
-	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
-	dkgKernelMu.Lock()
-	defer dkgKernelMu.Unlock()
-
-	log.Info(ctx, "Handling DKG process justifications",
-		"round", dkgNetwork.Round,
-		"num_justifications", len(justifications),
-	)
-
-	if len(justifications) == 0 {
-		return
-	}
-
-	// Cap justifications per block to prevent resource exhaustion
-	if len(justifications) > MaxJustificationsPerBlock {
-		log.Warn(ctx, "Justification count exceeds max, truncating", nil,
-			"count", len(justifications),
-			"max", MaxJustificationsPerBlock,
-		)
-		justifications = justifications[:MaxJustificationsPerBlock]
-	}
-
-	if !slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr) {
-		log.Info(ctx, "Skip processing justifications as the validator is not in current round set")
-
-		return
-	}
-
-	session, err := k.stateManager.GetSession(dkgNetwork.Round)
-	if err != nil {
-		log.Error(ctx, "Failed to get DKG session", err)
-
-		return
-	}
-
-	// Accept justifications in both Initialized and Dealing phases (same reasoning as deals).
-	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
-		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process justifications", nil,
-			"current_phase", session.Phase.String(),
-		)
-
-		return
-	}
-
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-
-	// Step 1: Verify Schnorr signature FIRST, filter out unsigned/forged justifications.
-	// This MUST happen before deduplication so that an attacker cannot preempt a valid
-	// justification by broadcasting an unsigned one with the same (dealerIndex, recipientIndex).
-	var signatureVerified []types.Justification
-
-	for _, j := range justifications {
-		if err := verifyJustificationSignature(suite, j, dealerPubKeys); err != nil {
-			log.Debug(ctx, "Dropping justification with invalid signature",
-				"dealer_index", j.Index,
-				"error", err,
-			)
-
-			continue
-		}
-
-		signatureVerified = append(signatureVerified, j)
-	}
-
-	// Step 2: Deduplicate by (dealerIndex, recipientIndex) — now only signature-verified entries.
-	deduped := deduplicateJustifications(signatureVerified)
-
-	// Step 3: Perform Pedersen VSS verification on each deduplicated justification.
-	// Invalid justifications are silently dropped (not errors).
-	var validJustifications []types.Justification
-
-	for _, j := range deduped {
-		valid, err := verifyJustification(dkgNetwork, j)
-		if err != nil {
-			log.Warn(ctx, "Justification VSS verification error, dropping", err,
-				"dealer_index", j.Index,
-			)
-
-			continue
-		}
-
-		if !valid {
-			log.Info(ctx, "Justification VSS verification failed (deal was invalid), dropping",
-				"dealer_index", j.Index,
-			)
-
-			continue
-		}
-
-		validJustifications = append(validJustifications, j)
-	}
-
-	if len(validJustifications) == 0 {
-		log.Info(ctx, "No valid justifications after verification, skipping story-kernel call")
-
-		return
-	}
-
-	// During upgrade resharing, justifications must be forwarded to BOTH old and new
-	// binaries so each can update its DKG state accordingly.
-	ccsToProcess := [][]byte{session.CodeCommitment}
-	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
-		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
-	}
-
-	for _, cc := range ccsToProcess {
-		if err := retry(ctx, func(ctx context.Context) error {
-			log.Info(ctx, "ProcessJustification batch call to story-kernel client",
-				"code_commitment", hex.EncodeToString(cc),
-				"round", session.Round,
-				"num_justifications", len(validJustifications),
-			)
-
-			req := &types.ProcessJustificationRequest{
-				CodeCommitment: cc,
-				Round:          session.Round,
-				Justifications: validJustifications,
-				IsResharing:    session.IsResharing,
-			}
-
-			client, cErr := k.kernelRouter.GetClient(cc)
-			if cErr != nil {
-				return errors.Wrap(cErr, "no kernel client for session")
-			}
-
-			if _, err := client.ProcessJustification(ctx, req); err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			log.Error(ctx, "Failed to process justifications", err,
-				"code_commitment", hex.EncodeToString(cc),
-			)
-
-			// Cache for retry when kernel recovers.
-			cachePendingIncomingJustifications(validJustifications)
-
-			log.Info(ctx, "Cached justifications for retry",
-				"round", session.Round,
-				"cached_responses", len(validJustifications),
-			)
-
-			continue
-		}
-	}
-
-	log.Info(ctx, "Process justifications complete",
-		"round", session.Round,
-	)
 }
 
 // cachePendingIncomingResponses saves responses that failed kernel processing for later retry.
@@ -644,7 +533,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 				"num_justifications", len(drainedJustifications),
 			)
 
-			k.forwardJustificationsToKernel(asyncCtx, dkgNetwork, drainedJustifications)
+			k.handleDKGProcessJustifications(asyncCtx, dkgNetwork, drainedJustifications)
 		}
 	}()
 }
@@ -691,56 +580,6 @@ func flushPendingIncoming() {
 	pendingIncomingJustificationsMu.Lock()
 	pendingIncomingJustifications = nil
 	pendingIncomingJustificationsMu.Unlock()
-}
-
-// forwardJustificationsToKernel sends already-verified justifications to the kernel.
-// Used for replaying cached justifications that passed Schnorr + VSS verification
-// before caching but failed the kernel gRPC call.
-func (k *Keeper) forwardJustificationsToKernel(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
-	dkgKernelMu.Lock()
-	defer dkgKernelMu.Unlock()
-
-	session, err := k.stateManager.GetSession(dkgNetwork.Round)
-	if err != nil {
-		log.Error(ctx, "Failed to get DKG session for justification replay", err)
-
-		return
-	}
-
-	ccsToProcess := [][]byte{session.CodeCommitment}
-	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
-		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
-	}
-
-	for _, cc := range ccsToProcess {
-		if err := retry(ctx, func(ctx context.Context) error {
-			req := &types.ProcessJustificationRequest{
-				CodeCommitment: cc,
-				Round:          session.Round,
-				Justifications: justifications,
-				IsResharing:    session.IsResharing,
-			}
-
-			client, cErr := k.kernelRouter.GetClient(cc)
-			if cErr != nil {
-				return errors.Wrap(cErr, "no kernel client for session")
-			}
-
-			if _, err := client.ProcessJustification(ctx, req); err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			log.Error(ctx, "Failed to replay justifications", err,
-				"code_commitment", hex.EncodeToString(cc),
-			)
-
-			cachePendingIncomingJustifications(justifications)
-
-			continue
-		}
-	}
 }
 
 func (k *Keeper) shouldProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
