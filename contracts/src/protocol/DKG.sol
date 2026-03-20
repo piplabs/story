@@ -183,6 +183,7 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(enclaveReport.length != 0, "DKG: Enclave report cannot be empty");
         require(enclaveInstanceData.round != 0, "DKG: Round cannot be zero");
         require(enclaveInstanceData.validatorAddr != address(0), "DKG: Validator address cannot be empty");
+        require(enclaveInstanceData.validatorAddr == msg.sender, "DKG: Validator must be msg.sender");
         require(enclaveInstanceData.enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
         require(enclaveInstanceData.enclaveCommKey.length != 0, "DKG: Enclave communication key cannot be empty");
         require(enclaveInstanceData.dkgPubKey.length != 0, "DKG: DKG public key cannot be empty");
