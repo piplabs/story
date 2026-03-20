@@ -190,6 +190,20 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 // prevRoundCC is the code commitment from the previous active DKG round (pre-computed
 // from SDK context before the async goroutine).
 func (k *Keeper) getRegistrationKernelClient(isUpgrade bool, prevRoundCC []byte, upgradeOldCC []byte) (types.KernelServiceClient, []byte, error) {
+	client, cc, err := k.resolveRegistrationKernelClient(isUpgrade, prevRoundCC, upgradeOldCC)
+	if err == nil {
+		return client, cc, nil
+	}
+
+	// First attempt failed — try reconnecting to any disconnected endpoints
+	// and resolve again. This handles the case where story started before kernel.
+	k.kernelRouter.TryReconnect()
+
+	return k.resolveRegistrationKernelClient(isUpgrade, prevRoundCC, upgradeOldCC)
+}
+
+// resolveRegistrationKernelClient looks up the appropriate kernel client without reconnection.
+func (k *Keeper) resolveRegistrationKernelClient(isUpgrade bool, prevRoundCC []byte, upgradeOldCC []byte) (types.KernelServiceClient, []byte, error) {
 	if !isUpgrade {
 		// Use pre-computed CC from previous active round's registration.
 		if len(prevRoundCC) > 0 {

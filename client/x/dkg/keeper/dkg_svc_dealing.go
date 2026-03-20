@@ -76,7 +76,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 			Round:          session.Round,
 			IsResharing:    session.IsResharing,
 		}
-		client, cErr := k.kernelRouter.GetClient(dealerCC)
+		client, cErr := k.getClientWithReconnect(dealerCC)
 		if cErr != nil {
 			return errors.Wrap(cErr, "no kernel client for session")
 		}
@@ -177,7 +177,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 			return nil
 		}
 
-		client, cErr := k.kernelRouter.GetClient(session.CodeCommitment)
+		client, cErr := k.getClientWithReconnect(session.CodeCommitment)
 		if cErr != nil {
 			return errors.Wrap(cErr, "no kernel client for session")
 		}
@@ -305,7 +305,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 				IsResharing:    session.IsResharing,
 			}
 
-			client, cErr := k.kernelRouter.GetClient(cc)
+			client, cErr := k.getClientWithReconnect(cc)
 			if cErr != nil {
 				return errors.Wrap(cErr, "no kernel client for session")
 			}
@@ -379,7 +379,7 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 				IsResharing:    session.IsResharing,
 			}
 
-			client, cErr := k.kernelRouter.GetClient(cc)
+			client, cErr := k.getClientWithReconnect(cc)
 			if cErr != nil {
 				return errors.Wrap(cErr, "no kernel client for session")
 			}
@@ -489,8 +489,17 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 		return
 	}
 
-	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
-		return // kernel still unavailable, wait
+	if k.kernelRouter == nil {
+		return // kernel router not configured
+	}
+
+	if !k.kernelRouter.HasClients() {
+		// No clients connected — attempt reconnection before giving up.
+		k.kernelRouter.TryReconnect()
+
+		if !k.kernelRouter.HasClients() {
+			return // kernel still unavailable, wait
+		}
 	}
 
 	asyncCtx, cancel := dkgAsyncContext()

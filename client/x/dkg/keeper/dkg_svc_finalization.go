@@ -103,7 +103,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 			IsResharing:    session.IsResharing,
 		}
 
-		client, cErr := k.kernelRouter.GetClient(session.CodeCommitment)
+		client, cErr := k.getClientWithReconnect(session.CodeCommitment)
 		if cErr != nil {
 			return errors.Wrap(cErr, "no kernel client for session")
 		}

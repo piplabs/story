@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -178,4 +179,49 @@ func (r *KernelRouter) HasClients() bool {
 	defer r.mu.RUnlock()
 
 	return len(r.clients) > 0
+}
+
+// reconnectTimeout is the maximum duration for a single kernel reconnection
+// attempt (gRPC dial + GetCodeCommitment call).
+const reconnectTimeout = 10 * time.Second
+
+// TryReconnect attempts ConnectAndDiscover for any configured endpoints that
+// do not yet have an active client connection. It creates its own background
+// context with a short timeout so that reconnection is never tied to the
+// caller's context (e.g., CometBFT BeginBlocker which gets canceled after
+// block processing). Each endpoint is attempted once; failures are logged
+// but not returned so that the caller can continue with whatever clients
+// are available.
+func (r *KernelRouter) TryReconnect() {
+	disconnected := r.disconnectedEndpoints()
+	if len(disconnected) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), reconnectTimeout)
+	defer cancel()
+
+	for _, ep := range disconnected {
+		log.Info(ctx, "Attempting kernel reconnection", "endpoint", ep)
+
+		if err := r.ConnectAndDiscover(ctx, ep); err != nil {
+			log.Warn(ctx, "Kernel reconnection failed", err, "endpoint", ep)
+		}
+	}
+}
+
+// disconnectedEndpoints returns configured endpoints that do not have a
+// corresponding entry in the ccByEP map (i.e. no successful connection yet).
+func (r *KernelRouter) disconnectedEndpoints() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []string
+	for _, ep := range r.endpoints {
+		if _, ok := r.ccByEP[ep]; !ok {
+			out = append(out, ep)
+		}
+	}
+
+	return out
 }
