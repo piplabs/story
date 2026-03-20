@@ -138,11 +138,13 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         _getSGXValidationHookStorage().tcbEvaluationDataNumber = newTcbEvaluationDataNumber;
     }
 
-    /// @dev Extracts the code commitment from the enclave report
-    /// @param enclaveReport The enclave report
-    /// @return The code commitment
+    /// @dev Extracts the code commitment (MRENCLAVE) from the raw SGX quote
+    /// @param enclaveReport The raw SGX quote (header + report body + auth data)
+    /// @return The code commitment (MRENCLAVE)
     function _extractReportCodeCommitment(bytes calldata enclaveReport) internal returns (bytes32) {
-        return bytes32(enclaveReport.substring(64, 32));
+        // SGX quote header is 48 bytes, MRENCLAVE is at offset 64 within the report body
+        // Total offset from raw quote start: 48 (header) + 64 (MRENCLAVE in body) = 112
+        return bytes32(enclaveReport.substring(112, 32));
     }
 
     /// @dev Extracts the instance data commitment from the enclave report
