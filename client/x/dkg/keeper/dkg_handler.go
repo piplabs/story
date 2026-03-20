@@ -48,6 +48,14 @@ func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeC
 		return errors.New("msg sender is not in the active validator set")
 	}
 
+	exists, err := k.hasDKGRegistration(ctx, round, validator)
+	if err != nil {
+		return errors.Wrap(err, "failed to check existing dkg registration")
+	}
+	if exists {
+		return errors.New("validator already registered for this round", "round", round, "validator", validator.Hex())
+	}
+
 	index, err := k.getNextDKGRegistrationIndex(ctx, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get next dkg registration index")

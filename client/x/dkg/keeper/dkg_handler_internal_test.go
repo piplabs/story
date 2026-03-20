@@ -28,8 +28,6 @@ import (
 )
 
 func TestKeeper_RegistrationInitialized(t *testing.T) {
-	k, ctx := setupDKGKeeper(t)
-
 	testValidator := common.HexToAddress("0x1234567890123456789012345678901234567890")
 	testCodeCommitment := [32]byte{0x12, 0x34, 0x56, 0x78}
 	testRound := uint32(1)
@@ -39,17 +37,6 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 	testDkgPubKey := []byte("test-dkg-pubkey")
 	testCommPubKey := []byte("test-comm-pubkey")
 	testEnclaveReport := []byte("test-enclave-report")
-
-	validDKGNetwork := &types.DKGNetwork{
-		Round:            testRound,
-		StartBlockHeight: testStartBlockHeight.Int64(),
-		StartBlockHash:   testStartBlockHash[:],
-		ActiveValSet:     []string{testValidator.Hex()},
-		Total:            5,
-		Threshold:        3,
-		Stage:            types.DKGStageRegistration,
-	}
-	require.NoError(t, k.setDKGNetwork(ctx, validDKGNetwork))
 
 	tcs := []struct {
 		name             string
@@ -62,7 +49,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 		dkgPubKey        []byte
 		commPubKey       []byte
 		enclaveReport    []byte
-		setupNetwork     func()
+		setupNetwork     func(t *testing.T, k *Keeper, ctx context.Context)
 		expectedErr      string
 		expectedRegData  *types.DKGRegistration
 	}{
@@ -77,9 +64,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
-			setupNetwork: func() {
-				// Network already set up in test setup
-			},
+			setupNetwork:     nil,
 			expectedRegData: &types.DKGRegistration{
 				Round:          testRound,
 				ValidatorAddr:  testValidator.Hex(),
@@ -102,10 +87,8 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
-			setupNetwork: func() {
-				// Network already set up with height=100
-			},
-			expectedErr: "start block height mismatch",
+			setupNetwork:     nil,
+			expectedErr:      "start block height mismatch",
 		},
 		{
 			name:             "fail: start block hash mismatch",
@@ -117,10 +100,8 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
-			setupNetwork: func() {
-				// Network already set up with different hash
-			},
-			expectedErr: "start block hash mismatch",
+			setupNetwork:     nil,
+			expectedErr:      "start block hash mismatch",
 		},
 		{
 			name:             "fail: round not in registration stage",
@@ -132,7 +113,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
-			setupNetwork: func() {
+			setupNetwork: func(t *testing.T, k *Keeper, ctx context.Context) {
 				networkWithDifferentStage := &types.DKGNetwork{
 					Round:            testRound,
 					StartBlockHeight: testStartBlockHeight.Int64(),
@@ -156,7 +137,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        testDkgPubKey,
 			commPubKey:       testCommPubKey,
 			enclaveReport:    testEnclaveReport,
-			setupNetwork: func() {
+			setupNetwork: func(t *testing.T, k *Keeper, ctx context.Context) {
 				networkInRegistrationStage := &types.DKGNetwork{
 					Round:            testRound,
 					StartBlockHeight: testStartBlockHeight.Int64(),
@@ -171,6 +152,44 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			expectedErr: "msg sender is not in the active validator set",
 		},
 		{
+			name:             "fail: validator already registered for round",
+			msgSender:        testValidator,
+			codeCommitment:   testCodeCommitment,
+			round:            testRound + 1,
+			startBlockHeight: testStartBlockHeight,
+			startBlockHash:   testStartBlockHash,
+			enclaveType:      testEnclaveType,
+			dkgPubKey:        testDkgPubKey,
+			commPubKey:       testCommPubKey,
+			enclaveReport:    testEnclaveReport,
+			setupNetwork: func(t *testing.T, k *Keeper, ctx context.Context) {
+				network := &types.DKGNetwork{
+					Round:            testRound + 1,
+					StartBlockHeight: testStartBlockHeight.Int64(),
+					StartBlockHash:   testStartBlockHash[:],
+					ActiveValSet:     []string{testValidator.Hex()},
+					Total:            5,
+					Threshold:        3,
+					Stage:            types.DKGStageRegistration,
+				}
+				require.NoError(t, k.setDKGNetwork(ctx, network))
+
+				firstReg := &types.DKGRegistration{
+					Round:          testRound + 1,
+					ValidatorAddr:  testValidator.Hex(),
+					Index:          1,
+					DkgPubKey:      []byte("first-dkg-pubkey"),
+					CommPubKey:     []byte("first-comm-pubkey"),
+					EnclaveReport:  []byte("first-enclave-report"),
+					Status:         types.DKGRegStatusVerified,
+					CodeCommitment: testCodeCommitment[:],
+					EnclaveType:    testEnclaveType[:],
+				}
+				require.NoError(t, k.setDKGRegistration(ctx, testValidator, firstReg))
+			},
+			expectedErr: "validator already registered for this round",
+		},
+		{
 			name:             "pass: second registration gets incremented index",
 			msgSender:        testValidator,
 			codeCommitment:   testCodeCommitment,
@@ -181,7 +200,7 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 			dkgPubKey:        []byte("second-dkg-pubkey"),
 			commPubKey:       []byte("second-comm-pubkey"),
 			enclaveReport:    []byte("second-enclave-report"),
-			setupNetwork: func() {
+			setupNetwork: func(t *testing.T, k *Keeper, ctx context.Context) {
 				anotherValidator := common.HexToAddress("0xAABBCCDDEEFF112233445566778899AABBCCDDEE")
 				networkWithMultipleValidators := &types.DKGNetwork{
 					Round:            testRound,
@@ -205,12 +224,11 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 				}
 				require.NoError(t, k.setDKGRegistration(ctx, anotherValidator, firstReg))
 			},
-			// Index is 3 because the first "pass" subtest already created a registration (index 1),
-			// and setupNetwork adds anotherValidator (index 1), so getNextDKGRegistrationIndex returns 3.
+			// Index is 2 because setupNetwork adds anotherValidator (index 1) in this subtest only.
 			expectedRegData: &types.DKGRegistration{
 				Round:          testRound,
 				ValidatorAddr:  testValidator.Hex(),
-				Index:          3,
+				Index:          2,
 				DkgPubKey:      []byte("second-dkg-pubkey"),
 				CommPubKey:     []byte("second-comm-pubkey"),
 				EnclaveReport:  []byte("second-enclave-report"),
@@ -223,8 +241,20 @@ func TestKeeper_RegistrationInitialized(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			k, ctx := setupDKGKeeper(t)
 			if tc.setupNetwork != nil {
-				tc.setupNetwork()
+				tc.setupNetwork(t, k, ctx)
+			} else {
+				validDKGNetwork := &types.DKGNetwork{
+					Round:            tc.round,
+					StartBlockHeight: testStartBlockHeight.Int64(),
+					StartBlockHash:   testStartBlockHash[:],
+					ActiveValSet:     []string{testValidator.Hex()},
+					Total:            5,
+					Threshold:        3,
+					Stage:            types.DKGStageRegistration,
+				}
+				require.NoError(t, k.setDKGNetwork(ctx, validDKGNetwork))
 			}
 
 			err := k.Registered(ctx, tc.msgSender, tc.codeCommitment, tc.round, tc.startBlockHeight, tc.startBlockHash, tc.enclaveType, tc.dkgPubKey, tc.commPubKey, tc.enclaveReport)
