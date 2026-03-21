@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"cosmossdk.io/store/rootmulti"
 	storetypes "cosmossdk.io/store/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
@@ -97,20 +96,6 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 			return baseapp.DefaultStoreLoader(ms)
 		}
 
-		// Build set of already-mounted store keys. Stores registered from
-		// genesis (via app_config.go) already exist and must NOT be re-added
-		// through StoreUpgrades — doing so would set an incorrect initial
-		// version and cause "initial version set to X, but found earlier
-		// version Y" errors on restart.
-		mountedStores := make(map[string]bool)
-		if rms, ok := ms.(*rootmulti.Store); ok {
-			for name := range rms.StoreKeysByName() {
-				mountedStores[name] = true
-			}
-		} else {
-			fmt.Println("WARN: CommitMultiStore is not *rootmulti.Store, cannot detect already-mounted stores")
-		}
-
 		// Sort heights for deterministic iteration order across all validators.
 		heights := make([]int64, 0, len(storeUpgradesMap))
 		for h := range storeUpgradesMap {
@@ -125,8 +110,13 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 			su := storeUpgradesMap[height]
 			if height == nextVersion {
 				// Exact upgrade height: apply all operations.
+				// Do NOT filter by mountedStores here — the new binary
+				// mounts modules at startup (via app_config.go), but the
+				// store does not yet exist on disk. We must include it in
+				// Added so LoadLatestVersionAndUpgrade creates it at the
+				// correct version.
 				for _, key := range su.Added {
-					if !addedSet[key] && !mountedStores[key] {
+					if !addedSet[key] {
 						merged.Added = append(merged.Added, key)
 						addedSet[key] = true
 					}
@@ -134,11 +124,11 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 				merged.Deleted = append(merged.Deleted, su.Deleted...)
 				merged.Renamed = append(merged.Renamed, su.Renamed...)
 			} else if height > nextVersion {
-				// Future upgrade only: pre-add new stores so the binary
-				// can load without crashing on missing stores. This
-				// covers rolling upgrades and late-joining validators.
+				// Future upgrade: pre-add new stores so the binary can
+				// load without crashing on missing stores. Same logic —
+				// the store is mounted in code but not yet on disk.
 				for _, key := range su.Added {
-					if !addedSet[key] && !mountedStores[key] {
+					if !addedSet[key] {
 						merged.Added = append(merged.Added, key)
 						addedSet[key] = true
 					}
