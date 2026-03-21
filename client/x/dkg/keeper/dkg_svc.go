@@ -249,6 +249,8 @@ func (k *Keeper) StartDecryptWorker(_ context.Context) {
 	// Use a process-lifetime context independent of the caller's short-lived async context.
 	workerCtx := context.Background()
 
+	log.Info(workerCtx, "Decrypt worker started")
+
 	go func() {
 		defer decryptWorkerRunning.Store(false)
 
@@ -270,6 +272,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			continue
 		}
 
+		log.Info(ctx, "Processing decrypt queue",
+			"session", session.GetSessionKey(),
+			"pending_requests", len(requests),
+		)
+
 		remaining := make([]types.DecryptRequest, 0, len(requests))
 		for _, req := range requests {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
@@ -284,6 +291,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 				continue
 			}
+
+			log.Info(ctx, "Successfully processed decrypt request",
+				"session", session.GetSessionKey(),
+				"round", req.Round,
+			)
 		}
 
 		session.SetDecryptRequests(remaining)
