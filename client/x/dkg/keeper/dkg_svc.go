@@ -298,7 +298,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 // handleDecryptRequest attempts TDH2 partial decrypt for a single request.
 func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
+	if k.kernelRouter == nil {
 		return errors.New("kernel client not configured")
 	}
 
@@ -311,7 +311,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("missing global public key for session")
 	}
 
-	client, err := k.kernelRouter.GetClient(session.CodeCommitment)
+	client, err := k.getClientWithReconnect(session.CodeCommitment)
 	if err != nil {
 		return errors.Wrap(err, "no kernel client for session")
 	}
@@ -357,4 +357,18 @@ func labelToUUID(label []byte) (uint32, error) {
 		return 0, errors.New("label must be 32 bytes")
 	}
 	return binary.BigEndian.Uint32(label[28:]), nil
+}
+
+// getClientWithReconnect returns the kernel client for the given code commitment.
+// If the initial lookup fails, it attempts to reconnect any disconnected endpoints
+// and retries the lookup once. This handles the case where story started before kernel.
+func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServiceClient, error) {
+	client, err := k.kernelRouter.GetClient(codeCommitment)
+	if err == nil {
+		return client, nil
+	}
+
+	k.kernelRouter.TryReconnect()
+
+	return k.kernelRouter.GetClient(codeCommitment)
 }
