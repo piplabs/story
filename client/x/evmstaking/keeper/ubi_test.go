@@ -130,7 +130,6 @@ func TestProcessUbiWithdrawal(t *testing.T) {
 				tc.setupMocks(bk, dk, dkgk)
 			}
 
-			// Set block height past v2.0.0 upgrade height to activate DKG features.
 			cachedCtx, _ := ctx.WithBlockHeight(200).CacheContext()
 
 			// initialize withdrawal queue
