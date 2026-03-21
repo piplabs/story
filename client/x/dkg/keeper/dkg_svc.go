@@ -80,6 +80,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
+	// If the session is completed and the DKG round is active, ensure the decrypt
+	// worker is running. This covers node restarts and the case where the worker
+	// was never started due to context cancellation.
+	if session.Phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
+		k.StartDecryptWorker(ctx)
+
+		return
+	}
+
 	if session.Phase == types.PhaseFailed {
 		k.resumeFailedSession(ctx, session, dkgNetwork)
 
