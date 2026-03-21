@@ -237,11 +237,17 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests
 // and performs TDH2 partial decrypts. Only one worker runs.
-func (k *Keeper) StartDecryptWorker(ctx context.Context) {
+// The worker uses its own long-lived context (derived from context.Background) because the
+// caller's context (dkgAsyncContext) is short-lived and gets cancelled when the parent
+// goroutine exits. The decrypt worker must run for the lifetime of the process.
+func (k *Keeper) StartDecryptWorker(_ context.Context) {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
 		// already running
 		return
 	}
+
+	// Use a process-lifetime context independent of the caller's short-lived async context.
+	workerCtx := context.Background()
 
 	go func() {
 		defer decryptWorkerRunning.Store(false)
@@ -249,13 +255,8 @@ func (k *Keeper) StartDecryptWorker(ctx context.Context) {
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				k.processDecryptQueue(ctx)
-			}
+		for range ticker.C {
+			k.processDecryptQueue(workerCtx)
 		}
 	}()
 }

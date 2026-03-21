@@ -31,6 +31,9 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 
 	if session.Phase == types.PhaseCompleted && session.IsFinalized {
 		log.Info(ctx, "DKG network already completed")
+		// Ensure the decrypt worker is running even if completion was already processed
+		// (e.g., after node restart or if the worker exited due to a transient error).
+		k.StartDecryptWorker(ctx)
 
 		return
 	}
