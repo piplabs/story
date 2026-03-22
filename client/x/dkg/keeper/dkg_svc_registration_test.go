@@ -10,6 +10,7 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // --- resolveRegistrationKernelClient ---
@@ -459,4 +460,117 @@ func TestHandleDKGRegistration_AlreadyRegistered(t *testing.T) {
 	session, err := sm.GetSession(2)
 	require.NoError(t, err)
 	require.Equal(t, types.PhaseInitialized, session.Phase)
+}
+
+// TestHandleDKGRegistration_GenerateAndSealKeyError_MarksFailed verifies that
+// when callTEEGenerateAndSealKey fails (GenerateAndSealKey returns error on all
+// retries), the session is marked as PhaseFailed.
+func TestHandleDKGRegistration_GenerateAndSealKeyError_MarksFailed(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	cc := []byte("error-gen-cc")
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+		enclaveType:      [32]byte{0x03},
+	}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	// Kernel returns error for all retry attempts (retryAttemts calls total)
+	mockKernel.EXPECT().GenerateAndSealKey(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("kernel unavailable")).
+		Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        10,
+		Stage:        types.DKGStageRegistration,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.handleDKGRegistration(ctx, dkgNetwork, nil, false)
+
+	// Session should exist but be marked as PhaseFailed
+	session, getErr := sm.GetSession(10)
+	require.NoError(t, getErr)
+	require.Equal(t, types.PhaseFailed, session.Phase, "session should be marked failed when GenerateAndSealKey fails")
+}
+
+// TestHandleDKGRegistration_ContractRegisterError_MarksFailed verifies that
+// when callContractRegister fails (Register returns an error), the session is
+// marked as PhaseFailed.
+func TestHandleDKGRegistration_ContractRegisterError_MarksFailed(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	cc := []byte("error-register-cc")
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		contractClient:   mockContract,
+		validatorEVMAddr: testValidatorAddr,
+		enclaveType:      [32]byte{0x04},
+	}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	// Kernel succeeds with GenerateAndSealKey
+	mockKernel.EXPECT().GenerateAndSealKey(gomock.Any(), gomock.Any()).Return(
+		&types.GenerateAndSealKeyResponse{
+			CodeCommitment:   cc,
+			DkgPubKey:        []byte("dkg-pub"),
+			CommPubKey:       []byte("comm-pub"),
+			EnclaveReport:    []byte("report"),
+			StartBlockHeight: 50,
+			StartBlockHash:   make([]byte, 32),
+		}, nil,
+	)
+
+	// Contract Register returns an error
+	mockContract.EXPECT().Register(
+		gomock.Any(),
+		gomock.Any(), // round
+		gomock.Any(), // enclaveType
+		gomock.Any(), // startBlockHeight
+		gomock.Any(), // startBlockHash
+		gomock.Any(), // dkgPubKey
+		gomock.Any(), // commPubKey
+		gomock.Any(), // enclaveReport
+	).Return(nil, errors.New("contract call failed"))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        11,
+		Stage:        types.DKGStageRegistration,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.handleDKGRegistration(ctx, dkgNetwork, nil, false)
+
+	// Session should be marked PhaseFailed
+	session, getErr := sm.GetSession(11)
+	require.NoError(t, getErr)
+	require.Equal(t, types.PhaseFailed, session.Phase, "session should be marked failed when Register contract fails")
 }
