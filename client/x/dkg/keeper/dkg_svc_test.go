@@ -900,3 +900,67 @@ func TestGetOldCodeCommitment_NoRegistration(t *testing.T) {
 	_, err := k.getOldCodeCommitment(ctx)
 	require.Error(t, err, "should return error when no registration exists")
 }
+
+// --- resumeFailedSession: DKGStageFinalization and DKGStageActive cases (gap 12) ---
+
+// TestResumeFailedSession_FinalizationStage verifies that resumeFailedSession
+// dispatches to handleDKGFinalization for DKGStageFinalization stage.
+// The session phase is updated to PhaseDealing before spawning the goroutine.
+func TestResumeFailedSession_FinalizationStage(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+	k.validatorEVMAddr = testValidatorAddr
+
+	session := &types.DKGSession{
+		Round: 20,
+		Phase: types.PhaseFailed,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        20,
+		Stage:        types.DKGStageFinalization,
+		ActiveValSet: []string{"0xother"}, // not in set → handleDKGFinalization returns early
+	}
+
+	k.resumeFailedSession(ctx, session, dkgNetwork)
+
+	got, err := sm.GetSession(20)
+	require.NoError(t, err)
+	// resumeFailedSession updates phase to PhaseDealing before launching the goroutine
+	require.Equal(t, types.PhaseDealing, got.Phase, "finalization stage should set phase to PhaseDealing")
+}
+
+// TestResumeFailedSession_ActiveStage verifies that resumeFailedSession
+// dispatches to handleDKGComplete for DKGStageActive stage.
+// The session phase is updated to PhaseFinalized before spawning the goroutine.
+func TestResumeFailedSession_ActiveStage(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+	k.validatorEVMAddr = testValidatorAddr
+
+	session := &types.DKGSession{
+		Round: 21,
+		Phase: types.PhaseFailed,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        21,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{"0xother"},
+	}
+
+	k.resumeFailedSession(ctx, session, dkgNetwork)
+
+	got, err := sm.GetSession(21)
+	require.NoError(t, err)
+	// resumeFailedSession updates phase to PhaseFinalized before launching the goroutine
+	require.Equal(t, types.PhaseFinalized, got.Phase, "active stage should set phase to PhaseFinalized")
+}
