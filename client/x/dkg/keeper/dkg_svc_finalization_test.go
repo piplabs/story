@@ -10,6 +10,7 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // NOTE: These tests are NOT parallel because they share the package-level
@@ -219,4 +220,158 @@ func TestHandleDKGFinalization_FullPath(t *testing.T) {
 	require.Equal(t, types.PhaseFinalized, got.Phase)
 	require.Equal(t, []byte("global-pub"), got.GlobalPubKey)
 	require.Equal(t, []byte("sig"), got.SigFinalizeNetwork)
+}
+
+// TestHandleDKGFinalization_TEEFinalizeDKGError_MarksFailed verifies that
+// when callTEEFinalizeDKG fails (FinalizeDKG returns error on all retries),
+// the session is marked PhaseFailed.
+func TestHandleDKGFinalization_TEEFinalizeDKGError_MarksFailed(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("finalize-error-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	session := &types.DKGSession{
+		Round:          20,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// FinalizeDKG returns error on all retries (retryAttemts total calls)
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("kernel finalize failed")).
+		Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        20,
+		Stage:        types.DKGStageFinalization,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.handleDKGFinalization(ctx, dkgNetwork)
+
+	got, getErr := sm.GetSession(20)
+	require.NoError(t, getErr)
+	require.Equal(t, types.PhaseFailed, got.Phase, "session should be marked failed when TEE finalization fails")
+}
+
+// TestHandleDKGFinalization_ContractFinalizeError_MarksFailed verifies that
+// when callContractFinalizeDKG fails (Finalize returns an error), the session
+// is marked PhaseFailed.
+func TestHandleDKGFinalization_ContractFinalizeError_MarksFailed(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("contract-finalize-error-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		contractClient:   mockContract,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	session := &types.DKGSession{
+		Round:          21,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// TEE finalization succeeds
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).Return(
+		&types.FinalizeDKGResponse{
+			ParticipantsRoot: make([]byte, 32),
+			GlobalPubKey:     []byte("global-pub"),
+			Signature:        []byte("sig"),
+			PublicCoeffs:     [][]byte{[]byte("c1")},
+			PubKeyShare:      []byte("share"),
+		}, nil,
+	)
+
+	// Contract Finalize returns an error
+	mockContract.EXPECT().Finalize(
+		gomock.Any(),
+		uint32(21),
+		gomock.Any(), // enclaveType
+		gomock.Any(), // participantsRoot
+		gomock.Any(), // globalPubKey
+		gomock.Any(), // publicCoeffs
+		gomock.Any(), // pubKeyShare
+		gomock.Any(), // signature
+	).Return(nil, errors.New("contract finalize failed"))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        21,
+		Stage:        types.DKGStageFinalization,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.handleDKGFinalization(ctx, dkgNetwork)
+
+	got, getErr := sm.GetSession(21)
+	require.NoError(t, getErr)
+	require.Equal(t, types.PhaseFailed, got.Phase, "session should be marked failed when contract finalization fails")
+}
+
+// TestCallTEEFinalizeDKG_AlreadyFinalized verifies that callTEEFinalizeDKG is a
+// no-op when the session already has GlobalPubKey and SigFinalizeNetwork set.
+func TestCallTEEFinalizeDKG_AlreadyFinalized(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// Mock kernel — should NOT be called since we short-circuit early
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	cc := []byte("already-final-cc")
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	// Session already has finalization data — callTEEFinalizeDKG should skip kernel call
+	session := &types.DKGSession{
+		Round:              22,
+		Phase:              types.PhaseDealing,
+		CodeCommitment:     cc,
+		GlobalPubKey:       []byte("existing-global-pub"),
+		SigFinalizeNetwork: []byte("existing-sig"),
+	}
+
+	// callTEEFinalizeDKG should return nil immediately without calling FinalizeDKG
+	callErr := k.callTEEFinalizeDKG(ctx, session)
+	require.NoError(t, callErr, "should skip finalize when already finalized")
 }
