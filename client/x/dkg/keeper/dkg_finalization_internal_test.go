@@ -288,3 +288,43 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 	_, err = k.CDRFeePoolBalance.Get(ctx)
 	require.ErrorIs(t, err, collections.ErrNotFound)
 }
+
+// --- Tests merged from dkg_process_test.go ---
+
+// TestBeginFinalization_DKGSvcDisabled verifies that BeginFinalization emits
+// the event and returns nil when DKG service is disabled.
+
+func TestBeginFinalization_DKGSvcDisabled(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     1,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageFinalization,
+	}
+
+	err := k.BeginFinalization(ctx, network)
+	require.NoError(t, err)
+}
+
+// TestBeginFinalization_DKGSvcEnabled verifies that BeginFinalization emits
+// the event even when the DKG service is enabled (async goroutine is launched).
+
+func TestBeginFinalization_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+
+	network := &types.DKGNetwork{
+		Round:     22,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageFinalization,
+	}
+
+	err := k.BeginFinalization(ctx, network)
+	require.NoError(t, err)
+}
