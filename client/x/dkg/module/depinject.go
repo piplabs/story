@@ -39,8 +39,8 @@ type ModuleInputs struct {
 	ValStore      *skeeper.Keeper
 
 	// These two clients can be nil depending on whether the DKG service is enabled.
-	DKGKernelRouter   *keeper.KernelRouter   `optional:"true"`
-	DKGContractClient *keeper.ContractClient `optional:"true"`
+	DKGKernelRouter   *keeper.KernelRouter    `optional:"true"`
+	DKGContractClient types.DKGContractClient `optional:"true"`
 }
 
 type ModuleOutputs struct {
