@@ -1805,3 +1805,163 @@ func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
 	)
 	require.NoError(t, err, "duplicate submission should be silently ignored")
 }
+
+// --- Finalized: invalidated dealer branch (gap 7) ---
+
+// TestFinalized_InvalidatedDealerRejected verifies that Finalized returns an error
+// when the submitting validator's registration status is DKGRegStatusInvalidated.
+func TestFinalized_InvalidatedDealerRejected(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(100)
+
+	validator := common.HexToAddress("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	round := uint32(1)
+	codeCommitment := [32]byte{0xAA}
+	participantsRoot := [32]byte{0xBB}
+
+	// Set up network in finalization stage
+	network := &types.DKGNetwork{
+		Round: round, Total: 3, Threshold: 2, Stage: types.DKGStageFinalization,
+		ActiveValSet: []string{validator.Hex()},
+	}
+	require.NoError(t, k.setDKGNetwork(sdkCtx, network))
+
+	// Register with Invalidated status
+	reg := &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: validator.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusInvalidated,
+		CommPubKey:    make([]byte, 64),
+	}
+	require.NoError(t, k.setDKGRegistration(sdkCtx, validator, reg))
+
+	err := k.Finalized(sdkCtx, round, validator, codeCommitment, participantsRoot,
+		make([]byte, 65), []byte("global-pub"), [][]byte{[]byte("c1")}, []byte("share"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalidated")
+}
+
+// --- validateParticipantsRoot: zero registrations branch (gap 8) ---
+
+// TestValidateParticipantsRoot_NoRegistrations verifies that validateParticipantsRoot
+// returns an error when no verified or finalized registrations exist.
+func TestValidateParticipantsRoot_NoRegistrations(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	var root [32]byte
+	err := k.validateParticipantsRoot(ctx, 1, root)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no verified or finalized DKG registrations found")
+}
+
+// TestValidateParticipantsRoot_HashMismatch verifies that validateParticipantsRoot
+// returns an error when the computed hash does not match the provided root.
+func TestValidateParticipantsRoot_HashMismatch(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	reg := &types.DKGRegistration{
+		Round:         1,
+		ValidatorAddr: validator.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(sdkCtx, validator, reg))
+
+	// Provide a wrong participants root (all zeros)
+	var wrongRoot [32]byte
+	err := k.validateParticipantsRoot(sdkCtx, 1, wrongRoot)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "participants root mismatch")
+}
+
+// --- UpgradeCancelled: info == nil branch (gap 9) ---
+
+// TestUpgradeCancelled_NotFound verifies that UpgradeCancelled returns an error
+// when no upgrade info exists for the specified version.
+// GetKernelUpgradeInfo wraps collections.ErrNotFound, so the error message contains
+// "kernel upgrade info not found" rather than the nil-info branch message.
+func TestUpgradeCancelled_NotFound(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	// No upgrade info stored — GetKernelUpgradeInfo returns a not-found error,
+	// which UpgradeCancelled wraps with "failed to get kernel upgrade info".
+	err := k.UpgradeCancelled(ctx, "v99.0.0")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to get kernel upgrade info")
+}
+
+// --- PartialDecryptionSubmitted: round mismatch and ciphertext mismatch branches (gap 10) ---
+
+// TestPartialDecryptionSubmitted_RoundMismatch verifies that PartialDecryptionSubmitted
+// returns an error when the submission round does not match the stored request round.
+// Note: getDecryptRequest uses (requesterPubKey, label, round, ciphertext) as key,
+// so a round mismatch means the lookup returns not-found (silently returns nil).
+// The "round mismatch" check occurs AFTER lookup — if found, rounds must match.
+// In practice, the key includes round so a different round == not found == nil return.
+// We test the not-found (stale/unknown request) path here.
+func TestPartialDecryptionSubmitted_UnknownRequest(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(100)
+
+	validator := common.HexToAddress("0x2222222222222222222222222222222222222222")
+
+	// Submit without storing a decrypt request — not found → returns nil (skipped)
+	err := k.PartialDecryptionSubmitted(
+		sdkCtx, validator, 99, 1,
+		[]byte("enc"), []byte("eph"), []byte("share"),
+		[]byte("req-pub"), []byte("cipher"), []byte("label"), make([]byte, 65),
+	)
+	require.NoError(t, err, "unknown request should be silently ignored (not found path)")
+}
+
+// TestPartialDecryptionSubmitted_CiphertextMismatch verifies that PartialDecryptionSubmitted
+// returns an error when the ciphertext in the submission does not match the stored request.
+// Since getDecryptRequest key includes ciphertext hash, a different ciphertext
+// means the request is NOT found (treated as unknown). The ciphertext mismatch
+// check is only reachable if two requests exist with same requesterPubKey+label+round
+// but different ciphertext — which the current key structure prevents.
+// This test documents the not-found path triggered by different ciphertext.
+func TestPartialDecryptionSubmitted_DifferentCiphertext_NotFound(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx).WithBlockHeight(100)
+
+	requesterPubKey := []byte("req-pub-ct-test")
+	label := []byte("label-ct-test")
+	storedCiphertext := []byte("stored-cipher")
+	differentCiphertext := []byte("different-cipher")
+	round := uint32(5)
+
+	// Store a decrypt request with storedCiphertext
+	require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, types.DecryptRequest{
+		Round:           round,
+		Ciphertext:      storedCiphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+		Height:          0,
+	}))
+
+	validator := common.HexToAddress("0x3333333333333333333333333333333333333333")
+
+	// Submit with differentCiphertext → lookup uses differentCiphertext in key → not found → nil
+	err := k.PartialDecryptionSubmitted(
+		sdkCtx, validator, round, 1,
+		[]byte("enc"), []byte("eph"), []byte("share"),
+		requesterPubKey, differentCiphertext, label, make([]byte, 65),
+	)
+	require.NoError(t, err, "different ciphertext triggers not-found path, silently ignored")
+}
