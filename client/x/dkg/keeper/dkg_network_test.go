@@ -311,6 +311,62 @@ func TestEndPreviousActiveRound_SameRound(t *testing.T) {
 	require.Equal(t, types.DKGStageActive, updated.Stage)
 }
 
+// TestGetLatestDKGRound_PointerExistsButNetworkMissing verifies GetLatestDKGRound
+// returns an error and resets the pointer when the pointer exists but the network
+// entry is missing (corrupted state).
+func TestGetLatestDKGRound_PointerExistsButNetworkMissing(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store a pointer to a network key that does not exist in DKGNetworks.
+	// This simulates corrupted state (pointer without corresponding data).
+	require.NoError(t, k.LatestDKGNetwork.Set(ctx, "99"))
+
+	// GetLatestDKGRound should detect the missing network and return an error.
+	// The pointer should also be reset (Remove is called internally).
+	got, err := k.GetLatestDKGRound(ctx)
+	require.Error(t, err, "should return error when pointer exists but network is missing")
+	require.Nil(t, got)
+	require.Contains(t, err.Error(), "not found")
+}
+
+// TestGetDKGNetworksByRound_StopsWhenRoundExceeded verifies that GetDKGNetworksByRound
+// stops iteration early when it encounters a network with a round > target round.
+func TestGetDKGNetworksByRound_StopsWhenRoundExceeded(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store networks for rounds 1, 2, 3 in sorted order.
+	// The Walk function iterates in lexicographic key order ("1", "2", "3"),
+	// so when round 3 > target 2, iteration stops.
+	for _, round := range []uint32{1, 2, 3} {
+		net := &types.DKGNetwork{Round: round, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+		require.NoError(t, k.setDKGNetwork(ctx, net))
+	}
+
+	// Request round 2 — should find it and stop before round 3.
+	got, err := k.GetDKGNetworksByRound(ctx, 2)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	require.Equal(t, uint32(2), got[0].Round)
+}
+
+// TestIsLatestDKGNetwork_NoExistingLatest verifies isLatestDKGNetwork returns true
+// when no latest DKG network has been set yet (empty store).
+func TestIsLatestDKGNetwork_NoExistingLatest(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Empty store — no latest DKG network pointer set.
+	candidate := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2}
+	isLatest, err := k.isLatestDKGNetwork(ctx, candidate)
+	require.NoError(t, err)
+	require.True(t, isLatest, "first network should always become the latest")
+}
+
 // TestEndPreviousActiveRound_PrevNotActive verifies endPreviousActiveRound is a
 // no-op when the previous active round is not in the Active stage (e.g. already Ended).
 func TestEndPreviousActiveRound_PrevNotActive(t *testing.T) {
@@ -330,4 +386,79 @@ func TestEndPreviousActiveRound_PrevNotActive(t *testing.T) {
 	updated, err := k.getDKGNetwork(ctx, 1)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGStageEnded, updated.Stage, "stage should remain Ended")
+}
+
+// TestEndPreviousActiveRound_TransitionsToEnded verifies that endPreviousActiveRound
+// transitions a round in the Active stage to Ended when a different current round is specified.
+func TestEndPreviousActiveRound_TransitionsToEnded(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Round 3 is Active
+	prev := &types.DKGNetwork{Round: 3, Total: 5, Threshold: 4, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, prev))
+	require.NoError(t, k.setLatestActiveRound(ctx, prev))
+
+	// endPreviousActiveRound for round 4 should transition round 3 to Ended
+	err := k.endPreviousActiveRound(ctx, 4)
+	require.NoError(t, err)
+
+	updated, err := k.getDKGNetwork(ctx, 3)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGStageEnded, updated.Stage, "active round should be transitioned to ended")
+}
+
+// TestGetNextRoundNumber_NoLatest verifies that getNextRoundNumber returns 1
+// when no rounds exist.
+func TestGetNextRoundNumber_NoLatest(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	nextRound := k.getNextRoundNumber(ctx)
+	require.Equal(t, uint32(1), nextRound)
+}
+
+// TestGetNextRoundNumber_WithExisting verifies that getNextRoundNumber returns
+// latestRound+1 when rounds already exist.
+func TestGetNextRoundNumber_WithExisting(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{Round: 7, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	nextRound := k.getNextRoundNumber(ctx)
+	require.Equal(t, uint32(8), nextRound)
+}
+
+// TestGetLatestDKGNetwork verifies the getLatestDKGNetwork function retrieves
+// the latest DKG network correctly when it exists.
+func TestGetLatestDKGNetwork_Success(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	net1 := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	net2 := &types.DKGNetwork{Round: 2, Total: 5, Threshold: 4, Stage: types.DKGStageRegistration}
+	require.NoError(t, k.setDKGNetwork(ctx, net1))
+	require.NoError(t, k.setDKGNetwork(ctx, net2))
+
+	got, err := k.getLatestDKGNetwork(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, uint32(2), got.Round)
+}
+
+// TestGetLatestDKGNetwork_NoPointer verifies that getLatestDKGNetwork returns
+// an error when no latest pointer is set (fresh store).
+func TestGetLatestDKGNetwork_NoPointer(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	_, err := k.getLatestDKGNetwork(ctx)
+	require.Error(t, err, "should error when no latest DKG network pointer is set")
 }
