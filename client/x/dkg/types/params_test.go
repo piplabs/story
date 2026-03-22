@@ -306,3 +306,288 @@ func TestParams_Validate_NewParams(t *testing.T) {
 	err = params.Validate()
 	require.NoError(t, err)
 }
+
+func TestValidateComplaintPeriod(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		value       uint32
+		expectedErr string
+	}{
+		{name: "pass: value of 1", value: 1},
+		{name: "pass: large value", value: 100000},
+		{name: "fail: zero value", value: 0, expectedErr: "invalid dkg complaint period"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateComplaintPeriod(tc.value)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateCodeCommitment(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		commitment  []byte
+		expectedErr string
+	}{
+		{
+			name:       "pass: valid 32-byte commitment",
+			commitment: make([]byte, 32),
+		},
+		{
+			name:        "fail: empty commitment",
+			commitment:  []byte{},
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+		{
+			name:        "fail: nil commitment",
+			commitment:  nil,
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+		{
+			name:        "fail: too short (16 bytes)",
+			commitment:  make([]byte, 16),
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+		{
+			name:        "fail: too long (64 bytes)",
+			commitment:  make([]byte, 64),
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+		{
+			name:        "fail: 31 bytes (off by one)",
+			commitment:  make([]byte, 31),
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+		{
+			name:        "fail: 33 bytes (off by one)",
+			commitment:  make([]byte, 33),
+			expectedErr: "codeCommitment must be a 256-bit digest (32 bytes)",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateCodeCommitment(tc.commitment)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateRegistrationPeriod(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		value       uint32
+		expectedErr string
+	}{
+		{name: "pass: default period", value: types.DefaultDkgRegistrationPeriod},
+		{name: "pass: minimum period", value: types.MinDkgStagePeriod},
+		{name: "pass: large period", value: 365 * 24 * 60 * 60},
+		{name: "fail: zero period", value: 0, expectedErr: "invalid dkg registration period"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateRegistrationPeriod(tc.value)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateDealingPeriod(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		value       uint32
+		expectedErr string
+	}{
+		{name: "pass: default period", value: types.DefaultDkgDealingPeriod},
+		{name: "pass: minimum period", value: types.MinDkgStagePeriod},
+		{name: "fail: zero period", value: 0, expectedErr: "invalid dkg dealing period"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateDealingPeriod(tc.value)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateFinalizationPeriod(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		value       uint32
+		expectedErr string
+	}{
+		{name: "pass: default period", value: types.DefaultDkgFinalizationPeriod},
+		{name: "pass: minimum period", value: types.MinDkgStagePeriod},
+		{name: "fail: zero period", value: 0, expectedErr: "invalid dkg finalization period"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateFinalizationPeriod(tc.value)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateActivePeriod(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		value       uint32
+		expectedErr string
+	}{
+		{name: "pass: default period", value: types.DefaultDkgActivePeriod},
+		{name: "pass: minimum period", value: types.MinDkgStagePeriod},
+		{name: "fail: zero period", value: 0, expectedErr: "invalid dkg active period"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := types.ValidateActivePeriod(tc.value)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestParams_Validate_AllErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name        string
+		mutate      func(p *types.Params)
+		expectedErr string
+	}{
+		{
+			name:        "fail: zero registration period",
+			mutate:      func(p *types.Params) { p.RegistrationPeriod = 0 },
+			expectedErr: "invalid dkg registration period",
+		},
+		{
+			name:        "fail: zero dealing period",
+			mutate:      func(p *types.Params) { p.DealingPeriod = 0 },
+			expectedErr: "invalid dkg dealing period",
+		},
+		{
+			name:        "fail: zero finalization period",
+			mutate:      func(p *types.Params) { p.FinalizationPeriod = 0 },
+			expectedErr: "invalid dkg finalization period",
+		},
+		{
+			name:        "fail: zero active period",
+			mutate:      func(p *types.Params) { p.ActivePeriod = 0 },
+			expectedErr: "invalid dkg active period",
+		},
+		{
+			name: "fail: negative reward portion",
+			mutate: func(p *types.Params) {
+				p.DkgCommitteeRewardPortion = math.LegacyMustNewDecFromStr("-1.0")
+			},
+			expectedErr: "dkg committee reward portion must not be negative",
+		},
+		{
+			name: "fail: reward portion exceeds 1.0",
+			mutate: func(p *types.Params) {
+				p.DkgCommitteeRewardPortion = math.LegacyMustNewDecFromStr("1.5")
+			},
+			expectedErr: "dkg committee reward portion must not exceed 1.0",
+		},
+		{
+			name:        "fail: zero min_req_registered_participants",
+			mutate:      func(p *types.Params) { p.MinReqRegisteredParticipants = 0 },
+			expectedErr: "min_req_registered_participants must be greater than zero",
+		},
+		{
+			name:        "fail: zero min_req_finalized_participants",
+			mutate:      func(p *types.Params) { p.MinReqFinalizedParticipants = 0 },
+			expectedErr: "min_req_finalized_participants must be greater than zero",
+		},
+		{
+			name:        "fail: zero operational threshold",
+			mutate:      func(p *types.Params) { p.OperationalThreshold = 0 },
+			expectedErr: "operational_threshold must be greater than zero",
+		},
+		{
+			name:        "fail: operational threshold exceeds basis",
+			mutate:      func(p *types.Params) { p.OperationalThreshold = 2000 },
+			expectedErr: "operational_threshold must not exceed basis (1000)",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			params := types.DefaultParams()
+			tc.mutate(&params)
+			err := params.Validate()
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectedErr)
+		})
+	}
+
+	// Valid default params should pass validation.
+	t.Run("pass: valid default params", func(t *testing.T) {
+		t.Parallel()
+
+		params := types.DefaultParams()
+		require.NoError(t, params.Validate())
+	})
+}
