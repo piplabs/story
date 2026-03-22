@@ -21,8 +21,10 @@ func setupKeeperWithStateManager(t *testing.T) *Keeper {
 	}
 }
 
+// NOTE: These tests are NOT parallel because they share the package-level
+// dkgSvcRound atomic.
+
 func TestHandleDKGComplete_AlreadyCompleted(t *testing.T) {
-	t.Parallel()
 
 	k := setupKeeperWithStateManager(t)
 	ctx := context.Background()
@@ -50,7 +52,6 @@ func TestHandleDKGComplete_AlreadyCompleted(t *testing.T) {
 }
 
 func TestHandleDKGComplete_FromFinalized(t *testing.T) {
-	t.Parallel()
 
 	k := setupKeeperWithStateManager(t)
 	ctx := context.Background()
@@ -76,7 +77,6 @@ func TestHandleDKGComplete_FromFinalized(t *testing.T) {
 }
 
 func TestHandleDKGComplete_NotFinalized_MarksFailed(t *testing.T) {
-	t.Parallel()
 
 	k := setupKeeperWithStateManager(t)
 	ctx := context.Background()
@@ -101,7 +101,6 @@ func TestHandleDKGComplete_NotFinalized_MarksFailed(t *testing.T) {
 }
 
 func TestHandleDKGComplete_NoSession(t *testing.T) {
-	t.Parallel()
 
 	k := setupKeeperWithStateManager(t)
 	ctx := context.Background()
@@ -116,7 +115,6 @@ func TestHandleDKGComplete_NoSession(t *testing.T) {
 }
 
 func TestHandleDKGComplete_DuplicateAcquire(t *testing.T) {
-	t.Parallel()
 
 	k := setupKeeperWithStateManager(t)
 	ctx := context.Background()
