@@ -1368,3 +1368,35 @@ func initTestStateManager(t *testing.T, k *Keeper) {
 
 	k.stateManager = sm
 }
+
+// --- ProcessJustifications: verifyJustification error path (gap 11) ---
+
+// TestProcessJustifications_MissingDealerRegistration verifies that ProcessJustifications
+// skips a justification (via verifyJustification returning error) when the dealer
+// has no registration (buildDealerPubKeyMap returns an empty map → sig verify fails).
+func TestProcessJustifications_MissingDealerRegistration(t *testing.T) {
+	// No dealer registrations — signature verification will fail for any justification.
+	k, ctx := setupDKGKeeper(t)
+	k.isDKGSvcEnabled = false // skip async kernel forwarding
+
+	round := uint32(77)
+	network := &types.DKGNetwork{Round: round, Total: 3, Threshold: 2}
+
+	// Build a minimal justification with nil signature — no matching dealer registration exists,
+	// so verifyJustificationSignature will fail and the justification will be skipped.
+	j := types.Justification{
+		Index: 0,
+		VssJustification: &types.VSSJustification{
+			SessionId: []byte("no-such-session"),
+			Index:     0,
+			PlainDeal: &types.PlainDeal{
+				SecShare: &types.SecShare{I: 1},
+			},
+			Signature: nil, // nil signature → sig verify will fail
+		},
+	}
+
+	// ProcessJustifications should not error — invalid justifications are simply skipped.
+	err := k.ProcessJustifications(ctx, network, []types.Justification{j})
+	require.NoError(t, err, "invalid justification should be skipped, not cause an error")
+}
