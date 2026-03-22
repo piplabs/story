@@ -1202,6 +1202,7 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 	var valStore baseapp.ValidatorStore = nil
 
 	mockKernelServiceClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContractClient := dkgtestutil.NewMockDKGContractClient(ctrl)
 
 	// Wrap mock TEE client in a KernelRouter for testing
 	kernelRouter := NewKernelRouter(nil, nil)
@@ -1216,9 +1217,10 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 		sk,
 		valStore,
 		kernelRouter,
-		nil, // TODO: mock contract client for integration test
+		mockContractClient,
 		"story1hmjw3pvkjtndpg8wqppwdn8udd835qpan4hm0y",
 	)
+	_ = mockContractClient // available for tests that need to set expectations
 
 	require.NoError(t, k.SetParams(testCtx.Ctx, types.DefaultParams()))
 
