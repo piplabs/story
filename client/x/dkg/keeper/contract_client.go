@@ -24,8 +24,23 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// Compile-time assertion: ContractClient implements DKGContractClient.
-var _ dkgtypes.DKGContractClient = (*ContractClient)(nil)
+// EthClient abstracts the Ethereum JSON-RPC methods used by ContractClient.
+// This allows test code to inject a mock implementation.
+type EthClient interface {
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64, error)
+	// TransactionReceipt and CodeAt satisfy bind.DeployBackend so that
+	// bind.WaitMined can be called with this interface directly.
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
+}
+
+// Compile-time assertions.
+var (
+	_ dkgtypes.DKGContractClient = (*ContractClient)(nil)
+	_ EthClient                  = (*ethclient.Client)(nil)
+)
 
 const (
 	maxRetries = 3
@@ -33,7 +48,7 @@ const (
 
 // ContractClient wraps the DKG contract interaction.
 type ContractClient struct {
-	ethClient       *ethclient.Client
+	ethClient       EthClient
 	dkgContract     *bindings.DKG
 	dkgContractAbi  *abi.ABI
 	dkgContractAddr common.Address
