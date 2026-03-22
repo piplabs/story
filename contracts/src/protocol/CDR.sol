@@ -119,6 +119,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
             readConditionAddr,
             writeConditionData,
             readConditionData,
+            "",
             ""
         );
 
@@ -136,10 +137,12 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for writing
     /// @param encryptedData The encrypted data to write
+    /// @param label The TDH2 label used as authenticated associated data during encryption
     function write(
         uint32 uuid,
         bytes calldata accessAuxData,
-        bytes calldata encryptedData
+        bytes calldata encryptedData,
+        bytes calldata label
     ) external payable nonReentrant whenNotPaused {
         require(encryptedData.length > 0, "CDR: Encrypted data cannot be empty");
 
@@ -169,8 +172,9 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
 
         // update the data on the vault
         $.vaults[uuid].encryptedData = encryptedData;
+        $.vaults[uuid].label = label;
 
-        emit VaultWritten(uuid, encryptedData);
+        emit VaultWritten(uuid, encryptedData, label);
     }
 
     /// @notice Reads data from a vault
@@ -203,7 +207,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         // collect the read fee and burn it
         _collectFee($.readFee, ICDR.FeeType.Read);
 
-        emit VaultRead(uuid, msg.sender, vault.encryptedData, requesterPubKey);
+        emit VaultRead(uuid, msg.sender, vault.encryptedData, requesterPubKey, vault.label);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

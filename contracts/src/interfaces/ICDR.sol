@@ -15,6 +15,7 @@ interface ICDR {
     /// @param writeConditionData The data of the write condition
     /// @param readConditionData The data of the read condition
     /// @param encryptedData The encrypted data
+    /// @param label The TDH2 label used as authenticated associated data during encryption
     struct Vault {
         bool updatable;
         address writeConditionAddr;
@@ -22,6 +23,7 @@ interface ICDR {
         bytes writeConditionData;
         bytes readConditionData;
         bytes encryptedData;
+        bytes label;
     }
 
     /// @notice Emitted when a vault is allocated
@@ -43,14 +45,16 @@ interface ICDR {
     /// @notice Emitted when a vault is written
     /// @param uuid The UUID of the vault
     /// @param encryptedData The encrypted data
-    event VaultWritten(uint32 uuid, bytes encryptedData);
+    /// @param label The TDH2 label used as authenticated associated data during encryption
+    event VaultWritten(uint32 uuid, bytes encryptedData, bytes label);
 
     /// @notice Emitted when a vault is read
     /// @param uuid The UUID of the vault
     /// @param requester The address requesting the read (msg.sender)
     /// @param ciphertext The encrypted data (ciphertext)
     /// @param requesterPubKey The public key of the requester
-    event VaultRead(uint32 uuid, address indexed requester, bytes ciphertext, bytes requesterPubKey);
+    /// @param label The TDH2 label used as authenticated associated data during encryption
+    event VaultRead(uint32 uuid, address indexed requester, bytes ciphertext, bytes requesterPubKey, bytes label);
 
     /// @notice Emitted when an encrypted partial decryption is submitted
     /// @param validator The address of the submitting validator (msg.sender)
@@ -119,7 +123,8 @@ interface ICDR {
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for writing
     /// @param encryptedData The encrypted data to write
-    function write(uint32 uuid, bytes calldata accessAuxData, bytes calldata encryptedData) external payable;
+    /// @param label The TDH2 label used as authenticated associated data during encryption
+    function write(uint32 uuid, bytes calldata accessAuxData, bytes calldata encryptedData, bytes calldata label) external payable;
 
     /// @notice Reads data from a vault
     /// @param uuid The UUID of the vault
