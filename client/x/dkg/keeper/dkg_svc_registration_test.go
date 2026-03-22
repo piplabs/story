@@ -146,3 +146,55 @@ func TestGetClientWithReconnect_NotFound(t *testing.T) {
 	_, err := k.getClientWithReconnect([]byte("missing-cc"))
 	require.Error(t, err)
 }
+
+// --- getRegistrationKernelClient ---
+
+func TestGetRegistrationKernelClient_FirstAttemptSuccess(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("reg-client-cc")
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockClient)
+
+	k := &Keeper{kernelRouter: router}
+
+	client, resolvedCC, err := k.getRegistrationKernelClient(false, cc)
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	require.Equal(t, cc, resolvedCC)
+}
+
+func TestGetRegistrationKernelClient_FallbackToFirstClient(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("first-cc")
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockClient)
+
+	k := &Keeper{kernelRouter: router}
+
+	// Normal round, nil CC -> fallback to first client
+	client, resolvedCC, err := k.getRegistrationKernelClient(false, nil)
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	require.Equal(t, cc, resolvedCC)
+}
+
+func TestGetRegistrationKernelClient_NoClientsAvailable(t *testing.T) {
+	t.Parallel()
+
+	router := NewKernelRouter(nil, nil)
+	k := &Keeper{kernelRouter: router}
+
+	// No clients, no endpoints -> reconnection attempt still fails
+	_, _, err := k.getRegistrationKernelClient(false, nil)
+	require.Error(t, err)
+}
