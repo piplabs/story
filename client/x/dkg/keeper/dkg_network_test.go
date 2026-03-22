@@ -180,3 +180,154 @@ func TestSetAndGetLatestActiveRound(t *testing.T) {
 	require.NotNil(t, got)
 	require.Equal(t, uint32(7), got.Round)
 }
+
+// TestIsLatestDKGNetwork_SameRoundOlderBlock verifies that isLatestDKGNetwork returns
+// false when same round exists but the new network has an older start block height.
+func TestIsLatestDKGNetwork_SameRoundOlderBlock(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store a network with round=1, startBlock=100
+	existing := &types.DKGNetwork{
+		Round:            1,
+		Total:            3,
+		Threshold:        2,
+		Stage:            types.DKGStageActive,
+		StartBlockHeight: 100,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, existing))
+
+	// Candidate with same round=1 but older startBlock=50 → should NOT become latest
+	candidate := &types.DKGNetwork{
+		Round:            1,
+		StartBlockHeight: 50,
+	}
+	isLatest, err := k.isLatestDKGNetwork(ctx, candidate)
+	require.NoError(t, err)
+	require.False(t, isLatest, "older start block height on same round should not become latest")
+}
+
+// TestIsLatestDKGNetwork_SameRoundNewerBlock verifies that isLatestDKGNetwork returns
+// true when the same round has a newer start block height (e.g. TEE binary upgrade).
+func TestIsLatestDKGNetwork_SameRoundNewerBlock(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store a network with round=1, startBlock=50
+	existing := &types.DKGNetwork{
+		Round:            1,
+		Total:            3,
+		Threshold:        2,
+		Stage:            types.DKGStageActive,
+		StartBlockHeight: 50,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, existing))
+
+	// Candidate with same round=1 but newer startBlock=200 → should become latest
+	candidate := &types.DKGNetwork{
+		Round:            1,
+		StartBlockHeight: 200,
+	}
+	isLatest, err := k.isLatestDKGNetwork(ctx, candidate)
+	require.NoError(t, err)
+	require.True(t, isLatest, "newer start block on same round should become latest")
+}
+
+// TestIsLatestDKGNetwork_LowerRound verifies that isLatestDKGNetwork returns
+// false when the candidate round is lower than the current latest.
+func TestIsLatestDKGNetwork_LowerRound(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store a network with round=5
+	existing := &types.DKGNetwork{
+		Round:     5,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, existing))
+
+	// Candidate with lower round=3 → should NOT become latest
+	candidate := &types.DKGNetwork{Round: 3}
+	isLatest, err := k.isLatestDKGNetwork(ctx, candidate)
+	require.NoError(t, err)
+	require.False(t, isLatest, "lower round should not become latest")
+}
+
+// TestSetDKGNetwork_DoesNotUpdateLatestForLowerRound verifies that setDKGNetwork
+// does not update the latest pointer when storing a network with a lower round.
+func TestSetDKGNetwork_DoesNotUpdateLatestForLowerRound(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store round 10 first (becomes latest)
+	net10 := &types.DKGNetwork{Round: 10, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, net10))
+
+	// Now store round 5 — should NOT update the latest pointer
+	net5 := &types.DKGNetwork{Round: 5, Total: 3, Threshold: 2, Stage: types.DKGStageRegistration}
+	require.NoError(t, k.setDKGNetwork(ctx, net5))
+
+	latest, err := k.GetLatestDKGRound(ctx)
+	require.NoError(t, err)
+	require.Equal(t, uint32(10), latest.Round, "latest pointer should still point to round 10")
+}
+
+// TestEndPreviousActiveRound_NilPrevActive verifies endPreviousActiveRound is a
+// no-op when no previous active round exists.
+func TestEndPreviousActiveRound_NilPrevActive(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// No active round set → endPreviousActiveRound should be no-op
+	err := k.endPreviousActiveRound(ctx, 1)
+	require.NoError(t, err)
+}
+
+// TestEndPreviousActiveRound_SameRound verifies endPreviousActiveRound is a
+// no-op when the previous active round is the same as the current round.
+func TestEndPreviousActiveRound_SameRound(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{Round: 3, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+	require.NoError(t, k.setLatestActiveRound(ctx, network))
+
+	// Same round as current → should be no-op
+	err := k.endPreviousActiveRound(ctx, 3)
+	require.NoError(t, err)
+
+	// Stage should remain Active
+	updated, err := k.getDKGNetwork(ctx, 3)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGStageActive, updated.Stage)
+}
+
+// TestEndPreviousActiveRound_PrevNotActive verifies endPreviousActiveRound is a
+// no-op when the previous active round is not in the Active stage (e.g. already Ended).
+func TestEndPreviousActiveRound_PrevNotActive(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Round 1 is Ended (not Active)
+	prev := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2, Stage: types.DKGStageEnded}
+	require.NoError(t, k.setDKGNetwork(ctx, prev))
+	require.NoError(t, k.setLatestActiveRound(ctx, prev))
+
+	// endPreviousActiveRound for round 2 should not change round 1's stage
+	err := k.endPreviousActiveRound(ctx, 2)
+	require.NoError(t, err)
+
+	updated, err := k.getDKGNetwork(ctx, 1)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGStageEnded, updated.Stage, "stage should remain Ended")
+}

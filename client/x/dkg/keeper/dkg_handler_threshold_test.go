@@ -1,14 +1,56 @@
 package keeper
 
 import (
+	"encoding/binary"
+	"strings"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 )
+
+// buildValidPartialDecryptSignature creates a valid ECDSA signature for a partial
+// decryption response. It replicates the signPartialDecryptResponse logic from the
+// DKG service, which computes:
+//
+//	encoded = round(4B big-endian) || ciphertext || encryptedPartial || ephPubKey || pubShare
+//	hash    = Keccak256(encoded)
+//	sig     = ECDSA.Sign(privKey, hash)
+//
+// Returns (commPubKey [64 bytes], signature [65 bytes]).
+func buildValidPartialDecryptSignature(t *testing.T, round uint32, ciphertext, encryptedPartial, ephemeralPubKey, pubShare []byte) (commPubKey []byte, signature []byte) {
+	t.Helper()
+
+	privKey, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	roundBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(roundBytes, round)
+
+	encoded := make([]byte, 0)
+	encoded = append(encoded, roundBytes...)
+	encoded = append(encoded, ciphertext...)
+	encoded = append(encoded, encryptedPartial...)
+	encoded = append(encoded, ephemeralPubKey...)
+	encoded = append(encoded, pubShare...)
+
+	hash := crypto.Keccak256(encoded)
+
+	sig, err := crypto.Sign(hash, privKey)
+	require.NoError(t, err)
+
+	// commPubKey is the uncompressed public key without the 0x04 prefix (64 bytes)
+	pub := privKey.PublicKey
+	commPubKey = make([]byte, 64)
+	copy(commPubKey[:32], pub.X.Bytes())
+	copy(commPubKey[32:], pub.Y.Bytes())
+
+	return commPubKey, sig
+}
 
 // TestThresholdDecryptRequested_DKGSvcDisabled verifies that when DKG service is
 // disabled, ThresholdDecryptRequested stores the decrypt request but returns nil.
@@ -98,6 +140,66 @@ func TestThresholdDecryptRequested_ValidatorNotInCommittee(t *testing.T) {
 
 	err := k.ThresholdDecryptRequested(ctx, 6, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
 	require.NoError(t, err, "validator not in committee should return nil")
+}
+
+// TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound verifies that when
+// the validator is in the active committee and DKG service is enabled but no session
+// exists for the round, ThresholdDecryptRequested returns an error.
+func TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	validatorAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	k.setValidatorAddress(validatorAddr)
+	initTestStateManager(t, k)
+
+	network := &types.DKGNetwork{
+		Round:        7,
+		Total:        3,
+		Threshold:    2,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{strings.ToLower(validatorAddr.Hex())},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// No session created for round 7 → GetSession returns "not found" error
+	err := k.ThresholdDecryptRequested(ctx, 7, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
+	require.Error(t, err, "missing session should return an error")
+	require.Contains(t, err.Error(), "failed to get DKG session for decrypt request")
+}
+
+// TestThresholdDecryptRequested_ValidatorInCommitteeWithSession verifies the happy
+// path: when DKG service is enabled, validator is in committee, and a session exists,
+// the request is added to the session.
+func TestThresholdDecryptRequested_ValidatorInCommitteeWithSession(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	validatorAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	k.setValidatorAddress(validatorAddr)
+	initTestStateManager(t, k)
+
+	network := &types.DKGNetwork{
+		Round:        8,
+		Total:        3,
+		Threshold:    2,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{strings.ToLower(validatorAddr.Hex())},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Create a session for round 8
+	require.NoError(t, k.stateManager.CreateSession(ctx, newTestSession(8)))
+
+	err := k.ThresholdDecryptRequested(ctx, 8, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
+	require.NoError(t, err)
+
+	// Verify the session has the queued decrypt request
+	session, err := k.stateManager.GetSession(8)
+	require.NoError(t, err)
+	require.Len(t, session.GetDecryptRequests(), 1, "session should have one pending decrypt request")
 }
 
 // TestPartialDecryptionSubmitted_RequestNotFound verifies that when the
@@ -359,4 +461,130 @@ func TestPartialDecryptionSubmitted_TimeoutExceeded(t *testing.T) {
 	_, found, err := k.getDecryptRequest(sdkCtx, requesterPubKey, label, 1, ciphertext)
 	require.NoError(t, err)
 	require.False(t, found, "request should have been cleaned up after timeout")
+}
+
+// TestPartialDecryptionSubmitted_Success verifies the happy path: a valid submission
+// with correct signature is stored successfully.
+func TestPartialDecryptionSubmitted_Success(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(baseCtx).WithBlockHeight(1)
+
+	requesterPubKey := []byte("req-pub-key-success")
+	ciphertext := []byte("cipher-success")
+	label := []byte("label-success")
+
+	encryptedPartial := []byte("enc-partial-data")
+	ephemeralPubKey := []byte("eph-pub-key-data")
+	pubShare := []byte("pub-share-data")
+
+	// Build a valid ECDSA signature
+	commPubKey, sig := buildValidPartialDecryptSignature(t, 3, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
+
+	// Store the decrypt request
+	require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, types.DecryptRequest{
+		Round:           3,
+		Ciphertext:      ciphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+		Height:          0, // height=0, current=1 → no timeout
+	}))
+
+	validator := common.HexToAddress("0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+
+	// Register the validator with matching commPubKey and pubKeyShare
+	require.NoError(t, k.setDKGRegistration(sdkCtx, validator, &types.DKGRegistration{
+		Round:         3,
+		ValidatorAddr: validator.Hex(),
+		Index:         2,
+		DkgPubKey:     []byte("dkg-pub"),
+		CommPubKey:    commPubKey,
+		PubKeyShare:   pubShare,
+		Status:        types.DKGRegStatusFinalized,
+	}))
+
+	err := k.PartialDecryptionSubmitted(
+		sdkCtx,
+		validator,
+		3,
+		2,
+		encryptedPartial,
+		ephemeralPubKey,
+		pubShare,
+		requesterPubKey,
+		ciphertext,
+		label,
+		sig,
+	)
+	require.NoError(t, err, "valid submission should succeed")
+}
+
+// TestPartialDecryptionSubmitted_DuplicateSubmission verifies that a duplicate
+// partial decryption submission (same validator, same request) returns nil (silently
+// ignored with a log message), not an error.
+func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(baseCtx).WithBlockHeight(1)
+
+	requesterPubKey := []byte("req-pub-key-dup")
+	ciphertext := []byte("cipher-dup")
+	label := []byte("label-dup")
+
+	encryptedPartial := []byte("enc-partial-dup")
+	ephemeralPubKey := []byte("eph-pub-key-dup")
+	pubShare := []byte("pub-share-dup")
+
+	commPubKey, sig := buildValidPartialDecryptSignature(t, 4, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
+
+	require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, types.DecryptRequest{
+		Round:           4,
+		Ciphertext:      ciphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+		Height:          0,
+	}))
+
+	validator := common.HexToAddress("0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+
+	require.NoError(t, k.setDKGRegistration(sdkCtx, validator, &types.DKGRegistration{
+		Round:         4,
+		ValidatorAddr: validator.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte("dkg-pub"),
+		CommPubKey:    commPubKey,
+		PubKeyShare:   pubShare,
+		Status:        types.DKGRegStatusFinalized,
+	}))
+
+	// First submission — should succeed
+	err := k.PartialDecryptionSubmitted(
+		sdkCtx, validator, 4, 1,
+		encryptedPartial, ephemeralPubKey, pubShare,
+		requesterPubKey, ciphertext, label, sig,
+	)
+	require.NoError(t, err, "first submission should succeed")
+
+	// Build a second valid signature (same data → same sig is valid)
+	commPubKey2, sig2 := buildValidPartialDecryptSignature(t, 4, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
+	// Update registration to use the new commPubKey so signature verification passes
+	require.NoError(t, k.setDKGRegistration(sdkCtx, validator, &types.DKGRegistration{
+		Round:         4,
+		ValidatorAddr: validator.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte("dkg-pub"),
+		CommPubKey:    commPubKey2,
+		PubKeyShare:   pubShare,
+		Status:        types.DKGRegStatusFinalized,
+	}))
+
+	// Second submission — duplicate → silently ignored (returns nil)
+	err = k.PartialDecryptionSubmitted(
+		sdkCtx, validator, 4, 1,
+		encryptedPartial, ephemeralPubKey, pubShare,
+		requesterPubKey, ciphertext, label, sig2,
+	)
+	require.NoError(t, err, "duplicate submission should be silently ignored")
 }

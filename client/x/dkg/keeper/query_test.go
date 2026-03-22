@@ -402,3 +402,100 @@ func TestQuery_GetCDRPartials_NotFound(t *testing.T) {
 	require.Equal(t, codes.NotFound, s.Code())
 	require.Nil(t, resp)
 }
+
+// TestQuery_GetCDRPartials_FoundSingleSubmission verifies GetCDRPartials returns
+// a grouped result when one partial decryption submission exists.
+func TestQuery_GetCDRPartials_FoundSingleSubmission(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Store a DKG network for the round so GetCDRPartials can read the threshold.
+	round := uint32(1)
+	network := &types.DKGNetwork{
+		Round:     round,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Parameters for the submission.
+	requesterPubKey := []byte("requester-pub-key-bytes")
+	var label [32]byte
+	// uuid=7 → stored in last 4 bytes of label (big-endian)
+	label[28] = 0x00
+	label[29] = 0x00
+	label[30] = 0x00
+	label[31] = 0x07
+	ciphertext := []byte("some-ciphertext")
+	encryptedPartial := []byte("encrypted-partial")
+	ephemeralPubKey := []byte("ephemeral-pub-key")
+	pubShare := []byte("pub-share")
+	validator := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+
+	// Directly set the partial decryption submission (bypasses signature verification).
+	require.NoError(t, k.setPartialDecryptionSubmission(
+		ctx,
+		validator,
+		round,
+		1, // pid
+		encryptedPartial,
+		ephemeralPubKey,
+		pubShare,
+		requesterPubKey,
+		label[:],
+		ciphertext,
+	))
+
+	// Query using the requester pubkey hex and the uuid.
+	resp, err := k.GetCDRPartials(ctx, &types.QueryGetCDRPartialsRequest{
+		RequesterPubKeyHex: common.Bytes2Hex(requesterPubKey),
+		Uuid:               7,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, resp.Submissions, 1, "expected one grouped result")
+	require.Equal(t, round, resp.Submissions[0].Round)
+	require.Equal(t, uint32(2), resp.Submissions[0].Threshold)
+	require.Len(t, resp.Submissions[0].Submissions, 1)
+	require.False(t, resp.Submissions[0].ThresholdMet, "threshold not met with only 1 of 2 required")
+}
+
+// TestQuery_GetCDRPartials_ThresholdMet verifies GetCDRPartials reports ThresholdMet=true
+// when the number of submissions reaches the round threshold.
+func TestQuery_GetCDRPartials_ThresholdMet(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	round := uint32(2)
+	network := &types.DKGNetwork{
+		Round:     round,
+		Total:     2,
+		Threshold: 2, // need 2 submissions
+		Stage:     types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	requesterPubKey := []byte("another-requester-key")
+	var label [32]byte
+	label[31] = 0x0A // uuid=10
+	ciphertext := []byte("ciphertext-abc")
+	val1 := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	val2 := common.HexToAddress("0x2222222222222222222222222222222222222222")
+
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx, val1, round, 1, []byte("ep1"), []byte("eph1"), []byte("ps1"), requesterPubKey, label[:], ciphertext))
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx, val2, round, 2, []byte("ep2"), []byte("eph2"), []byte("ps2"), requesterPubKey, label[:], ciphertext))
+
+	resp, err := k.GetCDRPartials(ctx, &types.QueryGetCDRPartialsRequest{
+		RequesterPubKeyHex: common.Bytes2Hex(requesterPubKey),
+		Uuid:               10,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, resp.Submissions, 1)
+	require.Equal(t, round, resp.Submissions[0].Round)
+	require.Len(t, resp.Submissions[0].Submissions, 2)
+	require.True(t, resp.Submissions[0].ThresholdMet, "threshold should be met with 2 of 2")
+}

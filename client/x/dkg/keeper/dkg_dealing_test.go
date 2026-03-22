@@ -428,6 +428,44 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 	require.True(t, pubKeys[1].Equal(dtc2.pub))
 }
 
+// TestProcessJustifications_TruncatesExcessiveList verifies that ProcessJustifications
+// truncates the input list to MaxJustificationsPerBlock when more justifications are given.
+// This covers the truncation branch inside ProcessJustifications (line 117-124).
+func TestProcessJustifications_TruncatesExcessiveList(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(5)
+	network := &types.DKGNetwork{
+		Round:     round,
+		Total:     3,
+		Threshold: dealingTestThreshold,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Build MaxJustificationsPerBlock+5 justifications (all invalid — no registered keys).
+	// ProcessJustifications will truncate to MaxJustificationsPerBlock, then all will fail
+	// signature verification (no dealer registered). The result is an empty valid set,
+	// but the truncation branch is covered.
+	overCount := MaxJustificationsPerBlock + 5
+	justifications := make([]types.Justification, overCount)
+	for i := range justifications {
+		justifications[i] = types.Justification{
+			Index: uint32(i),
+			VssJustification: &types.VSSJustification{
+				PlainDeal: &types.PlainDeal{
+					SecShare: &types.SecShare{I: 0},
+				},
+			},
+		}
+	}
+
+	// ProcessJustifications should succeed without error even though all sig-verifications fail
+	err := k.ProcessJustifications(ctx, network, justifications)
+	require.NoError(t, err, "truncation and sig-drop should not return an error")
+}
+
 // TestMaxJustificationsPerBlock verifies that the truncation slice operation
 // correctly caps justifications to MaxJustificationsPerBlock, matching the
 // logic used inside ProcessJustifications.
@@ -711,4 +749,65 @@ func TestProcessJustifications_InvalidatesDealer(t *testing.T) {
 		require.Equal(t, types.DKGRegStatusInvalidated, reg1.Status,
 			"dealer with invalid VSS must be Invalidated")
 	})
+}
+
+// TestBuildDealerPubKeyMap_EmptyDkgPubKey verifies that buildDealerPubKeyMap skips
+// registrations with empty DkgPubKey (the `len(reg.DkgPubKey) == 0` branch).
+func TestBuildDealerPubKeyMap_EmptyDkgPubKey(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(3)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// Register a dealer with an empty DkgPubKey — should be skipped.
+	emptyKeyDealer := common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+	reg := &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: emptyKeyDealer.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte{}, // empty — triggers the skip branch
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(ctx, emptyKeyDealer, reg))
+
+	network := &types.DKGNetwork{Round: round}
+	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	require.NoError(t, err)
+	require.Empty(t, pubKeys, "empty DkgPubKey registrations must be skipped")
+}
+
+// TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes verifies that buildDealerPubKeyMap
+// silently skips (via log.Warn) registrations whose DkgPubKey bytes cannot be
+// unmarshaled as an Edwards25519 point. The map is still returned without error.
+func TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(4)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// Register with a valid key (should appear in the map).
+	dtcValid := newDealerTestContext(t, 3, 2)
+	validDealer := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	setupDealerRegistrationWithKey(t, k, ctx, round, validDealer, 1, dtcValid.pubBytes)
+
+	// Register with invalid DkgPubKey bytes — unmarshal will fail, entry skipped.
+	invalidDealer := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	badReg := &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: invalidDealer.Hex(),
+		Index:         2,
+		DkgPubKey:     []byte("not-a-valid-edwards25519-point"),
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(ctx, invalidDealer, badReg))
+
+	network := &types.DKGNetwork{Round: round}
+	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	require.NoError(t, err, "invalid DkgPubKey bytes must be skipped without error")
+	require.Len(t, pubKeys, 1, "only the valid dealer should appear in the map")
+	require.True(t, pubKeys[1].Equal(dtcValid.pub), "valid dealer's key must be in the map at index 1")
 }

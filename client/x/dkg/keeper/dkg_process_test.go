@@ -524,3 +524,33 @@ func TestProcessResponses_DKGSvcEnabled(t *testing.T) {
 	err := k.ProcessResponses(ctx, network, responses)
 	require.NoError(t, err)
 }
+
+// TestProcessResponses_DKGSvcEnabled_WithStateManager verifies that ProcessResponses
+// runs shouldProcessResponses successfully when a stateManager is initialized.
+func TestProcessResponses_DKGSvcEnabled_WithStateManager(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	validatorAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	k.setValidatorAddress(validatorAddr)
+	initTestStateManager(t, k)
+
+	network := &types.DKGNetwork{
+		Round:        22,
+		Total:        3,
+		Threshold:    2,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{validatorAddr.Hex()},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Create a session so shouldProcessResponses can check session state
+	require.NoError(t, k.stateManager.CreateSession(ctx, newTestSession(22)))
+
+	responses := []types.Response{
+		{Index: 1},
+	}
+
+	err := k.ProcessResponses(ctx, network, responses)
+	require.NoError(t, err)
+}

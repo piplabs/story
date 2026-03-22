@@ -149,6 +149,94 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 	}
 }
 
+// TestFinalizeDKGRound_UpgradeRound verifies that when IsUpgrade=true, FinalizeDKGRound
+// deletes the activated upgrade info after a successful round finalization.
+func TestFinalizeDKGRound_UpgradeRound(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	params := types.DefaultParams()
+	params.MinReqFinalizedParticipants = 1
+	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
+	require.NoError(t, k.SetParams(ctx, params))
+
+	latestRound := &types.DKGNetwork{
+		Round:        1,
+		ActiveValSet: []string{},
+		Total:        1,
+		Threshold:    1,
+		Stage:        types.DKGStageFinalization,
+		IsUpgrade:    true, // upgrade resharing round
+	}
+	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
+
+	val := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	setRegistration(t, k, ctx, latestRound, val, types.DKGRegStatusFinalized)
+
+	// Store an activated upgrade info so FinalizeDKGRound can delete it
+	upgradeInfo := &types.KernelUpgradeInfo{
+		UpgradeVersion:   "v2.0.0",
+		ActivationHeight: 100,
+		IsActivated:      true,
+	}
+	require.NoError(t, k.SetKernelUpgradeInfo(ctx, upgradeInfo))
+
+	err := k.FinalizeDKGRound(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Verify upgrade info was deleted after successful upgrade round
+	info, err := k.GetPendingUpgrade(ctx)
+	require.NoError(t, err)
+	require.Nil(t, info, "upgrade info should be deleted after successful upgrade round")
+
+	// Verify the round is now active
+	activeRound, err := k.GetLatestActiveRound(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, activeRound)
+	require.Equal(t, uint32(1), activeRound.Round)
+}
+
+// TestFinalizeDKGRound_DKGSvcEnabled verifies that FinalizeDKGRound spawns
+// an async goroutine when isDKGSvcEnabled=true (without waiting for it to complete).
+// The stateManager must be initialized so the goroutine (handleDKGComplete) does not panic.
+func TestFinalizeDKGRound_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	k.setIsDKGSvcEnabled()
+	initTestStateManager(t, k)
+
+	params := types.DefaultParams()
+	params.MinReqFinalizedParticipants = 1
+	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
+	require.NoError(t, k.SetParams(ctx, params))
+
+	latestRound := &types.DKGNetwork{
+		Round:        9,
+		ActiveValSet: []string{},
+		Total:        1,
+		Threshold:    1,
+		Stage:        types.DKGStageFinalization,
+		IsUpgrade:    false,
+	}
+	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
+
+	val := common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+	setRegistration(t, k, ctx, latestRound, val, types.DKGRegStatusFinalized)
+
+	// FinalizeDKGRound should succeed and the goroutine (handleDKGComplete) should be spawned.
+	// The goroutine will log an error (session not found for round 9) but will not panic.
+	err := k.FinalizeDKGRound(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Verify round was set as active
+	activeRound, err := k.GetLatestActiveRound(sdkCtx)
+	require.NoError(t, err)
+	require.NotNil(t, activeRound)
+	require.Equal(t, uint32(9), activeRound.Round)
+}
+
 func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
