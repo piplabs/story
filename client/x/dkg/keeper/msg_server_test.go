@@ -138,6 +138,28 @@ func TestMsgServer_AddVote_EmptyDeals_DealingStage(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
+// TestMsgServer_AddVote_GetLatestRoundError verifies that AddVote propagates
+// an error from GetLatestDKGRound (e.g. corrupted store state).
+func TestMsgServer_AddVote_GetLatestRoundError(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	srv := NewMsgServerImpl(k)
+
+	// Simulate corrupted state: a LatestDKGNetwork pointer pointing to a
+	// non-existent network entry. GetLatestDKGRound will return a not-found error.
+	require.NoError(t, k.LatestDKGNetwork.Set(ctx, "9999"))
+
+	msg := &types.MsgAddDkgVote{
+		Authority: testAuthority,
+		Vote:      &types.Vote{},
+	}
+
+	_, err := srv.AddVote(ctx, msg)
+	require.Error(t, err, "AddVote should propagate GetLatestDKGRound error")
+	require.Contains(t, err.Error(), "not found")
+}
+
 // TestMsgServer_GetAuthority verifies that the keeper returns the correct
 // authority address.
 func TestMsgServer_GetAuthority(t *testing.T) {
