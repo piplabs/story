@@ -3,9 +3,11 @@ package keeper
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc"
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -946,6 +948,548 @@ func TestReprocessPendingIncomingData_NoClients(t *testing.T) {
 	pendingIncomingDealsMu.Lock()
 	require.Len(t, pendingIncomingDeals, 1, "data should remain when no clients available")
 	pendingIncomingDealsMu.Unlock()
+}
+
+// --- handleDKGDealing: upgrade round uses OldCodeCommitment (gap 13) ---
+
+// TestHandleDKGDealing_UpgradeUsesOldCC verifies that for upgrade resharing,
+// handleDKGDealing uses the session's OldCodeCommitment (not CodeCommitment) for GenerateDeals.
+func TestHandleDKGDealing_UpgradeUsesOldCC(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	oldCC := []byte("old-deal-cc")
+	newCC := []byte("new-deal-cc")
+	mockOldKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockNewKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(oldCC, mockOldKernel)
+	router.RegisterClient(newCC, mockNewKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	session := &types.DKGSession{
+		Round:             5,
+		Phase:             types.PhaseInitialized,
+		CodeCommitment:    newCC,
+		OldCodeCommitment: oldCC,
+		IsUpgrade:         true,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Upgrade resharing: GenerateDeals should be called on the OLD kernel binary.
+	mockOldKernel.EXPECT().GenerateDeals(gomock.Any(), gomock.Any()).Return(
+		&types.GenerateDealsResponse{Deals: []types.Deal{{Index: 0}}}, nil,
+	)
+	// mockNewKernel should NOT be called for deal generation.
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:     5,
+		Stage:     types.DKGStageDealing,
+		IsUpgrade: true,
+	}
+
+	k.FlushAllQueues()
+	k.handleDKGDealing(ctx, dkgNetwork, true)
+
+	got, err := sm.GetSession(5)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseDealing, got.Phase, "upgrade dealing should advance to PhaseDealing")
+}
+
+// TestHandleDKGDealing_GenerateDealsError_MarksFailed verifies that handleDKGDealing
+// marks the session as failed when GenerateDeals returns an error.
+func TestHandleDKGDealing_GenerateDealsError_MarksFailed(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("fail-deal-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	session := &types.DKGSession{
+		Round:          6,
+		Phase:          types.PhaseInitialized,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retry attempts.
+	mockKernel.EXPECT().GenerateDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{Round: 6, Stage: types.DKGStageDealing}
+
+	k.handleDKGDealing(ctx, dkgNetwork, true)
+
+	got, err := sm.GetSession(6)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseFailed, got.Phase, "failed GenerateDeals should mark session as failed")
+}
+
+// --- handleDKGProcessDeals: session.Index > 0 && deal.RecipientIndex filtering (gap 14) ---
+
+// TestHandleDKGProcessDeals_SessionIndexFiltering verifies that handleDKGProcessDeals
+// only forwards deals where RecipientIndex == session.Index - 1 (0-based kyber index).
+func TestHandleDKGProcessDeals_SessionIndexFiltering(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("process-deal-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          7,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          2, // 1-based: recipientIndex to accept = 1 (0-based)
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Deal addressed to this validator (RecipientIndex=1 == Index-1=1)
+	myDeal := types.Deal{Index: 0, RecipientIndex: 1}
+	// Deal addressed to a different validator
+	otherDeal := types.Deal{Index: 0, RecipientIndex: 0}
+
+	// ProcessDeals should only forward myDeal (one deal addressed to us).
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, req *types.ProcessDealsRequest, _ ...grpc.CallOption) (*types.ProcessDealsResponse, error) {
+			require.Len(t, req.Deals, 1, "should only forward deals addressed to this validator")
+			require.Equal(t, uint32(1), req.Deals[0].RecipientIndex)
+			return &types.ProcessDealsResponse{Responses: []types.Response{{Index: 0}}}, nil
+		},
+	)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        7,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, []types.Deal{myDeal, otherDeal})
+}
+
+// TestHandleDKGProcessDeals_ProcessDealsError_CachesDeals verifies that failed
+// ProcessDeals calls cache the unprocessed deals for retry.
+func TestHandleDKGProcessDeals_ProcessDealsError_CachesDeals(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("fail-process-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          8,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1, // accept RecipientIndex=0
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	myDeal := types.Deal{Index: 0, RecipientIndex: 0}
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        8,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, []types.Deal{myDeal})
+
+	pendingIncomingDealsMu.Lock()
+	cached := len(pendingIncomingDeals)
+	pendingIncomingDealsMu.Unlock()
+	require.Equal(t, 1, cached, "failed deal should be cached for retry")
+}
+
+// --- handleDKGProcessResponses: upgrade CC filtering (gap 15) ---
+
+// TestHandleDKGProcessResponses_UpgradeCCFiltering verifies that for upgrade resharing,
+// handleDKGProcessResponses sends responses to BOTH old and new kernel binaries.
+func TestHandleDKGProcessResponses_UpgradeCCFiltering(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	oldCC := []byte("old-resp-cc")
+	newCC := []byte("new-resp-cc")
+	mockOldKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockNewKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(oldCC, mockOldKernel)
+	router.RegisterClient(newCC, mockNewKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:             9,
+		Phase:             types.PhaseDealing,
+		CodeCommitment:    newCC,
+		OldCodeCommitment: oldCC,
+		IsUpgrade:         true,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	resp := types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}
+
+	// Both old and new kernel should receive ProcessResponses.
+	mockOldKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{}, nil,
+	)
+	mockNewKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{}, nil,
+	)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:     9,
+		Stage:     types.DKGStageDealing,
+		IsUpgrade: true,
+	}
+
+	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{resp}, true)
+}
+
+// TestHandleDKGProcessResponses_ResponseIndexFiltering verifies that responses
+// from self (VssResponse.Index == session.Index - 1) are filtered out.
+func TestHandleDKGProcessResponses_ResponseIndexFiltering(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("filter-resp-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          10,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          2, // self index: 1 (0-based) = VssResponse.Index == 1 should be filtered
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	selfResp := types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}  // self response (filtered)
+	otherResp := types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 0}} // other response
+
+	// After filtering self, only otherResp remains → ProcessResponses called with 1 response.
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, req *types.ProcessResponsesRequest, _ ...grpc.CallOption) (*types.ProcessResponsesResponse, error) {
+			require.Len(t, req.Responses, 1, "self response should be filtered out")
+			require.Equal(t, uint32(0), req.Responses[0].VssResponse.Index)
+			return &types.ProcessResponsesResponse{}, nil
+		},
+	)
+
+	dkgNetwork := &types.DKGNetwork{Round: 10, Stage: types.DKGStageDealing}
+	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{selfResp, otherResp}, true)
+}
+
+// TestHandleDKGProcessResponses_Error_CachesResponses verifies that failed
+// ProcessResponses calls cache the responses for retry.
+func TestHandleDKGProcessResponses_Error_CachesResponses(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("fail-resp-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          11,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          0, // unset → all responses included
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{Round: 11, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	resp := types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}
+	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{resp}, true)
+
+	pendingIncomingResponsesMu.Lock()
+	cached := len(pendingIncomingResponses)
+	pendingIncomingResponsesMu.Unlock()
+	require.Equal(t, 1, cached, "failed response should be cached for retry")
+}
+
+// --- handleDKGProcessJustifications: upgrade CC filtering and error path (gap 16) ---
+
+// TestHandleDKGProcessJustifications_UpgradeCCFiltering verifies that for upgrade
+// resharing, handleDKGProcessJustifications sends justifications to BOTH binaries.
+func TestHandleDKGProcessJustifications_UpgradeCCFiltering(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	oldCC := []byte("old-just-cc")
+	newCC := []byte("new-just-cc")
+	mockOldKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockNewKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(oldCC, mockOldKernel)
+	router.RegisterClient(newCC, mockNewKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:             12,
+		Phase:             types.PhaseDealing,
+		CodeCommitment:    newCC,
+		OldCodeCommitment: oldCC,
+		IsUpgrade:         true,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	just := types.Justification{Index: 0}
+
+	// Both old and new kernel should receive ProcessJustification.
+	mockOldKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{}, nil,
+	)
+	mockNewKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{}, nil,
+	)
+
+	dkgNetwork := &types.DKGNetwork{Round: 12, Stage: types.DKGStageDealing, IsUpgrade: true}
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+}
+
+// TestHandleDKGProcessJustifications_Error_CachesJustifications verifies that
+// failed ProcessJustification kernel calls cache the justifications for retry.
+func TestHandleDKGProcessJustifications_Error_CachesJustifications(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("fail-just-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          13,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+
+	dkgNetwork := &types.DKGNetwork{Round: 13, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	just := types.Justification{Index: 0}
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+
+	pendingIncomingJustificationsMu.Lock()
+	cached := len(pendingIncomingJustifications)
+	pendingIncomingJustificationsMu.Unlock()
+	require.Equal(t, 1, cached, "failed justification should be cached for retry")
+}
+
+// TestHandleDKGProcessJustifications_SuccessPath verifies the success path of
+// handleDKGProcessJustifications forwards justifications to the kernel.
+func TestHandleDKGProcessJustifications_SuccessPath(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("success-just-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          14,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel successfully processes justification.
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{}, nil,
+	)
+
+	dkgNetwork := &types.DKGNetwork{Round: 14, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	just := types.Justification{Index: 0}
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+
+	pendingIncomingJustificationsMu.Lock()
+	cached := len(pendingIncomingJustifications)
+	pendingIncomingJustificationsMu.Unlock()
+	require.Equal(t, 0, cached, "successful processing should not cache justifications")
+}
+
+// --- reprocessPendingIncomingData: async goroutine (gap 17) ---
+
+// TestReprocessPendingIncomingData_SuccessPath verifies reprocessPendingIncomingData
+// drains and replays cached deals/responses/justifications when kernel is connected.
+func TestReprocessPendingIncomingData_SuccessPath(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("reprocess-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	// Create a session for the reprocess calls.
+	session := &types.DKGSession{
+		Round:          15,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1, // accept RecipientIndex=0
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Pre-populate pending queues.
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pendingIncomingDealsMu.Lock()
+	pendingIncomingDeals = []types.Deal{{Index: 0, RecipientIndex: 0}}
+	pendingIncomingDealsMu.Unlock()
+
+	pendingIncomingResponsesMu.Lock()
+	pendingIncomingResponses = []types.Response{{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}}
+	pendingIncomingResponsesMu.Unlock()
+
+	pendingIncomingJustificationsMu.Lock()
+	pendingIncomingJustifications = []types.Justification{{Index: 0}}
+	pendingIncomingJustificationsMu.Unlock()
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        15,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	// Kernel should receive ProcessDeals, ProcessResponses, ProcessJustification.
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessDealsResponse{Responses: []types.Response{{Index: 0}}}, nil,
+	)
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{}, nil,
+	)
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{}, nil,
+	)
+
+	k.reprocessPendingIncomingData(dkgNetwork)
+
+	// Give the goroutine time to complete.
+	// We wait briefly since the goroutine is async.
+	time.Sleep(200 * time.Millisecond)
+
+	// After reprocessing, queues should be drained.
+	pendingIncomingDealsMu.Lock()
+	dealsLeft := len(pendingIncomingDeals)
+	pendingIncomingDealsMu.Unlock()
+	require.Equal(t, 0, dealsLeft, "pending deals should be drained after reprocessing")
 }
 
 // --- Full path tests merged from dkg_svc_full_path_test.go ---

@@ -906,7 +906,11 @@ func TestGetOldCodeCommitment_NoRegistration(t *testing.T) {
 // TestResumeFailedSession_FinalizationStage verifies that resumeFailedSession
 // dispatches to handleDKGFinalization for DKGStageFinalization stage.
 // The session phase is updated to PhaseDealing before spawning the goroutine.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
 func TestResumeFailedSession_FinalizationStage(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	sm, err := NewStateManager(t.TempDir())
@@ -928,16 +932,25 @@ func TestResumeFailedSession_FinalizationStage(t *testing.T) {
 
 	k.resumeFailedSession(ctx, session, dkgNetwork)
 
+	// Phase is updated synchronously before the goroutine is launched.
 	got, err := sm.GetSession(20)
 	require.NoError(t, err)
 	// resumeFailedSession updates phase to PhaseDealing before launching the goroutine
 	require.Equal(t, types.PhaseDealing, got.Phase, "finalization stage should set phase to PhaseDealing")
+
+	// Allow the spawned goroutine to run and release the dkgSvcRound lock
+	// so it does not race with the deferred resetDKGSvcRound.
+	time.Sleep(50 * time.Millisecond)
 }
 
 // TestResumeFailedSession_ActiveStage verifies that resumeFailedSession
 // dispatches to handleDKGComplete for DKGStageActive stage.
 // The session phase is updated to PhaseFinalized before spawning the goroutine.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
 func TestResumeFailedSession_ActiveStage(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	sm, err := NewStateManager(t.TempDir())
@@ -959,6 +972,18 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 
 	k.resumeFailedSession(ctx, session, dkgNetwork)
 
+	// Wait for the goroutine spawned by resumeFailedSession to complete.
+	// The goroutine acquires dkgSvcRound; when it is released (dkgSvcRound drops to 0),
+	// the goroutine is done and will no longer access the session object.
+	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// Now the goroutine is done — safe to read the session state.
 	got, err := sm.GetSession(21)
 	require.NoError(t, err)
 	// resumeFailedSession updates phase to PhaseFinalized before launching the goroutine
