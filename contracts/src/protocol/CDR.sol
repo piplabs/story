@@ -11,7 +11,6 @@ import { ICDRWriteCondition } from "../interfaces/ICDRWriteCondition.sol";
 import { ICDRReadCondition } from "../interfaces/ICDRReadCondition.sol";
 
 contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-
     /// @dev Storage structure for the CDR
     /// @param uuid The UUID of the vault
     /// @param baseFee The base fee
@@ -106,7 +105,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata writeConditionData,
         bytes calldata readConditionData
     ) external payable whenNotPaused returns (uint32 newVaultUuid) {
-        require(writeConditionAddr != address(0) || readConditionAddr != address(0), "Invalid condition address");
+        require(writeConditionAddr != address(0) && readConditionAddr != address(0), "Invalid condition address");
 
         CDRStorage storage $ = _getCDRStorage();
         // collect allocation fee and burn it
