@@ -67,7 +67,7 @@ func (EventType) EnumDescriptor() ([]byte, []int) {
 
 type EventBeginInitialization struct {
 	Round            uint32   `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty"`
-	StartBlockHeight uint32   `protobuf:"varint,2,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty"`
+	StartBlockHeight int64    `protobuf:"varint,2,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty"`
 	ActiveValidators []string `protobuf:"bytes,3,rep,name=active_validators,json=activeValidators,proto3" json:"active_validators,omitempty"`
 }
 
@@ -111,7 +111,7 @@ func (m *EventBeginInitialization) GetRound() uint32 {
 	return 0
 }
 
-func (m *EventBeginInitialization) GetStartBlockHeight() uint32 {
+func (m *EventBeginInitialization) GetStartBlockHeight() int64 {
 	if m != nil {
 		return m.StartBlockHeight
 	}
@@ -1034,7 +1034,7 @@ func (m *EventBeginInitialization) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.StartBlockHeight |= uint32(b&0x7F) << shift
+				m.StartBlockHeight |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
