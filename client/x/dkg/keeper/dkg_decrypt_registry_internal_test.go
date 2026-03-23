@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -133,4 +134,54 @@ func TestPruneTimedOutDecryptRequests_AllExpired(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, found)
 	}
+}
+
+func TestHasDecryptRequestQuery(t *testing.T) {
+	k, ctx := setupDKGKeeper(t)
+
+	requesterPubKey := []byte("requester-pubkey")
+	label := make([]byte, 32)
+	copy(label, []byte("label-32-bytes"))
+	ciphertext := []byte("ciphertext")
+	const round = uint32(7)
+
+	resp, err := k.HasDecryptRequest(ctx, &types.QueryHasDecryptRequestRequest{
+		Round:              round,
+		RequesterPubKeyHex: hex.EncodeToString(requesterPubKey),
+		LabelHex:           hex.EncodeToString(label),
+		CiphertextHex:      hex.EncodeToString(ciphertext),
+	})
+	require.NoError(t, err)
+	require.False(t, resp.Exists)
+
+	stored := types.DecryptRequest{
+		Round:           round,
+		Ciphertext:      ciphertext,
+		Label:           label,
+		RequesterPubKey: requesterPubKey,
+		Height:          42,
+	}
+	require.NoError(t, k.setDecryptRequest(ctx, requesterPubKey, label, stored))
+
+	resp, err = k.HasDecryptRequest(ctx, &types.QueryHasDecryptRequestRequest{
+		Round:              round,
+		RequesterPubKeyHex: hex.EncodeToString(requesterPubKey),
+		LabelHex:           hex.EncodeToString(label),
+		CiphertextHex:      hex.EncodeToString(ciphertext),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Exists)
+}
+
+func TestHasDecryptRequestQuery_InvalidLabel(t *testing.T) {
+	k, ctx := setupDKGKeeper(t)
+
+	resp, err := k.HasDecryptRequest(ctx, &types.QueryHasDecryptRequestRequest{
+		Round:              1,
+		RequesterPubKeyHex: hex.EncodeToString([]byte("requester")),
+		LabelHex:           hex.EncodeToString([]byte("short")),
+		CiphertextHex:      hex.EncodeToString([]byte("ciphertext")),
+	})
+	require.Error(t, err)
+	require.Nil(t, resp)
 }

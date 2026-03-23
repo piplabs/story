@@ -13,7 +13,6 @@ import (
 )
 
 // decryptRequestRegistryKey builds the key for the DecryptRequestRegistry map:
-// hex(sha256(requesterPubKey))_hex(sha256(label))_round_hex(sha256(ciphertext))
 func decryptRequestRegistryKey(requesterPubKey []byte, label []byte, round uint32, ciphertext []byte) string {
 	requesterHash := sha256.Sum256(requesterPubKey)
 	ciphertextHash := sha256.Sum256(ciphertext)
