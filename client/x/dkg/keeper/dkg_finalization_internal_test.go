@@ -56,7 +56,17 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 		threshold       uint32
 		total           uint32
 		expectSkip      bool
+		emptyGlobalKey  bool
 	}{
+		{
+			name:            "skip: global public key not set",
+			finalizedCount:  4,
+			minReqFinalized: 3,
+			threshold:       4,
+			total:           5,
+			expectSkip:      true,
+			emptyGlobalKey:  true,
+		},
 		{
 			name:            "skip: finalized count below min_req_finalized_participants",
 			finalizedCount:  2,
@@ -109,13 +119,18 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 			params.MinReqFinalizedParticipants = tc.minReqFinalized
 			require.NoError(t, k.SetParams(ctx, params))
 
-			// Set up DKG network
+			// Set up DKG network (GlobalPublicKey must be non-empty for finalization to proceed)
+			var globalPubKey []byte
+			if !tc.emptyGlobalKey {
+				globalPubKey = []byte("global-pub-key")
+			}
 			latestRound := &types.DKGNetwork{
-				Round:        testRound,
-				ActiveValSet: activeValSet,
-				Total:        tc.total,
-				Threshold:    tc.threshold,
-				Stage:        types.DKGStageFinalization,
+				Round:           testRound,
+				ActiveValSet:    activeValSet,
+				Total:           tc.total,
+				Threshold:       tc.threshold,
+				Stage:           types.DKGStageFinalization,
+				GlobalPublicKey: globalPubKey,
 			}
 			require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -162,11 +177,12 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
 
 	latestRound := &types.DKGNetwork{
-		Round:        2,
-		ActiveValSet: []string{},
-		Total:        2,
-		Threshold:    1,
-		Stage:        types.DKGStageFinalization,
+		Round:           2,
+		ActiveValSet:    []string{},
+		Total:           2,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		GlobalPublicKey: []byte("global-pub-key"),
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
