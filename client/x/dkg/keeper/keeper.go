@@ -78,8 +78,8 @@ type Keeper struct {
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt      collections.Map[string, []byte]               // key: round_validator_pid_labelHash
-	DecryptRequestRegistry collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_labelHash; value: decrypt request
+	DKGPartialDecrypt      collections.Map[string, []byte]               // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
+	DecryptRequestRegistry collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
 
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
