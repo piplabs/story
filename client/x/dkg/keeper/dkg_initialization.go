@@ -39,6 +39,10 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 // as an upgrade resharing round (IsResharing=true, IsUpgrade=true) and the current
 // active round is NOT inactive.
 func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
+	// Flush stale deals/responses/justifications from previous rounds to prevent
+	// them from contaminating the new round's vote extensions.
+	k.FlushAllQueues()
+
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	activeValidators, err := k.GetActiveValidators(ctx)
