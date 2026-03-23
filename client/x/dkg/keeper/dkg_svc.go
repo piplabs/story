@@ -85,7 +85,7 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	// worker is running. This covers node restarts and the case where the worker
 	// was never started due to context cancellation.
 	if session.Phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
-		k.StartDecryptWorker(ctx)
+		k.StartDecryptWorker()
 
 		return
 	}
@@ -250,7 +250,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 // The worker uses its own long-lived context (derived from context.Background) because the
 // caller's context (dkgAsyncContext) is short-lived and gets cancelled when the parent
 // goroutine exits. The decrypt worker must run for the lifetime of the process.
-func (k *Keeper) StartDecryptWorker(_ context.Context) {
+func (k *Keeper) StartDecryptWorker() {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
 		// already running
 		return
@@ -285,7 +285,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		// Skip sessions whose kernel binary is no longer connected.
 		// This happens when old events are replayed during chain catch-up
 		// after a kernel binary change — the sealed keys are unreachable.
-		if _, err := k.kernelRouter.GetClient(session.CodeCommitment); err != nil {
+		if _, err := k.getClientWithReconnect(session.CodeCommitment); err != nil {
 			log.Warn(ctx, "Dropping decrypt requests for session with unavailable kernel", nil,
 				"session", session.GetSessionKey(),
 				"code_commitment", hex.EncodeToString(session.CodeCommitment),

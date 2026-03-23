@@ -33,7 +33,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		log.Info(ctx, "DKG network already completed")
 		// Ensure the decrypt worker is running even if completion was already processed
 		// (e.g., after node restart or if the worker exited due to a transient error).
-		k.StartDecryptWorker(ctx)
+		k.StartDecryptWorker()
 
 		return
 	}
@@ -60,5 +60,5 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		"validator_evm_address", k.validatorEVMAddr,
 	)
 
-	k.StartDecryptWorker(ctx)
+	k.StartDecryptWorker()
 }
