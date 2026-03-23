@@ -195,11 +195,9 @@ func (k *Keeper) PrepareProposal(ctx sdk.Context, req *abci.RequestPreparePropos
 		return nil, errors.Wrap(err, "prepare votes")
 	}
 
-	// Combine all the votes messages and the payload message into a single transaction.
+	// Combine the payload message and vote message into a single transaction.
 	b := k.txConfig.NewTxBuilder()
 
-	// Before v2.0.0 activation, voteMsg is nil — omit it to keep
-	// proposals compatible with pre-upgrade validators.
 	msgs := []sdk.Msg{payloadMsg}
 	if voteMsg != nil {
 		msgs = append(msgs, voteMsg)

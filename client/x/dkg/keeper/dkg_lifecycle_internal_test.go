@@ -473,24 +473,6 @@ func TestDKGLifecycle_StageTransitionTiming(t *testing.T) {
 		"should transition to Dealing at exact boundary")
 }
 
-// TestDKGLifecycle_BeginBlockerPreV200Noop verifies that BeginBlocker is a
-// complete no-op before V200 activation height.
-func TestDKGLifecycle_BeginBlockerPreV200Noop(t *testing.T) {
-	t.Parallel()
-	env := setupDKGLifecycleEnv(t, 3)
-
-	// TestChainID has V200 at block 110. Set height to 109 (before V200).
-	env.advanceToHeight(109)
-
-	// BeginBlocker should return nil without doing anything
-	require.NoError(t, env.keeper.BeginBlocker(env.sdkCtx))
-
-	// No DKG round should exist
-	latestRound, err := env.keeper.GetLatestDKGRound(env.sdkCtx)
-	require.NoError(t, err)
-	require.Nil(t, latestRound, "no DKG round should be created before V200")
-}
-
 // TestDKGLifecycle_InsufficientRegistrations verifies that when the number of
 // verified registrations is below MinReqRegisteredParticipants, the round is
 // skipped and a new round is initiated.

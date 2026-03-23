@@ -54,7 +54,7 @@ func (a *App) setupUpgradeHandlers() {
 	}
 }
 
-// setUpgradeStoreLoaders sets custom store loaders to customize the rootMultiStore initialization for software upgrades.
+// setupUpgradeStoreLoaders sets custom store loaders to customize the rootMultiStore initialization for software upgrades.
 func (a *App) setupUpgradeStoreLoaders() {
 	upgradeHistory, err := netconf.GetUpgradeHistory(a.ChainID())
 	if err != nil {
@@ -72,6 +72,18 @@ func (a *App) setupUpgradeStoreLoaders() {
 			if name == upgrade.UpgradeName {
 				storeUpgradesMap[height] = upgrade.StoreUpgrades
 			}
+		}
+	}
+
+	// For binary-swap upgrades scheduled on-chain via planUpgrade (not in
+	// UpgradeHistories), the old binary writes upgrade-info.json to disk
+	// before halting. Read it to register the store upgrades at the correct
+	// height so the new binary can mount new module stores on startup.
+	diskPlan, diskErr := a.Keepers.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	if diskErr == nil && diskPlan.Height > 0 && !a.Keepers.UpgradeKeeper.IsSkipHeight(diskPlan.Height) {
+		storeUpgrades, err := GetStoreUpgrades(diskPlan.Name)
+		if err == nil {
+			storeUpgradesMap[diskPlan.Height] = storeUpgrades
 		}
 	}
 
@@ -205,11 +217,21 @@ func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64)
 	case netconf.Horace:
 		return horace.GetUpgradeHeight(ctx)
 
-	case netconf.V200:
-		return v_2_0_0.GetUpgradeHeight(ctx)
-
 	default:
 		// no dynamic resolver → use fallback (static height)
 		return fallbackHeight, true
+	}
+}
+
+// GetStoreUpgrades returns the store upgrades for a given scheduled upgrade on-chain.
+// This is used by the disk-based fallback in setupUpgradeStoreLoaders to
+// determine which stores to add when the upgrade height comes from
+// upgrade-info.json rather than from hardcoded UpgradeHistories.
+func GetStoreUpgrades(upgradeName string) (storetypes.StoreUpgrades, error) {
+	switch upgradeName {
+	case netconf.V200:
+		return v_2_0_0.Upgrade.StoreUpgrades, nil
+	default:
+		return storetypes.StoreUpgrades{}, errors.New("no matched store upgrades")
 	}
 }

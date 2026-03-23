@@ -12,7 +12,6 @@ import (
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"github.com/piplabs/story/lib/netconf"
 )
 
 const (
@@ -25,17 +24,7 @@ const (
 	maxItemsPerVote = 80
 )
 
-func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// Vote extensions are only active after v2.0.0 upgrade.
-	isV200, err := netconf.IsV200(ctx.ChainID(), ctx.BlockHeight())
-	if err != nil {
-		return nil, errors.Wrap(err, "check v2.0.0 upgrade height")
-	}
-
-	if !isV200 {
-		return &abci.ResponseExtendVote{}, nil
-	}
-
+func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
 	dequeuedDeals := k.DequeueDeals(maxItemsPerVote)
 	dequeuedResponses := k.DequeueResponses(maxItemsPerVote)
 	dequeuedJustifications := k.DequeueJustifications(maxItemsPerVote)
@@ -55,19 +44,9 @@ func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.R
 }
 
 func (k *Keeper) VerifyVoteExtension(ctx sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
-	// Vote extensions are only active after v2.0.0 upgrade.
-	isV200, err := netconf.IsV200(ctx.ChainID(), ctx.BlockHeight())
-	if err != nil {
-		return nil, errors.Wrap(err, "check v2.0.0 upgrade height")
-	}
-
-	if !isV200 {
-		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_ACCEPT}, nil
-	}
-
 	// Reject malformed vote extensions via ABCI status (not Go error),
 	// as returning a Go error is treated as an application bug by CometBFT.
-	_, _, err = k.parseAndVerifyVoteExtension(req.VoteExtension)
+	_, _, err := k.parseAndVerifyVoteExtension(req.VoteExtension)
 	if err != nil {
 		log.Warn(ctx, "Rejecting malformed vote extension", err)
 		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
@@ -112,18 +91,20 @@ func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool,
 func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInfo, commitHeight uint64) (sdk.Msg, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Vote extensions become available in LocalLastCommit two blocks after the
-	// upgrade: the upgrade handler at height H sets vote_extensions_enable_height
-	// to H+1, CometBFT starts collecting VEs at H+1, and they appear in
-	// LocalLastCommit at H+2. Return nil so the caller omits MsgAddDkgVote
-	// from the proposal, keeping it compatible with pre-upgrade validators.
-	v200Height, err := netconf.GetUpgradeHeight(sdkCtx.ChainID(), netconf.V200)
-	if err != nil {
-		return nil, errors.Wrap(err, "get v2.0.0 upgrade height")
+	// Vote extensions become available in LocalLastCommit one block after the
+	// VoteExtensionsEnableHeight. At the enable height itself, LocalLastCommit
+	// contains votes from the previous height which have no VE data.
+	// Return an empty MsgAddDkgVote until VEs are actually present.
+	cp := sdkCtx.ConsensusParams()
+	veHeight := int64(0)
+	if cp.Abci != nil {
+		veHeight = cp.Abci.VoteExtensionsEnableHeight
 	}
-
-	if sdkCtx.BlockHeight() <= v200Height+1 {
-		return nil, nil
+	if veHeight == 0 || sdkCtx.BlockHeight() <= veHeight {
+		return &types.MsgAddDkgVote{
+			Authority: k.GetAuthority(),
+			Vote:      &types.Vote{},
+		}, nil
 	}
 
 	// The VEs in LastLocalCommit is expected to be valid

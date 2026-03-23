@@ -23,7 +23,6 @@ func newTestSDKContext(t *testing.T, keyName string) sdk.Context {
 	transKey := storetypes.NewTransientStoreKey(keyName + "_transient")
 	testCtx := testutil.DefaultContextWithDB(t, key, transKey)
 
-	// Set chain ID and block height so that IsV200 returns true.
 	return testCtx.Ctx.WithChainID(netconf.TestChainID).WithBlockHeight(200)
 }
 
