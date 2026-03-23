@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"sync/atomic"
 	"time"
 
@@ -278,6 +279,26 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	for _, session := range sessions {
 		requests := session.GetDecryptRequests()
 		if len(requests) == 0 {
+			continue
+		}
+
+		// Skip sessions whose kernel binary is no longer connected.
+		// This happens when old events are replayed during chain catch-up
+		// after a kernel binary change — the sealed keys are unreachable.
+		if _, err := k.kernelRouter.GetClient(session.CodeCommitment); err != nil {
+			log.Warn(ctx, "Dropping decrypt requests for session with unavailable kernel", nil,
+				"session", session.GetSessionKey(),
+				"code_commitment", hex.EncodeToString(session.CodeCommitment),
+				"dropped_requests", len(requests),
+			)
+			session.SetDecryptRequests(nil)
+
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+
 			continue
 		}
 
