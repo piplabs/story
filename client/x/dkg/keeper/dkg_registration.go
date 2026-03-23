@@ -71,15 +71,15 @@ func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, round uint32) 
 }
 
 // getDKGRegistrationsByRound retrieves all DKG registrations for a specific round.
+// Uses a prefix range to iterate only keys matching the round, avoiding a full-table scan.
 func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, round uint32) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
 
 	prefix := fmt.Sprintf("%d_", round)
+	rng := (&collections.Range[string]{}).Prefix(prefix)
 
-	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
-		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
-			registrations = append(registrations, reg)
-		}
+	err := k.DKGRegistrations.Walk(ctx, rng, func(_ string, reg types.DKGRegistration) (bool, error) {
+		registrations = append(registrations, reg)
 
 		return false, nil // Continue iteration
 	})
