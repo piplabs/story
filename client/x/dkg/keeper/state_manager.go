@@ -246,7 +246,8 @@ func (*StateManager) loadSessionFromFile(filename string) (*types.DKGSession, er
 	return &session, nil
 }
 
-// saveSession saves a session to disk.
+// saveSession saves a session to disk atomically by writing to a temporary file
+// and renaming it, preventing corruption from partial writes during crashes.
 func (sm *StateManager) saveSession(session *types.DKGSession) error {
 	data, err := json.MarshalIndent(session, "", "  ")
 	if err != nil {
@@ -254,8 +255,17 @@ func (sm *StateManager) saveSession(session *types.DKGSession) error {
 	}
 
 	filename := sm.getSessionFilename(session.GetSessionKey())
-	if err := os.WriteFile(filename, data, 0600); err != nil {
-		return errors.Wrap(err, "failed to write session file")
+	tmpFilename := filename + ".tmp"
+
+	if err := os.WriteFile(tmpFilename, data, 0600); err != nil {
+		return errors.Wrap(err, "failed to write temporary session file")
+	}
+
+	if err := os.Rename(tmpFilename, filename); err != nil {
+		// Clean up the temp file on rename failure
+		_ = os.Remove(tmpFilename)
+
+		return errors.Wrap(err, "failed to atomically rename session file")
 	}
 
 	return nil
