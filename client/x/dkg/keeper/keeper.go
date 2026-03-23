@@ -69,7 +69,6 @@ type Keeper struct {
 	enclaveType      [32]byte // TEE enclave type identifier
 
 	Schema             collections.Schema
-	ParamsStore        collections.Item[types.Params]
 	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
 	LatestDKGNetwork   collections.Item[string]                         // stores round key of latest DKG network
 	LatestActiveRound  collections.Item[string]                         // stores latest active round of DKG network
@@ -117,7 +116,6 @@ func NewKeeper(
 		kernelRouter:           kernelRouter,
 		contractClient:         contractClient,
 		authority:              authority,
-		ParamsStore:            collections.NewItem(sb, types.ParamsKey, "params", codec.CollValue[types.Params](cdc)),
 		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
 		LatestActiveRound:      collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
