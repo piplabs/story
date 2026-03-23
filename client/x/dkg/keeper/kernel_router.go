@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"sort"
 	"sync"
 	"time"
 
@@ -153,14 +154,23 @@ func (r *KernelRouter) GetClient(codeCommitment []byte) (types.KernelServiceClie
 	return client, nil
 }
 
-// GetAllCodeCommitments returns all connected code commitments.
+// GetAllCodeCommitments returns all connected code commitments in deterministic
+// (sorted) order. Sorting the hex string keys before decoding ensures consistent
+// kernel client selection across all validators.
 func (r *KernelRouter) GetAllCodeCommitments() [][]byte {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var ccs [][]byte
-
+	keys := make([]string, 0, len(r.clients))
 	for codeCommitmentHex := range r.clients {
+		keys = append(keys, codeCommitmentHex)
+	}
+
+	sort.Strings(keys)
+
+	ccs := make([][]byte, 0, len(keys))
+
+	for _, codeCommitmentHex := range keys {
 		cc, err := hex.DecodeString(codeCommitmentHex)
 		if err != nil {
 			continue
