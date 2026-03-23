@@ -254,7 +254,7 @@ func (sm *StateManager) saveSession(session *types.DKGSession) error {
 	}
 
 	filename := sm.getSessionFilename(session.GetSessionKey())
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0600); err != nil {
 		return errors.Wrap(err, "failed to write session file")
 	}
 
