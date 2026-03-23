@@ -275,6 +275,25 @@ func (k *Keeper) StartDecryptWorker() {
 
 // processDecryptQueue scans sessions for queued decrypt requests and starts TDH2 partial decrypt + submission.
 func (k *Keeper) processDecryptQueue(ctx context.Context) {
+	if k.contractClient == nil {
+		log.Error(ctx, "Contract client not configured", nil)
+		return
+	}
+
+	currentHeight, err := k.contractClient.ethClient.BlockNumber(ctx)
+	if err != nil {
+		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
+		return
+	}
+
+	decryptTimeout := types.DefaultDecryptTimeout
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		log.Warn(ctx, "Failed to get DKG params, using default decrypt timeout", err)
+	} else {
+		decryptTimeout = params.DecryptTimeout
+	}
+
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
 		requests := session.GetDecryptRequests()
@@ -301,6 +320,38 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 			continue
 		}
+
+		// Filter out stale requests that are past the block timeout window.
+		// This is especially important during resync when processing old blocks.
+		validRequests := make([]types.DecryptRequest, 0, len(requests))
+		staleCount := 0
+		for _, req := range requests {
+			if currentHeight > decryptTimeout && req.Height < currentHeight-decryptTimeout {
+				staleCount++
+				continue
+			}
+			validRequests = append(validRequests, req)
+		}
+
+		if staleCount > 0 {
+			log.Info(ctx, "Filtered out stale decrypt requests past timeout window",
+				"session", session.GetSessionKey(),
+				"stale_requests", staleCount,
+				"current_height", currentHeight,
+			)
+		}
+
+		if len(validRequests) == 0 {
+			session.SetDecryptRequests(nil)
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+			continue
+		}
+
+		requests = validRequests
 
 		log.Info(ctx, "Processing decrypt queue",
 			"session", session.GetSessionKey(),
