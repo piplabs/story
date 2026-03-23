@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"math/big"
+	"sort"
 	"strings"
 
 	"cosmossdk.io/collections"
@@ -179,7 +180,15 @@ func (k *Keeper) distributeCDRRewardPool(ctx context.Context) error {
 	totalCountInt := math.NewInt(int64(totalCount))
 	distributed := math.ZeroInt()
 
-	for addr, count := range counts {
+	// Sort keys for deterministic iteration order across all validators.
+	sortedAddrs := make([]string, 0, len(counts))
+	for addr := range counts {
+		sortedAddrs = append(sortedAddrs, addr)
+	}
+	sort.Strings(sortedAddrs)
+
+	for _, addr := range sortedAddrs {
+		count := counts[addr]
 		share := poolBalance.Mul(math.NewInt(int64(count))).Quo(totalCountInt)
 		if share.IsZero() {
 			continue
