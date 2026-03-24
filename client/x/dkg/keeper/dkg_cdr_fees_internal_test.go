@@ -398,20 +398,20 @@ func TestGetCDRFeePoolBalance_CorruptData(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid CDR fee pool balance")
 }
 
-// TestDistributeCDRRewardPool_NoPrevActive verifies distributeCDRRewardPool is a
+// TestDistributeCDRFee_NoPrevActive verifies distributeCDRFee is a
 // no-op when no previous active DKG network exists.
-func TestDistributeCDRRewardPool_NoPrevActive(t *testing.T) {
+func TestDistributeCDRFee_NoPrevActive(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	// No active round set → should be a no-op
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 }
 
-// TestDistributeCDRRewardPool_PoolFoundButZeroBalance verifies that when the pool
+// TestDistributeCDRFee_PoolFoundButZeroBalance verifies that when the pool
 // balance entry exists but is zero, counts are cleared and the zero balance entry
 // is removed.
-func TestDistributeCDRRewardPool_PoolFoundButZeroBalance(t *testing.T) {
+func TestDistributeCDRFee_PoolFoundButZeroBalance(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -423,7 +423,7 @@ func TestDistributeCDRRewardPool_PoolFoundButZeroBalance(t *testing.T) {
 	// Set balance to "0" (found but zero)
 	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "0"))
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	// Balance entry should be removed and count cleared
