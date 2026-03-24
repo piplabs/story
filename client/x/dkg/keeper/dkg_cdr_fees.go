@@ -120,7 +120,14 @@ func (k *Keeper) IncrementCDRPartialSubmitCount(ctx context.Context, validator c
 	return nil
 }
 
-func (k *Keeper) distributeCDRRewardPool(ctx context.Context) error {
+func (k *Keeper) distributeCDRFee(ctx context.Context) error {
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get previous active round")
+	}
+	if prevActive == nil {
+		return nil
+	}
 	iter, err := k.CDRPartialSubmitCount.Iterate(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "iterate CDR submit counts")

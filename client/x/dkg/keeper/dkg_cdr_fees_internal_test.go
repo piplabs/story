@@ -113,7 +113,7 @@ func TestIncrementCDRPartialSubmitCount(t *testing.T) {
 	require.Equal(t, uint64(2), count)
 }
 
-func TestDistributeCDRRewardPool_DistributesAndClears(t *testing.T) {
+func TestDistributeCDRFee_DistributesAndClears(t *testing.T) {
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -134,7 +134,7 @@ func TestDistributeCDRRewardPool_DistributesAndClears(t *testing.T) {
 			return nil
 		}).Times(2)
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, []int64{75, 25}, sent)
@@ -148,7 +148,7 @@ func TestDistributeCDRRewardPool_DistributesAndClears(t *testing.T) {
 	require.ErrorIs(t, err, collections.ErrNotFound)
 }
 
-func TestDistributeCDRRewardPool_ZeroPoolClearsCounts(t *testing.T) {
+func TestDistributeCDRFee_ZeroPoolClearsCounts(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -158,14 +158,14 @@ func TestDistributeCDRRewardPool_ZeroPoolClearsCounts(t *testing.T) {
 	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val), 2))
 	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "0"))
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	_, err = k.CDRPartialSubmitCount.Get(ctx, cdrSubmitCountKey(val))
 	require.ErrorIs(t, err, collections.ErrNotFound)
 }
 
-func TestDistributeCDRRewardPool_RoundingDoesNotOverDistribute(t *testing.T) {
+func TestDistributeCDRFee_RoundingDoesNotOverDistribute(t *testing.T) {
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -187,13 +187,13 @@ func TestDistributeCDRRewardPool_RoundingDoesNotOverDistribute(t *testing.T) {
 			return nil
 		}).Times(3)
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	require.LessOrEqual(t, total, int64(10))
 }
 
-func TestDistributeCDRRewardPool_WithSingleValidator(t *testing.T) {
+func TestDistributeCDRFee_WithSingleValidator(t *testing.T) {
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -206,20 +206,20 @@ func TestDistributeCDRRewardPool_WithSingleValidator(t *testing.T) {
 	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.CDRFeePoolName, gomock.Any(),
 		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(42)))).Return(nil)
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	_, err = k.CDRFeePoolBalance.Get(ctx)
 	require.ErrorIs(t, err, collections.ErrNotFound)
 }
 
-func TestDistributeCDRRewardPool_EmptyCountsNoop(t *testing.T) {
+func TestDistributeCDRFee_EmptyCountsNoop(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
 	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
 	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "10"))
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 }
