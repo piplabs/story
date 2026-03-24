@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"os"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -102,6 +104,18 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 //   - Within-block: deduplication by (dealerIndex, recipientIndex) prevents redundant
 //     processing of the same justification broadcast by multiple validators.
 func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.DKGNetwork, justifications []types.Justification) error {
+	// TEST INJECTION: force-invalidate a dealer by index for E2E testing of #717/#719.
+	// Set DKG_TEST_INVALIDATE_INDEX on ALL validators to keep consensus deterministic.
+	if idxStr := os.Getenv("DKG_TEST_INVALIDATE_INDEX"); idxStr != "" {
+		if idx, err := strconv.ParseUint(idxStr, 10, 32); err == nil && idx > 0 {
+			if invErr := k.invalidateDealerRegistration(ctx, latestRound, uint32(idx)); invErr != nil {
+				log.Warn(ctx, "TEST: force-invalidate dealer failed", invErr, "index", idx)
+			} else {
+				log.Info(ctx, "TEST: force-invalidated dealer", "index", idx, "round", latestRound.Round)
+			}
+		}
+	}
+
 	if err := k.emitBeginProcessJustifications(ctx, latestRound, justifications); err != nil {
 		return errors.Wrap(err, "failed to emit begin process justifications event")
 	}

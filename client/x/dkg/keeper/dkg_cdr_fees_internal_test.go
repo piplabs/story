@@ -223,3 +223,35 @@ func TestDistributeCDRRewardPool_EmptyCountsNoop(t *testing.T) {
 	err := k.distributeCDRRewardPool(ctx)
 	require.NoError(t, err)
 }
+
+func TestRefundCDRFee_UnderflowReturnsError(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	validator := common.HexToAddress("0x4444444444444444444444444444444444444444")
+	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "5"))
+
+	err := k.RefundCDRFee(ctx, validator, big.NewInt(10))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "underflow")
+
+	bal, found, err := k.getCDRFeePoolBalance(ctx)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.True(t, bal.Equal(math.NewInt(5)))
+}
+
+func TestAddCDRFeeToPool_NilOrZeroNoop(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	err := k.AddCDRFeeToPool(ctx, nil)
+	require.NoError(t, err)
+	_, found, err := k.getCDRFeePoolBalance(ctx)
+	require.NoError(t, err)
+	require.False(t, found)
+
+	err = k.AddCDRFeeToPool(ctx, big.NewInt(0))
+	require.NoError(t, err)
+	_, found, err = k.getCDRFeePoolBalance(ctx)
+	require.NoError(t, err)
+	require.False(t, found)
+}
