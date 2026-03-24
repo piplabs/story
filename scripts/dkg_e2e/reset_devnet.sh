@@ -217,6 +217,24 @@ sleep 5
 # --- Step 6: Start story on all machines ---
 echo "=== Step 6: Starting story ==="
 
+# Inject DKG_TEST_INVALIDATE_INDEX if set (for bad dealer E2E testing)
+if [ -n "${DKG_TEST_INVALIDATE_INDEX:-}" ]; then
+  echo "  [injection] Setting DKG_TEST_INVALIDATE_INDEX=${DKG_TEST_INVALIDATE_INDEX} on all validators"
+  for i in $(seq 1 "$TOTAL"); do
+    _ssh_cmd "$i" "sudo mkdir -p /etc/systemd/system/${STORY_SVC}.d && \
+      echo -e '[Service]\nEnvironment=DKG_TEST_INVALIDATE_INDEX=${DKG_TEST_INVALIDATE_INDEX}' | \
+      sudo tee /etc/systemd/system/${STORY_SVC}.d/test-inject.conf >/dev/null && \
+      sudo systemctl daemon-reload"
+  done
+  # Bootnode doesn't need injection (not a validator)
+else
+  # Clean up any leftover injection overrides
+  for i in $(seq 1 "$TOTAL"); do
+    _ssh_cmd "$i" "sudo rm -f /etc/systemd/system/${STORY_SVC}.d/test-inject.conf && \
+      sudo systemctl daemon-reload" 2>/dev/null || true
+  done
+fi
+
 # Start bootnode first (so validators can connect)
 ssh ${DKG_SSH_KEY:+-i "$DKG_SSH_KEY"} ${DKG_SSH_OPTS:-} ${BOOTNODE_USER}@${BOOTNODE_IP} \
   "sudo systemctl start ${STORY_SVC}" || true

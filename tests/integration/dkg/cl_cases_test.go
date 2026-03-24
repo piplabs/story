@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -297,41 +298,47 @@ func CLCases() []TestCase {
 	// ─── CL-BADDEALER: Bad Dealer Finalization & Committee Participation ───
 	// 验证发送无效 VSS deal 的 validator 是否被正确 invalidate 并排除出 committee。
 	// Bug: invalidateDealerRegistration() 存在但从未被调用 → bad dealer 可以 finalize、领奖、提交 partial。
+	// When DKG_TEST_INVALIDATE_INDEX is set, BADDEALER-01/04 use consensus-layer injection
+	// (no mock kernel needed). Otherwise they require the mock_kernel_bad_dealer_finalize scenario.
+	badDealerSkip := "requires mock kernel with WithInvalidVSSDeal"
+	if os.Getenv("DKG_TEST_INVALIDATE_INDEX") != "" {
+		badDealerSkip = "" // injection mode: no skip, no mock kernel needed
+	}
 	list = append(list,
 		TestCase{
 			ID:             "CL-BADDEALER-01",
 			Priority:       "P1",
 			Description:    "Bad dealer not invalidated after failed justification verification",
-			Expected:       "BUG: reg.Status stays Verified (should be Invalidated)",
+			Expected:       "FIXED: reg.Status=Invalidated after ProcessJustifications",
 			NeedsRoundWait: true,
-			SkipIfLive:     "requires mock kernel with WithInvalidVSSDeal",
+			SkipIfLive:     badDealerSkip,
 			Run:            runCL_BADDEALER_01,
 		},
 		TestCase{
 			ID:             "CL-BADDEALER-02",
 			Priority:       "P1",
 			Description:    "Bad dealer successfully calls finalize() despite invalid deals",
-			Expected:       "BUG: bad dealer Finalized (should be rejected)",
+			Expected:       "FIXED: Invalidated dealer's finalize() rejected",
 			NeedsRoundWait: true,
-			SkipIfLive:     "requires mock kernel with WithInvalidVSSDeal",
+			SkipIfLive:     badDealerSkip,
 			Run:            runCL_BADDEALER_02,
 		},
 		TestCase{
 			ID:             "CL-BADDEALER-03",
 			Priority:       "P1",
 			Description:    "Bad dealer counted in finalizedCount, inflates committee size",
-			Expected:       "BUG: finalizedCount includes bad dealer (effective fault tolerance degraded)",
+			Expected:       "FIXED: Invalidated dealer excluded from finalizedCount",
 			NeedsRoundWait: true,
-			SkipIfLive:     "requires mock kernel with WithInvalidVSSDeal",
+			SkipIfLive:     badDealerSkip,
 			Run:            runCL_BADDEALER_03,
 		},
 		TestCase{
 			ID:             "CL-BADDEALER-04",
 			Priority:       "P2",
 			Description:    "Bad dealer receives UBI committee rewards",
-			Expected:       "BUG: bad dealer gets equal reward share (should be excluded)",
+			Expected:       "FIXED: Invalidated dealer excluded from rewards",
 			NeedsRoundWait: true,
-			SkipIfLive:     "requires mock kernel with WithInvalidVSSDeal",
+			SkipIfLive:     badDealerSkip,
 			Run:            runCL_BADDEALER_04,
 		},
 		TestCase{

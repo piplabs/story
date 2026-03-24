@@ -202,7 +202,7 @@ func runSnapshotParallel(t *testing.T, cases []TestCase) {
 					t.Skipf("previously passed (resume mode)")
 					return
 				}
-				if tc.SkipIfLive != "" {
+				if tc.SkipIfLive != "" && os.Getenv("DKG_TEST_INVALIDATE_INDEX") == "" {
 					t.Skip(tc.SkipIfLive)
 					return
 				}

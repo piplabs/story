@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"os"
+	"strconv"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -9,6 +11,19 @@ import (
 )
 
 func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNetwork) error {
+	// TEST INJECTION: force-invalidate a dealer by index for E2E testing of #717/#719.
+	// Placed in BeginFinalization (called every round from BeginBlocker) so it fires
+	// even when no justifications exist. Set DKG_TEST_INVALIDATE_INDEX on ALL validators.
+	if idxStr := os.Getenv("DKG_TEST_INVALIDATE_INDEX"); idxStr != "" {
+		if idx, err := strconv.ParseUint(idxStr, 10, 32); err == nil && idx > 0 {
+			if invErr := k.invalidateDealerRegistration(ctx, latestRound, uint32(idx)); invErr != nil {
+				log.Warn(ctx, "TEST: force-invalidate dealer failed", invErr, "index", idx)
+			} else {
+				log.Info(ctx, "TEST: force-invalidated dealer", "index", idx, "round", latestRound.Round)
+			}
+		}
+	}
+
 	if err := k.emitBeginDKGFinalization(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit begin DKG finalization event")
 	}

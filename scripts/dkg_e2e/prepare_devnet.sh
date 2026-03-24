@@ -46,22 +46,23 @@ DEVNET_COMMIT="${DKG_DEVNET_COMMIT:-c61b74a4}"
 # --- Step 1: Switch ALL machines to dkg/dev + cherry-pick devnet patch ---
 echo "=== Step 1: Switching all machines to dkg/dev + devnet patch ==="
 
-# Pin to a specific commit if DKG_STORY_PIN_COMMIT is set, otherwise use latest dkg/dev.
-# Use pin when latest dkg/dev has breaking changes (e.g. #726 removes V200 upgrade path).
+# Pin to a specific commit if DKG_STORY_PIN_COMMIT is set, otherwise use latest branch.
+# Use pin when latest branch has breaking changes (e.g. #726 removes V200 upgrade path).
+STORY_BRANCH="${DKG_STORY_BRANCH:-dkg/dev}"
 STORY_PIN="${DKG_STORY_PIN_COMMIT:-}"
+echo "  Branch: ${STORY_BRANCH}${STORY_PIN:+ (pinned: $STORY_PIN)}"
 if [ -n "$STORY_PIN" ]; then
-  echo "  [PIN] Using pinned commit: $STORY_PIN"
   SWITCH_CMD="cd ${STORY_SRC} && \
-    git fetch origin dkg/dev && \
-    git checkout -f dkg/dev && \
+    git fetch origin ${STORY_BRANCH} && \
+    git checkout -f ${STORY_BRANCH} && \
     git reset --hard ${STORY_PIN} && \
     git clean -fd 2>/dev/null || true && \
     git cherry-pick --no-commit ${DEVNET_COMMIT} 2>/dev/null || true"
 else
   SWITCH_CMD="cd ${STORY_SRC} && \
-    git fetch origin dkg/dev && \
-    git checkout -f dkg/dev && \
-    git reset --hard origin/dkg/dev && \
+    git fetch origin ${STORY_BRANCH} && \
+    git checkout -f ${STORY_BRANCH} && \
+    git reset --hard origin/${STORY_BRANCH} && \
     git clean -fd 2>/dev/null || true && \
     git cherry-pick --no-commit ${DEVNET_COMMIT} 2>/dev/null || true"
 fi

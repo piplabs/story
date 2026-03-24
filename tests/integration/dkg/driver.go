@@ -255,7 +255,12 @@ func AllMockKernelScenarios() []Scenario {
 }
 
 // ScenarioNameForCase 返回包含该 caseID 的场景名称（若有）；用于调用 Driver.SetupScenario/TeardownScenario。
+// In injection mode (DKG_TEST_INVALIDATE_INDEX set), BADDEALER cases run without mock kernel.
 func ScenarioNameForCase(caseID string) string {
+	// In injection mode, BADDEALER cases don't need mock kernel scenario
+	if os.Getenv("DKG_TEST_INVALIDATE_INDEX") != "" && strings.HasPrefix(caseID, "CL-BADDEALER-") {
+		return ""
+	}
 	for _, s := range AllScenarios() {
 		for _, id := range s.CaseIDs {
 			if id == caseID {

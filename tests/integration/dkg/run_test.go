@@ -25,7 +25,7 @@ func TestDKG_All(t *testing.T) {
 	t.Logf("total cases: %d (original 156 + CL-* extensions)", len(cases))
 	for _, tc := range cases {
 		t.Run(tc.ID+"_"+tc.Priority, func(t *testing.T) {
-			if ScenarioNameForCase(tc.ID) == "" && tc.SkipIfLive != "" {
+			if ScenarioNameForCase(tc.ID) == "" && tc.SkipIfLive != "" && os.Getenv("DKG_TEST_INVALIDATE_INDEX") == "" {
 				t.Skip(tc.SkipIfLive)
 			}
 			if tc.Run == nil {
@@ -181,7 +181,7 @@ func runCaseList(t *testing.T, cases []TestCase) {
 				t.Skipf("previously passed (resume mode)")
 				return
 			}
-			if ScenarioNameForCase(tc.ID) == "" && tc.SkipIfLive != "" {
+			if ScenarioNameForCase(tc.ID) == "" && tc.SkipIfLive != "" && os.Getenv("DKG_TEST_INVALIDATE_INDEX") == "" {
 				t.Skip(tc.SkipIfLive)
 			}
 			if tc.Run == nil {
