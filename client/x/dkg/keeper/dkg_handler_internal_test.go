@@ -918,6 +918,147 @@ func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, round uint32
 	return sig
 }
 
+func TestKeeper_PartialDecryptionSubmitted_IgnoredCases(t *testing.T) {
+	t.Run("unknown request returns not accepted", func(t *testing.T) {
+		k, ctx := setupDKGKeeper(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		accepted, err := k.PartialDecryptionSubmitted(
+			sdkCtx,
+			common.HexToAddress("0x1234567890123456789012345678901234567890"),
+			uint32(1),
+			uint32(1),
+			[]byte("encrypted-partial"),
+			[]byte("ephemeral-pub-key"),
+			[]byte("pub-share"),
+			[]byte("requester-pub-key"),
+			[]byte("ciphertext"),
+			[]byte("label"),
+			[]byte("signature"),
+		)
+		require.NoError(t, err)
+		require.False(t, accepted)
+	})
+
+	t.Run("expired request returns not accepted and deletes registry entry", func(t *testing.T) {
+		k, ctx := setupDKGKeeper(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		validator := common.HexToAddress("0x1234567890123456789012345678901234567890")
+		round := uint32(2)
+		pid := uint32(1)
+		requesterPubKey := []byte("requester-pub-key")
+		ciphertext := []byte("ciphertext")
+		label := []byte("label")
+
+		currentHeight := uint64(1000)
+		requestHeight := currentHeight - types.PartialDecryptionTimeoutBlocks - 1
+		sdkCtx = sdkCtx.WithBlockHeight(int64(currentHeight))
+
+		req := types.DecryptRequest{
+			Round:           round,
+			Ciphertext:      ciphertext,
+			Label:           label,
+			RequesterPubKey: requesterPubKey,
+			Height:          requestHeight,
+		}
+		require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, req))
+
+		accepted, err := k.PartialDecryptionSubmitted(
+			sdkCtx,
+			validator,
+			round,
+			pid,
+			[]byte("encrypted-partial"),
+			[]byte("ephemeral-pub-key"),
+			[]byte("pub-share"),
+			requesterPubKey,
+			ciphertext,
+			label,
+			[]byte("signature"),
+		)
+		require.NoError(t, err)
+		require.False(t, accepted)
+
+		_, found, err := k.getDecryptRequest(sdkCtx, requesterPubKey, label, round, ciphertext)
+		require.NoError(t, err)
+		require.False(t, found)
+	})
+
+	t.Run("duplicate submission returns not accepted", func(t *testing.T) {
+		k, ctx := setupDKGKeeper(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		validator := common.HexToAddress("0x1234567890123456789012345678901234567890")
+		round := uint32(3)
+		pid := uint32(1)
+		requesterPubKey := []byte("requester-pub-key")
+		ciphertext := []byte("ciphertext")
+		label := []byte("label")
+		encryptedPartial := []byte("encrypted-partial")
+		ephemeralPubKey := []byte("ephemeral-pub-key")
+		pubShare := []byte("pub-share")
+
+		sigKey, err := crypto.GenerateKey()
+		require.NoError(t, err)
+		commPubKey := crypto.FromECDSAPub(&sigKey.PublicKey)[1:]
+
+		req := types.DecryptRequest{
+			Round:           round,
+			Ciphertext:      ciphertext,
+			Label:           label,
+			RequesterPubKey: requesterPubKey,
+			Height:          uint64(sdkCtx.BlockHeight()),
+		}
+		require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, req))
+
+		reg := &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validator.Hex(),
+			Index:         1,
+			DkgPubKey:     []byte("dkg-pub-key"),
+			CommPubKey:    commPubKey,
+			PubKeyShare:   pubShare,
+			Status:        types.DKGRegStatusVerified,
+		}
+		require.NoError(t, k.setDKGRegistration(sdkCtx, validator, reg))
+
+		signature := signPartialDecryptionData(t, sigKey, round, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
+
+		accepted, err := k.PartialDecryptionSubmitted(
+			sdkCtx,
+			validator,
+			round,
+			pid,
+			encryptedPartial,
+			ephemeralPubKey,
+			pubShare,
+			requesterPubKey,
+			ciphertext,
+			label,
+			signature,
+		)
+		require.NoError(t, err)
+		require.True(t, accepted)
+
+		accepted, err = k.PartialDecryptionSubmitted(
+			sdkCtx,
+			validator,
+			round,
+			pid,
+			encryptedPartial,
+			ephemeralPubKey,
+			pubShare,
+			requesterPubKey,
+			ciphertext,
+			label,
+			signature,
+		)
+		require.NoError(t, err)
+		require.False(t, accepted)
+	})
+}
+
 func TestKeeper_UpgradeScheduled(t *testing.T) {
 	tcs := []struct {
 		name             string

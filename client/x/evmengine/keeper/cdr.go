@@ -157,7 +157,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		})
 	}()
 
-	partialErr := k.dkgKeeper.PartialDecryptionSubmitted(
+	accepted, partialErr := k.dkgKeeper.PartialDecryptionSubmitted(
 		cachedCtx,
 		ev.Validator,
 		ev.Round,
@@ -171,7 +171,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		ev.Signature,
 	)
 
-	if partialErr == nil {
+	if accepted && partialErr == nil {
 		if err := k.dkgKeeper.IncrementCDRPartialSubmitCount(cachedCtx, ev.Validator); err != nil {
 			partialErr = errors.Wrap(err, "increment CDR submit count")
 		} else if ev.Fee != nil && ev.Fee.Sign() > 0 {

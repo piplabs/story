@@ -391,11 +391,12 @@ func (mr *MockDKGKeeperMockRecorder) IncrementCDRPartialSubmitCount(ctx, validat
 }
 
 // PartialDecryptionSubmitted mocks base method.
-func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature []byte) error {
+func (m *MockDKGKeeper) PartialDecryptionSubmitted(ctx context.Context, validator common.Address, round, pid uint32, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature []byte) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PartialDecryptionSubmitted", ctx, validator, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, label, signature)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // PartialDecryptionSubmitted indicates an expected call of PartialDecryptionSubmitted.
