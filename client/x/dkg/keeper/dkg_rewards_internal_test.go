@@ -533,3 +533,111 @@ func setRegistration(t *testing.T, k *Keeper, ctx context.Context, network *type
 
 	require.NoError(t, k.setDKGRegistration(ctx, addr, reg))
 }
+
+// --- Tests merged from dkg_process_test.go ---
+
+// TestDistributeRewardsToActiveCommittee_ZeroAmount verifies that
+// DistributeRewardsToActiveCommittee returns zero immediately when totalAmount is zero.
+
+func TestDistributeRewardsToActiveCommittee_ZeroAmount(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	distributed, err := k.DistributeRewardsToActiveCommittee(ctx, "evmstaking", math.ZeroInt())
+	require.NoError(t, err)
+	require.True(t, distributed.IsZero(), "distributed amount should be zero for zero totalAmount")
+}
+
+// TestDistributeRewardsToActiveCommittee_NoActiveRound verifies that when there is
+// no active DKG round, DistributeRewardsToActiveCommittee returns 0.
+
+func TestDistributeRewardsToActiveCommittee_NoActiveRound(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	distributed, err := k.DistributeRewardsToActiveCommittee(ctx, "evmstaking", math.NewInt(1000))
+	require.NoError(t, err)
+	require.True(t, distributed.IsZero(), "should return 0 when no active DKG round")
+}
+
+// TestDistributeRewardsToActiveCommittee_NoFinalizedMembers verifies that when
+// the active round has no finalized members, nothing is distributed.
+
+func TestDistributeRewardsToActiveCommittee_NoFinalizedMembers(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Create an active round with only verified (not finalized) registrations
+	activeRound := &types.DKGNetwork{
+		Round: 1,
+		Total: 3, Threshold: 2,
+		Stage: types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, activeRound))
+	require.NoError(t, k.setLatestActiveRound(ctx, activeRound))
+
+	distributed, err := k.DistributeRewardsToActiveCommittee(ctx, "evmstaking", math.NewInt(1000))
+	require.NoError(t, err)
+	require.True(t, distributed.IsZero(), "should return 0 when no finalized members")
+}
+
+// TestDistributeRewardsToActiveCommittee_ZeroPortionParam verifies that when
+// the DKG committee reward portion is zero, nothing is distributed.
+
+func TestDistributeRewardsToActiveCommittee_ZeroPortionParam(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	params := types.DefaultParams()
+	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
+	require.NoError(t, k.SetParams(ctx, params))
+
+	activeRound := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, activeRound))
+	require.NoError(t, k.setLatestActiveRound(ctx, activeRound))
+
+	member := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	setRegistration(t, k, ctx, activeRound, member, types.DKGRegStatusFinalized)
+
+	distributed, err := k.DistributeRewardsToActiveCommittee(ctx, "evmstaking", math.NewInt(1000))
+	require.NoError(t, err)
+	require.True(t, distributed.IsZero(), "should return 0 when reward portion is zero")
+}
+
+// TestDistributeRewardsToActiveCommittee_NormalDistribution verifies that rewards
+// are distributed correctly to finalized committee members.
+
+func TestDistributeRewardsToActiveCommittee_NormalDistribution(t *testing.T) {
+	t.Parallel()
+
+	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Default params: 10% reward portion
+	activeRound := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
+	require.NoError(t, k.setDKGNetwork(ctx, activeRound))
+	require.NoError(t, k.setLatestActiveRound(ctx, activeRound))
+
+	member1 := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	member2 := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	setRegistration(t, k, ctx, activeRound, member1, types.DKGRegStatusFinalized)
+	setRegistration(t, k, ctx, activeRound, member2, types.DKGRegStatusFinalized)
+
+	// totalAmount=1000, 10%=100, 2 members → perMember=50
+	// expect: SendCoinsFromModuleToModule (1000 * 10% = 100 total)
+	totalAmount := math.NewInt(1000)
+	perMemberReward := math.NewInt(50)
+	totalToDistribute := math.NewInt(100) // 50*2
+	distributeCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalToDistribute))
+
+	bk.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), "evmstaking", types.ModuleName, distributeCoins).Return(nil)
+	perMemberCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, perMemberReward))
+	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, gomock.Any(), perMemberCoins).Return(nil).Times(2)
+
+	distributed, err := k.DistributeRewardsToActiveCommittee(ctx, "evmstaking", totalAmount)
+	require.NoError(t, err)
+	require.Equal(t, totalToDistribute, distributed, "distributed amount should match totalToDistribute")
+}

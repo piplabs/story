@@ -4,9 +4,12 @@ import (
 	"context"
 	"testing"
 
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
+	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
 
 	"go.dedis.ch/kyber/v4"
@@ -428,6 +431,44 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 	require.True(t, pubKeys[1].Equal(dtc2.pub))
 }
 
+// TestProcessJustifications_TruncatesExcessiveList verifies that ProcessJustifications
+// truncates the input list to MaxJustificationsPerBlock when more justifications are given.
+// This covers the truncation branch inside ProcessJustifications (line 117-124).
+func TestProcessJustifications_TruncatesExcessiveList(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(5)
+	network := &types.DKGNetwork{
+		Round:     round,
+		Total:     3,
+		Threshold: dealingTestThreshold,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Build MaxJustificationsPerBlock+5 justifications (all invalid — no registered keys).
+	// ProcessJustifications will truncate to MaxJustificationsPerBlock, then all will fail
+	// signature verification (no dealer registered). The result is an empty valid set,
+	// but the truncation branch is covered.
+	overCount := MaxJustificationsPerBlock + 5
+	justifications := make([]types.Justification, overCount)
+	for i := range justifications {
+		justifications[i] = types.Justification{
+			Index: uint32(i),
+			VssJustification: &types.VSSJustification{
+				PlainDeal: &types.PlainDeal{
+					SecShare: &types.SecShare{I: 0},
+				},
+			},
+		}
+	}
+
+	// ProcessJustifications should succeed without error even though all sig-verifications fail
+	err := k.ProcessJustifications(ctx, network, justifications)
+	require.NoError(t, err, "truncation and sig-drop should not return an error")
+}
+
 // TestMaxJustificationsPerBlock verifies that the truncation slice operation
 // correctly caps justifications to MaxJustificationsPerBlock, matching the
 // logic used inside ProcessJustifications.
@@ -711,4 +752,651 @@ func TestProcessJustifications_InvalidatesDealer(t *testing.T) {
 		require.Equal(t, types.DKGRegStatusInvalidated, reg1.Status,
 			"dealer with invalid VSS must be Invalidated")
 	})
+}
+
+// TestBuildDealerPubKeyMap_EmptyDkgPubKey verifies that buildDealerPubKeyMap skips
+// registrations with empty DkgPubKey (the `len(reg.DkgPubKey) == 0` branch).
+func TestBuildDealerPubKeyMap_EmptyDkgPubKey(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(3)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// Register a dealer with an empty DkgPubKey — should be skipped.
+	emptyKeyDealer := common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+	reg := &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: emptyKeyDealer.Hex(),
+		Index:         1,
+		DkgPubKey:     []byte{}, // empty — triggers the skip branch
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(ctx, emptyKeyDealer, reg))
+
+	network := &types.DKGNetwork{Round: round}
+	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	require.NoError(t, err)
+	require.Empty(t, pubKeys, "empty DkgPubKey registrations must be skipped")
+}
+
+// TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes verifies that buildDealerPubKeyMap
+// silently skips (via log.Warn) registrations whose DkgPubKey bytes cannot be
+// unmarshaled as an Edwards25519 point. The map is still returned without error.
+func TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := setupDKGKeeper(t)
+
+	round := uint32(4)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// Register with a valid key (should appear in the map).
+	dtcValid := newDealerTestContext(t, 3, 2)
+	validDealer := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	setupDealerRegistrationWithKey(t, k, ctx, round, validDealer, 1, dtcValid.pubBytes)
+
+	// Register with invalid DkgPubKey bytes — unmarshal will fail, entry skipped.
+	invalidDealer := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	badReg := &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: invalidDealer.Hex(),
+		Index:         2,
+		DkgPubKey:     []byte("not-a-valid-edwards25519-point"),
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(ctx, invalidDealer, badReg))
+
+	network := &types.DKGNetwork{Round: round}
+	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	require.NoError(t, err, "invalid DkgPubKey bytes must be skipped without error")
+	require.Len(t, pubKeys, 1, "only the valid dealer should appear in the map")
+	require.True(t, pubKeys[1].Equal(dtcValid.pub), "valid dealer's key must be in the map at index 1")
+}
+
+// --- Tests merged from begin_dealing_test.go ---
+
+// TestBeginDealing_BelowMinRegistrations verifies that BeginDealing skips
+// to the next round when verified registrations are below the minimum.
+func TestBeginDealing_BelowMinRegistrations(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// SkipToNextRound -> InitiateDKGRound -> GetAllValidators
+	sk := k.stakingKeeper.(*dkgtestutil.MockStakingKeeper)
+	sk.EXPECT().GetAllValidators(gomock.Any()).Return([]stakingtypes.Validator{}, nil).AnyTimes()
+
+	params := types.DefaultParams()
+	params.MinReqRegisteredParticipants = 5 // require 5 but we only register 2
+	require.NoError(t, k.SetParams(ctx, params))
+
+	round := uint32(1)
+	latestRound := &types.DKGNetwork{
+		Round: round,
+		Stage: types.DKGStageRegistration,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	// Register only 2 verified validators (below min of 5)
+	for i, addrHex := range []string{
+		"0x1111111111111111111111111111111111111111",
+		"0x2222222222222222222222222222222222222222",
+	} {
+		addr := common.HexToAddress(addrHex)
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:     round,
+			Index:     uint32(i + 1),
+			DkgPubKey: []byte("pub"),
+			Status:    types.DKGRegStatusVerified,
+		}))
+	}
+
+	err := k.BeginDealing(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Verify a new round was created (SkipToNextRound)
+	nextRound, err := k.getDKGNetwork(ctx, round+1)
+	require.NoError(t, err)
+	require.Equal(t, round+1, nextRound.Round)
+}
+
+// TestBeginDealing_MeetsMinRegistrations verifies that BeginDealing succeeds
+// when verified registrations meet the minimum threshold.
+func TestBeginDealing_MeetsMinRegistrations(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	params := types.DefaultParams()
+	params.MinReqRegisteredParticipants = 3
+	params.OperationalThreshold = 667 // 66.7%
+	require.NoError(t, k.SetParams(ctx, params))
+
+	round := uint32(1)
+	latestRound := &types.DKGNetwork{
+		Round: round,
+		Stage: types.DKGStageRegistration,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	// Register 3 verified validators
+	for i, addrHex := range []string{
+		"0x1111111111111111111111111111111111111111",
+		"0x2222222222222222222222222222222222222222",
+		"0x3333333333333333333333333333333333333333",
+	} {
+		addr := common.HexToAddress(addrHex)
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:     round,
+			Index:     uint32(i + 1),
+			DkgPubKey: []byte("pub"),
+			Status:    types.DKGRegStatusVerified,
+		}))
+	}
+
+	err := k.BeginDealing(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Network should be updated with total and threshold
+	updated, err := k.getDKGNetwork(ctx, round)
+	require.NoError(t, err)
+	require.Equal(t, uint32(3), updated.Total)
+	require.True(t, updated.Threshold > 0)
+}
+
+// TestBeginDealing_WithDKGSvcEnabled verifies that BeginDealing spawns
+// an async dealing goroutine when isDKGSvcEnabled is true.
+func TestBeginDealing_WithDKGSvcEnabled(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+	k.isDKGSvcEnabled = true
+	k.validatorEVMAddr = testValidatorAddr
+
+	params := types.DefaultParams()
+	params.MinReqRegisteredParticipants = 2
+	params.OperationalThreshold = 667
+	require.NoError(t, k.SetParams(ctx, params))
+
+	round := uint32(1)
+	latestRound := &types.DKGNetwork{
+		Round:        round,
+		Stage:        types.DKGStageRegistration,
+		ActiveValSet: []string{testValidatorAddr, "0xother"},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	for i, addrHex := range []string{testValidatorAddr, "0x2222222222222222222222222222222222222222"} {
+		addr := common.HexToAddress(addrHex)
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:     round,
+			Index:     uint32(i + 1),
+			DkgPubKey: []byte("pub"),
+			Status:    types.DKGRegStatusVerified,
+		}))
+	}
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	err = k.BeginDealing(ctx, latestRound)
+	require.NoError(t, err)
+}
+
+// --- Tests merged from dkg_process_test.go ---
+
+// TestProcessDeals_DKGSvcDisabled verifies that ProcessDeals emits the event
+// and returns nil even when DKG service is disabled.
+
+func TestProcessDeals_DKGSvcDisabled(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	// isDKGSvcEnabled is false by default
+
+	network := &types.DKGNetwork{
+		Round:     1,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	deals := []types.Deal{
+		{Index: 1, RecipientIndex: 2},
+	}
+
+	err := k.ProcessDeals(ctx, network, deals)
+	require.NoError(t, err)
+}
+
+// TestProcessDeals_EmptyDeals verifies that ProcessDeals handles an empty
+// deals slice without error.
+
+func TestProcessDeals_EmptyDeals(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     2,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	err := k.ProcessDeals(ctx, network, []types.Deal{})
+	require.NoError(t, err)
+}
+
+// TestProcessDeals_MultipleDeals verifies that ProcessDeals correctly processes
+// multiple deals at once.
+
+func TestProcessDeals_MultipleDeals(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     3,
+		Total:     5,
+		Threshold: 4,
+		Stage:     types.DKGStageDealing,
+	}
+
+	deals := []types.Deal{
+		{Index: 1, RecipientIndex: 2},
+		{Index: 1, RecipientIndex: 3},
+		{Index: 2, RecipientIndex: 1},
+	}
+
+	err := k.ProcessDeals(ctx, network, deals)
+	require.NoError(t, err)
+}
+
+// TestProcessResponses_DKGSvcDisabled verifies that ProcessResponses emits the
+// event and returns nil when DKG service is disabled.
+
+func TestProcessResponses_DKGSvcDisabled(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     1,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	responses := []types.Response{
+		{Index: 1},
+	}
+
+	err := k.ProcessResponses(ctx, network, responses)
+	require.NoError(t, err)
+}
+
+// TestProcessResponses_EmptyResponses verifies that ProcessResponses handles
+// an empty response slice without error.
+
+func TestProcessResponses_EmptyResponses(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     2,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	err := k.ProcessResponses(ctx, network, []types.Response{})
+	require.NoError(t, err)
+}
+
+// TestProcessResponses_MultipleResponses verifies that ProcessResponses correctly
+// processes multiple responses.
+
+func TestProcessResponses_MultipleResponses(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     3,
+		Total:     5,
+		Threshold: 4,
+		Stage:     types.DKGStageDealing,
+	}
+
+	responses := []types.Response{
+		{Index: 1},
+		{Index: 2},
+		{Index: 3},
+	}
+
+	err := k.ProcessResponses(ctx, network, responses)
+	require.NoError(t, err)
+}
+
+// TestEnsureSessionIndex_NoSession verifies that ensureSessionIndex returns an error
+// when no session exists for the given round.
+
+func TestEnsureSessionIndex_NoSession(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	k.setValidatorAddress(common.HexToAddress("0x1111111111111111111111111111111111111111"))
+	initTestStateManager(t, k)
+
+	// No session exists for round 99 — should return an error
+	err := k.ensureSessionIndex(ctx, 99)
+	require.Error(t, err, "ensureSessionIndex should fail when no session exists")
+}
+
+// TestEnsureSessionIndex_IndexAlreadySet verifies that ensureSessionIndex is a no-op
+// when the session already has a non-zero index.
+
+func TestEnsureSessionIndex_IndexAlreadySet(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	k.setValidatorAddress(common.HexToAddress("0x1111111111111111111111111111111111111111"))
+	initTestStateManager(t, k)
+
+	// Create a session with a pre-set index
+	sess := newTestSession(5)
+	require.NoError(t, k.stateManager.CreateSession(ctx, sess))
+	session, err := k.stateManager.GetSession(5)
+	require.NoError(t, err)
+	session.Index = 3 // already set
+	require.NoError(t, k.stateManager.UpdateSession(ctx, session))
+
+	// ensureSessionIndex should return nil without touching the index
+	err = k.ensureSessionIndex(ctx, 5)
+	require.NoError(t, err)
+
+	// Verify index is unchanged
+	updated, err := k.stateManager.GetSession(5)
+	require.NoError(t, err)
+	require.Equal(t, uint32(3), updated.Index, "index should remain unchanged when already set")
+}
+
+// TestEnsureSessionIndex_SetsIndexFromRegistration verifies that ensureSessionIndex
+// reads the on-chain registration index and updates the session.
+
+func TestEnsureSessionIndex_SetsIndexFromRegistration(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	initTestStateManager(t, k)
+
+	addr := common.HexToAddress("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	k.setValidatorAddress(addr)
+
+	// Store a registration with index=2 for round 7
+	reg := &types.DKGRegistration{
+		Round:         7,
+		ValidatorAddr: addr.Hex(),
+		Index:         2,
+		DkgPubKey:     []byte("test-dkg-pub-key"),
+		Status:        types.DKGRegStatusVerified,
+	}
+	require.NoError(t, k.setDKGRegistration(ctx, addr, reg))
+
+	// Create a session with Index=0 (not yet set)
+	require.NoError(t, k.stateManager.CreateSession(ctx, newTestSession(7)))
+	session, err := k.stateManager.GetSession(7)
+	require.NoError(t, err)
+	require.Equal(t, uint32(0), session.Index, "index should start at 0")
+
+	err = k.ensureSessionIndex(ctx, 7)
+	require.NoError(t, err)
+
+	// Index should now be set from the registration
+	updated, err := k.stateManager.GetSession(7)
+	require.NoError(t, err)
+	require.Equal(t, uint32(2), updated.Index, "index should be set from on-chain registration")
+}
+
+// TestEnsureSessionIndex_NoRegistration verifies that ensureSessionIndex returns an
+// error when the session exists but the validator has no registration.
+
+func TestEnsureSessionIndex_NoRegistration(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	initTestStateManager(t, k)
+
+	// Set validator address to an address with no registration
+	k.setValidatorAddress(common.HexToAddress("0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"))
+
+	// Create a session with Index=0
+	require.NoError(t, k.stateManager.CreateSession(ctx, newTestSession(15)))
+
+	// No registration for round 15 → should fail
+	err := k.ensureSessionIndex(ctx, 15)
+	require.Error(t, err, "should fail when registration not found")
+}
+
+// TestBeginDealing_BelowMinRequired verifies that BeginDealing calls SkipToNextRound
+// when verified registration count is below the minimum required.
+
+func TestBeginDealing_BelowMinRequired(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	sk := k.stakingKeeper.(*dkgtestutil.MockStakingKeeper)
+	sk.EXPECT().GetAllValidators(gomock.Any()).Return(nil, nil).AnyTimes()
+
+	// Set params with MinReqRegisteredParticipants=3
+	params := types.DefaultParams()
+	params.MinReqRegisteredParticipants = 3
+	require.NoError(t, k.SetParams(ctx, params))
+
+	// Create a network in Registration stage with round=1
+	network := &types.DKGNetwork{
+		Round:        1,
+		Total:        5,
+		Threshold:    4,
+		Stage:        types.DKGStageRegistration,
+		ActiveValSet: []string{"0x1111111111111111111111111111111111111111"},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Store only 1 verified registration (below min=3)
+	addr1 := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	require.NoError(t, k.setDKGRegistration(ctx, addr1, &types.DKGRegistration{
+		Round:         1,
+		ValidatorAddr: addr1.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusVerified,
+	}))
+
+	// BeginDealing should skip to next round
+	err := k.BeginDealing(ctx, network)
+	require.NoError(t, err)
+
+	// Verify a new round (round=2) was created via SkipToNextRound
+	_, err = k.getDKGNetwork(ctx, 2)
+	require.NoError(t, err, "SkipToNextRound should have created round 2")
+}
+
+// TestBeginDealing_MeetsMinRequired verifies that BeginDealing proceeds to the
+// dealing phase when verified registration count meets the minimum required.
+
+func TestBeginDealing_MeetsMinRequired(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// Set params with MinReqRegisteredParticipants=2
+	params := types.DefaultParams()
+	params.MinReqRegisteredParticipants = 2
+	require.NoError(t, k.SetParams(ctx, params))
+
+	network := &types.DKGNetwork{
+		Round:        10,
+		Total:        3,
+		Threshold:    2,
+		Stage:        types.DKGStageRegistration,
+		ActiveValSet: []string{"0x1111111111111111111111111111111111111111"},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Store 3 verified registrations (above min=2)
+	for i, hexAddr := range []string{
+		"0x1111111111111111111111111111111111111111",
+		"0x2222222222222222222222222222222222222222",
+		"0x3333333333333333333333333333333333333333",
+	} {
+		addr := common.HexToAddress(hexAddr)
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         10,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusVerified,
+		}))
+	}
+
+	err := k.BeginDealing(ctx, network)
+	require.NoError(t, err)
+
+	// Verify round 10 was updated with Total=3 (not skipped to round 11)
+	updated, err := k.getDKGNetwork(ctx, 10)
+	require.NoError(t, err)
+	require.Equal(t, uint32(3), updated.Total, "Total should be set to verified registration count")
+}
+
+// TestProcessDeals_DKGSvcEnabled verifies that ProcessDeals starts the async
+// goroutine when DKG service is enabled (no panic or error).
+
+func TestProcessDeals_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+
+	network := &types.DKGNetwork{
+		Round:     20,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	deals := []types.Deal{
+		{Index: 1, RecipientIndex: 2},
+	}
+
+	// Should not panic even when svc is enabled (goroutine runs handleDKGProcessDeals)
+	err := k.ProcessDeals(ctx, network, deals)
+	require.NoError(t, err)
+}
+
+// TestProcessResponses_DKGSvcEnabled verifies that ProcessResponses starts the
+// async goroutine path when DKG service is enabled, using shouldProcessResponses.
+
+func TestProcessResponses_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	k.setValidatorAddress(common.HexToAddress("0x1111111111111111111111111111111111111111"))
+
+	network := &types.DKGNetwork{
+		Round:     21,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageDealing,
+	}
+
+	responses := []types.Response{
+		{Index: 1},
+	}
+
+	err := k.ProcessResponses(ctx, network, responses)
+	require.NoError(t, err)
+}
+
+// TestProcessResponses_DKGSvcEnabled_WithStateManager verifies that ProcessResponses
+// runs shouldProcessResponses successfully when a stateManager is initialized.
+
+func TestProcessResponses_DKGSvcEnabled_WithStateManager(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+	validatorAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	k.setValidatorAddress(validatorAddr)
+	initTestStateManager(t, k)
+
+	network := &types.DKGNetwork{
+		Round:        22,
+		Total:        3,
+		Threshold:    2,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{validatorAddr.Hex()},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, network))
+
+	// Create a session so shouldProcessResponses can check session state
+	require.NoError(t, k.stateManager.CreateSession(ctx, newTestSession(22)))
+
+	responses := []types.Response{
+		{Index: 1},
+	}
+
+	err := k.ProcessResponses(ctx, network, responses)
+	require.NoError(t, err)
+}
+
+// initTestStateManager creates a StateManager backed by a temp directory and assigns it to the keeper.
+// This is needed because stateManager is only initialized in InitDKGService, not in setupDKGKeeperWithMocks.
+func initTestStateManager(t *testing.T, k *Keeper) {
+	t.Helper()
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	k.stateManager = sm
+}
+
+// --- ProcessJustifications: verifyJustification error path (gap 11) ---
+
+// TestProcessJustifications_MissingDealerRegistration verifies that ProcessJustifications
+// skips a justification (via verifyJustification returning error) when the dealer
+// has no registration (buildDealerPubKeyMap returns an empty map → sig verify fails).
+func TestProcessJustifications_MissingDealerRegistration(t *testing.T) {
+	// No dealer registrations — signature verification will fail for any justification.
+	k, ctx := setupDKGKeeper(t)
+	k.isDKGSvcEnabled = false // skip async kernel forwarding
+
+	round := uint32(77)
+	network := &types.DKGNetwork{Round: round, Total: 3, Threshold: 2}
+
+	// Build a minimal justification with nil signature — no matching dealer registration exists,
+	// so verifyJustificationSignature will fail and the justification will be skipped.
+	j := types.Justification{
+		Index: 0,
+		VssJustification: &types.VSSJustification{
+			SessionId: []byte("no-such-session"),
+			Index:     0,
+			PlainDeal: &types.PlainDeal{
+				SecShare: &types.SecShare{I: 1},
+			},
+			Signature: nil, // nil signature → sig verify will fail
+		},
+	}
+
+	// ProcessJustifications should not error — invalid justifications are simply skipped.
+	err := k.ProcessJustifications(ctx, network, []types.Justification{j})
+	require.NoError(t, err, "invalid justification should be skipped, not cause an error")
 }

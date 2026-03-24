@@ -17,10 +17,44 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/piplabs/story/client/genutil/evm/predeploys"
+	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/cast"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+)
+
+// EthClient abstracts the Ethereum JSON-RPC methods used by ContractClient.
+// This allows test code to inject a mock implementation.
+type EthClient interface {
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64, error)
+	// TransactionReceipt and CodeAt satisfy bind.DeployBackend so that
+	// bind.WaitMined can be called with this interface directly.
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
+}
+
+// DKGContractBinding abstracts the DKG smart-contract methods used by ContractClient.
+type DKGContractBinding interface {
+	Fee(opts *bind.CallOpts) (*big.Int, error)
+	Register(opts *bind.TransactOpts, enclaveReport []byte, enclaveInstanceData bindings.IDKGEnclaveInstanceData, startBlockHeight *big.Int, startBlockHash [32]byte, validationContext []byte) (*types.Transaction, error)
+	Finalize(opts *bind.TransactOpts, round uint32, validatorAddr common.Address, enclaveType [32]byte, participantsRoot [32]byte, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte, signature []byte) (*types.Transaction, error)
+}
+
+// CDRContractBinding abstracts the CDR smart-contract methods used by ContractClient.
+type CDRContractBinding interface {
+	BaseFee(opts *bind.CallOpts) (*big.Int, error)
+	SubmitEncryptedPartialDecryption(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error)
+}
+
+// Compile-time assertions.
+var (
+	_ dkgtypes.DKGContractClient = (*ContractClient)(nil)
+	_ EthClient                  = (*ethclient.Client)(nil)
+	_ DKGContractBinding         = (*bindings.DKG)(nil)
+	_ CDRContractBinding         = (*bindings.CDR)(nil)
 )
 
 const (
@@ -29,11 +63,11 @@ const (
 
 // ContractClient wraps the DKG contract interaction.
 type ContractClient struct {
-	ethClient       *ethclient.Client
-	dkgContract     *bindings.DKG
+	ethClient       EthClient
+	dkgContract     DKGContractBinding
 	dkgContractAbi  *abi.ABI
 	dkgContractAddr common.Address
-	cdrContract     *bindings.CDR
+	cdrContract     CDRContractBinding
 	cdrContractAbi  *abi.ABI
 	cdrContractAddr common.Address
 	privateKey      *ecdsa.PrivateKey

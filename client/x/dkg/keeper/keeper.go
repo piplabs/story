@@ -57,7 +57,7 @@ type Keeper struct {
 	stakingKeeper  types.StakingKeeper
 	valStore       baseapp.ValidatorStore
 	kernelRouter   *KernelRouter
-	contractClient *ContractClient
+	contractClient types.DKGContractClient
 	stateManager   *StateManager
 	authority      string
 
@@ -95,7 +95,7 @@ func NewKeeper(
 	sk types.StakingKeeper,
 	valStore baseapp.ValidatorStore,
 	kernelRouter *KernelRouter,
-	contractClient *ContractClient,
+	contractClient types.DKGContractClient,
 	authority string,
 ) *Keeper {
 	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
