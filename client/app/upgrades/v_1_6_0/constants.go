@@ -1,4 +1,4 @@
-package v_2_0_0
+package v_1_6_0
 
 import (
 	storetypes "cosmossdk.io/store/types"
@@ -11,14 +11,14 @@ import (
 	"github.com/piplabs/story/lib/netconf"
 )
 
-// UpgradeName is the on-chain name for the v2.0.0 upgrade that activates the
+// UpgradeName is the on-chain name for the v1.6.0 upgrade that activates the
 // DKG module. This is a binary-swap upgrade: the old binary should halt at
-// the scheduled height, and operators replace it with the v2.0.0 binary.
+// the scheduled height, and operators replace it with the v1.6.0 binary.
 //
-// the upgrade is scheduled on-chain by calling UpgradeEntrypoint.planUpgrade("v2.0.0", height).
+// the upgrade is scheduled on-chain by calling UpgradeEntrypoint.planUpgrade("v1.6.0", height).
 // The old binary writes upgrade-info.json to disk before halting, which the new binary reads
 // to configure the store loader (see setupUpgradeStoreLoaders in upgrades.go).
-const UpgradeName = netconf.V200
+const UpgradeName = netconf.V160
 
 var Upgrade = upgrades.Upgrade{
 	UpgradeName:          UpgradeName,

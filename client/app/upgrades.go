@@ -16,7 +16,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
-	"github.com/piplabs/story/client/app/upgrades/v_2_0_0"
+	"github.com/piplabs/story/client/app/upgrades/v_1_6_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -30,7 +30,7 @@ var (
 		polybius.Upgrade,
 		terence.Upgrade,
 		horace.Upgrade,
-		v_2_0_0.Upgrade,
+		v_1_6_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -39,7 +39,7 @@ var (
 		polybius.Fork,
 		terence.Fork,
 		horace.Fork,
-		v_2_0_0.Fork,
+		v_1_6_0.Fork,
 	}
 )
 
@@ -229,8 +229,8 @@ func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64)
 // upgrade-info.json rather than from hardcoded UpgradeHistories.
 func GetStoreUpgrades(upgradeName string) (storetypes.StoreUpgrades, error) {
 	switch upgradeName {
-	case netconf.V200:
-		return v_2_0_0.Upgrade.StoreUpgrades, nil
+	case netconf.V160:
+		return v_1_6_0.Upgrade.StoreUpgrades, nil
 	default:
 		return storetypes.StoreUpgrades{}, errors.New("no matched store upgrades")
 	}

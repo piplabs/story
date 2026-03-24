@@ -1081,7 +1081,7 @@ func TestKeeper_UpgradeScheduled(t *testing.T) {
 		{
 			name:             "fail: pending upgrade already exists",
 			activationHeight: 2000,
-			upgradeVersion:   "v2.0.0",
+			upgradeVersion:   "v1.6.0",
 			setupExisting:    true,
 			expectedErr:      "pending upgrade already exists",
 		},

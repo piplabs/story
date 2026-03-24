@@ -15,7 +15,7 @@ const (
 	V142    = "v1.4.2"
 
 	Horace = "horace"
-	V200   = "v2.0.0"
+	V160   = "v1.6.0"
 )
 
 var (
