@@ -228,10 +228,6 @@ message PartialDecryptTDH2Request {
     (gogoproto.moretags) = "yaml:\"label\""
   ];
 
-  uint32 pid = 5 [
-    (gogoproto.moretags) = "yaml:\"pid\""
-  ];
-
   bytes global_pub_key = 6 [
     (gogoproto.moretags) = "yaml:\"global_pub_key\""
   ];

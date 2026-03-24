@@ -321,7 +321,6 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
-		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
 		GlobalPubKey:    session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
