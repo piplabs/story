@@ -45,14 +45,14 @@ type dkgLifecycleEnv struct {
 
 // setupDKGLifecycleEnv creates a test environment with DKG keeper, short stage
 // periods, and mock validators configured. The SDK context uses the DKGTestChainID
-// with block height at the V200 activation point so BeginBlocker is active.
+// with block height at the V160 activation point so BeginBlocker is active.
 func setupDKGLifecycleEnv(t *testing.T, numValidators int) *dkgLifecycleEnv {
 	t.Helper()
 
 	k, _, dk, ctx := setupDKGKeeperWithMocks(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Use TestChainID where V200 activates at block 110.
+	// Use TestChainID where V160 activates at block 110.
 	// Set a non-nil HeaderHash so DKG network's StartBlockHash is populated.
 	testHeaderHash := common.HexToHash("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
 	sdkCtx = sdkCtx.WithChainID(netconf.TestChainID).WithBlockHeight(110).WithHeaderHash(testHeaderHash.Bytes())
