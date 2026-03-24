@@ -487,7 +487,7 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 }
 
 // PartialDecryptionSubmitted handles TDH2 partial decrypt submissions emitted by the contract.
-// It stores submission payloads for later processing.
+// It stores submission payloads for later processing and returns true only when validation succeeds.
 func (k *Keeper) PartialDecryptionSubmitted(
 	ctx context.Context,
 	validator common.Address,
@@ -500,22 +500,22 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	ciphertext []byte,
 	label []byte,
 	signature []byte,
-) error {
+) (bool, error) {
 	// Enforce timeout: reject partial decryptions submitted too late.
 	req, found, err := k.getDecryptRequest(ctx, requesterPubKey, label, round, ciphertext)
 	if err != nil {
-		return errors.Wrap(err, "failed to look up decrypt request registry")
+		return false, errors.Wrap(err, "failed to look up decrypt request registry")
 	}
 	if !found {
 		log.Info(ctx, "Partial decryption submitted for unknown or cleaned-up request",
 			"validator", validator.Hex(),
 			"round", round,
 		)
-		return nil
+		return false, nil
 	}
 
 	if round != req.Round {
-		return errors.New("round mismatch between partial decryption submission and decrypt request",
+		return false, errors.New("round mismatch between partial decryption submission and decrypt request",
 			"validator", validator.Hex(),
 			"submission_round", round,
 			"request_round", req.Round,
@@ -523,7 +523,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	}
 
 	if !bytes.Equal(ciphertext, req.Ciphertext) {
-		return errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
+		return false, errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
 			"validator", validator.Hex(),
 			"label", hex.EncodeToString(label),
 			"round", round,
@@ -541,25 +541,25 @@ func (k *Keeper) PartialDecryptionSubmitted(
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {
-			return errors.Wrap(err, "failed to delete expired decrypt request registry entry")
+			return false, errors.Wrap(err, "failed to delete expired decrypt request registry entry")
 		}
-		return nil
+		return false, nil
 	}
 
 	reg, err := k.getDKGRegistration(ctx, req.Round, validator)
 	if err != nil {
-		return errors.Wrap(err, "failed to get DKG registration for signature verification")
+		return false, errors.Wrap(err, "failed to get DKG registration for signature verification")
 	}
 
 	if !bytes.Equal(pubShare, reg.PubKeyShare) {
-		return errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
+		return false, errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
 			"validator", validator.Hex(),
 			"round", req.Round,
 		)
 	}
 
 	if err := verifyPartialDecryptionSignature(reg.CommPubKey, round, ciphertext, encryptedPartial, ephemeralPubKey, pubShare, signature); err != nil {
-		return errors.Wrap(err, "partial decryption signature verification failed")
+		return false, errors.Wrap(err, "partial decryption signature verification failed")
 	}
 
 	if err := k.setPartialDecryptionSubmission(
@@ -580,9 +580,9 @@ func (k *Keeper) PartialDecryptionSubmitted(
 				"round", round,
 				"pid", pid,
 			)
-			return nil
+			return false, nil
 		}
-		return errors.Wrap(err, "failed to store partial decryption submission")
+		return false, errors.Wrap(err, "failed to store partial decryption submission")
 	}
 
 	log.Info(ctx, "DKG PartialDecryptionSubmitted event received",
@@ -596,5 +596,5 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		"label_len", len(label),
 	)
 
-	return nil
+	return true, nil
 }
