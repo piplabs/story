@@ -434,12 +434,15 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		return errors.Wrap(err, "failed to get dkg network for decrypt request")
 	}
 
-	if dkgNetwork.Stage != types.DKGStageActive {
-		log.Info(ctx, "Skipping threshold decrypt request; DKG round is not active",
+	latestRound, err := k.GetLatestActiveRound(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get latest active DKG round")
+	}
+	if latestRound == nil {
+		log.Info(ctx, "Skipping threshold decrypt request; No active DKG round yet",
 			"round", round,
 			"stage", dkgNetwork.Stage.String(),
 		)
-
 		return nil
 	}
 
