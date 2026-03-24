@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"sort"
 	"sync"
 	"time"
 
@@ -12,6 +13,12 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
+
+// reconnectBackoff tracks per-endpoint exponential backoff state for kernel reconnection.
+type reconnectBackoff struct {
+	lastAttempt     time.Time
+	backoffDuration time.Duration
+}
 
 // KernelRouter manages multiple story-kernel clients, routing requests by code commitment.
 type KernelRouter struct {
@@ -21,9 +28,16 @@ type KernelRouter struct {
 	clients   map[string]types.KernelServiceClient // codeCommitmentHex -> KernelServiceClient
 	closers   map[string]io.Closer                 // codeCommitmentHex -> underlying gRPC connection
 	ccByEP    map[string]string                    // endpoint -> codeCommitmentHex (reverse lookup)
+	backoffs  map[string]*reconnectBackoff          // endpoint -> backoff state for reconnection rate limiting
 }
 
 const maxKernelEndpoints = 2
+
+// Reconnection backoff constants.
+const (
+	initialBackoff = 30 * time.Second
+	maxBackoff     = 5 * time.Minute
+)
 
 // NewKernelRouter creates a new router with the given endpoint list and optional TLS configuration.
 // At most 2 endpoints are supported (old + new binary for upgrade resharing).
@@ -39,6 +53,7 @@ func NewKernelRouter(endpoints []string, tlsCfg *TLSConfig) *KernelRouter {
 		clients:   make(map[string]types.KernelServiceClient),
 		closers:   make(map[string]io.Closer),
 		ccByEP:    make(map[string]string),
+		backoffs:  make(map[string]*reconnectBackoff),
 	}
 }
 
@@ -139,14 +154,23 @@ func (r *KernelRouter) GetClient(codeCommitment []byte) (types.KernelServiceClie
 	return client, nil
 }
 
-// GetAllCodeCommitments returns all connected code commitments.
+// GetAllCodeCommitments returns all connected code commitments in deterministic
+// (sorted) order. Sorting the hex string keys before decoding ensures consistent
+// kernel client selection across all validators.
 func (r *KernelRouter) GetAllCodeCommitments() [][]byte {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var ccs [][]byte
-
+	keys := make([]string, 0, len(r.clients))
 	for codeCommitmentHex := range r.clients {
+		keys = append(keys, codeCommitmentHex)
+	}
+
+	sort.Strings(keys)
+
+	ccs := make([][]byte, 0, len(keys))
+
+	for _, codeCommitmentHex := range keys {
 		cc, err := hex.DecodeString(codeCommitmentHex)
 		if err != nil {
 			continue
@@ -201,13 +225,69 @@ func (r *KernelRouter) TryReconnect() {
 	ctx, cancel := context.WithTimeout(context.Background(), reconnectTimeout)
 	defer cancel()
 
+	now := time.Now()
+
 	for _, ep := range disconnected {
+		if r.isInCooldown(ep, now) {
+			log.Debug(ctx, "Skipping kernel reconnection (in cooldown)", "endpoint", ep)
+
+			continue
+		}
+
 		log.Info(ctx, "Attempting kernel reconnection", "endpoint", ep)
 
 		if err := r.ConnectAndDiscover(ctx, ep); err != nil {
 			log.Warn(ctx, "Kernel reconnection failed", err, "endpoint", ep)
+			r.recordFailedAttempt(ep, now)
+		} else {
+			r.resetBackoff(ep)
 		}
 	}
+}
+
+// isInCooldown returns true if the endpoint was attempted recently and the
+// backoff cooldown has not yet elapsed.
+func (r *KernelRouter) isInCooldown(endpoint string, now time.Time) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	bo, ok := r.backoffs[endpoint]
+	if !ok {
+		return false
+	}
+
+	return now.Before(bo.lastAttempt.Add(bo.backoffDuration))
+}
+
+// recordFailedAttempt updates the backoff state for a failed reconnection attempt,
+// doubling the duration up to maxBackoff.
+func (r *KernelRouter) recordFailedAttempt(endpoint string, now time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	bo, ok := r.backoffs[endpoint]
+	if !ok {
+		r.backoffs[endpoint] = &reconnectBackoff{
+			lastAttempt:     now,
+			backoffDuration: initialBackoff,
+		}
+
+		return
+	}
+
+	bo.lastAttempt = now
+	bo.backoffDuration *= 2
+	if bo.backoffDuration > maxBackoff {
+		bo.backoffDuration = maxBackoff
+	}
+}
+
+// resetBackoff clears the backoff state for an endpoint after a successful connection.
+func (r *KernelRouter) resetBackoff(endpoint string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.backoffs, endpoint)
 }
 
 // disconnectedEndpoints returns configured endpoints that do not have a
