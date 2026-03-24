@@ -41,6 +41,10 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	if err := k.distributeCDRRewardPool(ctx); err != nil {
+		return errors.Wrap(err, "failed to distribute CDR fee pool")
+	}
+
 	activeValidators, err := k.GetActiveValidators(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get active validators")
