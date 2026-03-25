@@ -235,6 +235,61 @@ func TestKernelRouter_Disconnect_WithCloser(t *testing.T) {
 	require.False(t, closerExists, "closer entry should be removed")
 }
 
+// TODO_CDR078: Characterization test for audit finding CDR-078.
+//
+// BUG LOCATION: client/x/dkg/keeper/kernel_router.go:162-174 — Disconnect()
+//
+//	Disconnect removes the client from r.clients and r.closers but does NOT
+//	remove the corresponding r.ccByEP[endpoint] entry. This means
+//	disconnectedEndpoints() never returns the endpoint again, preventing
+//	TryReconnect from reconnecting after a disconnect.
+//
+// CURRENT BEHAVIOR (BUG): After Disconnect, the endpoint is still in ccByEP,
+//
+//	so disconnectedEndpoints() thinks it is still connected.
+//
+// EXPECTED BEHAVIOR AFTER FIX: Disconnect should also remove the ccByEP entry.
+//
+// HOW TO UPDATE AFTER FIX:
+//  1. Remove TODO_CDR078_ prefix from function name
+//  2. Assert that disconnectedEndpoints() includes "ep1" after Disconnect
+func TestTODO_CDR078_Disconnect_DoesNotRemoveCcByEP(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	cc := []byte{0xDE, 0xAD}
+	ccHex := "dead"
+
+	r := NewKernelRouter([]string{"ep1"}, nil)
+	r.clients[ccHex] = mockClient
+	r.closers[ccHex] = &mockCloser{}
+	r.ccByEP["ep1"] = ccHex
+
+	require.True(t, r.HasClients())
+	require.Empty(t, r.disconnectedEndpoints(), "ep1 should be connected")
+
+	r.Disconnect(cc)
+
+	require.False(t, r.HasClients(), "client should be removed")
+
+	// BUG: ccByEP entry NOT removed, so endpoint still appears connected
+	disconnected := r.disconnectedEndpoints()
+	require.Empty(t, disconnected,
+		"CDR-078: disconnectedEndpoints() returns empty because ccByEP still present")
+
+	_, ccByEPStillPresent := r.ccByEP["ep1"]
+	require.True(t, ccByEPStillPresent,
+		"CDR-078: ccByEP['ep1'] still maps to '%s' after Disconnect", ccHex)
+
+	t.Logf("CDR-078 characterization:")
+	t.Logf("  After Disconnect: clients=%v, closers=%v, ccByEP=%v", r.clients, r.closers, r.ccByEP)
+	t.Logf("  BUG: ccByEP['ep1'] still present -> TryReconnect will never reconnect ep1")
+	t.Logf("  After fix: ccByEP entry should be deleted during Disconnect")
+}
+
 // TestKernelRouter_Disconnect_ClientWithoutCloser verifies that Disconnect
 // removes the client even when no closer was registered (only client in map).
 func TestKernelRouter_Disconnect_ClientWithoutCloser(t *testing.T) {
