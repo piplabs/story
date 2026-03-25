@@ -1034,7 +1034,7 @@ func TestHandleDKGDealing_GenerateDealsError_MarksFailed(t *testing.T) {
 	require.NoError(t, sm.CreateSession(ctx, session))
 
 	// Kernel returns error on all retry attempts.
-	mockKernel.EXPECT().GenerateDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+	mockKernel.EXPECT().GenerateDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{Round: 6, Stage: types.DKGStageDealing}
 
@@ -1131,7 +1131,7 @@ func TestHandleDKGProcessDeals_ProcessDealsError_CachesDeals(t *testing.T) {
 	myDeal := types.Deal{Index: 0, RecipientIndex: 0}
 
 	// Kernel returns error on all retries.
-	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{
 		Round:        8,
@@ -1268,7 +1268,7 @@ func TestHandleDKGProcessResponses_Error_CachesResponses(t *testing.T) {
 	require.NoError(t, sm.CreateSession(ctx, session))
 
 	// Kernel returns error on all retries.
-	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{Round: 11, Stage: types.DKGStageDealing}
 
@@ -1355,7 +1355,7 @@ func TestHandleDKGProcessJustifications_Error_CachesJustifications(t *testing.T)
 	require.NoError(t, sm.CreateSession(ctx, session))
 
 	// Kernel returns error on all retries.
-	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttemts)
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{Round: 13, Stage: types.DKGStageDealing}
 

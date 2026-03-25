@@ -489,10 +489,10 @@ func TestHandleDKGRegistration_GenerateAndSealKeyError_MarksFailed(t *testing.T)
 	resetDKGSvcRound()
 	defer resetDKGSvcRound()
 
-	// Kernel returns error for all retry attempts (retryAttemts calls total)
+	// Kernel returns error for all retry attempts (retryAttempts calls total)
 	mockKernel.EXPECT().GenerateAndSealKey(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("kernel unavailable")).
-		Times(retryAttemts)
+		Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{
 		Round:        10,
