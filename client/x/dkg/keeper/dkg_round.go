@@ -14,7 +14,6 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	registrationEnd := int64(params.RegistrationPeriod)
 	dealingEnd := registrationEnd + int64(params.DealingPeriod)
 	finalizationEnd := dealingEnd + int64(params.FinalizationPeriod)
-	activeEnd := finalizationEnd + int64(params.ActivePeriod)
 
 	// in switch, we check if the elapsed time is greater than the end of the current stage
 	switch currentStage {
@@ -29,11 +28,6 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 	case types.DKGStageFinalization:
 		if elapsed >= finalizationEnd {
 			return types.DKGStageActive, true
-		}
-	case types.DKGStageActive:
-		if elapsed >= activeEnd {
-			// Round has ended, should initiate new round (resharing)
-			return types.DKGStageRegistration, true
 		}
 	case types.DKGStageFailed:
 		return types.DKGStageFailed, false
