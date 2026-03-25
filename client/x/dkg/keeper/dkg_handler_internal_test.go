@@ -1569,7 +1569,7 @@ func TestPartialDecryptionSubmitted_RequestNotFound(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		ctx,
 		validator,
 		1, // round
@@ -1583,6 +1583,7 @@ func TestPartialDecryptionSubmitted_RequestNotFound(t *testing.T) {
 		[]byte("signature"),
 	)
 	require.NoError(t, err, "unknown request should be silently ignored")
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_CiphertextMismatch verifies that a ciphertext
@@ -1611,7 +1612,7 @@ func TestPartialDecryptionSubmitted_CiphertextMismatch(t *testing.T) {
 
 	// Submit with round=1 but WRONG ciphertext — the key lookup will fail (not found)
 	// because the key includes the ciphertext hash. So this tests the not-found path.
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		ctx,
 		validator,
 		1,
@@ -1626,6 +1627,7 @@ func TestPartialDecryptionSubmitted_CiphertextMismatch(t *testing.T) {
 	)
 	// Not found → silently ignored (nil), not an error
 	require.NoError(t, err)
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_NoRegistration verifies that when a matching
@@ -1652,7 +1654,7 @@ func TestPartialDecryptionSubmitted_NoRegistration(t *testing.T) {
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	// No DKG registration for this validator/round → should fail
 
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1667,6 +1669,7 @@ func TestPartialDecryptionSubmitted_NoRegistration(t *testing.T) {
 	)
 	require.Error(t, err, "should fail when no DKG registration exists")
 	require.Contains(t, err.Error(), "failed to get DKG registration")
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_PubShareMismatch verifies that when the submitted
@@ -1702,7 +1705,7 @@ func TestPartialDecryptionSubmitted_PubShareMismatch(t *testing.T) {
 		Status:        types.DKGRegStatusFinalized,
 	}))
 
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1717,6 +1720,7 @@ func TestPartialDecryptionSubmitted_PubShareMismatch(t *testing.T) {
 	)
 	require.Error(t, err, "pubShare mismatch should return an error")
 	require.Contains(t, err.Error(), "pubShare mismatch")
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_InvalidSignature verifies that when the ECDSA
@@ -1756,7 +1760,7 @@ func TestPartialDecryptionSubmitted_InvalidSignature(t *testing.T) {
 	// Build a 65-byte signature that is not a valid ECDSA sig
 	invalidSig := make([]byte, 65)
 
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		2,
@@ -1771,6 +1775,7 @@ func TestPartialDecryptionSubmitted_InvalidSignature(t *testing.T) {
 	)
 	require.Error(t, err, "invalid signature should return an error")
 	require.Contains(t, err.Error(), "partial decryption signature verification failed")
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_TimeoutExceeded verifies that when the current
@@ -1799,7 +1804,7 @@ func TestPartialDecryptionSubmitted_TimeoutExceeded(t *testing.T) {
 
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1814,6 +1819,7 @@ func TestPartialDecryptionSubmitted_TimeoutExceeded(t *testing.T) {
 	)
 	// Timeout exceeded → cleanup and return nil
 	require.NoError(t, err)
+	require.False(t, accepted)
 
 	// Verify the request was cleaned up
 	_, found, err := k.getDecryptRequest(sdkCtx, requesterPubKey, label, 1, ciphertext)
@@ -1862,7 +1868,7 @@ func TestPartialDecryptionSubmitted_Success(t *testing.T) {
 		Status:        types.DKGRegStatusFinalized,
 	}))
 
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		3,
@@ -1876,6 +1882,7 @@ func TestPartialDecryptionSubmitted_Success(t *testing.T) {
 		sig,
 	)
 	require.NoError(t, err, "valid submission should succeed")
+	require.True(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_DuplicateSubmission verifies that a duplicate
@@ -1918,12 +1925,13 @@ func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
 	}))
 
 	// First submission — should succeed
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 4, 1,
 		encryptedPartial, ephemeralPubKey, pubShare,
 		requesterPubKey, ciphertext, label, sig,
 	)
 	require.NoError(t, err, "first submission should succeed")
+	require.True(t, accepted)
 
 	// Build a second valid signature (same data → same sig is valid)
 	commPubKey2, sig2 := buildValidPartialDecryptSignature(t, 4, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
@@ -1939,12 +1947,13 @@ func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
 	}))
 
 	// Second submission — duplicate → silently ignored (returns nil)
-	err = k.PartialDecryptionSubmitted(
+	accepted, err = k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 4, 1,
 		encryptedPartial, ephemeralPubKey, pubShare,
 		requesterPubKey, ciphertext, label, sig2,
 	)
 	require.NoError(t, err, "duplicate submission should be silently ignored")
+	require.False(t, accepted)
 }
 
 // --- Finalized: invalidated dealer branch (gap 7) ---
@@ -2060,12 +2069,13 @@ func TestPartialDecryptionSubmitted_UnknownRequest(t *testing.T) {
 	validator := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
 	// Submit without storing a decrypt request — not found → returns nil (skipped)
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 99, 1,
 		[]byte("enc"), []byte("eph"), []byte("share"),
 		[]byte("req-pub"), []byte("cipher"), []byte("label"), make([]byte, 65),
 	)
 	require.NoError(t, err, "unknown request should be silently ignored (not found path)")
+	require.False(t, accepted)
 }
 
 // TestPartialDecryptionSubmitted_CiphertextMismatch verifies that PartialDecryptionSubmitted
@@ -2099,10 +2109,11 @@ func TestPartialDecryptionSubmitted_DifferentCiphertext_NotFound(t *testing.T) {
 	validator := common.HexToAddress("0x3333333333333333333333333333333333333333")
 
 	// Submit with differentCiphertext → lookup uses differentCiphertext in key → not found → nil
-	err := k.PartialDecryptionSubmitted(
+	accepted, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, round, 1,
 		[]byte("enc"), []byte("eph"), []byte("share"),
 		requesterPubKey, differentCiphertext, label, make([]byte, 65),
 	)
 	require.NoError(t, err, "different ciphertext triggers not-found path, silently ignored")
+	require.False(t, accepted)
 }
