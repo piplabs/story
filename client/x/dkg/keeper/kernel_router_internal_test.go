@@ -235,6 +235,83 @@ func TestKernelRouter_Disconnect_WithCloser(t *testing.T) {
 	require.False(t, closerExists, "closer entry should be removed")
 }
 
+// TestKernelRouter_Disconnect_RemovesCcByEP verifies that Disconnect removes
+// stale ccByEP entries so that disconnectedEndpoints() returns the endpoint,
+// enabling TryReconnect to re-establish the connection.
+func TestKernelRouter_Disconnect_RemovesCcByEP(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	cc := []byte{0xDE, 0xAD}
+	ccHex := "dead"
+
+	r := NewKernelRouter([]string{"ep1"}, nil)
+	r.clients[ccHex] = mockClient
+	r.closers[ccHex] = &mockCloser{}
+	r.ccByEP["ep1"] = ccHex
+
+	require.True(t, r.HasClients())
+	require.Empty(t, r.disconnectedEndpoints(), "ep1 should be connected")
+
+	r.Disconnect(cc)
+
+	require.False(t, r.HasClients(), "client should be removed")
+
+	// After fix: ccByEP entry must be removed so endpoint is eligible for reconnection
+	disconnected := r.disconnectedEndpoints()
+	require.Len(t, disconnected, 1, "disconnectedEndpoints should return ep1 after Disconnect")
+	require.Contains(t, disconnected, "ep1")
+
+	_, ccByEPPresent := r.ccByEP["ep1"]
+	require.False(t, ccByEPPresent, "ccByEP['ep1'] should be removed after Disconnect")
+}
+
+// TestKernelRouter_Disconnect_RemovesCcByEP_MultipleEndpoints verifies that
+// Disconnect only removes ccByEP entries matching the disconnected code commitment,
+// leaving other endpoint mappings intact.
+func TestKernelRouter_Disconnect_RemovesCcByEP_MultipleEndpoints(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client1 := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	client2 := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	cc1 := []byte{0xDE, 0xAD}
+	cc1Hex := "dead"
+	cc2 := []byte{0xBE, 0xEF}
+	cc2Hex := "beef"
+
+	r := NewKernelRouter([]string{"ep1", "ep2"}, nil)
+	r.clients[cc1Hex] = client1
+	r.closers[cc1Hex] = &mockCloser{}
+	r.ccByEP["ep1"] = cc1Hex
+	r.clients[cc2Hex] = client2
+	r.closers[cc2Hex] = &mockCloser{}
+	r.ccByEP["ep2"] = cc2Hex
+
+	require.Empty(t, r.disconnectedEndpoints(), "both endpoints should be connected")
+
+	// Disconnect only cc1
+	r.Disconnect(cc1)
+
+	// ep1 should now be disconnected, ep2 should remain connected
+	disconnected := r.disconnectedEndpoints()
+	require.Len(t, disconnected, 1)
+	require.Contains(t, disconnected, "ep1")
+
+	_, ep2Present := r.ccByEP["ep2"]
+	require.True(t, ep2Present, "ccByEP['ep2'] should remain after disconnecting cc1")
+
+	// cc2 client should still be accessible
+	got, err := r.GetClient(cc2)
+	require.NoError(t, err)
+	require.Equal(t, client2, got)
+}
+
 // TestKernelRouter_Disconnect_ClientWithoutCloser verifies that Disconnect
 // removes the client even when no closer was registered (only client in map).
 func TestKernelRouter_Disconnect_ClientWithoutCloser(t *testing.T) {

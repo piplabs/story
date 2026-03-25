@@ -28,7 +28,7 @@ type KernelRouter struct {
 	clients   map[string]types.KernelServiceClient // codeCommitmentHex -> KernelServiceClient
 	closers   map[string]io.Closer                 // codeCommitmentHex -> underlying gRPC connection
 	ccByEP    map[string]string                    // endpoint -> codeCommitmentHex (reverse lookup)
-	backoffs  map[string]*reconnectBackoff          // endpoint -> backoff state for reconnection rate limiting
+	backoffs  map[string]*reconnectBackoff         // endpoint -> backoff state for reconnection rate limiting
 }
 
 const maxKernelEndpoints = 2
@@ -195,6 +195,14 @@ func (r *KernelRouter) Disconnect(codeCommitment []byte) {
 	}
 
 	delete(r.clients, codeCommitmentHex)
+
+	// Remove stale ccByEP entries so disconnectedEndpoints() returns
+	// this endpoint, allowing TryReconnect to re-establish the connection.
+	for ep, cc := range r.ccByEP {
+		if cc == codeCommitmentHex {
+			delete(r.ccByEP, ep)
+		}
+	}
 }
 
 // HasClients returns true if at least one client is connected.
