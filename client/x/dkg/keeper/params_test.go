@@ -24,6 +24,7 @@ func TestKeeper_SetGetParams(t *testing.T) {
 		5, // MinReqRegisteredParticipants
 		4, // MinReqFinalizedParticipants
 		types.DefaultOperationalThreshold,
+		types.DefaultDecryptTimeout,
 	)
 
 	require.NoError(t, k.SetParams(ctx, params))
@@ -189,12 +190,12 @@ func TestKeeper_SetParams_OverwritesPreviousParams(t *testing.T) {
 	first := types.NewParams(
 		10, 20, 30, 40,
 		types.DefaultDkgCommitteeRewardPortion,
-		3, 3, 667,
+		3, 3, 667, 200,
 	)
 	second := types.NewParams(
 		100, 200, 300, 400,
 		types.DefaultDkgCommitteeRewardPortion,
-		10, 9, 800,
+		10, 9, 800, 200,
 	)
 
 	require.NoError(t, k.SetParams(ctx, first))

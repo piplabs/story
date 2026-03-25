@@ -25,9 +25,9 @@ const (
 )
 
 func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	dequeuedDeals := k.DequeueDeals(maxItemsPerVote)
-	dequeuedResponses := k.DequeueResponses(maxItemsPerVote)
-	dequeuedJustifications := k.DequeueJustifications(maxItemsPerVote)
+	dequeuedDeals := k.PeekDeals(maxItemsPerVote)
+	dequeuedResponses := k.PeekResponses(maxItemsPerVote)
+	dequeuedJustifications := k.PeekJustifications(maxItemsPerVote)
 
 	bz, err := proto.Marshal(&types.Vote{
 		Deals:          dequeuedDeals,

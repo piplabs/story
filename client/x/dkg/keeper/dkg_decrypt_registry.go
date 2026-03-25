@@ -68,7 +68,7 @@ func (k *Keeper) deleteDecryptRequest(ctx context.Context, requesterPubKey []byt
 }
 
 // pruneTimedOutDecryptRequests iterates all registry entries and removes any whose
-// stored block height is older than PartialDecryptionTimeoutBlocks relative to currentHeight.
+// stored block height is older than DefaultDecryptTimeout relative to currentHeight.
 // Called from BeginBlocker when the background cleanup worker signals.
 func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight uint64) error {
 	iter, err := k.DecryptRequestRegistry.Iterate(ctx, nil)
@@ -90,7 +90,7 @@ func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight
 		if err != nil {
 			return errors.Wrap(err, "iterate decrypt request registry value")
 		}
-		if currentHeight > req.Height && currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
+		if currentHeight > req.Height && currentHeight-req.Height > types.DefaultDecryptTimeout {
 			expired = append(expired, entry{key})
 		}
 	}

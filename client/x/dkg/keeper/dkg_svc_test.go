@@ -606,21 +606,16 @@ func TestStartDecryptWorker_OnlyOneInstance(t *testing.T) {
 
 	k := &Keeper{stateManager: sm}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Reset atomic guard
 	decryptWorkerRunning.Store(false)
 
 	// Start first worker
-	k.StartDecryptWorker(ctx)
+	k.StartDecryptWorker()
 	require.True(t, decryptWorkerRunning.Load(), "worker should be running")
 
 	// Second call should be a no-op (already running)
-	k.StartDecryptWorker(ctx)
+	k.StartDecryptWorker()
 
-	// Cancel context to stop the worker
-	cancel()
 	time.Sleep(100 * time.Millisecond)
 
 	// Worker should have stopped

@@ -23,7 +23,7 @@ const (
 	OperationalThresholdBasis           uint32 = 1000
 
 	// Decrypt request timeout in blocks.
-	DefaultDecryptTimeout uint64 = 10000
+	DefaultDecryptTimeout uint64 = 200
 )
 
 // DefaultDkgCommitteeRewardPortion is the default portion of UBI rewards

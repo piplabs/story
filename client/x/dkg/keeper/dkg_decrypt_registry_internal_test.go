@@ -69,7 +69,7 @@ func TestDeleteDecryptRequest(t *testing.T) {
 func TestPruneTimedOutDecryptRequests(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	const timeout = types.PartialDecryptionTimeoutBlocks
+	const timeout = types.DefaultDecryptTimeout
 
 	// Insert entries at various heights.
 	entries := []struct {

@@ -256,6 +256,21 @@ func (m *MockDKGContractClient) EXPECT() *MockDKGContractClientMockRecorder {
 	return m.recorder
 }
 
+// BlockNumber mocks base method.
+func (m *MockDKGContractClient) BlockNumber(ctx context.Context) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockNumber", ctx)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BlockNumber indicates an expected call of BlockNumber.
+func (mr *MockDKGContractClientMockRecorder) BlockNumber(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockNumber", reflect.TypeOf((*MockDKGContractClient)(nil).BlockNumber), ctx)
+}
+
 // Finalize mocks base method.
 func (m *MockDKGContractClient) Finalize(ctx context.Context, round uint32, enclaveType [32]byte, participantsRoot, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare, signature []byte) (*types1.Receipt, error) {
 	m.ctrl.T.Helper()

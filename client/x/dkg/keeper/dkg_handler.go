@@ -533,11 +533,11 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	}
 
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
+	if currentHeight-req.Height > types.DefaultDecryptTimeout {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
 			"request_height", req.Height,
 			"current_height", currentHeight,
-			"timeout_blocks", types.PartialDecryptionTimeoutBlocks,
+			"timeout_blocks", types.DefaultDecryptTimeout,
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {
