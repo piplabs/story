@@ -74,9 +74,9 @@ func TestValidateDkgCommitteeRewardPortion(t *testing.T) {
 func TestDefaultParams_IncludesDkgCommitteeRewardPortion(t *testing.T) {
 	params := types.DefaultParams()
 
-	// Verify the default reward portion is 10%.
-	require.True(t, params.DkgCommitteeRewardPortion.Equal(math.LegacyMustNewDecFromStr("0.10")),
-		"default DKG committee reward portion should be 0.10 (10%%)")
+	// Verify the default reward portion is 5%.
+	require.True(t, params.DkgCommitteeRewardPortion.Equal(math.LegacyMustNewDecFromStr("0.05")),
+		"default DKG committee reward portion should be 0.05 (5%%)")
 
 	// Note: DefaultParams().Validate() will fail because DefaultParams does not
 	// include a valid CodeCommitment (which is required to be 32 bytes). This is
