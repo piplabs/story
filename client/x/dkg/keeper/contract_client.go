@@ -34,6 +34,7 @@ type EthClient interface {
 	// bind.WaitMined can be called with this interface directly.
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
+	BlockNumber(ctx context.Context) (uint64, error)
 }
 
 // DKGContractBinding abstracts the DKG smart-contract methods used by ContractClient.
@@ -151,6 +152,11 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 	)
 
 	return client, nil
+}
+
+// BlockNumber returns the current block number from the EL client.
+func (c *ContractClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return c.ethClient.BlockNumber(ctx)
 }
 
 // Register calls the register contract method.

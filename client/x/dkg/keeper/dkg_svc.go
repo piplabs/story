@@ -280,7 +280,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		return
 	}
 
-	currentHeight, err := k.contractClient.ethClient.BlockNumber(ctx)
+	currentHeight, err := k.contractClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
 		return
