@@ -83,6 +83,9 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         bytes calldata validationContext
     ) external override returns (bool) {
         require(msg.sender == DKG, "SGXValidationHook: Only DKG can call this function");
+        require(enclaveReport.length > 0, "SGXValidationHook: Empty enclave report");
+        require(expectedCodeCommitment != bytes32(0), "SGXValidationHook: Zero code commitment");
+        require(expectedDataCommitment != bytes32(0), "SGXValidationHook: Zero data commitment");
         SGXValidationHookStorage storage $ = _getSGXValidationHookStorage();
         // see verifyAndAttestOnChain in automata-dcap-attestation:
         // AutomataDcapAttestationFee.sol#L23
@@ -141,7 +144,7 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @dev Extracts the code commitment (MRENCLAVE) from the raw SGX quote
     /// @param enclaveReport The raw SGX quote (header + report body + auth data)
     /// @return The code commitment (MRENCLAVE)
-    function _extractReportCodeCommitment(bytes calldata enclaveReport) internal returns (bytes32) {
+    function _extractReportCodeCommitment(bytes calldata enclaveReport) internal pure returns (bytes32) {
         // SGX quote header is 48 bytes, MRENCLAVE is at offset 64 within the report body
         // Total offset from raw quote start: 48 (header) + 64 (MRENCLAVE in body) = 112
         return bytes32(enclaveReport.substring(112, 32));
@@ -150,7 +153,7 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @dev Extracts the instance data commitment from the enclave report
     /// @param enclaveReport The enclave report
     /// @return The instance data commitment
-    function _extractReportInstanceDataCommitment(bytes memory enclaveReport) internal returns (bytes32) {
+    function _extractReportInstanceDataCommitment(bytes memory enclaveReport) internal pure returns (bytes32) {
         // According to Intel’s SGX quote structure:
         // - The SGX quote header is 48 bytes in size
         // - The enclave report body is 384 bytes long

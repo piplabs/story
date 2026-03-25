@@ -15,6 +15,7 @@ interface ICDR {
     /// @param writeConditionData The data of the write condition
     /// @param readConditionData The data of the read condition
     /// @param encryptedData The encrypted data
+
     struct Vault {
         bool updatable;
         address writeConditionAddr;

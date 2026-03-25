@@ -82,6 +82,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     }
 
     /// @notice Sets the allocate fee
+    /// @dev Zero fees are intentionally allowed. This enables fee-free operation during
+    ///      testing and early deployment phases. The owner can set a non-zero fee later.
     /// @param newAllocateFee The allocate fee
     function setAllocateFee(uint256 newAllocateFee) external onlyOwner {
         _setAllocateFee(newAllocateFee);
@@ -104,13 +106,14 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         address readConditionAddr,
         bytes calldata writeConditionData,
         bytes calldata readConditionData
-    ) external payable whenNotPaused returns (uint32 newVaultUuid) {
+    ) external payable nonReentrant whenNotPaused returns (uint32 newVaultUuid) {
         require(writeConditionAddr != address(0) && readConditionAddr != address(0), "Invalid condition address");
 
         CDRStorage storage $ = _getCDRStorage();
         // collect allocation fee and burn it
         _collectFee($.allocateFee, ICDR.FeeType.Allocate);
 
+        require($.uuid < type(uint32).max, "CDR: Vault UUID overflow");
         newVaultUuid = $.uuid++;
         $.vaults[newVaultUuid] = Vault(
             updatable,
@@ -132,6 +135,9 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     }
 
     /// @notice Writes data to a vault
+    /// @dev If msg.sender is the writeConditionAddr itself, the condition check is
+    ///      bypassed. This is intentional because the condition contract has already evaluated
+    ///      its own logic before calling write(), so re-checking would be redundant.
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for writing
     /// @param encryptedData The encrypted data to write
@@ -141,10 +147,11 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata encryptedData
     ) external payable nonReentrant whenNotPaused {
         require(encryptedData.length > 0, "CDR: Encrypted data cannot be empty");
+        require(encryptedData.length <= 1024, "CDR: Encrypted data exceeds max size");
 
         CDRStorage storage $ = _getCDRStorage();
         // check if the vault exists
-        Vault memory vault = $.vaults[uuid];
+        Vault storage vault = $.vaults[uuid];
         require(vault.writeConditionAddr != address(0), "CDR: Write condition address not set");
 
         // check the write condition
@@ -173,6 +180,10 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     }
 
     /// @notice Reads data from a vault
+    /// @dev If msg.sender is the readConditionAddr itself, the condition check
+    ///      is bypassed. This is intentional because the condition contract has already evaluated
+    ///      its own logic before calling read(). Read access control is enforced entirely through
+    ///      the readConditionAddr contract — there is no additional caller restriction.
     /// @param uuid The UUID of the vault
     /// @param accessAuxData The auxiliary access data for reading
     /// @param requesterPubKey The public key of the requester
@@ -183,7 +194,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     ) external payable nonReentrant whenNotPaused {
         CDRStorage storage $ = _getCDRStorage();
         // check if the vault has data to read
-        Vault memory vault = $.vaults[uuid];
+        Vault storage vault = $.vaults[uuid];
         require(vault.encryptedData.length > 0, "CDR: Vault has no data to read");
 
         // check the read condition
@@ -229,7 +240,12 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata ciphertext,
         uint32 uuid,
         bytes calldata signature
-    ) external payable whenNotPaused {
+    ) external payable nonReentrant whenNotPaused {
+        require(
+            encryptedPartial.length > 0 && encryptedPartial.length <= 1024,
+            "CDR: Invalid encrypted partial length"
+        );
+
         // collect the base fee and burn it
         uint256 fee = _getCDRStorage().baseFee;
         _collectFee(fee, ICDR.FeeType.SubmitPartial);
