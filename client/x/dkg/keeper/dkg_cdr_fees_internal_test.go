@@ -398,13 +398,61 @@ func TestGetCDRFeePoolBalance_CorruptData(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid CDR fee pool balance")
 }
 
-// TestDistributeCDRRewardPool_NoPrevActive verifies distributeCDRRewardPool is a
+// TODO_CDR069: Characterization test for audit finding CDR-069.
+//
+// BUG LOCATION: client/x/dkg/keeper/dkg_cdr_fees.go:131-156 — distributeCDRFee()
+//
+//	Iterates ALL entries in CDRPartialSubmitCount without checking committee
+//	membership. Any address with a non-zero count receives fees.
+//
+// CURRENT BEHAVIOR (BUG): Non-committee addresses with submit counts get paid.
+//
+// EXPECTED BEHAVIOR AFTER FIX: Only finalized committee members receive fees.
+//
+// HOW TO UPDATE AFTER FIX:
+//  1. Remove TODO_CDR069_ prefix from function name
+//  2. Assert that non-member address receives zero fees
+func TestTODO_CDR069_DistributeCDRFee_NonMemberGetsReward(t *testing.T) {
+	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+
+	prevActive := createTestDKGNetwork(t, k, ctx, 1)
+	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
+
+	committeeMember := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	nonMember := common.HexToAddress("0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead")
+
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(committeeMember), 2))
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(nonMember), 2))
+	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "100"))
+
+	recipientAddrs := map[string]int64{}
+	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.CDRFeePoolName, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, addr sdk.AccAddress, coins sdk.Coins) error {
+			recipientAddrs[addr.String()] = coins[0].Amount.Int64()
+			return nil
+		}).Times(2)
+
+	err := k.distributeCDRFee(ctx)
+	require.NoError(t, err)
+
+	// BUG: Both addresses get paid, even the non-member
+	require.Len(t, recipientAddrs, 2,
+		"CDR-069: both addresses received fees (no membership check)")
+
+	t.Logf("CDR-069 characterization:")
+	t.Logf("  Recipients: %v", recipientAddrs)
+	t.Logf("  BUG: non-committee address %s received fees", nonMember.Hex())
+	t.Logf("  Impact: anyone with a submit count gets paid")
+	t.Logf("  After fix: filter by getDKGRegistrationsByStatus like dkg_rewards.go does")
+}
+
+// TestDistributeCDRRewardPool_NoPrevActive verifies distributeCDRFee is a
 // no-op when no previous active DKG network exists.
 func TestDistributeCDRRewardPool_NoPrevActive(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	// No active round set → should be a no-op
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 }
 
@@ -423,7 +471,7 @@ func TestDistributeCDRRewardPool_PoolFoundButZeroBalance(t *testing.T) {
 	// Set balance to "0" (found but zero)
 	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "0"))
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	// Balance entry should be removed and count cleared

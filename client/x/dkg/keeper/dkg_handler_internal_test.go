@@ -1569,7 +1569,7 @@ func TestPartialDecryptionSubmitted_RequestNotFound(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		ctx,
 		validator,
 		1, // round
@@ -1611,7 +1611,7 @@ func TestPartialDecryptionSubmitted_CiphertextMismatch(t *testing.T) {
 
 	// Submit with round=1 but WRONG ciphertext — the key lookup will fail (not found)
 	// because the key includes the ciphertext hash. So this tests the not-found path.
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		ctx,
 		validator,
 		1,
@@ -1652,7 +1652,7 @@ func TestPartialDecryptionSubmitted_NoRegistration(t *testing.T) {
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	// No DKG registration for this validator/round → should fail
 
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1702,7 +1702,7 @@ func TestPartialDecryptionSubmitted_PubShareMismatch(t *testing.T) {
 		Status:        types.DKGRegStatusFinalized,
 	}))
 
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1756,7 +1756,7 @@ func TestPartialDecryptionSubmitted_InvalidSignature(t *testing.T) {
 	// Build a 65-byte signature that is not a valid ECDSA sig
 	invalidSig := make([]byte, 65)
 
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		2,
@@ -1799,7 +1799,7 @@ func TestPartialDecryptionSubmitted_TimeoutExceeded(t *testing.T) {
 
 	validator := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		1,
@@ -1862,7 +1862,7 @@ func TestPartialDecryptionSubmitted_Success(t *testing.T) {
 		Status:        types.DKGRegStatusFinalized,
 	}))
 
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx,
 		validator,
 		3,
@@ -1918,7 +1918,7 @@ func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
 	}))
 
 	// First submission — should succeed
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 4, 1,
 		encryptedPartial, ephemeralPubKey, pubShare,
 		requesterPubKey, ciphertext, label, sig,
@@ -1939,7 +1939,7 @@ func TestPartialDecryptionSubmitted_DuplicateSubmission(t *testing.T) {
 	}))
 
 	// Second submission — duplicate → silently ignored (returns nil)
-	err = k.PartialDecryptionSubmitted(
+	_, err = k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 4, 1,
 		encryptedPartial, ephemeralPubKey, pubShare,
 		requesterPubKey, ciphertext, label, sig2,
@@ -2060,7 +2060,7 @@ func TestPartialDecryptionSubmitted_UnknownRequest(t *testing.T) {
 	validator := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
 	// Submit without storing a decrypt request — not found → returns nil (skipped)
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, 99, 1,
 		[]byte("enc"), []byte("eph"), []byte("share"),
 		[]byte("req-pub"), []byte("cipher"), []byte("label"), make([]byte, 65),
@@ -2099,7 +2099,7 @@ func TestPartialDecryptionSubmitted_DifferentCiphertext_NotFound(t *testing.T) {
 	validator := common.HexToAddress("0x3333333333333333333333333333333333333333")
 
 	// Submit with differentCiphertext → lookup uses differentCiphertext in key → not found → nil
-	err := k.PartialDecryptionSubmitted(
+	_, err := k.PartialDecryptionSubmitted(
 		sdkCtx, validator, round, 1,
 		[]byte("enc"), []byte("eph"), []byte("share"),
 		requesterPubKey, differentCiphertext, label, make([]byte, 65),
