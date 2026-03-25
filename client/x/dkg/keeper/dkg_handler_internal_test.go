@@ -747,10 +747,8 @@ func signFinalizationData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [3
 	encoded = append(encoded, pubKeyShare...)
 
 	msgHash := crypto.Keccak256(encoded)
-	prefix := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(append(prefix, msgHash...))
 
-	sig, err := crypto.Sign(ethHash, key)
+	sig, err := crypto.Sign(msgHash, key)
 	require.NoError(t, err)
 
 	// Convert recovery ID to Ethereum V (add 27)

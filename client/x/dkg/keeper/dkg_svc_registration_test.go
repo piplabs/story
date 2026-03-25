@@ -13,9 +13,9 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// --- resolveRegistrationKernelClient ---
+// --- resolveKernelClientForRegistration ---
 
-func TestResolveRegistrationKernelClient_NormalRound_WithCC(t *testing.T) {
+func TestResolveKernelClientForRegistration_NormalRound_WithCC(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -28,13 +28,13 @@ func TestResolveRegistrationKernelClient_NormalRound_WithCC(t *testing.T) {
 
 	k := &Keeper{kernelRouter: router}
 
-	client, resolvedCC, err := k.resolveRegistrationKernelClient(false, cc)
+	client, resolvedCC, err := k.resolveKernelClientForRegistration(false, cc)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 	require.Equal(t, cc, resolvedCC)
 }
 
-func TestResolveRegistrationKernelClient_NormalRound_NilCC_FirstClient(t *testing.T) {
+func TestResolveKernelClientForRegistration_NormalRound_NilCC_FirstClient(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -48,24 +48,24 @@ func TestResolveRegistrationKernelClient_NormalRound_NilCC_FirstClient(t *testin
 	k := &Keeper{kernelRouter: router}
 
 	// No previous CC — should fall back to first connected client
-	client, resolvedCC, err := k.resolveRegistrationKernelClient(false, nil)
+	client, resolvedCC, err := k.resolveKernelClientForRegistration(false, nil)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 	require.Equal(t, cc, resolvedCC)
 }
 
-func TestResolveRegistrationKernelClient_NormalRound_NoClients(t *testing.T) {
+func TestResolveKernelClientForRegistration_NormalRound_NoClients(t *testing.T) {
 	t.Parallel()
 
 	router := NewKernelRouter(nil, nil)
 	k := &Keeper{kernelRouter: router}
 
-	_, _, err := k.resolveRegistrationKernelClient(false, nil)
+	_, _, err := k.resolveKernelClientForRegistration(false, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "no kernel clients available")
 }
 
-func TestResolveRegistrationKernelClient_Upgrade_FindsNewBinary(t *testing.T) {
+func TestResolveKernelClientForRegistration_Upgrade_FindsNewBinary(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -83,25 +83,28 @@ func TestResolveRegistrationKernelClient_Upgrade_FindsNewBinary(t *testing.T) {
 	k := &Keeper{kernelRouter: router}
 
 	// Upgrade: pass old CC, should find the new binary
-	client, resolvedCC, err := k.resolveRegistrationKernelClient(true, oldCC)
+	client, resolvedCC, err := k.resolveKernelClientForRegistration(true, oldCC)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 	require.NotEqual(t, oldCC, resolvedCC, "should return new binary CC, not old")
 	require.Equal(t, newCC, resolvedCC)
 }
 
-func TestResolveRegistrationKernelClient_Upgrade_NilOldCC(t *testing.T) {
+// TestResolveKernelClientForRegistration_Upgrade_NilOldCC verifies that a new
+// validator (no old CC) in an upgrade round falls back to the first available
+// kernel client. With no clients registered, an error is returned.
+func TestResolveKernelClientForRegistration_Upgrade_NilOldCC(t *testing.T) {
 	t.Parallel()
 
 	router := NewKernelRouter(nil, nil)
 	k := &Keeper{kernelRouter: router}
 
-	_, _, err := k.resolveRegistrationKernelClient(true, nil)
+	_, _, err := k.resolveKernelClientForRegistration(true, nil)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "old code commitment required")
+	require.Contains(t, err.Error(), "no kernel clients available for upgrade registration (new validator)")
 }
 
-func TestResolveRegistrationKernelClient_Upgrade_NoNewBinary(t *testing.T) {
+func TestResolveKernelClientForRegistration_Upgrade_NoNewBinary(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -115,7 +118,7 @@ func TestResolveRegistrationKernelClient_Upgrade_NoNewBinary(t *testing.T) {
 	k := &Keeper{kernelRouter: router}
 
 	// Only old binary connected — should fail
-	_, _, err := k.resolveRegistrationKernelClient(true, oldCC)
+	_, _, err := k.resolveKernelClientForRegistration(true, oldCC)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "no new kernel client found for upgrade")
 }

@@ -322,10 +322,6 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 
 	msgHash := crypto.Keccak256(encoded)
 
-	// Compute Ethereum signed message hash: keccak256("\x19Ethereum Signed Message:\n32" + msgHash)
-	prefix := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(append(prefix, msgHash...))
-
 	if len(signature) != 65 {
 		return errors.New("invalid signature length", "expected", 65, "got", len(signature))
 	}
@@ -339,7 +335,7 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 		sig[64] -= 27
 	}
 
-	recoveredPub, err := crypto.SigToPub(ethHash, sig)
+	recoveredPub, err := crypto.SigToPub(msgHash, sig)
 	if err != nil {
 		return errors.Wrap(err, "failed to recover public key from signature")
 	}
@@ -362,6 +358,9 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 // verifyPartialDecryptionSignature verifies the TEE's ECDSA signature over the partial decryption response data.
 // It reproduces the message hash signed by signPartialDecryptResponse in the DKG server, recovers the signer,
 // and checks it matches the expected address derived from the validator's commPubKey.
+//
+// Both finalization and partial decryption signatures use raw keccak256 hashes
+// without the Ethereum Signed Message prefix, so kernel and CL are consistent.
 func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, ciphertext []byte, encryptedPartial, ephemeralPubKey, pubShare, signature []byte) error {
 	if len(commPubKey) != 64 {
 		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
@@ -412,6 +411,16 @@ func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, ciphertex
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
 func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
+	// Enforce a maximum ciphertext size to prevent consensus state bloat.
+	// 1 KB is sufficient for TDH2 ciphertext (group element + symmetric payload).
+	const maxCiphertextSize = 1024
+	if len(ciphertext) > maxCiphertextSize {
+		return errors.New("ciphertext exceeds maximum allowed size",
+			"size", len(ciphertext),
+			"max", maxCiphertextSize,
+		)
+	}
+
 	// Consensus-level: all nodes record the request so PartialDecryptionSubmitted can enforce the timeout consistently.
 	if err := k.setDecryptRequest(ctx, requesterPubKey, label, types.DecryptRequest{
 		Round:           round,
@@ -532,12 +541,17 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		)
 	}
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get DKG params")
+	}
+
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-req.Height > types.DefaultDecryptTimeout {
+	if currentHeight-req.Height > params.DecryptTimeout {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
 			"request_height", req.Height,
 			"current_height", currentHeight,
-			"timeout_blocks", types.DefaultDecryptTimeout,
+			"timeout_blocks", params.DecryptTimeout,
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {

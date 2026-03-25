@@ -233,69 +233,6 @@ func TestInvalidateDealerRegistration_MultipleRegistrations(t *testing.T) {
 	require.Equal(t, types.DKGRegStatusVerified, regB.Status, "dealer B should remain Verified")
 }
 
-// TestDeduplicateJustifications_RemovesDuplicates verifies that justifications with
-// the same (dealerIndex, recipientIndex) pair are deduplicated.
-func TestDeduplicateJustifications_RemovesDuplicates(t *testing.T) {
-	t.Parallel()
-
-	j1 := types.Justification{Index: 1, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 10}},
-	}}
-	j2 := types.Justification{Index: 1, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 10}},
-	}}
-	j3 := types.Justification{Index: 2, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 10}},
-	}}
-
-	result := deduplicateJustifications([]types.Justification{j1, j2, j3})
-	require.Len(t, result, 2, "duplicate (1,10) should be removed")
-	require.Equal(t, uint32(1), result[0].Index)
-	require.Equal(t, uint32(2), result[1].Index)
-}
-
-// TestDeduplicateJustifications_Empty verifies that an empty slice returns empty.
-func TestDeduplicateJustifications_Empty(t *testing.T) {
-	t.Parallel()
-
-	result := deduplicateJustifications(nil)
-	require.Empty(t, result)
-}
-
-// TestDeduplicateJustifications_NilVSSJustification verifies that justifications
-// with nil VSSJustification are handled gracefully (using zero recipient index).
-func TestDeduplicateJustifications_NilVSSJustification(t *testing.T) {
-	t.Parallel()
-
-	j1 := types.Justification{Index: 1}
-	j2 := types.Justification{Index: 1}
-
-	result := deduplicateJustifications([]types.Justification{j1, j2})
-	require.Len(t, result, 1, "both have (1,0) key so second should be deduplicated")
-}
-
-// TestDeduplicateJustifications_PreservesOrder verifies that the first occurrence
-// is kept and order is preserved.
-func TestDeduplicateJustifications_PreservesOrder(t *testing.T) {
-	t.Parallel()
-
-	j1 := types.Justification{Index: 3, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 1}},
-	}}
-	j2 := types.Justification{Index: 1, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 2}},
-	}}
-	j3 := types.Justification{Index: 2, VssJustification: &types.VSSJustification{
-		PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 3}},
-	}}
-
-	result := deduplicateJustifications([]types.Justification{j1, j2, j3})
-	require.Len(t, result, 3, "all unique keys, nothing deduplicated")
-	require.Equal(t, uint32(3), result[0].Index)
-	require.Equal(t, uint32(1), result[1].Index)
-	require.Equal(t, uint32(2), result[2].Index)
-}
-
 // TestInvalidateDealerRegistration_AlreadyInvalidated verifies idempotency:
 // re-invalidating an already-invalidated dealer is a no-op.
 func TestInvalidateDealerRegistration_AlreadyInvalidated(t *testing.T) {

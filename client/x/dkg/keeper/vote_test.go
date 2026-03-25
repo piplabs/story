@@ -284,13 +284,13 @@ func TestAggregateVotes_Empty(t *testing.T) {
 	require.Empty(t, result.Justifications)
 }
 
-// TestAggregateVotes_DeduplicatesDeals verifies that duplicate deals (same
-// dealerIndex + recipientIndex) are deduplicated.
-func TestAggregateVotes_DeduplicatesDeals(t *testing.T) {
+// TestAggregateVotes_PassesThroughDuplicateDeals verifies that duplicate deals
+// are NOT deduplicated at CL (kernel handles dedup).
+func TestAggregateVotes_PassesThroughDuplicateDeals(t *testing.T) {
 	t.Parallel()
 
 	deal1 := newTestDeal(1, 2)
-	deal2 := newTestDeal(1, 2) // duplicate key
+	deal2 := newTestDeal(1, 2) // duplicate key — kept by design
 	deal3 := newTestDeal(1, 3)
 
 	votes := []*types.Vote{
@@ -299,16 +299,16 @@ func TestAggregateVotes_DeduplicatesDeals(t *testing.T) {
 	}
 
 	result := aggregateVotes(votes)
-	require.Len(t, result.Deals, 2, "duplicate deal should be removed")
+	require.Len(t, result.Deals, 3, "all deals should pass through without dedup")
 }
 
-// TestAggregateVotes_DeduplicatesResponses verifies that duplicate responses
-// (same responderIndex + dealerIndex) are deduplicated.
-func TestAggregateVotes_DeduplicatesResponses(t *testing.T) {
+// TestAggregateVotes_PassesThroughDuplicateResponses verifies that duplicate responses
+// are NOT deduplicated at CL (kernel handles dedup).
+func TestAggregateVotes_PassesThroughDuplicateResponses(t *testing.T) {
 	t.Parallel()
 
 	resp1 := types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}
-	resp2 := types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 2}} // duplicate
+	resp2 := types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 2}} // duplicate — kept by design
 	resp3 := types.Response{Index: 2, VssResponse: &types.VSSResponse{Index: 2}}
 
 	votes := []*types.Vote{
@@ -317,7 +317,7 @@ func TestAggregateVotes_DeduplicatesResponses(t *testing.T) {
 	}
 
 	result := aggregateVotes(votes)
-	require.Len(t, result.Responses, 2, "duplicate response should be removed")
+	require.Len(t, result.Responses, 3, "all responses should pass through without dedup")
 }
 
 // TestAggregateVotes_IncludesJustifications verifies that aggregateVotes merges
@@ -380,114 +380,6 @@ func TestAggregateVotes_MixedDealsResponsesJustifications(t *testing.T) {
 	require.Len(t, result.Deals, 2, "deals should be merged")
 	require.Len(t, result.Responses, 1, "responses should be merged")
 	require.Len(t, result.Justifications, 2, "justifications should be merged")
-}
-
-// --- deduplicateDeals ---
-
-// TestDeduplicateDeals_AllUnique verifies deduplicateDeals preserves all items
-// when there are no duplicates.
-func TestDeduplicateDeals_AllUnique(t *testing.T) {
-	t.Parallel()
-
-	deals := []types.Deal{
-		newTestDeal(1, 1),
-		newTestDeal(1, 2),
-		newTestDeal(2, 1),
-	}
-
-	result := deduplicateDeals(deals)
-	require.Len(t, result, 3)
-}
-
-// TestDeduplicateDeals_AllDuplicates verifies deduplicateDeals returns only
-// the first occurrence when all items are duplicates of the same key.
-func TestDeduplicateDeals_AllDuplicates(t *testing.T) {
-	t.Parallel()
-
-	deals := []types.Deal{
-		{Index: 1, RecipientIndex: 1, Signature: []byte("sig-a")},
-		{Index: 1, RecipientIndex: 1, Signature: []byte("sig-b")},
-		{Index: 1, RecipientIndex: 1, Signature: []byte("sig-c")},
-	}
-
-	result := deduplicateDeals(deals)
-	require.Len(t, result, 1)
-	require.Equal(t, []byte("sig-a"), result[0].Signature, "first occurrence should be kept")
-}
-
-// TestDeduplicateDeals_Empty verifies deduplicateDeals handles empty input.
-func TestDeduplicateDeals_Empty(t *testing.T) {
-	t.Parallel()
-
-	result := deduplicateDeals(nil)
-	require.Empty(t, result)
-}
-
-// TestDeduplicateDeals verifies that duplicate deals are removed by (dealerIndex, recipientIndex).
-func TestDeduplicateDeals(t *testing.T) {
-	t.Parallel()
-
-	deals := []types.Deal{
-		{Index: 1, RecipientIndex: 2},
-		{Index: 1, RecipientIndex: 2}, // duplicate
-		{Index: 1, RecipientIndex: 3}, // different recipient
-		{Index: 2, RecipientIndex: 2}, // different dealer
-	}
-	result := deduplicateDeals(deals)
-	require.Len(t, result, 3)
-}
-
-// --- deduplicateResponses ---
-
-// TestDeduplicateResponses_NilVssResponse verifies deduplicateResponses handles
-// nil VssResponse (uses responderIndex + 0 as the dedup key).
-func TestDeduplicateResponses_NilVssResponse(t *testing.T) {
-	t.Parallel()
-
-	responses := []types.Response{
-		{Index: 1, VssResponse: nil},
-		{Index: 1, VssResponse: nil}, // duplicate
-	}
-
-	result := deduplicateResponses(responses)
-	require.Len(t, result, 1)
-}
-
-// TestDeduplicateResponses_Empty verifies deduplicateResponses handles empty input.
-func TestDeduplicateResponses_Empty(t *testing.T) {
-	t.Parallel()
-
-	result := deduplicateResponses(nil)
-	require.Empty(t, result)
-}
-
-// TestDeduplicateResponses verifies that duplicate responses are removed by (responderIndex, dealerIndex).
-func TestDeduplicateResponses(t *testing.T) {
-	t.Parallel()
-
-	responses := []types.Response{
-		{Index: 1, VssResponse: &types.VSSResponse{Index: 2}},
-		{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}, // duplicate
-		{Index: 1, VssResponse: &types.VSSResponse{Index: 3}}, // different dealer
-		{Index: 2, VssResponse: &types.VSSResponse{Index: 2}}, // different responder
-	}
-	result := deduplicateResponses(responses)
-	require.Len(t, result, 3)
-}
-
-// --- deduplicateJustifications ---
-
-// TestDeduplicateJustifications verifies that duplicate justifications are removed.
-func TestDeduplicateJustifications(t *testing.T) {
-	t.Parallel()
-
-	justifications := []types.Justification{
-		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 2}}}},
-		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 2}}}}, // duplicate
-		{Index: 1, VssJustification: &types.VSSJustification{PlainDeal: &types.PlainDeal{SecShare: &types.SecShare{I: 3}}}}, // different recipient
-	}
-	result := deduplicateJustifications(justifications)
-	require.Len(t, result, 2)
 }
 
 // --- votesFromExtension ---
@@ -633,10 +525,10 @@ func TestExtendVote_IncludesJustifications(t *testing.T) {
 // TestExtendVote_EmptyQueues verifies that ExtendVote produces a valid (empty)
 // vote extension when all queues are empty.
 func TestExtendVote_EmptyQueues(t *testing.T) {
-	drainJustifications()
-	defer drainJustifications()
-
 	k, _ := setupDKGKeeper(t)
+
+	k.FlushAllQueues()
+	defer k.FlushAllQueues()
 
 	sdkCtx := newTestSDKContext(t, "extend_vote_empty")
 	resp, err := k.ExtendVote(sdkCtx, nil)

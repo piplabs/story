@@ -431,91 +431,20 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 	require.True(t, pubKeys[1].Equal(dtc2.pub))
 }
 
-// TestProcessJustifications_TruncatesExcessiveList verifies that ProcessJustifications
-// truncates the input list to MaxJustificationsPerBlock when more justifications are given.
-// This covers the truncation branch inside ProcessJustifications (line 117-124).
-func TestProcessJustifications_TruncatesExcessiveList(t *testing.T) {
-	t.Parallel()
-
-	k, ctx := setupDKGKeeper(t)
-
-	round := uint32(5)
-	network := &types.DKGNetwork{
-		Round:     round,
-		Total:     3,
-		Threshold: dealingTestThreshold,
-	}
-	require.NoError(t, k.setDKGNetwork(ctx, network))
-
-	// Build MaxJustificationsPerBlock+5 justifications (all invalid — no registered keys).
-	// ProcessJustifications will truncate to MaxJustificationsPerBlock, then all will fail
-	// signature verification (no dealer registered). The result is an empty valid set,
-	// but the truncation branch is covered.
-	overCount := MaxJustificationsPerBlock + 5
-	justifications := make([]types.Justification, overCount)
-	for i := range justifications {
-		justifications[i] = types.Justification{
-			Index: uint32(i),
-			VssJustification: &types.VSSJustification{
-				PlainDeal: &types.PlainDeal{
-					SecShare: &types.SecShare{I: 0},
-				},
-			},
-		}
-	}
-
-	// ProcessJustifications should succeed without error even though all sig-verifications fail
-	err := k.ProcessJustifications(ctx, network, justifications)
-	require.NoError(t, err, "truncation and sig-drop should not return an error")
-}
+// TestProcessJustifications_TruncatesExcessiveList was removed.
+// Truncation logic removed — VerifyVoteExtension already caps items per VE.
 
 // TestMaxJustificationsPerBlock verifies that the truncation slice operation
 // correctly caps justifications to MaxJustificationsPerBlock, matching the
 // logic used inside ProcessJustifications.
-func TestMaxJustificationsPerBlock(t *testing.T) {
-	const overCount = MaxJustificationsPerBlock + 50
+// TestMaxJustificationsPerBlock removed — truncation logic removed.
 
-	// Build a list that exceeds the cap. Each entry gets a distinct dealer index
-	// so we can verify which ones survive after truncation.
-	input := make([]types.Justification, overCount)
-	for i := range input {
-		input[i] = types.Justification{
-			Index: uint32(i),
-			VssJustification: &types.VSSJustification{
-				PlainDeal: &types.PlainDeal{
-					SecShare: &types.SecShare{I: 0},
-				},
-			},
-		}
-	}
-
-	// Apply the same truncation logic used in ProcessJustifications.
-	if len(input) > MaxJustificationsPerBlock {
-		input = input[:MaxJustificationsPerBlock]
-	}
-
-	// After truncation the slice must be exactly MaxJustificationsPerBlock long.
-	require.Len(t, input, MaxJustificationsPerBlock,
-		"truncated slice must equal MaxJustificationsPerBlock")
-
-	// The surviving entries must be the first MaxJustificationsPerBlock elements
-	// (indices 0 .. MaxJustificationsPerBlock-1), not any of the later ones.
-	for i, j := range input {
-		require.Equal(t, uint32(i), j.Index,
-			"entry at position %d should have dealer index %d", i, i)
-	}
-}
-
-// TestJustificationPipeline_SignatureThenDedupThenVSS verifies the full
-// signature → deduplication → VSS verification pipeline that mirrors the
-// logic inside ProcessJustifications.
+// TestJustificationPipeline_SignatureThenVSS verifies the full
+// signature → VSS verification pipeline inside ProcessJustifications.
 //
-// Three sub-scenarios exercise every branch of the pipeline:
+// Two sub-scenarios:
 //  1. Valid-signature justifications pass through; invalid-signature ones are dropped.
-//  2. Duplicate (dealerIndex, recipientIndex) pairs are deduplicated after signature
-//     verification, so a valid duplicate does not produce two results.
-//  3. A justification that carries a valid signature but an incorrect share fails
-//     VSS verification and is dropped from the final list.
+//  2. A justification with valid signature but incorrect share fails VSS and is dropped.
 func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 	// n=3 participants, threshold=2 (linear polynomial → 2 commitments).
 	const n = 3
@@ -571,14 +500,15 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 			"surviving justification must be from dealer 0")
 	})
 
-	t.Run("duplicate justifications are deduplicated after signature check", func(t *testing.T) {
-		// Two valid justifications from dealer0, same recipient → same (dealer,recipient) key.
+	t.Run("duplicate justifications are all forwarded to kernel (no CL dedup)", func(t *testing.T) {
+		// CL no longer deduplicates. All sig-valid justifications
+		// are forwarded to the kernel, which handles duplicate detection.
 		j1 := dealer0.makeSignedJustification(t, 0, 0)
 		j2 := dealer0.makeSignedJustification(t, 0, 0) // exact duplicate
 
 		input := []types.Justification{j1, j2}
 
-		// Step 1: signature check — both pass because dealer0's key is correct.
+		// Signature check — both pass because dealer0's key is correct.
 		var sigVerified []types.Justification
 
 		for _, j := range input {
@@ -587,15 +517,10 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 			}
 		}
 
-		require.Len(t, sigVerified, 2, "both should pass signature check before dedup")
-
-		// Step 2: deduplicate — (dealerIndex=0, recipientIndex=0) appears twice.
-		deduped := deduplicateJustifications(sigVerified)
-		require.Len(t, deduped, 1, "deduplication must collapse the two identical entries to one")
-		require.Equal(t, uint32(0), deduped[0].Index)
+		require.Len(t, sigVerified, 2, "both should pass signature check; no dedup at CL")
 	})
 
-	t.Run("VSS-invalid justification is dropped after sig check and dedup", func(t *testing.T) {
+	t.Run("VSS-invalid justification is dropped after sig check", func(t *testing.T) {
 		// dealer1 provides a justification with a valid signature but an incorrect share.
 		invalidVSSJ := dealer1.makeInvalidDealJustification(t, 1)
 
@@ -603,12 +528,8 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 		err := verifyJustificationSignature(suite, invalidVSSJ, dealerPubKeys)
 		require.NoError(t, err, "signature from dealer1 should verify against its registered key")
 
-		// Step 2: deduplication is a no-op for a single entry.
-		deduped := deduplicateJustifications([]types.Justification{invalidVSSJ})
-		require.Len(t, deduped, 1)
-
-		// Step 3: VSS verification must fail for the bad share.
-		valid, err := verifyJustification(network, deduped[0])
+		// Step 2: VSS verification must fail for the bad share.
+		valid, err := verifyJustification(network, invalidVSSJ)
 		require.NoError(t, err, "VSS verification should not error, just return false")
 		require.False(t, valid, "justification with invalid share must fail VSS verification")
 	})
@@ -624,7 +545,7 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 
 		input := []types.Justification{jValid, jBadSig, jBadVSS}
 
-		// Apply the same three-step pipeline used by ProcessJustifications.
+		// Apply the two-step pipeline used by ProcessJustifications (dedup removed).
 
 		// Step 1: filter by Schnorr signature.
 		var sigVerified []types.Justification
@@ -637,14 +558,10 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 		// jBadSig is dropped; jValid and jBadVSS remain.
 		require.Len(t, sigVerified, 2, "only sig-valid justifications should pass step 1")
 
-		// Step 2: deduplicate (no duplicates in this scenario).
-		deduped := deduplicateJustifications(sigVerified)
-		require.Len(t, deduped, 2, "no duplicates, count should be unchanged after dedup")
-
-		// Step 3: filter by Pedersen VSS.
+		// Step 2: filter by Pedersen VSS.
 		var finalValid []types.Justification
 
-		for _, j := range deduped {
+		for _, j := range sigVerified {
 			ok, err := verifyJustification(network, j)
 			if err == nil && ok {
 				finalValid = append(finalValid, j)

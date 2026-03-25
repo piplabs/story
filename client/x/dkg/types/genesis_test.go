@@ -16,7 +16,7 @@ func TestNewGenesisState(t *testing.T) {
 	params := types.NewParams(
 		100, 200, 300, 400,
 		math.LegacyMustNewDecFromStr("0.15"),
-		5, 4, 750, 200,
+		5, 4, 750, 30,
 	)
 
 	gs := types.NewGenesisState(params)
