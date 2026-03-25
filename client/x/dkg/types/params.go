@@ -21,6 +21,9 @@ const (
 	DefaultMinReqFinalizedParticipants  uint32 = 3
 	DefaultOperationalThreshold         uint32 = 667 // 66.7% in basis points (out of 1000)
 	OperationalThresholdBasis           uint32 = 1000
+
+	// Decrypt request timeout in blocks.
+	DefaultDecryptTimeout uint64 = 10000
 )
 
 // DefaultDkgCommitteeRewardPortion is the default portion of UBI rewards
@@ -37,6 +40,7 @@ func NewParams(
 	minReqRegisteredParticipants uint32,
 	minReqFinalizedParticipants uint32,
 	operationalThreshold uint32,
+	decryptTimeout uint64,
 ) Params {
 	return Params{
 		RegistrationPeriod:           registrationPeriod,
@@ -47,6 +51,7 @@ func NewParams(
 		MinReqRegisteredParticipants: minReqRegisteredParticipants,
 		MinReqFinalizedParticipants:  minReqFinalizedParticipants,
 		OperationalThreshold:         operationalThreshold,
+		DecryptTimeout:               decryptTimeout,
 	}
 }
 
@@ -61,7 +66,7 @@ func DefaultParams() Params {
 		DefaultMinReqRegisteredParticipants,
 		DefaultMinReqFinalizedParticipants,
 		DefaultOperationalThreshold,
-		// no default for code commitment
+		DefaultDecryptTimeout,
 	)
 }
 
@@ -95,6 +100,10 @@ func (p Params) Validate() error {
 	}
 
 	if err := ValidateOperationalThreshold(p.OperationalThreshold); err != nil {
+		return err
+	}
+
+	if err := ValidateDecryptTimeout(p.DecryptTimeout); err != nil {
 		return err
 	}
 
@@ -194,6 +203,14 @@ func ValidateDkgCommitteeRewardPortion(portion math.LegacyDec) error {
 
 	if portion.GT(math.LegacyOneDec()) {
 		return errors.New("dkg committee reward portion must not exceed 1.0", "portion", portion.String())
+	}
+
+	return nil
+}
+
+func ValidateDecryptTimeout(timeout uint64) error {
+	if timeout == 0 {
+		return errors.New("decrypt_timeout must be greater than zero", "value", timeout)
 	}
 
 	return nil

@@ -31,6 +31,7 @@ func testDKGParams() types.Params {
 		3, // MinReqRegisteredParticipants
 		3, // MinReqFinalizedParticipants
 		types.DefaultOperationalThreshold,
+		types.DefaultDecryptTimeout,
 	)
 }
 

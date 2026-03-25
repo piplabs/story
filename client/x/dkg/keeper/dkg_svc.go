@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"sync/atomic"
 	"time"
 
@@ -76,6 +77,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
+
+		return
+	}
+
+	// If the session is completed and the DKG round is active, ensure the decrypt
+	// worker is running. This covers node restarts and the case where the worker
+	// was never started due to context cancellation.
+	if session.Phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
+		k.StartDecryptWorker()
 
 		return
 	}
@@ -237,11 +247,19 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests
 // and performs TDH2 partial decrypts. Only one worker runs.
-func (k *Keeper) StartDecryptWorker(ctx context.Context) {
+// The worker uses its own long-lived context (derived from context.Background) because the
+// caller's context (dkgAsyncContext) is short-lived and gets cancelled when the parent
+// goroutine exits. The decrypt worker must run for the lifetime of the process.
+func (k *Keeper) StartDecryptWorker() {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
 		// already running
 		return
 	}
+
+	// Use a process-lifetime context independent of the caller's short-lived async context.
+	workerCtx := context.Background()
+
+	log.Info(workerCtx, "Decrypt worker started")
 
 	go func() {
 		defer decryptWorkerRunning.Store(false)
@@ -249,25 +267,96 @@ func (k *Keeper) StartDecryptWorker(ctx context.Context) {
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				k.processDecryptQueue(ctx)
-			}
+		for range ticker.C {
+			k.processDecryptQueue(workerCtx)
 		}
 	}()
 }
 
 // processDecryptQueue scans sessions for queued decrypt requests and starts TDH2 partial decrypt + submission.
 func (k *Keeper) processDecryptQueue(ctx context.Context) {
+	if k.contractClient == nil {
+		log.Error(ctx, "Contract client not configured", nil)
+		return
+	}
+
+	currentHeight, err := k.contractClient.ethClient.BlockNumber(ctx)
+	if err != nil {
+		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
+		return
+	}
+
+	decryptTimeout := types.DefaultDecryptTimeout
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		log.Warn(ctx, "Failed to get DKG params, using default decrypt timeout", err)
+	} else {
+		decryptTimeout = params.DecryptTimeout
+	}
+
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
 		requests := session.GetDecryptRequests()
 		if len(requests) == 0 {
 			continue
 		}
+
+		// Skip sessions whose kernel binary is no longer connected.
+		// This happens when old events are replayed during chain catch-up
+		// after a kernel binary change — the sealed keys are unreachable.
+		if _, err := k.getClientWithReconnect(session.CodeCommitment); err != nil {
+			log.Warn(ctx, "Dropping decrypt requests for session with unavailable kernel", nil,
+				"session", session.GetSessionKey(),
+				"code_commitment", hex.EncodeToString(session.CodeCommitment),
+				"dropped_requests", len(requests),
+			)
+			session.SetDecryptRequests(nil)
+
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+
+			continue
+		}
+
+		// Filter out stale requests that are past the block timeout window.
+		// This is especially important during resync when processing old blocks.
+		validRequests := make([]types.DecryptRequest, 0, len(requests))
+		staleCount := 0
+		for _, req := range requests {
+			if currentHeight > decryptTimeout && req.Height < currentHeight-decryptTimeout {
+				staleCount++
+				continue
+			}
+			validRequests = append(validRequests, req)
+		}
+
+		if staleCount > 0 {
+			log.Info(ctx, "Filtered out stale decrypt requests past timeout window",
+				"session", session.GetSessionKey(),
+				"stale_requests", staleCount,
+				"current_height", currentHeight,
+			)
+		}
+
+		if len(validRequests) == 0 {
+			session.SetDecryptRequests(nil)
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+			continue
+		}
+
+		requests = validRequests
+
+		log.Info(ctx, "Processing decrypt queue",
+			"session", session.GetSessionKey(),
+			"pending_requests", len(requests),
+		)
 
 		remaining := make([]types.DecryptRequest, 0, len(requests))
 		for _, req := range requests {
@@ -283,6 +372,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 				continue
 			}
+
+			log.Info(ctx, "Successfully processed decrypt request",
+				"session", session.GetSessionKey(),
+				"round", req.Round,
+			)
 		}
 
 		session.SetDecryptRequests(remaining)
