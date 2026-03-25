@@ -398,13 +398,63 @@ func TestGetCDRFeePoolBalance_CorruptData(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid CDR fee pool balance")
 }
 
-// TestDistributeCDRRewardPool_NoPrevActive verifies distributeCDRRewardPool is a
+// TODO_CDR068: Characterization test for audit finding CDR-068.
+//
+// BUG LOCATION: client/x/dkg/keeper/dkg_cdr_fees.go:181 — distributeCDRFee()
+//
+//	`for addr, count := range counts` iterates a Go map with non-deterministic
+//	order. Different validators produce different state hashes, causing
+//	consensus split.
+//
+// CURRENT BEHAVIOR (BUG): Distribution order depends on map iteration, which
+//
+//	is non-deterministic. The test documents that addresses are NOT sorted.
+//
+// EXPECTED BEHAVIOR AFTER FIX: Addresses should be sorted before iteration.
+//
+// HOW TO UPDATE AFTER FIX:
+//  1. Remove TODO_CDR068_ prefix from function name
+//  2. Change assertion: verify addresses are distributed in sorted order
+func TestTODO_CDR068_DistributeCDRFee_NonDeterministicOrder(t *testing.T) {
+	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+
+	prevActive := createTestDKGNetwork(t, k, ctx, 1)
+	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
+
+	val1 := common.HexToAddress("0xcccccccccccccccccccccccccccccccccccccccc")
+	val2 := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	val3 := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val1), 1))
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val2), 1))
+	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val3), 1))
+	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "300"))
+
+	var distributionOrder []string
+	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.CDRFeePoolName, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, addr sdk.AccAddress, _ sdk.Coins) error {
+			distributionOrder = append(distributionOrder, addr.String())
+			return nil
+		}).Times(3)
+
+	err := k.distributeCDRFee(ctx)
+	require.NoError(t, err)
+	require.Len(t, distributionOrder, 3)
+
+	t.Logf("CDR-068 characterization:")
+	t.Logf("  Distribution order: %v", distributionOrder)
+	t.Logf("  BUG: order depends on map iteration, not sorted")
+	t.Logf("  Impact: different validators produce different state hashes -> consensus split")
+	t.Logf("  After fix: addresses should be distributed in sorted (deterministic) order")
+}
+
+// TestDistributeCDRRewardPool_NoPrevActive verifies distributeCDRFee is a
 // no-op when no previous active DKG network exists.
 func TestDistributeCDRRewardPool_NoPrevActive(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
 	// No active round set → should be a no-op
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 }
 
@@ -423,7 +473,7 @@ func TestDistributeCDRRewardPool_PoolFoundButZeroBalance(t *testing.T) {
 	// Set balance to "0" (found but zero)
 	require.NoError(t, k.CDRFeePoolBalance.Set(ctx, "0"))
 
-	err := k.distributeCDRRewardPool(ctx)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	// Balance entry should be removed and count cleared
