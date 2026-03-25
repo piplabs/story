@@ -48,8 +48,8 @@ func TestRetry_SuccessOnSecondAttempt(t *testing.T) {
 }
 
 // TestRetry_AllAttemptsExhausted verifies that retry returns an error after
-// all retryAttemts attempts fail.
-// NOTE: this test sleeps for retryDelay * (retryAttemts-1) seconds; skipped in -short mode.
+// all retryAttempts attempts fail.
+// NOTE: this test sleeps for retryDelay * (retryAttempts-1) seconds; skipped in -short mode.
 func TestRetry_AllAttemptsExhausted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping sleep-based test in short mode")
@@ -65,7 +65,7 @@ func TestRetry_AllAttemptsExhausted(t *testing.T) {
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "all retries failed")
-	require.Equal(t, retryAttemts, calls, "fn should be called exactly retryAttemts times")
+	require.Equal(t, retryAttempts, calls, "fn should be called exactly retryAttempts times")
 }
 
 // TestRetry_ContextPassedThrough verifies that the ctx passed to retry is
@@ -93,8 +93,8 @@ func TestRetry_RetryDelayConstant(t *testing.T) {
 	require.Equal(t, 2*time.Second, retryDelay)
 }
 
-// TestRetry_RetryAttemptsConstant verifies that retryAttemts is 3 as documented.
+// TestRetry_RetryAttemptsConstant verifies that retryAttempts is 3 as documented.
 func TestRetry_RetryAttemptsConstant(t *testing.T) {
 	t.Parallel()
-	require.Equal(t, 3, retryAttemts)
+	require.Equal(t, 3, retryAttempts)
 }

@@ -255,10 +255,10 @@ func TestHandleDKGFinalization_TEEFinalizeDKGError_MarksFailed(t *testing.T) {
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
 
-	// FinalizeDKG returns error on all retries (retryAttemts total calls)
+	// FinalizeDKG returns error on all retries (retryAttempts total calls)
 	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("kernel finalize failed")).
-		Times(retryAttemts)
+		Times(retryAttempts)
 
 	dkgNetwork := &types.DKGNetwork{
 		Round:        20,
