@@ -65,6 +65,10 @@ func (m *mockEthClient) CodeAt(ctx context.Context, account common.Address, bloc
 	return []byte{}, nil
 }
 
+func (m *mockEthClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
+
 // mockDKGContract implements DKGContractBinding for testing.
 type mockDKGContract struct {
 	feeFn      func(opts *bind.CallOpts) (*big.Int, error)

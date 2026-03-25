@@ -35,7 +35,7 @@ func TestQuery_Params_ReturnsCurrentParams(t *testing.T) {
 	params := types.NewParams(
 		5, 10, 15, 20,
 		types.DefaultDkgCommitteeRewardPortion,
-		3, 3, 700,
+		3, 3, 700, 200,
 	)
 	require.NoError(t, k.SetParams(ctx, params))
 

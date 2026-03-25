@@ -171,18 +171,18 @@ func (*Keeper) RemoveBroadcastedVotes(vote *types.Vote) {
 }
 
 func removeDeals(included []types.Deal) {
-	keys := make(map[string]struct{}, len(included))
-	for _, d := range included {
-		if key, ok := voteItemKey(&d); ok {
-			keys[key] = struct{}{}
-		}
-	}
-
 	dealsMu.Lock()
 	defer dealsMu.Unlock()
 
 	if len(deals) == 0 {
 		return
+	}
+
+	keys := make(map[string]struct{}, len(included))
+	for _, d := range included {
+		if key, ok := voteItemKey(&d); ok {
+			keys[key] = struct{}{}
+		}
 	}
 
 	filtered := make([]types.Deal, 0, len(deals))
@@ -200,18 +200,17 @@ func removeDeals(included []types.Deal) {
 }
 
 func removeResponses(included []types.Response) {
-	keys := make(map[string]struct{}, len(included))
-	for _, r := range included {
-		if key, ok := voteItemKey(&r); ok {
-			keys[key] = struct{}{}
-		}
-	}
-
 	responsesMu.Lock()
 	defer responsesMu.Unlock()
 
 	if len(responses) == 0 {
 		return
+	}
+	keys := make(map[string]struct{}, len(included))
+	for _, r := range included {
+		if key, ok := voteItemKey(&r); ok {
+			keys[key] = struct{}{}
+		}
 	}
 
 	filtered := make([]types.Response, 0, len(responses))
@@ -229,18 +228,17 @@ func removeResponses(included []types.Response) {
 }
 
 func removeJustifications(included []types.Justification) {
-	keys := make(map[string]struct{}, len(included))
-	for _, j := range included {
-		if key, ok := voteItemKey(&j); ok {
-			keys[key] = struct{}{}
-		}
-	}
-
 	justificationsMu.Lock()
 	defer justificationsMu.Unlock()
 
 	if len(justifications) == 0 {
 		return
+	}
+	keys := make(map[string]struct{}, len(included))
+	for _, j := range included {
+		if key, ok := voteItemKey(&j); ok {
+			keys[key] = struct{}{}
+		}
 	}
 
 	filtered := make([]types.Justification, 0, len(justifications))

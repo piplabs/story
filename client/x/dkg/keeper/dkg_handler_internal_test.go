@@ -952,7 +952,7 @@ func TestKeeper_PartialDecryptionSubmitted_IgnoredCases(t *testing.T) {
 		label := []byte("label")
 
 		currentHeight := uint64(1000)
-		requestHeight := currentHeight - types.PartialDecryptionTimeoutBlocks - 1
+		requestHeight := currentHeight - types.DefaultDecryptTimeout - 1
 		sdkCtx = sdkCtx.WithBlockHeight(int64(currentHeight))
 
 		req := types.DecryptRequest{
@@ -1786,7 +1786,7 @@ func TestPartialDecryptionSubmitted_TimeoutExceeded(t *testing.T) {
 
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	// Use the same KV store but advance block height beyond the timeout window.
-	// PartialDecryptionTimeoutBlocks = 200; request stored at height=1,
+	// DefaultDecryptTimeout = 200; request stored at height=1,
 	// current height=300 → 300-1=299 > 200 → timeout path.
 	sdkCtx := sdk.UnwrapSDKContext(baseCtx).WithBlockHeight(300)
 
