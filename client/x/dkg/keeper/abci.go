@@ -76,11 +76,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	nextStage, shouldTransition := k.shouldTransitionStage(currentHeight, latestRound, params)
 	if shouldTransition {
 		// Update the stage of this round before emitting events
-		latestRound.Stage = nextStage
-		if err := k.setDKGNetwork(ctx, latestRound); err != nil {
-			return err
+		if nextStage != types.DKGStageRegistration {
+			latestRound.Stage = nextStage
+			if err := k.setDKGNetwork(ctx, latestRound); err != nil {
+				return err
+			}
 		}
-
 		// Emit appropriate events for stage transitions
 		switch nextStage {
 		case types.DKGStageRegistration:
