@@ -96,7 +96,6 @@ func TestNewParams_WithDkgCommitteeRewardPortion(t *testing.T) {
 		types.DefaultMinReqRegisteredParticipants,
 		types.DefaultMinReqFinalizedParticipants,
 		types.DefaultOperationalThreshold,
-		types.DefaultDecryptTimeout,
 	)
 
 	require.True(t, params.DkgCommitteeRewardPortion.Equal(portion))

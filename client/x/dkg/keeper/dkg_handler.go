@@ -551,17 +551,12 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		)
 	}
 
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get DKG params")
-	}
-
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-req.Height > params.DecryptTimeout {
+	if currentHeight-req.Height > types.DefaultDecryptTimeout {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
 			"request_height", req.Height,
 			"current_height", currentHeight,
-			"timeout_blocks", params.DecryptTimeout,
+			"timeout_blocks", types.DefaultDecryptTimeout,
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {

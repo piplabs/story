@@ -286,14 +286,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		return
 	}
 
-	decryptTimeout := types.DefaultDecryptTimeout
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		log.Warn(ctx, "Failed to get DKG params, using default decrypt timeout", err)
-	} else {
-		decryptTimeout = params.DecryptTimeout
-	}
-
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
 		requests := session.GetDecryptRequests()
@@ -326,7 +318,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		validRequests := make([]types.DecryptRequest, 0, len(requests))
 		staleCount := 0
 		for _, req := range requests {
-			if currentHeight > decryptTimeout && req.Height < currentHeight-decryptTimeout {
+			if currentHeight > types.DefaultDecryptTimeout && req.Height < currentHeight-types.DefaultDecryptTimeout {
 				staleCount++
 				continue
 			}
