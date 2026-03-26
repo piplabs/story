@@ -273,7 +273,14 @@ func (k *Keeper) StartDecryptWorker() {
 		defer ticker.Stop()
 
 		for range ticker.C {
-			k.processDecryptQueue(workerCtx)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Error(workerCtx, "Recovered from panic in decrypt worker", nil, "panic", r)
+					}
+				}()
+				k.processDecryptQueue(workerCtx)
+			}()
 		}
 	}()
 }
