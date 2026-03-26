@@ -27,6 +27,13 @@ type UpgradeMap map[string]int64
 
 // UpgradeHistories are the map of histories for each network.
 var UpgradeHistories = map[string]UpgradeMap{
+	DKGTestChainID: {
+		V121:    0,
+		Terence: 0,
+		V142:    0,
+		Horace:  0,
+		V160:    0,
+	},
 	TestChainID: {
 		V121:    10,
 		Terence: 50,
@@ -38,6 +45,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence: 50,
 		V142:    50,
 		Horace:  100,
+		V160:    0,
 	},
 	StoryLocalnetID: {
 		V121:    0,

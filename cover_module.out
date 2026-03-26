@@ -1,0 +1,23 @@
+mode: set
+github.com/piplabs/story/client/x/dkg/module/depinject.go:19.13,26.2 1 0
+github.com/piplabs/story/client/x/dkg/module/depinject.go:53.51,56.36 2 0
+github.com/piplabs/story/client/x/dkg/module/depinject.go:56.36,58.3 1 0
+github.com/piplabs/story/client/x/dkg/module/depinject.go:60.2,75.44 3 0
+github.com/piplabs/story/client/x/dkg/module/module.go:44.62,46.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:49.37,51.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:55.69,55.70 0 0
+github.com/piplabs/story/client/x/dkg/module/module.go:58.74,60.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:63.85,63.86 0 0
+github.com/piplabs/story/client/x/dkg/module/module.go:79.13,84.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:87.40,87.41 0 0
+github.com/piplabs/story/client/x/dkg/module/module.go:90.33,90.34 0 0
+github.com/piplabs/story/client/x/dkg/module/module.go:93.44,93.71 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:95.70,97.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:100.63,103.2 2 0
+github.com/piplabs/story/client/x/dkg/module/module.go:106.111,108.51 2 0
+github.com/piplabs/story/client/x/dkg/module/module.go:108.51,110.3 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:112.2,112.39 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:115.93,119.56 3 0
+github.com/piplabs/story/client/x/dkg/module/module.go:119.56,120.89 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:124.89,126.2 1 0
+github.com/piplabs/story/client/x/dkg/module/module.go:128.59,130.2 1 0

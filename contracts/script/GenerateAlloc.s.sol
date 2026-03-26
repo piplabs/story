@@ -61,7 +61,7 @@ contract GenerateAlloc is Script {
 
     // SGXValidationHook configuration — edit before running the script
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"0000000000000000000000000000000000000000000000000000000000000001";
+        hex"60d5c03f9057cb89f74495e6663598c048146f019dfc600d64b23d96a4c1d763";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
