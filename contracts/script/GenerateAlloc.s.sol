@@ -58,10 +58,15 @@ contract GenerateAlloc is Script {
     bool private constant ALLOCATE_1K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
+    // Use deployer address as contract owner instead of timelock (for devnets).
+    // When true, DKG, CDR, UBIPool, etc. are owned by the deployer key so that
+    // whitelistEnclaveType, scheduleUpgrade, etc. can be called directly without
+    // going through the TimelockController.
+    bool private constant USE_DEPLOYER_AS_OWNER = true;
 
     // SGXValidationHook configuration — edit before running the script
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"631e259c51a1978043b31f1b68e8986cd056c3000de82b0e20e680349d00179d";
+        hex"cfac25c990dc7517d9704fc51e65199a379332802f4c15d7fb966cba0813301c";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
@@ -126,6 +131,17 @@ contract GenerateAlloc is Script {
         } else {
             revert("Unsupported chain id");
         }
+    }
+
+    /// @notice Returns the owner address for predeploy contracts.
+    /// When USE_DEPLOYER_AS_OWNER is true, returns the deployer address directly
+    /// so that admin functions (whitelistEnclaveType, scheduleUpgrade, etc.)
+    /// can be called without going through TimelockController.
+    function getContractOwner() internal view returns (address) {
+        if (USE_DEPLOYER_AS_OWNER) {
+            return 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+        }
+        return timelock;
     }
 
     /// @notice main script method
@@ -254,7 +270,7 @@ contract GenerateAlloc is Script {
         vm.etch(impl, "00");
 
         // use new, so that the immutable variable the holds the ProxyAdmin proxyAddr is set in properly in bytecode
-        address tmp = address(new TransparentUpgradeableProxy(impl, timelock, ""));
+        address tmp = address(new TransparentUpgradeableProxy(impl, getContractOwner(), ""));
         vm.etch(proxyAddr, tmp.code);
 
         // set implempentation storage manually
@@ -292,7 +308,7 @@ contract GenerateAlloc is Script {
 
         InitializableHelper.disableInitializers(impl);
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
-            owner: timelock,
+            owner: getContractOwner(),
             minStakeAmount: 1024 ether,
             minUnstakeAmount: 1024 ether,
             minCommissionRate: 5_00, // 5% in basis points
@@ -321,7 +337,7 @@ contract GenerateAlloc is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        UpgradeEntrypoint(Predeploys.Upgrades).initialize(timelock);
+        UpgradeEntrypoint(Predeploys.Upgrades).initialize(getContractOwner());
 
         console2.log("UpgradeEntrypoint proxy deployed at:", Predeploys.Upgrades);
         console2.log("UpgradeEntrypoint ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Upgrades));
@@ -341,7 +357,7 @@ contract GenerateAlloc is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        UBIPool(Predeploys.UBIPool).initialize(timelock);
+        UBIPool(Predeploys.UBIPool).initialize(getContractOwner());
 
         console2.log("UBIPool proxy deployed at:", Predeploys.UBIPool);
         console2.log("UBIPool ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.UBIPool));
@@ -367,7 +383,7 @@ contract GenerateAlloc is Script {
         uint256 operationalThreshold = 670; // 67%
         uint256 fee = 1 ether; // 1 IP
         DKG(Predeploys.DKG).initialize(
-            timelock,
+            getContractOwner(),
             minReqRegisteredParticipants,
             minReqFinalizedParticipants,
             operationalThreshold,
@@ -400,7 +416,7 @@ contract GenerateAlloc is Script {
         uint256 maxEncryptedDataSize = 1024; // 1 KB
         uint256 maxEncryptedPartialSize = 1024; // 1 KB
         CDR(Predeploys.CDR).initialize(
-            timelock,
+            getContractOwner(),
             baseFee,
             writeFee,
             readFee,
@@ -435,7 +451,7 @@ contract GenerateAlloc is Script {
         );
         bytes memory proxyCreationCode = abi.encodePacked(
             type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(sgxHookImpl, timelock, initData)
+            abi.encode(sgxHookImpl, getContractOwner(), initData)
         );
         address sgxHookProxy = Create3(Predeploys.Create3).deploy(
             keccak256("STORY_SGX_VALIDATION_HOOK_PROXY"),
@@ -449,7 +465,7 @@ contract GenerateAlloc is Script {
             validationHookAddr: sgxHookProxy
         });
         vm.stopPrank();
-        vm.prank(timelock);
+        vm.prank(getContractOwner());
         DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
         vm.startPrank(deployer);
 
