@@ -262,7 +262,12 @@ func (k *Keeper) StartDecryptWorker() {
 	log.Info(workerCtx, "Decrypt worker started")
 
 	go func() {
-		defer decryptWorkerRunning.Store(false)
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error(workerCtx, "Decrypt worker panicked", errors.New("decrypt worker panic", "value", r))
+			}
+			decryptWorkerRunning.Store(false)
+		}()
 
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
@@ -284,14 +289,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	if err != nil {
 		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
 		return
-	}
-
-	decryptTimeout := types.DefaultDecryptTimeout
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		log.Warn(ctx, "Failed to get DKG params, using default decrypt timeout", err)
-	} else {
-		decryptTimeout = params.DecryptTimeout
 	}
 
 	sessions := k.stateManager.ListSessions()
@@ -326,7 +323,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		validRequests := make([]types.DecryptRequest, 0, len(requests))
 		staleCount := 0
 		for _, req := range requests {
-			if currentHeight > decryptTimeout && req.Height < currentHeight-decryptTimeout {
+			if currentHeight > types.DefaultDecryptTimeout && req.Height < currentHeight-types.DefaultDecryptTimeout {
 				staleCount++
 				continue
 			}

@@ -113,16 +113,6 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 		return errors.Wrap(err, "build dealer pub key map")
 	}
 
-	// Cap justifications per block to prevent resource exhaustion.
-	if len(justifications) > MaxJustificationsPerBlock {
-		log.Warn(ctx, "Justification count exceeds max, truncating", nil,
-			"count", len(justifications),
-			"max", MaxJustificationsPerBlock,
-		)
-
-		justifications = justifications[:MaxJustificationsPerBlock]
-	}
-
 	// Step 1: Signature verification (deterministic, no kernel needed).
 	var signatureVerified []types.Justification
 
@@ -139,15 +129,12 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 		signatureVerified = append(signatureVerified, j)
 	}
 
-	// Step 2: Deduplicate by (dealerIndex, recipientIndex).
-	deduped := deduplicateJustifications(signatureVerified)
-
-	// Step 3: VSS verification + dealer invalidation (runs in SDK context so
+	// Step 2: VSS verification + dealer invalidation (runs in SDK context so
 	// on-chain state can be updated). This MUST run regardless of isDKGSvcEnabled
 	// because invalidation is a consensus state change that all nodes must apply.
 	var validJustifications []types.Justification
 
-	for _, j := range deduped {
+	for _, j := range signatureVerified {
 		valid, err := verifyJustification(latestRound, j)
 		if err != nil {
 			log.Warn(ctx, "Justification VSS verification error, dropping", err,

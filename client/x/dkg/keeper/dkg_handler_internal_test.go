@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"math/big"
 	"slices"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
@@ -728,29 +728,24 @@ func TestVerifyFinalizationSignature(t *testing.T) {
 	}
 }
 
-// signFinalizationData creates a valid finalization signature for testing.
+// signFinalizationData creates a valid finalization signature for testing using RLP encoding.
 func signFinalizationData(t *testing.T, key *ecdsa.PrivateKey, codeCommitment [32]byte, round uint32, participantsRoot [32]byte, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte) []byte {
 	t.Helper()
 
-	encoded := make([]byte, 0)
-	encoded = append(encoded, codeCommitment[:]...)
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, participantsRoot[:]...)
-
-	encoded = append(encoded, globalPubKey...)
-	for _, coeff := range publicCoeffs {
-		encoded = append(encoded, coeff...)
+	material := finalizationSignatureMaterial{
+		CodeCommitment:   codeCommitment[:],
+		Round:            round,
+		ParticipantsRoot: participantsRoot,
+		GlobalPubKey:     globalPubKey,
+		PublicCoeffs:     publicCoeffs,
+		PubKeyShare:      pubKeyShare,
 	}
-
-	encoded = append(encoded, pubKeyShare...)
+	encoded, err := rlp.EncodeToBytes(material)
+	require.NoError(t, err)
 
 	msgHash := crypto.Keccak256(encoded)
-	prefix := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(append(prefix, msgHash...))
 
-	sig, err := crypto.Sign(ethHash, key)
+	sig, err := crypto.Sign(msgHash, key)
 	require.NoError(t, err)
 
 	// Convert recovery ID to Ethereum V (add 27)
@@ -899,15 +894,15 @@ func TestVerifyPartialDecryptionSignature(t *testing.T) {
 func signPartialDecryptionData(t *testing.T, key *ecdsa.PrivateKey, round uint32, ciphertext []byte, encryptedPartial, ephemeralPubKey, pubShare []byte) []byte {
 	t.Helper()
 
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-
-	encoded := make([]byte, 0, 4+len(ciphertext)+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, ciphertext...)
-	encoded = append(encoded, encryptedPartial...)
-	encoded = append(encoded, ephemeralPubKey...)
-	encoded = append(encoded, pubShare...)
+	material := partialDecryptSignatureMaterial{
+		Round:            round,
+		Ciphertext:       ciphertext,
+		EncryptedPartial: encryptedPartial,
+		EphemeralPubKey:  ephemeralPubKey,
+		PubShare:         pubShare,
+	}
+	encoded, err := rlp.EncodeToBytes(material)
+	require.NoError(t, err)
 
 	respHash := crypto.Keccak256(encoded)
 	sig, err := crypto.Sign(respHash, key)
@@ -1373,9 +1368,9 @@ func setupDKGKeeperWithMocks(t *testing.T) (*Keeper, *dkgtestutil.MockBankKeeper
 
 // buildValidPartialDecryptSignature creates a valid ECDSA signature for a partial
 // decryption response. It replicates the signPartialDecryptResponse logic from the
-// DKG service, which computes:
+// DKG service using RLP encoding, which computes:
 //
-//	encoded = round(4B big-endian) || ciphertext || encryptedPartial || ephPubKey || pubShare
+//	encoded = RLP(round, ciphertext, encryptedPartial, ephPubKey, pubShare)
 //	hash    = Keccak256(encoded)
 //	sig     = ECDSA.Sign(privKey, hash)
 //
@@ -1386,15 +1381,15 @@ func buildValidPartialDecryptSignature(t *testing.T, round uint32, ciphertext, e
 	privKey, err := crypto.GenerateKey()
 	require.NoError(t, err)
 
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-
-	encoded := make([]byte, 0)
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, ciphertext...)
-	encoded = append(encoded, encryptedPartial...)
-	encoded = append(encoded, ephemeralPubKey...)
-	encoded = append(encoded, pubShare...)
+	material := partialDecryptSignatureMaterial{
+		Round:            round,
+		Ciphertext:       ciphertext,
+		EncryptedPartial: encryptedPartial,
+		EphemeralPubKey:  ephemeralPubKey,
+		PubShare:         pubShare,
+	}
+	encoded, err := rlp.EncodeToBytes(material)
+	require.NoError(t, err)
 
 	hash := crypto.Keccak256(encoded)
 

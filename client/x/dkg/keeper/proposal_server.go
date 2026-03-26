@@ -13,6 +13,11 @@ type proposalServer struct {
 }
 
 // AddVotes verifies all aggregated votes included in a proposed block.
+//
+// This handler is intentionally permissive — it only checks Authority
+// and returns success without validating vote content. This follows the
+// ABCI++ pattern where ProcessProposal is permissive (accepts all well-formed
+// proposals) and FinalizeBlock performs the actual validation via msg_server.AddVote.
 func (s proposalServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 ) (*types.AddDkgVoteResponse, error) {
 	if msg.Authority != s.Keeper.GetAuthority() {

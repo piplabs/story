@@ -390,13 +390,15 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 
 			return nil
 		}); err != nil {
-			log.Error(ctx, "Failed to process justifications via kernel", err,
+			cached := cachePendingIncomingJustifications(justifications)
+
+			log.Error(ctx, "Failed to process justifications via kernel; cached for retry", err,
+				"round", dkgNetwork.Round,
 				"code_commitment", hex.EncodeToString(cc),
+				"cached_justifications", cached,
 			)
 
-			cachePendingIncomingJustifications(justifications)
-
-			continue
+			return
 		}
 	}
 }
@@ -437,13 +439,15 @@ func cachePendingIncomingResponses(filteredResponses []types.Response) {
 	pendingIncomingResponses = append(pendingIncomingResponses, filteredResponses...)
 }
 
-func cachePendingIncomingJustifications(justifications []types.Justification) {
+// cachePendingIncomingJustifications saves justifications that failed kernel processing for later retry.
+// Returns the number of justifications cached.
+func cachePendingIncomingJustifications(justifications []types.Justification) int {
 	pendingIncomingJustificationsMu.Lock()
 	defer pendingIncomingJustificationsMu.Unlock()
 
 	remaining := maxPendingIncoming - len(pendingIncomingJustifications)
 	if remaining <= 0 {
-		return
+		return 0
 	}
 
 	if len(justifications) > remaining {
@@ -451,6 +455,8 @@ func cachePendingIncomingJustifications(justifications []types.Justification) {
 	}
 
 	pendingIncomingJustifications = append(pendingIncomingJustifications, justifications...)
+
+	return len(justifications)
 }
 
 // reprocessPendingIncomingData retries cached deals, responses, and justifications when the kernel recovers.

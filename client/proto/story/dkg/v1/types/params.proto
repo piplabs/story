@@ -49,8 +49,4 @@ message Params {
     (gogoproto.moretags) = "yaml:\"operational_threshold\""
   ];
 
-  // number of blocks after which a decrypt request is considered stale and can be dropped
-  uint64 decrypt_timeout = 9 [
-    (gogoproto.moretags) = "yaml:\"decrypt_timeout\""
-  ];
 }

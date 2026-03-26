@@ -7,28 +7,35 @@ import (
 )
 
 const (
-	// periods are in seconds.
-	MinDkgStagePeriod            uint32 = 1                 // 1 block
-	DefaultDkgRegistrationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
-	DefaultDkgDealingPeriod      uint32 = 1 * 24 * 60 * 60  // 1 day
-	DefaultDkgFinalizationPeriod uint32 = 1 * 24 * 60 * 60  // 1 day
-	DefaultDkgActivePeriod       uint32 = 21 * 24 * 60 * 60 // 21 days
+	// Periods are in blocks. Conversion assumes 2.5s block time:
+	//   1 day  = 86400s / 2.5s = 34560 blocks
+	//   4 days = 345600s / 2.5s = 138240 blocks
+	MinDkgStagePeriod            uint32 = 1      // 1 block
+	DefaultDkgRegistrationPeriod uint32 = 34560  // 1 day
+	DefaultDkgDealingPeriod      uint32 = 34560  // 1 day
+	DefaultDkgFinalizationPeriod uint32 = 34560  // 1 day
+	DefaultDkgActivePeriod       uint32 = 138240 // 4 days
 
 	ExpectedCodeCommitmentSize int = 32 // 256-bit digest (32 bytes)
 
 	// DKG committee size parameters (sourced from DKG.sol contract events).
-	DefaultMinReqRegisteredParticipants uint32 = 3
-	DefaultMinReqFinalizedParticipants  uint32 = 3
-	DefaultOperationalThreshold         uint32 = 667 // 66.7% in basis points (out of 1000)
+	DefaultMinReqRegisteredParticipants uint32 = 5
+	DefaultMinReqFinalizedParticipants  uint32 = 5
+	DefaultOperationalThreshold         uint32 = 500 // 50% in basis points (out of 1000)
 	OperationalThresholdBasis           uint32 = 1000
 
 	// Decrypt request timeout in blocks.
 	DefaultDecryptTimeout uint64 = 200
+
+	// DecryptRequestRegistryCleanupInterval is the block interval at which timed-out
+	// decrypt request registry entries are pruned. All nodes prune at the same height,
+	// ensuring deterministic consensus-layer state transitions.
+	DecryptRequestRegistryCleanupInterval int64 = 1000
 )
 
 // DefaultDkgCommitteeRewardPortion is the default portion of UBI rewards
-// allocated to the DKG committee (10%).
-var DefaultDkgCommitteeRewardPortion = math.LegacyMustNewDecFromStr("0.10")
+// allocated to the DKG committee (5%).
+var DefaultDkgCommitteeRewardPortion = math.LegacyMustNewDecFromStr("0.05")
 
 // NewParams creates a new Params instance.
 func NewParams(
@@ -40,7 +47,6 @@ func NewParams(
 	minReqRegisteredParticipants uint32,
 	minReqFinalizedParticipants uint32,
 	operationalThreshold uint32,
-	decryptTimeout uint64,
 ) Params {
 	return Params{
 		RegistrationPeriod:           registrationPeriod,
@@ -51,7 +57,6 @@ func NewParams(
 		MinReqRegisteredParticipants: minReqRegisteredParticipants,
 		MinReqFinalizedParticipants:  minReqFinalizedParticipants,
 		OperationalThreshold:         operationalThreshold,
-		DecryptTimeout:               decryptTimeout,
 	}
 }
 
@@ -66,7 +71,6 @@ func DefaultParams() Params {
 		DefaultMinReqRegisteredParticipants,
 		DefaultMinReqFinalizedParticipants,
 		DefaultOperationalThreshold,
-		DefaultDecryptTimeout,
 	)
 }
 
@@ -100,10 +104,6 @@ func (p Params) Validate() error {
 	}
 
 	if err := ValidateOperationalThreshold(p.OperationalThreshold); err != nil {
-		return err
-	}
-
-	if err := ValidateDecryptTimeout(p.DecryptTimeout); err != nil {
 		return err
 	}
 
@@ -203,14 +203,6 @@ func ValidateDkgCommitteeRewardPortion(portion math.LegacyDec) error {
 
 	if portion.GT(math.LegacyOneDec()) {
 		return errors.New("dkg committee reward portion must not exceed 1.0", "portion", portion.String())
-	}
-
-	return nil
-}
-
-func ValidateDecryptTimeout(timeout uint64) error {
-	if timeout == 0 {
-		return errors.New("decrypt_timeout must be greater than zero", "value", timeout)
 	}
 
 	return nil
