@@ -1,6 +1,6 @@
 # DKG/CDR E2E Test Priority Order
 
-**229 test cases · P0=44 · P1=114 · P2=71**
+**229 test cases · P0=44 · P1=108 · P2=77**
 
 ```bash
 # P0 only:
@@ -75,11 +75,7 @@ Contract-layer attacks + known issue regression. No kernel control needed.
 | 46 | CL-AUDIT-03 | [STOR-8] CDR decrypt works after resharing (PIDCache populated) | [STOR-8] PIDCache |
 | 47 | CL-AUDIT-05 | [STOR-16] LatestActiveRound updated correctly at round transition | [STOR-16] Round rollover |
 | 48 | CL-AUDIT-06 | [STOR-22] Finalization events at stage boundary not dropped | [STOR-22] Boundary events |
-| 49 | CL-BADDEALER-01 | Bad dealer not invalidated after justification | #717: invalidation |
-| 50 | CL-BADDEALER-02 | Bad dealer successfully finalizes | #717: finalize guard |
-| 51 | CL-BADDEALER-03 | Bad dealer inflates finalizedCount | #717: committee count |
-| 52 | CL-BADDEALER-04 | Bad dealer receives UBI rewards | #717: reward exclusion |
-| 53 | CL-COND-01 | [CDR-006] Condition contract as msg.sender bypasses access control | [CDR-006] Condition bypass |
+| 49 | CL-COND-01 | [CDR-006] Condition contract as msg.sender bypasses access control | [CDR-006] Condition bypass |
 | 54 | CL-COND-02 | [CDR-015/M-01] allocate with readConditionAddr=0 → vault unreadable | [CDR-015] Unreadable vault |
 | 55 | CL-DUPREG-01 | Resume → no duplicate registration | #703: off-chain guard |
 | 56 | CL-DUPREG-02 | Kernel restart → index unchanged | #703: restart index stable |
@@ -89,8 +85,7 @@ Contract-layer attacks + known issue regression. No kernel control needed.
 | 60 | CL-DUPREG-06 | [#721] Replay victim's register() from external address | #721: third-party replay |
 | 61 | CL-DUPREG-07 | [#721] Replay ALL validators' registrations | #721: mass replay |
 | 62 | CL-FEE-01 | 1 wei pool / 3 validators → remainder | Integer division remainder |
-| 63 | CL-FEE-02 | Non-committee submitter → no reward | Non-committee reward |
-| 64 | CL-FEE-03 | Pool>0, submitCount=0 → not distributed | Fee pool carryover |
+| 63 | CL-FEE-03 | Pool>0, submitCount=0 → not distributed | Fee pool carryover |
 | 65 | CL-FEE-04 | [CDR-003] CDR reward distribution consistency across validators | [CDR-003] Sorted map iteration |
 | 66 | CL-FIN-01 | [CDR-005/M-08] finalize() from non-validator address → rejected by CL | [CDR-005] Permissionless finalize() |
 | 67 | CL-FIN-02 | [M-02] Active round always has non-empty GlobalPublicKey | [M-02] GPK guard |
@@ -101,7 +96,6 @@ Contract-layer attacks + known issue regression. No kernel control needed.
 | 72 | CL-PS-04 | Submit partial from unregistered address → rejected | Contract registration check |
 | 73 | CL-PS-05 | [STOR-3] Duplicate partial replay → no double reward | [STOR-3] Duplicate replay |
 | 74 | CL-PS-06 | [L1-02] Oversized ciphertext in CDR write | [L1-02] State bloat |
-| 75 | CL-RESTART-03 | Kernel restart after justification → round recovers | kernel #25 PrivatePoly bug |
 | 76 | CL-TO-01 | Partial at reqHeight+200 → accepted | Timeout boundary exact |
 | 77 | CL-TO-02 | Partial at reqHeight+201 → rejected | Timeout boundary +1 |
 | 78 | CL-TO-03 | Prune + partial concurrent → no race | Concurrent prune safety |
@@ -192,7 +186,11 @@ SGX prevents kernel control in production. Defensive guards + boundary condition
 
 | # | Case ID | Description | Reason |
 |---|---------|-------------|--------|
-| 159 | CL-BADDEALER-05 | Bad dealer's partial decryption accepted | Mock kernel + fake DCAP |
+| 159 | CL-BADDEALER-01 | Bad dealer not invalidated after justification | Needs precise VSS-invalid deal (mock too coarse) |
+| 160 | CL-BADDEALER-02 | Bad dealer successfully finalizes | Needs precise VSS-invalid deal (mock too coarse) |
+| 161 | CL-BADDEALER-03 | Bad dealer inflates finalizedCount | Needs precise VSS-invalid deal (mock too coarse) |
+| 162 | CL-BADDEALER-04 | Bad dealer receives UBI rewards | Needs precise VSS-invalid deal (mock too coarse) |
+| 163 | CL-BADDEALER-05 | Bad dealer's partial decryption accepted | Mock kernel + fake DCAP |
 | 160 | CL-BADDEALER-06 | Decryption fails with bad dealer's partial | Mock kernel + fake DCAP |
 | 161 | CL-BADDEALER-07 | Multiple bad dealers vs threshold | Mock kernel + fake DCAP |
 | 162 | CL-BADDEALER-08 | Adaptive attack: match honest globalPubKey | Mock kernel + fake DCAP |

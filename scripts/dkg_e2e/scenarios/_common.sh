@@ -389,12 +389,19 @@ deploy_fake_dcap() {
   local sgx_hook
   sgx_hook=$(_ssh_cmd 1 "PATH=\$PATH:\$HOME/.foundry/bin cast call ${dkg_addr} 'enclaveTypeData(bytes32)(bytes32,address)' 0x0000000000000000000000000000000000000000000000000000000000000001 --rpc-url ${rpc} 2>/dev/null | tail -1" 2>/dev/null | tr -d '[:space:]')
 
-  # Save real DCAP address
-  local real_dcap
-  real_dcap=$(_ssh_cmd 1 "PATH=\$PATH:\$HOME/.foundry/bin cast call ${sgx_hook} 'automataValidationAddr()' --rpc-url ${rpc} 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
-  echo "${real_dcap}" > "$DCAP_ADDR_FILE"
-  echo "${sgx_hook}" >> "$DCAP_ADDR_FILE"
-  echo "[_common] saved real DCAP=${real_dcap} SGX_HOOK=${sgx_hook}"
+  # Save real DCAP address — only if not already saved (prevents overwriting with fake value
+  # when previous post.sh failed to restore and the current pre.sh reads a fake address).
+  if [ -f "$DCAP_ADDR_FILE" ]; then
+    echo "[_common] DCAP save file already exists (previous restore may have failed), keeping original"
+    local real_dcap; real_dcap=$(sed -n '1p' "$DCAP_ADDR_FILE")
+    echo "[_common] using previously saved real DCAP=${real_dcap} SGX_HOOK=${sgx_hook}"
+  else
+    local real_dcap
+    real_dcap=$(_ssh_cmd 1 "PATH=\$PATH:\$HOME/.foundry/bin cast call ${sgx_hook} 'automataValidationAddr()' --rpc-url ${rpc} 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+    echo "${real_dcap}" > "$DCAP_ADDR_FILE"
+    echo "${sgx_hook}" >> "$DCAP_ADDR_FILE"
+    echo "[_common] saved real DCAP=${real_dcap} SGX_HOOK=${sgx_hook}"
+  fi
 
   # Deploy fake DCAP: verifyAndAttestOnChain(bytes,uint32) returns (true, "")
   # Bytecode: receives any calldata, returns abi.encode(true, bytes(""))
@@ -560,10 +567,17 @@ whitelist_mock_code_commitment() {
     'enclaveTypeData(bytes32)(bytes32,address)' ${enclave_type} \
     --rpc-url ${rpc} 2>/dev/null | tail -1" 2>/dev/null | tr -d '[:space:]')
 
-  # Save real values
-  echo "${current_cc}" > "$CC_ADDR_FILE"
-  echo "${hook_addr}" >> "$CC_ADDR_FILE"
-  echo "[_common] saved real code_commitment=${current_cc} hook=${hook_addr}"
+  # Save real values — only if not already saved (prevents overwriting with mock value
+  # when previous post.sh failed to restore).
+  if [ -f "$CC_ADDR_FILE" ]; then
+    echo "[_common] CC save file already exists (previous restore may have failed), keeping original"
+    local saved_cc; saved_cc=$(sed -n '1p' "$CC_ADDR_FILE")
+    echo "[_common] using previously saved real code_commitment=${saved_cc}"
+  else
+    echo "${current_cc}" > "$CC_ADDR_FILE"
+    echo "${hook_addr}" >> "$CC_ADDR_FILE"
+    echo "[_common] saved real code_commitment=${current_cc} hook=${hook_addr}"
+  fi
 
   # Whitelist mock code commitment (same hook address, different code commitment)
   echo "[_common] whitelisting mock code commitment 0x${MOCK_CODE_COMMITMENT}..."

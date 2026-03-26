@@ -228,7 +228,7 @@ func CLCases() []TestCase {
 		},
 		TestCase{
 			ID: "CL-FEE-02",
-			Priority: "P1",
+			Priority: "P2",
 			Description: "Partial submitter not in finalized committee → no reward",
 			Expected:    "non-committee validator gets no CDR reward",
 			SkipIfLive:  "requires mock kernel on non-committee node",
@@ -312,7 +312,7 @@ func CLCases() []TestCase {
 	list = append(list,
 		TestCase{
 			ID: "CL-BADDEALER-01",
-			Priority: "P1",
+			Priority: "P2",
 			Description:    "Bad dealer not invalidated after failed justification verification",
 			Expected:       "FIXED: reg.Status=Invalidated after ProcessJustifications",
 			NeedsRoundWait: true,
@@ -321,7 +321,7 @@ func CLCases() []TestCase {
 		},
 		TestCase{
 			ID: "CL-BADDEALER-02",
-			Priority: "P1",
+			Priority: "P2",
 			Description:    "Bad dealer successfully calls finalize() despite invalid deals",
 			Expected:       "FIXED: Invalidated dealer's finalize() rejected",
 			NeedsRoundWait: true,
@@ -330,7 +330,7 @@ func CLCases() []TestCase {
 		},
 		TestCase{
 			ID: "CL-BADDEALER-03",
-			Priority: "P1",
+			Priority: "P2",
 			Description:    "Bad dealer counted in finalizedCount, inflates committee size",
 			Expected:       "FIXED: Invalidated dealer excluded from finalizedCount",
 			NeedsRoundWait: true,
@@ -339,7 +339,7 @@ func CLCases() []TestCase {
 		},
 		TestCase{
 			ID: "CL-BADDEALER-04",
-			Priority: "P1",
+			Priority: "P2",
 			Description:    "Bad dealer receives UBI committee rewards",
 			Expected:       "FIXED: Invalidated dealer excluded from rewards",
 			NeedsRoundWait: true,
@@ -473,7 +473,7 @@ func CLCases() []TestCase {
 		},
 		TestCase{
 			ID: "CL-RESTART-03",
-			Priority: "P1",
+			Priority: "P2",
 			Description:    "Kernel restart after ProcessJustification → justification persistence → round recovers",
 			Expected:       "Complaint handling state survives restart, round completes or fails gracefully",
 			NeedsRoundWait: true,

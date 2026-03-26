@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -287,14 +288,17 @@ func waitForChainReady(t *testing.T, h *Harness) {
 func ensureAllHealthy(t *testing.T) {
 	t.Helper()
 	needsWait := false
+	storyRestarted := false
 	for i := 0; i < validatorCount(); i++ {
-		// Only check story — NEVER restart it. Restarting story triggers systemd
-		// dependency chain that also stops geth, which clears chain data and causes
-		// a full devnet reset (round goes back to 1). Story should stay running
-		// throughout all tests; only kernel gets stopped/started by scenarios.
+		// Check story status. If not active (e.g. STOR-28 crash loop killed it),
+		// restart it. Use "systemctl restart story" — on this devnet geth is a
+		// separate service (node-geth) so restarting story won't stop geth.
 		out, _ := sshCheckService(i, "story")
 		if strings.TrimSpace(out) != "active" {
-			t.Logf("  ⚠ validator %d story not active (%s) — NOT restarting (would reset chain)", i+1, strings.TrimSpace(out))
+			t.Logf("  validator %d story not active (%s), restarting...", i+1, strings.TrimSpace(out))
+			sshRunCmd(i, "sudo systemctl restart story")
+			storyRestarted = true
+			needsWait = true
 		}
 		// Check and restart kernel only
 		out, _ = sshCheckService(i, "story-kernel")
@@ -303,6 +307,22 @@ func ensureAllHealthy(t *testing.T) {
 			updateKernelTrustedBlock(i)
 			sshRunCmd(i, "sudo systemctl restart story-kernel")
 			needsWait = true
+		}
+	}
+	// After mock kernel scenarios, story may have stale empty-CC sessions (STOR-29)
+	// that prevent registration. Detect by checking if story logs show repeated
+	// "Session already exists with the code commitment and round, skip creating"
+	// with code_commitment="". If so, restart story to clear in-memory session cache.
+	if !storyRestarted {
+		for i := 0; i < validatorCount(); i++ {
+			out, _ := sshRunCmd(i, "sudo journalctl -u story --since '60s ago' --no-pager 2>/dev/null | grep -c 'code_commitment=\"\" round=' || echo 0")
+			count := strings.TrimSpace(out)
+			if n, err := strconv.Atoi(count); err == nil && n >= 5 {
+				t.Logf("  validator %d: detected stale empty-CC session (%d occurrences), restarting story...", i+1, n)
+				sshRunCmd(i, "sudo systemctl restart story")
+				storyRestarted = true
+				needsWait = true
+			}
 		}
 	}
 	if !needsWait {
@@ -436,14 +456,20 @@ func loadPassedTests() map[string]bool {
 func markTestPassed(testID string) {
 	passedMu.Lock()
 	defer passedMu.Unlock()
+	p := passedTestsPath()
 	if passedFile == nil {
 		var err error
-		passedFile, err = os.OpenFile(passedTestsPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		passedFile, err = os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "[markTestPassed] WARN: cannot open %s: %v\n", p, err)
 			return
 		}
+		fmt.Fprintf(os.Stderr, "[markTestPassed] opened %s for writing\n", p)
 	}
-	fmt.Fprintln(passedFile, testID)
+	if _, err := fmt.Fprintln(passedFile, testID); err != nil {
+		fmt.Fprintf(os.Stderr, "[markTestPassed] WARN: write failed for %s: %v\n", testID, err)
+	}
+	passedFile.Sync()
 }
 
 // ResetPassedTests clears the passed tests file (call when starting a fresh suite).
