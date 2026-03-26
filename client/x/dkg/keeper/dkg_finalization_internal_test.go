@@ -176,12 +176,13 @@ func TestFinalizeDKGRound_UpgradeRound(t *testing.T) {
 	require.NoError(t, k.SetParams(ctx, params))
 
 	latestRound := &types.DKGNetwork{
-		Round:        1,
-		ActiveValSet: []string{},
-		Total:        1,
-		Threshold:    1,
-		Stage:        types.DKGStageFinalization,
-		IsUpgrade:    true, // upgrade resharing round
+		Round:           1,
+		ActiveValSet:    []string{},
+		Total:           1,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		IsUpgrade:       true, // upgrade resharing round
+		GlobalPublicKey: []byte("global-pub-key"),
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -228,12 +229,13 @@ func TestFinalizeDKGRound_DKGSvcEnabled(t *testing.T) {
 	require.NoError(t, k.SetParams(ctx, params))
 
 	latestRound := &types.DKGNetwork{
-		Round:        9,
-		ActiveValSet: []string{},
-		Total:        1,
-		Threshold:    1,
-		Stage:        types.DKGStageFinalization,
-		IsUpgrade:    false,
+		Round:           9,
+		ActiveValSet:    []string{},
+		Total:           1,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		IsUpgrade:       false,
+		GlobalPublicKey: []byte("global-pub-key"),
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -252,33 +254,17 @@ func TestFinalizeDKGRound_DKGSvcEnabled(t *testing.T) {
 	require.Equal(t, uint32(9), activeRound.Round)
 }
 
-func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
+// TestDistributeCDRFee verifies that distributeCDRFee distributes the CDR fee
+// pool proportionally to partial submission counts and clears state afterwards.
+func TestDistributeCDRFee(t *testing.T) {
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	params := types.DefaultParams()
-	params.MinReqFinalizedParticipants = 1
-	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
-	require.NoError(t, k.SetParams(ctx, params))
-
+	// distributeCDRFee requires an active round to exist.
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
 	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
 
-	latestRound := &types.DKGNetwork{
-		Round:           2,
-		ActiveValSet:    []string{},
-		Total:           2,
-		Threshold:       1,
-		Stage:           types.DKGStageFinalization,
-		GlobalPublicKey: []byte("global-pub-key"),
-	}
-	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
-
 	val1 := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	val2 := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-
-	setRegistration(t, k, ctx, latestRound, val1, types.DKGRegStatusFinalized)
-	setRegistration(t, k, ctx, latestRound, val2, types.DKGRegStatusFinalized)
 
 	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val1), 3))
 	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val2), 1))
@@ -291,7 +277,7 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 			return nil
 		}).Times(2)
 
-	err := k.FinalizeDKGRound(ctx, latestRound)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, []int64{75, 25}, sent)

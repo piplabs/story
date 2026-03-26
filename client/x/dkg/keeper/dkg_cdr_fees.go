@@ -176,7 +176,7 @@ func (k *Keeper) distributeCDRFee(ctx context.Context) error {
 		return nil
 	}
 
-	totalCountInt := math.NewInt(int64(totalCount))
+	totalCountInt := math.NewIntFromUint64(totalCount)
 	distributed := math.ZeroInt()
 
 	// Sort keys for deterministic iteration order across all validators.
@@ -188,7 +188,7 @@ func (k *Keeper) distributeCDRFee(ctx context.Context) error {
 
 	for _, addr := range sortedAddrs {
 		count := counts[addr]
-		share := poolBalance.Mul(math.NewInt(int64(count))).Quo(totalCountInt)
+		share := poolBalance.Mul(math.NewIntFromUint64(count)).Quo(totalCountInt)
 		if share.IsZero() {
 			continue
 		}

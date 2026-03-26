@@ -3,7 +3,6 @@ package keeper
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -285,6 +285,19 @@ func (k *Keeper) UpgradeCancelled(ctx context.Context, upgradeVersion string) er
 	return nil
 }
 
+// finalizationSignatureMaterial holds the fields committed to by the validator
+// signature on a DKG finalization response. RLP encoding gives each field an
+// unambiguous length prefix, preventing boundary-shift collisions that arise
+// from raw concatenation of variable-length byte slices.
+type finalizationSignatureMaterial struct {
+	CodeCommitment   []byte
+	Round            uint32
+	ParticipantsRoot [32]byte
+	GlobalPubKey     []byte
+	PublicCoeffs     [][]byte
+	PubKeyShare      []byte
+}
+
 // verifyFinalizationSignature verifies the TEE's ECDSA signature over the DKG finalization data.
 // It reproduces the message hash signed by the TEE, recovers the signer, and checks it matches
 // the expected address derived from the validator's commPubKey.
@@ -294,37 +307,27 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
 	}
 
-	// Compute total size of publicCoeffs for accurate capacity hint
-	coeffsLen := 0
-
 	for _, coeff := range publicCoeffs {
 		if len(coeff) == 0 {
 			return errors.New("empty public coefficient")
 		}
-
-		coeffsLen += len(coeff)
 	}
 
-	// Construct encoded message: codeCommitment(32B) + round(4B big-endian) + participantsRoot(32B) + globalPubKey + publicCoeffs...
-	encoded := make([]byte, 0, 32+4+32+len(globalPubKey)+coeffsLen)
-	encoded = append(encoded, codeCommitment[:]...)
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, participantsRoot[:]...)
-
-	encoded = append(encoded, globalPubKey...)
-	for _, coeff := range publicCoeffs {
-		encoded = append(encoded, coeff...)
+	// RLP-encode the finalization signature material (must match kernel's hashFinalizeDKGResponse).
+	material := finalizationSignatureMaterial{
+		CodeCommitment:   codeCommitment[:],
+		Round:            round,
+		ParticipantsRoot: participantsRoot,
+		GlobalPubKey:     globalPubKey,
+		PublicCoeffs:     publicCoeffs,
+		PubKeyShare:      pubKeyShare,
 	}
-
-	encoded = append(encoded, pubKeyShare...)
+	encoded, err := rlp.EncodeToBytes(material)
+	if err != nil {
+		return errors.Wrap(err, "failed to RLP encode finalization signature material")
+	}
 
 	msgHash := crypto.Keccak256(encoded)
-
-	// Compute Ethereum signed message hash: keccak256("\x19Ethereum Signed Message:\n32" + msgHash)
-	prefix := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(append(prefix, msgHash...))
 
 	if len(signature) != 65 {
 		return errors.New("invalid signature length", "expected", 65, "got", len(signature))
@@ -339,7 +342,7 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 		sig[64] -= 27
 	}
 
-	recoveredPub, err := crypto.SigToPub(ethHash, sig)
+	recoveredPub, err := crypto.SigToPub(msgHash, sig)
 	if err != nil {
 		return errors.Wrap(err, "failed to recover public key from signature")
 	}
@@ -359,25 +362,41 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 	return nil
 }
 
+// partialDecryptSignatureMaterial holds the fields committed to by the validator
+// signature on a partial decryption response. RLP encoding gives each field an
+// unambiguous length prefix, preventing boundary-shift collisions that arise
+// from raw concatenation of variable-length byte slices.
+type partialDecryptSignatureMaterial struct {
+	Round            uint32
+	Ciphertext       []byte
+	EncryptedPartial []byte
+	EphemeralPubKey  []byte
+	PubShare         []byte
+}
+
 // verifyPartialDecryptionSignature verifies the TEE's ECDSA signature over the partial decryption response data.
 // It reproduces the message hash signed by signPartialDecryptResponse in the DKG server, recovers the signer,
 // and checks it matches the expected address derived from the validator's commPubKey.
+//
+// Both finalization and partial decryption signatures use RLP-encoded keccak256 hashes
+// without the Ethereum Signed Message prefix, so kernel and CL are consistent.
 func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, ciphertext []byte, encryptedPartial, ephemeralPubKey, pubShare, signature []byte) error {
 	if len(commPubKey) != 64 {
 		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
 	}
 
-	// Reconstruct the message exactly as in signPartialDecryptResponse:
-	// encoded = round(4B big-endian) || ciphertext || encryptedPartial || ephPubKey || pubShare
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-
-	encoded := make([]byte, 0, 4+len(ciphertext)+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, ciphertext...)
-	encoded = append(encoded, encryptedPartial...)
-	encoded = append(encoded, ephemeralPubKey...)
-	encoded = append(encoded, pubShare...)
+	// RLP-encode the partial decryption signature material (must match kernel's signPartialDecryptResponse).
+	material := partialDecryptSignatureMaterial{
+		Round:            round,
+		Ciphertext:       ciphertext,
+		EncryptedPartial: encryptedPartial,
+		EphemeralPubKey:  ephemeralPubKey,
+		PubShare:         pubShare,
+	}
+	encoded, err := rlp.EncodeToBytes(material)
+	if err != nil {
+		return errors.Wrap(err, "failed to RLP encode partial decryption signature material")
+	}
 
 	respHash := crypto.Keccak256(encoded)
 
@@ -532,12 +551,17 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		)
 	}
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get DKG params")
+	}
+
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-req.Height > types.DefaultDecryptTimeout {
+	if currentHeight-req.Height > params.DecryptTimeout {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
 			"request_height", req.Height,
 			"current_height", currentHeight,
-			"timeout_blocks", types.DefaultDecryptTimeout,
+			"timeout_blocks", params.DecryptTimeout,
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {

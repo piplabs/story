@@ -137,6 +137,15 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	}, nil
 }
 
+// aggregateVotes merges all vote extension payloads into a single Vote.
+// Deduplication is intentionally NOT performed here because
+// (1) the CL cannot validate DKG message authenticity — only the kernel can,
+// (2) first-seen dedup on unsigned fields lets an earlier-sorted validator
+//
+//	suppress honest messages by broadcasting colliding fake entries, and
+//
+// (3) VerifyVoteExtension already caps max items per VE, preventing DoS.
+// The kernel handles duplicate/invalid messages by logging and skipping them.
 func aggregateVotes(votes []*types.Vote) *types.Vote {
 	allDeals := make([]types.Deal, 0)
 	allResponses := make([]types.Response, 0)
@@ -148,98 +157,10 @@ func aggregateVotes(votes []*types.Vote) *types.Vote {
 	}
 
 	return &types.Vote{
-		Deals:          deduplicateDeals(allDeals),
-		Responses:      deduplicateResponses(allResponses),
-		Justifications: deduplicateJustifications(allJustifications),
+		Deals:          allDeals,
+		Responses:      allResponses,
+		Justifications: allJustifications,
 	}
-}
-
-// deduplicateDeals removes duplicate deals by (dealerIndex, recipientIndex).
-func deduplicateDeals(deals []types.Deal) []types.Deal {
-	type dedupKey struct {
-		dealerIndex    uint32
-		recipientIndex uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Deal, 0, len(deals))
-
-	for _, d := range deals {
-		key := dedupKey{dealerIndex: d.Index, recipientIndex: d.RecipientIndex}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, d)
-	}
-
-	return result
-}
-
-// deduplicateResponses removes duplicate responses by (responderIndex, dealerIndex).
-func deduplicateResponses(responses []types.Response) []types.Response {
-	type dedupKey struct {
-		responderIndex uint32
-		dealerIndex    uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Response, 0, len(responses))
-
-	for _, r := range responses {
-		var dealerIdx uint32
-		if r.VssResponse != nil {
-			dealerIdx = r.VssResponse.Index
-		}
-
-		key := dedupKey{responderIndex: r.Index, dealerIndex: dealerIdx}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, r)
-	}
-
-	return result
-}
-
-// deduplicateJustifications removes duplicate justifications by (dealerIndex, recipientIndex).
-// When multiple validators broadcast the same justification, only the first is processed.
-func deduplicateJustifications(justifications []types.Justification) []types.Justification {
-	type dedupKey struct {
-		dealerIndex    uint32
-		recipientIndex uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Justification, 0, len(justifications))
-
-	for _, j := range justifications {
-		var recipientIdx uint32
-
-		if vssJ := j.GetVssJustification(); vssJ != nil {
-			if pd := vssJ.GetPlainDeal(); pd != nil {
-				if ss := pd.GetSecShare(); ss != nil {
-					recipientIdx = ss.GetI()
-				}
-			}
-		}
-
-		key := dedupKey{dealerIndex: j.Index, recipientIndex: recipientIdx}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, j)
-	}
-
-	return result
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.

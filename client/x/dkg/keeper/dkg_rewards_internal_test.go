@@ -91,8 +91,8 @@ func TestDistributeDKGCommitteeRewards_NoFinalizedMembers(t *testing.T) {
 }
 
 func TestDistributeDKGCommitteeRewards_NormalDistribution(t *testing.T) {
-	// Normal case: 3 finalized members, 10% reward portion, 10000 UBI balance.
-	// Expected: perMember = (10000 * 0.10) / 3 = 333, totalDistributed = 999, remaining = 9001.
+	// Normal case: 3 finalized members, 5% reward portion, 10000 UBI balance.
+	// Expected: perMember = (10000 * 0.05) / 3 = 166, totalDistributed = 498, remaining = 9502.
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -112,7 +112,7 @@ func TestDistributeDKGCommitteeRewards_NormalDistribution(t *testing.T) {
 	dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), sdk.DefaultBondDenom, types.ModuleName).
 		Return(sdk.NewCoin(sdk.DefaultBondDenom, ubiBalance), nil)
 
-	perMemberReward := math.NewInt(333)
+	perMemberReward := math.NewInt(166)
 	perMemberCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, perMemberReward))
 	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, gomock.Any(), perMemberCoins).
 		Return(nil).Times(3)
@@ -120,14 +120,15 @@ func TestDistributeDKGCommitteeRewards_NormalDistribution(t *testing.T) {
 	err := k.settleRewardsForPreviousCommittee(ctx)
 	require.NoError(t, err)
 
-	// remaining = 10000 - 999 = 9001, stored as settlement balance.
+	// remaining = 10000 - 498 = 9502, stored as settlement balance.
 	balStr, err := k.SettlementBalance.Get(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "9001", balStr)
+	require.Equal(t, "9502", balStr)
 }
 
 func TestDistributeDKGCommitteeRewards_SingleMember(t *testing.T) {
 	// Single finalized member gets the full DKG reward portion.
+	// 5% of 10000 = 500, remaining = 9500.
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -142,7 +143,7 @@ func TestDistributeDKGCommitteeRewards_SingleMember(t *testing.T) {
 	dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), sdk.DefaultBondDenom, types.ModuleName).
 		Return(sdk.NewCoin(sdk.DefaultBondDenom, ubiBalance), nil)
 
-	perMemberReward := math.NewInt(1000)
+	perMemberReward := math.NewInt(500)
 	perMemberCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, perMemberReward))
 	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, gomock.Any(), perMemberCoins).
 		Return(nil).Times(1)
@@ -150,15 +151,15 @@ func TestDistributeDKGCommitteeRewards_SingleMember(t *testing.T) {
 	err := k.settleRewardsForPreviousCommittee(ctx)
 	require.NoError(t, err)
 
-	// remaining = 10000 - 1000 = 9000
+	// remaining = 10000 - 500 = 9500
 	balStr, err := k.SettlementBalance.Get(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "9000", balStr)
+	require.Equal(t, "9500", balStr)
 }
 
 func TestDistributeDKGCommitteeRewards_DustHandling(t *testing.T) {
 	// Test that integer division truncation dust goes to the remaining UBI.
-	// 7 members, 10% of 100 = 10, perMember = 10/7 = 1, totalDistributed = 7, remaining = 93.
+	// 7 members, 5% of 1000 = 50, perMember = 50/7 = 7, totalDistributed = 49, remaining = 951.
 	k, bk, dk, ctx := setupDKGKeeperWithMocks(t)
 
 	prevActive := createTestDKGNetwork(t, k, ctx, 1)
@@ -169,13 +170,13 @@ func TestDistributeDKGCommitteeRewards_DustHandling(t *testing.T) {
 		setRegistration(t, k, ctx, prevActive, addr, types.DKGRegStatusFinalized)
 	}
 
-	ubiBalance := math.NewInt(100)
+	ubiBalance := math.NewInt(1000)
 
 	dk.EXPECT().GetUbiBalanceByDenom(gomock.Any(), sdk.DefaultBondDenom).Return(ubiBalance, nil)
 	dk.EXPECT().WithdrawUbiByDenomToModule(gomock.Any(), sdk.DefaultBondDenom, types.ModuleName).
 		Return(sdk.NewCoin(sdk.DefaultBondDenom, ubiBalance), nil)
 
-	perMemberReward := math.NewInt(1)
+	perMemberReward := math.NewInt(7)
 	perMemberCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, perMemberReward))
 	bk.EXPECT().SendCoinsFromModuleToAccount(gomock.Any(), types.ModuleName, gomock.Any(), perMemberCoins).
 		Return(nil).Times(7)
@@ -183,10 +184,10 @@ func TestDistributeDKGCommitteeRewards_DustHandling(t *testing.T) {
 	err := k.settleRewardsForPreviousCommittee(ctx)
 	require.NoError(t, err)
 
-	// remaining = 100 - 7 = 93
+	// remaining = 1000 - 49 = 951
 	balStr, err := k.SettlementBalance.Get(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "93", balStr)
+	require.Equal(t, "951", balStr)
 }
 
 func TestDistributeDKGCommitteeRewards_PerMemberRewardZero(t *testing.T) {
@@ -616,7 +617,7 @@ func TestDistributeRewardsToActiveCommittee_NormalDistribution(t *testing.T) {
 
 	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
 
-	// Default params: 10% reward portion
+	// Default params: 5% reward portion
 	activeRound := &types.DKGNetwork{Round: 1, Total: 3, Threshold: 2, Stage: types.DKGStageActive}
 	require.NoError(t, k.setDKGNetwork(ctx, activeRound))
 	require.NoError(t, k.setLatestActiveRound(ctx, activeRound))
@@ -626,11 +627,11 @@ func TestDistributeRewardsToActiveCommittee_NormalDistribution(t *testing.T) {
 	setRegistration(t, k, ctx, activeRound, member1, types.DKGRegStatusFinalized)
 	setRegistration(t, k, ctx, activeRound, member2, types.DKGRegStatusFinalized)
 
-	// totalAmount=1000, 10%=100, 2 members → perMember=50
-	// expect: SendCoinsFromModuleToModule (1000 * 10% = 100 total)
+	// totalAmount=1000, 5%=50, 2 members → perMember=25
+	// expect: SendCoinsFromModuleToModule (1000 * 5% = 50 total)
 	totalAmount := math.NewInt(1000)
-	perMemberReward := math.NewInt(50)
-	totalToDistribute := math.NewInt(100) // 50*2
+	perMemberReward := math.NewInt(25)
+	totalToDistribute := math.NewInt(50) // 25*2
 	distributeCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalToDistribute))
 
 	bk.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), "evmstaking", types.ModuleName, distributeCoins).Return(nil)
