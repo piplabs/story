@@ -262,7 +262,12 @@ func (k *Keeper) StartDecryptWorker() {
 	log.Info(workerCtx, "Decrypt worker started")
 
 	go func() {
-		defer decryptWorkerRunning.Store(false)
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error(workerCtx, "Decrypt worker panicked", errors.New("decrypt worker panic", "value", r))
+			}
+			decryptWorkerRunning.Store(false)
+		}()
 
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
