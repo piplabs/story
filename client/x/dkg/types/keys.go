@@ -13,11 +13,6 @@ const (
 	MemStoreKey = "mem_dkg"
 )
 
-// DecryptRequestRegistryCleanupInterval is the block interval at which timed-out
-// decrypt request registry entries are pruned. All nodes prune at the same height,
-// ensuring deterministic consensus-layer state transitions.
-const DecryptRequestRegistryCleanupInterval int64 = 1000
-
 // CDRFeePoolName is the module account name for the CDR reward pool.
 // Fees collected by the CDR contract are minted and held here,
 // then distributed to validators at each DKG round end.

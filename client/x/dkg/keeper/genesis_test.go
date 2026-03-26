@@ -20,7 +20,7 @@ func TestKeeper_InitGenesis_ValidState(t *testing.T) {
 		Params: types.NewParams(
 			10, 20, 30, 40,
 			types.DefaultDkgCommitteeRewardPortion,
-			5, 4, 700, 30,
+			5, 4, 700,
 		),
 	}
 
@@ -54,7 +54,7 @@ func TestKeeper_InitGenesis_InvalidParams(t *testing.T) {
 				0, // RegistrationPeriod = 0 is invalid
 				20, 30, 40,
 				types.DefaultDkgCommitteeRewardPortion,
-				3, 3, 667, 30,
+				3, 3, 667,
 			),
 			expectedErr: "invalid dkg registration period",
 		},
@@ -64,7 +64,7 @@ func TestKeeper_InitGenesis_InvalidParams(t *testing.T) {
 				10, 0, // DealingPeriod = 0 is invalid
 				30, 40,
 				types.DefaultDkgCommitteeRewardPortion,
-				3, 3, 667, 30,
+				3, 3, 667,
 			),
 			expectedErr: "invalid dkg dealing period",
 		},
@@ -74,7 +74,7 @@ func TestKeeper_InitGenesis_InvalidParams(t *testing.T) {
 				10, 20, 0, // FinalizationPeriod = 0 is invalid
 				40,
 				types.DefaultDkgCommitteeRewardPortion,
-				3, 3, 667, 30,
+				3, 3, 667,
 			),
 			expectedErr: "invalid dkg finalization period",
 		},
@@ -84,7 +84,7 @@ func TestKeeper_InitGenesis_InvalidParams(t *testing.T) {
 				10, 20, 30, 40,
 				types.DefaultDkgCommitteeRewardPortion,
 				0, // MinReqRegisteredParticipants = 0 is invalid
-				3, 667, 30,
+				3, 667,
 			),
 			expectedErr: "must be greater than zero",
 		},
@@ -113,7 +113,7 @@ func TestKeeper_ExportGenesis_ReturnsStoredParams(t *testing.T) {
 	params := types.NewParams(
 		50, 60, 70, 80,
 		types.DefaultDkgCommitteeRewardPortion,
-		7, 6, 750, 30,
+		7, 6, 750,
 	)
 
 	gs := &types.GenesisState{Params: params}
@@ -167,7 +167,7 @@ func TestKeeper_ValidateGenesis_InvalidParams(t *testing.T) {
 			0, // RegistrationPeriod = 0 is invalid
 			20, 30, 40,
 			types.DefaultDkgCommitteeRewardPortion,
-			3, 3, 667, 30,
+			3, 3, 667,
 		),
 	}
 	err := k.ValidateGenesis(gs)
