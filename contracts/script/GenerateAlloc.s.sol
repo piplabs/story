@@ -61,7 +61,7 @@ contract GenerateAlloc is Script {
 
     // SGXValidationHook configuration — edit before running the script
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"0000000000000000000000000000000000000000000000000000000000000001";
+        hex"631e259c51a1978043b31f1b68e8986cd056c3000de82b0e20e680349d00179d";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
@@ -431,7 +431,7 @@ contract GenerateAlloc is Script {
         // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
         bytes memory initData = abi.encodeCall(
             SGXValidationHook.initialize,
-            (timelock, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
+            (0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
         );
         bytes memory proxyCreationCode = abi.encodePacked(
             type(TransparentUpgradeableProxy).creationCode,

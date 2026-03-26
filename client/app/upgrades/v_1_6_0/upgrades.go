@@ -14,6 +14,7 @@ import (
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 func CreateUpgradeHandler(
@@ -33,12 +34,10 @@ func CreateUpgradeHandler(
 			return vm, err
 		}
 
-		// Explicitly set DKG params to ensure they are initialized regardless
-		// of whether RunMigrations called InitGenesis for DKG or not. This
-		// covers the fresh-genesis case where DKG was in the module list but
-		// had no genesis state in the static genesis.json.
-		if err := keepers.DKGKeeper.SetParams(ctx, dkgtypes.DefaultParams()); err != nil {
-			return newVM, errors.Wrap(err, "set DKG default params")
+		// Set DKG params, using shorter periods for devnet/test chains.
+		dkgParams := dkgParamsForChain(ctx)
+		if err := keepers.DKGKeeper.SetParams(ctx, dkgParams); err != nil {
+			return newVM, errors.Wrap(err, "set DKG params")
 		}
 
 		// Enable vote extensions at this upgrade height. The DKG module
@@ -52,6 +51,31 @@ func CreateUpgradeHandler(
 
 		return newVM, nil
 	}
+}
+
+// dkgParamsForChain returns DKG params appropriate for the current chain.
+// Devnet/test chains use shorter stage periods for faster iteration.
+func dkgParamsForChain(ctx context.Context) dkgtypes.Params {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	chainID := sdkCtx.ChainID()
+
+	if chainID == netconf.DKGTestChainID || chainID == netconf.LocalChainID {
+		log.Info(ctx, "Using devnet DKG params with short stage periods", "chain_id", chainID)
+
+		return dkgtypes.NewParams(
+			200, // registration: ~8 min at 2.5s block time
+			100, // dealing: ~4 min (must be long enough for deal generation + VE propagation)
+			100, // finalization: ~4 min
+			200, // active: ~8 min
+			dkgtypes.DefaultDkgCommitteeRewardPortion,
+			2,   // min registered: allow round with 2/3 validators
+			2,   // min finalized: allow round completion with 2/3 validators
+			500, // 50% — must match EVM DKG contract (2/3 threshold for devnet)
+			200, // decrypt timeout in blocks
+		)
+	}
+
+	return dkgtypes.DefaultParams()
 }
 
 // enableVoteExtensions updates the consensus params to enable vote extensions
