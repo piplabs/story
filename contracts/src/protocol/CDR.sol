@@ -17,6 +17,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param writeFee The write fee
     /// @param readFee The read fee
     /// @param allocateFee The allocate fee
+    /// @param maxEncryptedDataSize Maximum allowed size for encrypted vault data (bytes)
+    /// @param maxEncryptedPartialSize Maximum allowed size for encrypted partial decryptions (bytes)
     /// @param vaults The mapping of the vaults
     /// @custom:storage-location erc7201:story.CDR
     struct CDRStorage {
@@ -25,6 +27,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         uint256 writeFee;
         uint256 readFee;
         uint256 allocateFee;
+        uint256 maxEncryptedDataSize;
+        uint256 maxEncryptedPartialSize;
         mapping(uint32 uuid => Vault vault) vaults;
     }
 
@@ -41,12 +45,16 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param writeFee The fee for writing data to a vault
     /// @param readFee The fee for reading data from a vault
     /// @param allocateFee The fee for allocating a new vault
+    /// @param maxEncryptedDataSize Maximum allowed size for encrypted vault data (bytes)
+    /// @param maxEncryptedPartialSize Maximum allowed size for encrypted partial decryptions (bytes)
     function initialize(
         address owner,
         uint256 baseFee,
         uint256 writeFee,
         uint256 readFee,
-        uint256 allocateFee
+        uint256 allocateFee,
+        uint256 maxEncryptedDataSize,
+        uint256 maxEncryptedPartialSize
     ) external initializer {
         __Ownable_init(owner);
         __ReentrancyGuard_init();
@@ -57,6 +65,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         _setWriteFee(writeFee);
         _setReadFee(readFee);
         _setAllocateFee(allocateFee);
+        _setMaxEncryptedDataSize(maxEncryptedDataSize);
+        _setMaxEncryptedPartialSize(maxEncryptedPartialSize);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -87,6 +97,18 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param newAllocateFee The allocate fee
     function setAllocateFee(uint256 newAllocateFee) external onlyOwner {
         _setAllocateFee(newAllocateFee);
+    }
+
+    /// @notice Sets the maximum allowed size for encrypted vault data
+    /// @param newMaxEncryptedDataSize The maximum size in bytes
+    function setMaxEncryptedDataSize(uint256 newMaxEncryptedDataSize) external onlyOwner {
+        _setMaxEncryptedDataSize(newMaxEncryptedDataSize);
+    }
+
+    /// @notice Sets the maximum allowed size for encrypted partial decryptions
+    /// @param newMaxEncryptedPartialSize The maximum size in bytes
+    function setMaxEncryptedPartialSize(uint256 newMaxEncryptedPartialSize) external onlyOwner {
+        _setMaxEncryptedPartialSize(newMaxEncryptedPartialSize);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -146,10 +168,9 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         bytes calldata accessAuxData,
         bytes calldata encryptedData
     ) external payable nonReentrant whenNotPaused {
-        require(encryptedData.length > 0, "CDR: Encrypted data cannot be empty");
-        require(encryptedData.length <= 1024, "CDR: Encrypted data exceeds max size");
-
         CDRStorage storage $ = _getCDRStorage();
+        require(encryptedData.length > 0, "CDR: Encrypted data cannot be empty");
+        require(encryptedData.length <= $.maxEncryptedDataSize, "CDR: Encrypted data exceeds max size");
         // check if the vault exists
         Vault storage vault = $.vaults[uuid];
         require(vault.writeConditionAddr != address(0), "CDR: Write condition address not set");
@@ -241,8 +262,9 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         uint32 uuid,
         bytes calldata signature
     ) external payable nonReentrant whenNotPaused {
+        CDRStorage storage $ = _getCDRStorage();
         require(
-            encryptedPartial.length > 0 && encryptedPartial.length <= 1024,
+            encryptedPartial.length > 0 && encryptedPartial.length <= $.maxEncryptedPartialSize,
             "CDR: Invalid encrypted partial length"
         );
 
@@ -332,6 +354,16 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param newAllocateFee The allocate fee
     function _setAllocateFee(uint256 newAllocateFee) internal {
         _getCDRStorage().allocateFee = newAllocateFee;
+    }
+
+    function _setMaxEncryptedDataSize(uint256 newMaxEncryptedDataSize) internal {
+        require(newMaxEncryptedDataSize > 0, "CDR: Max encrypted data size must be > 0");
+        _getCDRStorage().maxEncryptedDataSize = newMaxEncryptedDataSize;
+    }
+
+    function _setMaxEncryptedPartialSize(uint256 newMaxEncryptedPartialSize) internal {
+        require(newMaxEncryptedPartialSize > 0, "CDR: Max encrypted partial size must be > 0");
+        _getCDRStorage().maxEncryptedPartialSize = newMaxEncryptedPartialSize;
     }
 
     /// @notice Collects a fee and emits a FeeCollected event

@@ -397,7 +397,17 @@ contract GenerateAlloc is Script {
         uint256 writeFee = 0;
         uint256 readFee = 0;
         uint256 allocateFee = 0;
-        CDR(Predeploys.CDR).initialize(timelock, baseFee, writeFee, readFee, allocateFee);
+        uint256 maxEncryptedDataSize = 1024; // 1 KB
+        uint256 maxEncryptedPartialSize = 1024; // 1 KB
+        CDR(Predeploys.CDR).initialize(
+            timelock,
+            baseFee,
+            writeFee,
+            readFee,
+            allocateFee,
+            maxEncryptedDataSize,
+            maxEncryptedPartialSize
+        );
 
         console2.log("CDR proxy deployed at:", Predeploys.CDR);
         console2.log("CDR ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.CDR));

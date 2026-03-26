@@ -411,16 +411,6 @@ func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, ciphertex
 // ThresholdDecryptRequested handles TDH2 threshold decryption requests emitted by the contract.
 // This is where validators should fetch ciphertext/label and produce partial decryptions (via TEE/TDH2).
 func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, requesterPubKey []byte, ciphertext []byte, label []byte, blockHeight uint64) error {
-	// Enforce a maximum ciphertext size to prevent consensus state bloat.
-	// 1 KB is sufficient for TDH2 ciphertext (group element + symmetric payload).
-	const maxCiphertextSize = 1024
-	if len(ciphertext) > maxCiphertextSize {
-		return errors.New("ciphertext exceeds maximum allowed size",
-			"size", len(ciphertext),
-			"max", maxCiphertextSize,
-		)
-	}
-
 	// Consensus-level: all nodes record the request so PartialDecryptionSubmitted can enforce the timeout consistently.
 	if err := k.setDecryptRequest(ctx, requesterPubKey, label, types.DecryptRequest{
 		Round:           round,
