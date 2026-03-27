@@ -321,6 +321,18 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         return _getCDRStorage().allocateFee;
     }
 
+    /// @notice Gets the maximum allowed size for encrypted vault data
+    /// @return maxEncryptedDataSize The maximum size in bytes
+    function maxEncryptedDataSize() external view returns (uint256) {
+        return _getCDRStorage().maxEncryptedDataSize;
+    }
+
+    /// @notice Gets the maximum allowed size for encrypted partial decryptions
+    /// @return maxEncryptedPartialSize The maximum size in bytes
+    function maxEncryptedPartialSize() external view returns (uint256) {
+        return _getCDRStorage().maxEncryptedPartialSize;
+    }
+
     /// @notice Gets the vault
     /// @param uuid The UUID of the vault
     /// @return vault The vault
