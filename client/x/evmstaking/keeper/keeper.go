@@ -238,7 +238,6 @@ func (k Keeper) ProcessStakingEvents(ctx context.Context, height uint64, logs []
 			}
 
 		default:
-			clog.Error(ctx, "Unexpected event type from IP token staking contract", nil)
 			continue
 		}
 	}
