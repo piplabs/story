@@ -3,6 +3,8 @@ package keeper
 import (
 	"testing"
 
+	"cosmossdk.io/collections"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -220,6 +222,78 @@ func TestDecodePartialDecryptionSubmission_RoundTrip(t *testing.T) {
 	require.Equal(t, uint32(5), submission.Round)
 	require.Equal(t, uint32(2), submission.Pid)
 	require.Equal(t, []byte("enc-partial"), submission.EncryptedPartial)
+}
+
+// TestGetPartialDecryptionsByPrefix verifies that iterating with a prefix
+// derived from (requesterPubKey, label) returns all submissions regardless of
+// round, ciphertext, or validator, and nothing for a different requester.
+func TestGetPartialDecryptionsByPrefix(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	requesterPubKey := []byte("requester-pub-key")
+	otherRequesterPubKey := []byte("other-requester")
+	label := testLabel()
+	ciphertext1 := []byte("ciphertext-1")
+	ciphertext2 := []byte("ciphertext-2")
+
+	// Store 3 submissions under the same (requesterPubKey, label):
+	//   - validator1, round 1, ciphertext1
+	//   - validator2, round 1, ciphertext1
+	//   - validator1, round 2, ciphertext2
+	submissions := []struct {
+		validator  common.Address
+		round      uint32
+		pid        uint32
+		ciphertext []byte
+	}{
+		{testValidator1, 1, 1, ciphertext1},
+		{testValidator2, 1, 2, ciphertext1},
+		{testValidator1, 2, 1, ciphertext2},
+	}
+	for _, s := range submissions {
+		require.NoError(t, k.setPartialDecryptionSubmission(
+			ctx,
+			s.validator, s.round, s.pid,
+			[]byte("enc-partial"),
+			[]byte("eph-key"),
+			[]byte("pub-share"),
+			requesterPubKey, label, s.ciphertext,
+		))
+	}
+
+	// Store one submission for a different requester — must NOT appear in results.
+	require.NoError(t, k.setPartialDecryptionSubmission(
+		ctx,
+		testValidator1, 1, 1,
+		[]byte("enc-partial"),
+		[]byte("eph-key"),
+		[]byte("pub-share"),
+		otherRequesterPubKey, label, ciphertext1,
+	))
+
+	// Iterate by prefix for (requesterPubKey, label).
+	prefix := dkgPartialDecryptPrefix(requesterPubKey, label)
+	rangePrefix := (&collections.Range[string]{}).Prefix(prefix)
+	iter, err := k.DKGPartialDecrypt.Iterate(ctx, rangePrefix)
+	require.NoError(t, err)
+	defer iter.Close()
+
+	var got []string
+	for ; iter.Valid(); iter.Next() {
+		bz, err := iter.Value()
+		require.NoError(t, err)
+		sub, err := decodePartialDecryptionSubmission(bz)
+		require.NoError(t, err)
+		got = append(got, sub.Validator+":"+string(sub.Ciphertext))
+	}
+
+	// Expect exactly the 3 entries stored under requesterPubKey.
+	require.Len(t, got, 3)
+	require.Contains(t, got, testValidator1.Hex()+":"+string(ciphertext1))
+	require.Contains(t, got, testValidator2.Hex()+":"+string(ciphertext1))
+	require.Contains(t, got, testValidator1.Hex()+":"+string(ciphertext2))
 }
 
 // TestDecodePartialDecryptionSubmission_InvalidJSON verifies that decoding
