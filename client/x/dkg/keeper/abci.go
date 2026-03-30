@@ -10,9 +10,18 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// minDKGActivationHeight is the minimum block height before DKG BeginBlocker
+// becomes active. This gives operators time to set up kernels on a fresh devnet
+// before DKG rounds start. Set to 0 to disable the gate.
+const minDKGActivationHeight = 100
+
 func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
+
+	if currentHeight < minDKGActivationHeight {
+		return nil
+	}
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
