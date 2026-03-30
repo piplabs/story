@@ -41,6 +41,15 @@ func (k *Keeper) GetParams(ctx context.Context) (params types.Params, err error)
 		return params, errors.Wrap(err, "unmarshal params")
 	}
 
+	// TODO: remove hardcoded overrides after testing
+	params.RegistrationPeriod = 50 // ~2.5 min at 3s blocks
+	params.DealingPeriod = 30      // ~1.5 min
+	params.FinalizationPeriod = 30 // ~1.5 min
+	params.ActivePeriod = 1814400  // 21 days
+	params.MinReqRegisteredParticipants = 1
+	params.MinReqFinalizedParticipants = 1
+	params.OperationalThreshold = 500 // 50%
+
 	return params, nil
 }
 
