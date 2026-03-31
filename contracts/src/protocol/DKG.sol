@@ -8,7 +8,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { IDKG } from "../interfaces/IDKG.sol";
 import { IAttestationReportValidator } from "../interfaces/IAttestationReportValidator.sol";
 
-contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
     /// @dev Storage structure for the DKG
     /// @param minReqRegisteredParticipants The minimum number of participants needed to be registered for each round
     /// @param minReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round

@@ -10,7 +10,7 @@ import { ICDR } from "../interfaces/ICDR.sol";
 import { ICDRWriteCondition } from "../interfaces/ICDRWriteCondition.sol";
 import { ICDRReadCondition } from "../interfaces/ICDRReadCondition.sol";
 
-contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
     /// @dev Storage structure for the CDR
     /// @param uuid The UUID of the vault
     /// @param baseFee The base fee
@@ -387,9 +387,6 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         emit FeeCollected(msg.sender, feeAmountToCollect, feeType);
     }
 
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of CDR.
     function _getCDRStorage() private pure returns (CDRStorage storage $) {
