@@ -179,8 +179,12 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	session.CommPubKey = resp.GetCommPubKey()
 	session.EnclaveReport = resp.GetEnclaveReport()
 	session.StartBlockHeight = resp.GetStartBlockHeight()
-
 	session.StartBlockHash = resp.GetStartBlockHash()
+
+	log.Info(ctx, "GenerateAndSealKey response received",
+		"instance_data_commitment", hex.EncodeToString(extractReportInstanceDataCommitment(session.EnclaveReport)),
+		"session_code_commitment", hex.EncodeToString(session.CodeCommitment),
+	)
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling GenerateAndSealKey on the kernel client")
 	}
