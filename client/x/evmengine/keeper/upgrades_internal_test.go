@@ -250,6 +250,7 @@ func TestKeeper_ProcessCancelUpgrade(t *testing.T) {
 			name: "pass: valid cancel upgrade - before Terence upgrade",
 			setupMock: func(uk *moduletestutil.MockUpgradeKeeper) {
 				uk.EXPECT().ClearUpgradePlan(gomock.Any()).Return(nil)
+				uk.EXPECT().GetUpgradeInfoPath().Return("/tmp/test-upgrade-info.json", nil)
 			},
 		},
 		{
@@ -259,6 +260,9 @@ func TestKeeper_ProcessCancelUpgrade(t *testing.T) {
 				sdkCtx = sdkCtx.WithBlockHeight(51)
 
 				return sdkCtx
+			},
+			setupMock: func(uk *moduletestutil.MockUpgradeKeeper) {
+				uk.EXPECT().GetUpgradeInfoPath().Return("/tmp/test-upgrade-info.json", nil)
 			},
 			postCheck: func(ctx sdk.Context, keeper *Keeper) {
 				_, err := keeper.getPendingUpgrade(ctx)
