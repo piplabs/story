@@ -243,6 +243,21 @@ func (mr *MockUpgradeKeeperMockRecorder) ClearUpgradePlan(ctx any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearUpgradePlan", reflect.TypeOf((*MockUpgradeKeeper)(nil).ClearUpgradePlan), ctx)
 }
 
+// GetUpgradeInfoPath mocks base method.
+func (m *MockUpgradeKeeper) GetUpgradeInfoPath() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpgradeInfoPath")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUpgradeInfoPath indicates an expected call of GetUpgradeInfoPath.
+func (mr *MockUpgradeKeeperMockRecorder) GetUpgradeInfoPath() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpgradeInfoPath", reflect.TypeOf((*MockUpgradeKeeper)(nil).GetUpgradeInfoPath))
+}
+
 // DumpUpgradeInfoToDisk mocks base method.
 func (m *MockUpgradeKeeper) DumpUpgradeInfoToDisk(height int64, p types.Plan) error {
 	m.ctrl.T.Helper()
