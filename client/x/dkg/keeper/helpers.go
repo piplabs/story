@@ -8,13 +8,14 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
-// extractReportInstanceDataCommitment extracts the report_data field from a raw SGX quote.
-// Mirrors the Solidity _extractReportInstanceDataCommitment in SGXValidationHook.sol:
+// extractReportCodeCommitment extracts the MRENCLAVE field from a raw SGX quote.
+// Mirrors the Solidity _extractReportCodeCommitment in SGXValidationHook.sol:
 //   - SGX quote header: 48 bytes
-//   - report_data starts at offset 48 + 320 = 368 within the raw quote
-//   - returns the first 32 bytes of report_data
-func extractReportInstanceDataCommitment(enclaveReport []byte) []byte {
-	const offset = 368
+//   - MRENCLAVE starts at offset 64 within the report body
+//   - Total offset from raw quote start: 48 + 64 = 112
+//   - returns the 32-byte MRENCLAVE value
+func extractReportCodeCommitment(enclaveReport []byte) []byte {
+	const offset = 112
 	if len(enclaveReport) < offset+32 {
 		return nil
 	}

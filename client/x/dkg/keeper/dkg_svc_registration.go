@@ -182,7 +182,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	session.StartBlockHash = resp.GetStartBlockHash()
 
 	log.Info(ctx, "GenerateAndSealKey response received",
-		"instance_data_commitment", hex.EncodeToString(extractReportInstanceDataCommitment(session.EnclaveReport)),
+		"report_code_commitment", hex.EncodeToString(extractReportCodeCommitment(session.EnclaveReport)),
 		"session_code_commitment", hex.EncodeToString(session.CodeCommitment),
 	)
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {

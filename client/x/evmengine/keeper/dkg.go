@@ -61,6 +61,12 @@ func (k *Keeper) ProcessDKGEvents(ctx context.Context, height uint64, logs []*et
 				clog.Error(ctx, "Failed to process DKGUpgradeCancelled", err)
 				continue
 			}
+
+		case types.DKGEnclaveTypeWhitelistedEvent.ID:
+			if err := k.ProcessDKGEnclaveTypeWhitelisted(ctx, ethlog); err != nil {
+				clog.Error(ctx, "Failed to process DKGEnclaveTypeWhitelisted", err)
+				continue
+			}
 		}
 
 		clog.Debug(ctx, "Processed DKG events", "height", height, "count", len(logs))
@@ -426,6 +432,25 @@ func (k *Keeper) ProcessDKGUpgradeCancelled(ctx context.Context, ethlog *ethtype
 	} else if err != nil {
 		return errors.Wrap(err, "cancel TEE upgrade")
 	}
+
+	return nil
+}
+
+// ProcessDKGEnclaveTypeWhitelisted handles EnclaveTypeWhitelisted events emitted by the DKG contract.
+// It logs the whitelisted enclave type data for observability.
+func (k *Keeper) ProcessDKGEnclaveTypeWhitelisted(ctx context.Context, ethlog *ethtypes.Log) error {
+	ev, err := k.dkgContract.ParseEnclaveTypeWhitelisted(*ethlog)
+	if err != nil {
+		return errors.Wrap(err, "parse EnclaveTypeWhitelisted log")
+	}
+
+	clog.Info(ctx, "DKG enclave type whitelisted",
+		"enclave_type", hex.EncodeToString(ev.EnclaveType[:]),
+		"code_commitment", hex.EncodeToString(ev.CodeCommitment[:]),
+		"validation_hook_addr", ev.ValidationHookAddr.Hex(),
+		"is_whitelisted", ev.IsWhitelisted,
+		"tx_hash", hex.EncodeToString(ethlog.TxHash.Bytes()),
+	)
 
 	return nil
 }
