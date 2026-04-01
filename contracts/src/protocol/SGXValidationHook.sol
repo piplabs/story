@@ -3,13 +3,12 @@ pragma solidity 0.8.23;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { ISGXValidationHook } from "../interfaces/ISGXValidationHook.sol";
 import { IAutomataDcapAttestationFee } from "../interfaces/external/IAutomataDcapAttestationFee.sol";
 import { BytesUtils } from "../libraries/BytesUtils.sol";
 
-contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, PausableUpgradeable {
     using BytesUtils for bytes;
 
     /// @dev Storage structure for the SGXValidationHook
@@ -44,7 +43,6 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     ) external initializer {
         __Ownable_init(owner);
         __Pausable_init();
-        __UUPSUpgradeable_init();
 
         _setAutomataValidationAddr(automataValidationAddr);
         _setTcbEvaluationDataNumber(tcbEvaluationDataNumber);
@@ -167,10 +165,6 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         }
         return first32;
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of SGXValidationHook.
     function _getSGXValidationHookStorage() private pure returns (SGXValidationHookStorage storage $) {

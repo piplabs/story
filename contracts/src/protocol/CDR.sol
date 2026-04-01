@@ -4,8 +4,6 @@ pragma solidity 0.8.23;
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
 import { ICDR } from "../interfaces/ICDR.sol";
 import { ICDRWriteCondition } from "../interfaces/ICDRWriteCondition.sol";
 import { ICDRReadCondition } from "../interfaces/ICDRReadCondition.sol";
@@ -59,7 +57,6 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         __Ownable_init(owner);
         __ReentrancyGuard_init();
         __Pausable_init();
-        __UUPSUpgradeable_init();
 
         _setBaseFee(baseFee);
         _setWriteFee(writeFee);
