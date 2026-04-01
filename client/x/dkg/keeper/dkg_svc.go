@@ -176,6 +176,11 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 		go func() {
 			defer cancel()
 
+			log.Info(ctx, "Starting async DKG registration handling for failed session",
+				"round", dkgNetwork.Round,
+				"old_code_commitment", hex.EncodeToString(oldCC),
+				"already_registered", alreadyRegistered,
+			)
 			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	case types.DKGStageDealing:

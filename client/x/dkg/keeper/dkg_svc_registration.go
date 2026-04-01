@@ -22,6 +22,8 @@ import (
 func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork, oldCC []byte, alreadyRegistered bool) {
 	log.Info(ctx, "Handling DKG registration",
 		"round", dkgNetwork.Round,
+		"old_code_commitment", hex.EncodeToString(oldCC),
+		"already_registered", alreadyRegistered,
 	)
 
 	if !tryAcquireDKGSvc(dkgNetwork.Round) {
@@ -265,17 +267,28 @@ func (k *Keeper) resolveKernelClientForRegistration(isUpgrade bool, cc []byte) (
 func (k *Keeper) getOldCodeCommitment(ctx context.Context) ([]byte, error) {
 	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
+		log.Error(ctx, "Failed to get latest active DKG round for old code commitment retrieval", err)
 		return nil, err
 	}
 
 	if prevActive == nil {
+		log.Info(ctx, "No previous active DKG round found; returning nil old code commitment")
 		return nil, nil
 	}
+
+	log.Info(ctx, "Fetching old code commitment from previous active DKG round",
+		"round", prevActive.Round,
+	)
 
 	prevReg, err := k.getDKGRegistration(ctx, prevActive.Round, common.HexToAddress(k.validatorEVMAddr))
 	if err != nil {
 		return nil, err
 	}
+	log.Info(ctx, "Previous registration found for old code commitment retrieval",
+		"code_commitment", hex.EncodeToString(prevReg.CodeCommitment),
+		"round", prevReg.Round,
+		"status", prevReg.Status.String(),
+	)
 
 	return prevReg.CodeCommitment, nil
 }

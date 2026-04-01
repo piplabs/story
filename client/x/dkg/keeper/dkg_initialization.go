@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -104,6 +105,11 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 		go func() {
 			defer cancel()
 
+			log.Info(ctx, "Starting async DKG registration handling",
+				"round", roundNum,
+				"old_code_commitment", hex.EncodeToString(oldCC),
+				"already_registered", alreadyRegistered,
+			)
 			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	}

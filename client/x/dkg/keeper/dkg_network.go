@@ -8,6 +8,7 @@ import (
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 // setDKGNetwork stores a DKG network in the store using round as the key.
@@ -194,6 +195,7 @@ func (k *Keeper) GetLatestActiveRound(ctx context.Context) (*types.DKGNetwork, e
 func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwork, error) {
 	key, err := k.LatestActiveRound.Get(ctx)
 	if err != nil {
+		log.Error(ctx, "Failed to get latest active DKG round key", err)
 		if errors.Is(err, collections.ErrNotFound) {
 			return nil, nil
 		}
@@ -203,6 +205,7 @@ func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwo
 
 	dkgNetwork, err := k.DKGNetworks.Get(ctx, key)
 	if err != nil {
+		log.Error(ctx, "Failed to get latest active DKG round", err)
 		if errors.Is(err, collections.ErrNotFound) {
 			return nil, nil
 		}
