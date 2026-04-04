@@ -335,15 +335,12 @@ func TestDKGLifecycle_ProactiveResharing(t *testing.T) {
 	require.Equal(t, testGlobalPubKey, activeRound.GlobalPublicKey,
 		"global public key should be preserved across proactive resharing rounds")
 
-	// Verify Round 1's stage: when Active stage ends, BeginBlocker sets
-	// latestRound.Stage = Registration (the transition target) before calling
-	// InitiateDKGRound. So Round 1's stored stage is Registration, not Active.
-	// endPreviousActiveRound only marks stages == Active as Ended, so Round 1
-	// remains at Registration (its stage was already overwritten by the transition).
+	// Verify Round 1's stage: when Round 2 is finalized, endPreviousActiveRound
+	// finds Round 1 at DKGStageActive and transitions it to DKGStageEnded.
 	round1, err := env.keeper.getDKGNetworkByRound(env.sdkCtx, 1)
 	require.NoError(t, err)
-	require.Equal(t, types.DKGStageRegistration, round1.Stage,
-		"Round 1 stage was overwritten to Registration during Active→Registration transition")
+	require.Equal(t, types.DKGStageEnded, round1.Stage,
+		"Round 1 should be Ended after Round 2 finalization called endPreviousActiveRound")
 }
 
 // TestDKGLifecycle_UpgradeResharing verifies that when a kernel upgrade is

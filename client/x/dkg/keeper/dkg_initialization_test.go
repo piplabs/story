@@ -3,6 +3,7 @@ package keeper
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -282,6 +283,11 @@ func TestInitiateDKGRound_WithDKGSvcEnabled_NotRegistered(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, latest)
 	require.Equal(t, uint32(1), latest.Round)
+
+	// Allow the async goroutine spawned by InitiateDKGRound to complete before
+	// t.Cleanup removes the temp directory. Without this, the goroutine may
+	// race with directory cleanup and cause flaky "no such file or directory".
+	time.Sleep(100 * time.Millisecond)
 }
 
 // TestShouldReshare_GetLatestActiveDKGNetworkError verifies shouldReshare propagates
