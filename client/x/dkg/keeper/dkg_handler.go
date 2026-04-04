@@ -442,15 +442,19 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		return errors.Wrap(err, "failed to register decrypt request")
 	}
 
-	if !k.isDKGSvcEnabled {
-		log.Info(ctx, "DKG service disabled; skipping threshold decrypt request")
+	// Read DKG network unconditionally so all nodes perform identical KV reads.
+	// This ensures deterministic gas consumption (GasUsed → LastResultsHash).
+	dkgNetwork, err := k.getDKGNetwork(ctx, round)
+	if err != nil {
+		log.Warn(ctx, "Failed to get DKG network for decrypt request", err,
+			"round", round,
+		)
 
 		return nil
 	}
 
-	dkgNetwork, err := k.getDKGNetwork(ctx, round)
-	if err != nil {
-		return errors.Wrap(err, "failed to get dkg network for decrypt request")
+	if !k.isDKGSvcEnabled {
+		return nil
 	}
 
 	if dkgNetwork.Stage != types.DKGStageActive {
@@ -481,7 +485,12 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 
 	session, err := k.stateManager.GetSession(round)
 	if err != nil {
-		return errors.Wrap(err, "failed to get DKG session for decrypt request")
+		// Log and continue — do not propagate stateManager errors to the
+		// caller (CacheContext) to prevent rolling back the consensus-critical
+		// setDecryptRequest written above.
+		log.Error(ctx, "Failed to get DKG session for decrypt request", err)
+
+		return nil
 	}
 
 	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.
@@ -494,7 +503,9 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 	})
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to persist decrypt request")
+		log.Error(ctx, "Failed to persist decrypt request", err)
+
+		return nil
 	}
 
 	log.Info(ctx, "Queued threshold decrypt request",

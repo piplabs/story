@@ -87,17 +87,16 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 		return errors.Wrap(err, "failed to emit begin dkg initialization event")
 	}
 
+	// Pre-compute registration check and old code commitment unconditionally
+	// so all nodes perform identical KV reads. This ensures deterministic gas
+	// consumption across DKG-enabled and DKG-disabled nodes.
+	alreadyRegistered := k.isAlreadyRegistered(ctx, roundNum)
+	oldCC, _ := k.getOldCodeCommitment(ctx)
+
 	if k.isDKGSvcEnabled {
-		// Pre-compute registration check while we still have SDK context.
-		// The async goroutine uses context.Background() which cannot access
-		// the Cosmos KV store.
-		alreadyRegistered := k.isAlreadyRegistered(ctx, roundNum)
 		if alreadyRegistered {
 			return nil
 		}
-
-		// Pre-compute old code commitment while we still have SDK context.
-		oldCC, _ := k.getOldCodeCommitment(ctx)
 
 		asyncCtx, cancel := dkgAsyncContext()
 

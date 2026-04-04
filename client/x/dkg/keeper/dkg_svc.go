@@ -72,8 +72,19 @@ func dkgAsyncContext() (context.Context, context.CancelFunc) {
 
 var decryptWorkerRunning atomic.Bool
 
-// ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
-func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+// ResumeDKGService reloads unfinished DKG sessions and resumes their execution
+// safely without spawning duplicate goroutines.
+//
+// KV reads (alreadyRegistered, oldCC, shouldDeal, reg) are pre-computed by the
+// caller (BeginBlocker) outside isDKGSvcEnabled so all nodes consume identical gas.
+func (k *Keeper) ResumeDKGService(
+	ctx context.Context,
+	dkgNetwork *types.DKGNetwork,
+	alreadyRegistered bool,
+	oldCC []byte,
+	shouldDeal bool,
+	reg *types.DKGRegistration,
+) {
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
@@ -91,20 +102,12 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	}
 
 	if session.Phase == types.PhaseFailed {
-		k.resumeFailedSession(ctx, session, dkgNetwork)
+		k.resumeFailedSession(ctx, session, dkgNetwork, alreadyRegistered, oldCC, shouldDeal, reg)
 
 		return
 	}
 
 	// Recover sessions stuck in intermediate phases after an unexpected process crash.
-	// A session is stuck when its phase has NOT advanced to the expected completion
-	// state for the current stage AND no goroutine is actively processing it.
-	//
-	// Valid (non-stuck) completion states per stage:
-	//   Registration → PhaseInitialized (registration done, waiting for dealing)
-	//   Dealing      → PhaseDealing     (deals generated, processing responses via VE)
-	//   Finalization → PhaseFinalized   (finalization done, waiting for active)
-	//   Active       → PhaseCompleted
 	if isSessionStuckForStage(session.Phase, dkgNetwork.Stage) {
 		if tryAcquireDKGSvc(dkgNetwork.Round) {
 			releaseDKGSvc(dkgNetwork.Round)
@@ -116,7 +119,6 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 			)
 
 			k.stateManager.MarkFailed(ctx, session)
-			// Will be picked up as PhaseFailed on next block's ResumeDKGService call.
 		}
 	}
 }
@@ -145,11 +147,20 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 
 // resumeFailedSession dispatches a PhaseFailed session to the appropriate handler
 // based on the current DKG network stage.
-func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
+//
+// KV reads (alreadyRegistered, oldCC, shouldDeal, reg) are pre-computed by the
+// caller so no Cosmos KV reads happen inside this function.
+func (k *Keeper) resumeFailedSession(
+	ctx context.Context,
+	session *types.DKGSession,
+	dkgNetwork *types.DKGNetwork,
+	alreadyRegistered bool,
+	oldCC []byte,
+	shouldDeal bool,
+	reg *types.DKGRegistration,
+) {
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
-		// Pre-compute registration check while SDK context is available.
-		alreadyRegistered := k.isAlreadyRegistered(ctx, dkgNetwork.Round)
 		if alreadyRegistered {
 			session.UpdatePhase(types.PhaseInitialized)
 
@@ -168,9 +179,6 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 			return
 		}
 
-		// Pre-compute old code commitment while SDK context is available.
-		oldCC, _ := k.getOldCodeCommitment(ctx)
-
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
@@ -187,19 +195,13 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 			return
 		}
 
-		// Set session.Index from on-chain registration for deal/response routing.
-		if err := k.ensureSessionIndex(ctx, dkgNetwork.Round); err != nil {
-			log.Warn(ctx, "Failed to set session index during resume", err,
-				"round", dkgNetwork.Round,
-			)
-		}
-
-		// Pre-compute shouldDeal while SDK context is available.
-		deal, err := k.shouldDeal(ctx, dkgNetwork)
-		if err != nil {
-			log.Error(ctx, "Failed to check shouldDeal during resume", err)
-
-			return
+		// Set session.Index from pre-read registration (no additional KV read).
+		if reg != nil {
+			if err := k.ensureSessionIndexFromReg(dkgNetwork.Round, reg); err != nil {
+				log.Warn(ctx, "Failed to set session index during resume", err,
+					"round", dkgNetwork.Round,
+				)
+			}
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
@@ -207,7 +209,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 		go func() {
 			defer cancel()
 
-			k.handleDKGDealing(asyncCtx, dkgNetwork, deal)
+			k.handleDKGDealing(asyncCtx, dkgNetwork, shouldDeal)
 		}()
 	case types.DKGStageFinalization:
 		session.UpdatePhase(types.PhaseDealing)

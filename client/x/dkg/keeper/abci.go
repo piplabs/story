@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -64,9 +65,16 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		}
 	}
 
+	// Pre-compute KV reads unconditionally so all nodes (TEE and non-TEE)
+	// consume identical gas from the Cosmos KV store in BeginBlocker.
+	alreadyRegisteredForResume := k.isAlreadyRegistered(ctx, latestRound.Round)
+	oldCCForResume, _ := k.getOldCodeCommitment(ctx)
+	shouldDealForResume, _ := k.shouldDeal(ctx, latestRound)
+	regForResume, _ := k.getDKGRegistration(ctx, latestRound.Round, common.HexToAddress(k.validatorEVMAddr))
+
 	if k.isDKGSvcEnabled {
 		// Resume stuck or failed DKG sessions every block.
-		k.ResumeDKGService(ctx, latestRound)
+		k.ResumeDKGService(ctx, latestRound, alreadyRegisteredForResume, oldCCForResume, shouldDealForResume, regForResume)
 
 		// Retry cached deals/responses/justifications that failed kernel processing.
 		// Deals are replayed before responses (kyber requires deal-before-response order).

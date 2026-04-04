@@ -655,7 +655,7 @@ func TestResumeDKGService_FailedSession_Registration(t *testing.T) {
 	// ResumeDKGService dispatches to resumeFailedSession which spawns
 	// a goroutine for registration. Since validator is not in current set,
 	// it will create session and skip key generation.
-	k.ResumeDKGService(ctx, dkgNetwork)
+	k.ResumeDKGService(ctx, dkgNetwork, false, nil, false, nil)
 
 	// Give async goroutine time to complete (registration for non-member is fast)
 	// We verify the initial dispatch happened by checking the session was updated.
@@ -693,7 +693,7 @@ func TestResumeDKGService_FailedSession_AlreadyRegistered(t *testing.T) {
 		ActiveValSet: []string{testValidatorAddr},
 	}
 
-	k.ResumeDKGService(ctx, dkgNetwork)
+	k.ResumeDKGService(ctx, dkgNetwork, true, nil, false, nil)
 
 	got, err := sm.GetSession(2)
 	require.NoError(t, err)
@@ -723,7 +723,7 @@ func TestResumeDKGService_StuckSession(t *testing.T) {
 		Stage: types.DKGStageRegistration,
 	}
 
-	k.ResumeDKGService(ctx, dkgNetwork)
+	k.ResumeDKGService(ctx, dkgNetwork, false, nil, false, nil)
 
 	got, err := sm.GetSession(3)
 	require.NoError(t, err)
@@ -753,7 +753,7 @@ func TestResumeDKGService_NotStuck(t *testing.T) {
 		Stage: types.DKGStageRegistration,
 	}
 
-	k.ResumeDKGService(ctx, dkgNetwork)
+	k.ResumeDKGService(ctx, dkgNetwork, false, nil, false, nil)
 
 	got, err := sm.GetSession(4)
 	require.NoError(t, err)
@@ -774,7 +774,7 @@ func TestResumeDKGService_NoSession(t *testing.T) {
 	}
 
 	// Should not panic when session doesn't exist
-	k.ResumeDKGService(ctx, dkgNetwork)
+	k.ResumeDKGService(ctx, dkgNetwork, false, nil, false, nil)
 }
 
 // --- resumeFailedSession ---
@@ -801,7 +801,7 @@ func TestResumeFailedSession_DealingStage(t *testing.T) {
 
 	// shouldDeal will be false (not in set, no prev active)
 	// so the dealing goroutine returns quickly
-	k.resumeFailedSession(ctx, session, dkgNetwork)
+	k.resumeFailedSession(ctx, session, dkgNetwork, false, nil, false, nil)
 
 	got, err := sm.GetSession(10)
 	require.NoError(t, err)
@@ -828,7 +828,7 @@ func TestResumeFailedSession_UnspecifiedStage(t *testing.T) {
 	}
 
 	// Should be a no-op
-	k.resumeFailedSession(ctx, session, dkgNetwork)
+	k.resumeFailedSession(ctx, session, dkgNetwork, false, nil, false, nil)
 
 	got, err := sm.GetSession(11)
 	require.NoError(t, err)
@@ -923,7 +923,7 @@ func TestResumeFailedSession_FinalizationStage(t *testing.T) {
 		ActiveValSet: []string{"0xother"}, // not in set → handleDKGFinalization returns early
 	}
 
-	k.resumeFailedSession(ctx, session, dkgNetwork)
+	k.resumeFailedSession(ctx, session, dkgNetwork, false, nil, false, nil)
 
 	// Phase is updated synchronously before the goroutine is launched.
 	got, err := sm.GetSession(20)
@@ -969,7 +969,7 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 		ActiveValSet: []string{"0xother"},
 	}
 
-	k.resumeFailedSession(ctx, session, dkgNetwork)
+	k.resumeFailedSession(ctx, session, dkgNetwork, false, nil, false, nil)
 
 	// Wait for the goroutine spawned by resumeFailedSession to complete.
 	// The goroutine acquires dkgSvcRound; when it is released (dkgSvcRound drops to 0),

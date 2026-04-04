@@ -54,23 +54,28 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 		return errors.Wrap(err, "failed to emit begin DKG dealing event")
 	}
 
+	// Pre-compute shouldDeal and registration lookup unconditionally so all
+	// nodes perform identical KV reads. This ensures deterministic gas
+	// consumption across DKG-enabled and DKG-disabled nodes.
+	deal, err := k.shouldDeal(ctx, latestRound)
+	if err != nil {
+		log.Error(ctx, "Failed to check whether the validator should deal", err)
+
+		return nil
+	}
+
+	// Read registration for session index routing (KV read must happen on
+	// all nodes for deterministic gas, even if non-TEE nodes discard the result).
+	sessionIndexReg, _ := k.getDKGRegistration(ctx, latestRound.Round, common.HexToAddress(k.validatorEVMAddr))
+
 	if k.isDKGSvcEnabled {
-		// Set session.Index from on-chain registration while SDK context is available.
-		// Session.Index stores the 1-based registration index used for deal/response
-		// routing (converted to 0-based for Kyber) and threshold decryption PID.
-		if err := k.ensureSessionIndex(ctx, latestRound.Round); err != nil {
-			log.Warn(ctx, "Failed to set session index from registration", err,
-				"round", latestRound.Round,
-			)
-		}
-
-		// Pre-compute shouldDeal while SDK context is available.
-		// The async goroutine cannot access the KV store.
-		deal, err := k.shouldDeal(ctx, latestRound)
-		if err != nil {
-			log.Error(ctx, "Failed to check whether the validator should deal", err)
-
-			return nil
+		// Set session.Index from the pre-read registration.
+		if sessionIndexReg != nil {
+			if err := k.ensureSessionIndexFromReg(latestRound.Round, sessionIndexReg); err != nil {
+				log.Warn(ctx, "Failed to set session index from registration", err,
+					"round", latestRound.Round,
+				)
+			}
 		}
 
 		asyncCtx, cancel := dkgAsyncContext()
@@ -202,15 +207,18 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 		return errors.Wrap(err, "failed to emit begin process responses event")
 	}
 
+	// Pre-compute shouldProcessResponses unconditionally so that all nodes
+	// perform identical KV reads and consume the same gas. GasUsed is part of
+	// deterministicExecTxResult → LastResultsHash; conditional reads here
+	// cause consensus failure between DKG-enabled and DKG-disabled nodes.
+	shouldProcess, err := k.shouldProcessResponses(ctx, latestRound)
+	if err != nil {
+		log.Error(ctx, "Failed to check shouldProcessResponses", err)
+
+		return nil
+	}
+
 	if k.isDKGSvcEnabled {
-		// Pre-compute shouldProcessResponses while SDK context is available.
-		shouldProcess, err := k.shouldProcessResponses(ctx, latestRound)
-		if err != nil {
-			log.Error(ctx, "Failed to check shouldProcessResponses", err)
-
-			return nil
-		}
-
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
@@ -227,6 +235,10 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 // if not already set. Must be called from a context where the KV store is accessible.
 // For old-only resharing members who have no registration in the current round,
 // the index remains 0 (unset).
+//
+// Note: this function performs a Cosmos KV read. When called from a context
+// where gas determinism matters, use getDKGRegistration + ensureSessionIndexFromReg
+// instead, with the KV read outside the isDKGSvcEnabled guard.
 func (k *Keeper) ensureSessionIndex(ctx context.Context, round uint32) error {
 	session, err := k.stateManager.GetSession(round)
 	if err != nil {
@@ -250,4 +262,27 @@ func (k *Keeper) ensureSessionIndex(ctx context.Context, round uint32) error {
 	)
 
 	return k.stateManager.UpdateSession(ctx, session)
+}
+
+// ensureSessionIndexFromReg sets the session's 1-based index from a pre-read
+// registration without performing additional KV reads. Used when the caller
+// already read the registration outside isDKGSvcEnabled for deterministic gas.
+func (k *Keeper) ensureSessionIndexFromReg(round uint32, reg *types.DKGRegistration) error {
+	session, err := k.stateManager.GetSession(round)
+	if err != nil {
+		return err
+	}
+
+	if session.Index != 0 {
+		return nil
+	}
+
+	session.Index = reg.Index
+
+	log.Info(context.Background(), "Session index set from on-chain registration",
+		"round", round,
+		"index", session.Index,
+	)
+
+	return k.stateManager.UpdateSession(context.Background(), session)
 }

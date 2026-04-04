@@ -1428,8 +1428,9 @@ func TestThresholdDecryptRequested_DKGSvcDisabled(t *testing.T) {
 	require.Equal(t, uint64(100), req.Height)
 }
 
-// TestThresholdDecryptRequested_RoundNotFound verifies that when DKG service is
-// enabled but the DKG network for the round does not exist, an error is returned.
+// TestThresholdDecryptRequested_RoundNotFound verifies that when the DKG network
+// for the round does not exist, ThresholdDecryptRequested returns nil (not an error)
+// to avoid rolling back the consensus-critical setDecryptRequest via CacheContext.
 func TestThresholdDecryptRequested_RoundNotFound(t *testing.T) {
 	t.Parallel()
 
@@ -1441,10 +1442,9 @@ func TestThresholdDecryptRequested_RoundNotFound(t *testing.T) {
 	ciphertext := []byte("ciphertext")
 	label := []byte("label")
 
-	// Round 999 does not exist
+	// Round 999 does not exist — returns nil to preserve setDecryptRequest
 	err := k.ThresholdDecryptRequested(ctx, 999, requesterPubKey, ciphertext, label, 100)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to get dkg network for decrypt request")
+	require.NoError(t, err, "getDKGNetwork failure should be swallowed to preserve consensus state")
 }
 
 // TestThresholdDecryptRequested_RoundNotActive verifies that when the DKG round
@@ -1516,10 +1516,10 @@ func TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound(t *testin
 	}
 	require.NoError(t, k.setDKGNetwork(ctx, network))
 
-	// No session created for round 7 → GetSession returns "not found" error
+	// No session created for round 7 → GetSession error is swallowed to
+	// avoid rolling back the consensus-critical setDecryptRequest via CacheContext.
 	err := k.ThresholdDecryptRequested(ctx, 7, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
-	require.Error(t, err, "missing session should return an error")
-	require.Contains(t, err.Error(), "failed to get DKG session for decrypt request")
+	require.NoError(t, err, "stateManager failure should be swallowed to preserve consensus state")
 }
 
 // TestThresholdDecryptRequested_ValidatorInCommitteeWithSession verifies the happy
