@@ -65,8 +65,12 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Resume stuck or failed DKG sessions every block.
-		k.ResumeDKGService(ctx, latestRound)
+		k.ResumeDKGService(gaslessCtx, latestRound)
 
 		// Retry cached deals/responses/justifications that failed kernel processing.
 		// Deals are replayed before responses (kyber requires deal-before-response order).
