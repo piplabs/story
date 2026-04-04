@@ -55,10 +55,14 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Set session.Index from on-chain registration while SDK context is available.
 		// Session.Index stores the 1-based registration index used for deal/response
 		// routing (converted to 0-based for Kyber) and threshold decryption PID.
-		if err := k.ensureSessionIndex(ctx, latestRound.Round); err != nil {
+		if err := k.ensureSessionIndex(gaslessCtx, latestRound.Round); err != nil {
 			log.Warn(ctx, "Failed to set session index from registration", err,
 				"round", latestRound.Round,
 			)
@@ -66,7 +70,7 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 
 		// Pre-compute shouldDeal while SDK context is available.
 		// The async goroutine cannot access the KV store.
-		deal, err := k.shouldDeal(ctx, latestRound)
+		deal, err := k.shouldDeal(gaslessCtx, latestRound)
 		if err != nil {
 			log.Error(ctx, "Failed to check whether the validator should deal", err)
 
@@ -203,8 +207,12 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Pre-compute shouldProcessResponses while SDK context is available.
-		shouldProcess, err := k.shouldProcessResponses(ctx, latestRound)
+		shouldProcess, err := k.shouldProcessResponses(gaslessCtx, latestRound)
 		if err != nil {
 			log.Error(ctx, "Failed to check shouldProcessResponses", err)
 

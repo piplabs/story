@@ -448,7 +448,11 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		return nil
 	}
 
-	dkgNetwork, err := k.getDKGNetwork(ctx, round)
+	// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+	// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+	gaslessCtx := gaslessSDKContext(ctx)
+
+	dkgNetwork, err := k.getDKGNetwork(gaslessCtx, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg network for decrypt request")
 	}

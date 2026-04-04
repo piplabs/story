@@ -971,20 +971,27 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 
 	k.resumeFailedSession(ctx, session, dkgNetwork)
 
-	// Wait for the goroutine spawned by resumeFailedSession to complete.
-	// The goroutine acquires dkgSvcRound; when it is released (dkgSvcRound drops to 0),
-	// the goroutine is done and will no longer access the session object.
-	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); {
+	// resumeFailedSession (Active stage) synchronously sets PhaseFinalized,
+	// then spawns a goroutine for handleDKGComplete that mutates the same
+	// session object. We must wait for the goroutine to finish before reading
+	// the session, otherwise the race detector flags the concurrent read/write
+	// on session.Phase.
+	//
+	// Wait strategy: the goroutine acquires dkgSvcRound, does work, then
+	// releases it. We first wait for acquisition (non-zero), then for release
+	// (back to zero). The initial sleep gives the goroutine time to start.
+	time.Sleep(50 * time.Millisecond)
+	for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); {
 		if dkgSvcRound.Load() == 0 {
 			break
 		}
-
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 
-	// Now the goroutine is done — safe to read the session state.
+	// Goroutine has completed — safe to read session without race.
 	got, err := sm.GetSession(21)
 	require.NoError(t, err)
-	// resumeFailedSession updates phase to PhaseFinalized before launching the goroutine
-	require.Equal(t, types.PhaseFinalized, got.Phase, "active stage should set phase to PhaseFinalized")
+	// handleDKGComplete advances phase from Finalized to Completed.
+	require.Equal(t, types.PhaseCompleted, got.Phase,
+		"active stage: handleDKGComplete should advance phase to PhaseCompleted")
 }

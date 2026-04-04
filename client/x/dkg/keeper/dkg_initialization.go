@@ -88,16 +88,20 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Pre-compute registration check while we still have SDK context.
 		// The async goroutine uses context.Background() which cannot access
 		// the Cosmos KV store.
-		alreadyRegistered := k.isAlreadyRegistered(ctx, roundNum)
+		alreadyRegistered := k.isAlreadyRegistered(gaslessCtx, roundNum)
 		if alreadyRegistered {
 			return nil
 		}
 
 		// Pre-compute old code commitment while we still have SDK context.
-		oldCC, _ := k.getOldCodeCommitment(ctx)
+		oldCC, _ := k.getOldCodeCommitment(gaslessCtx)
 
 		asyncCtx, cancel := dkgAsyncContext()
 
