@@ -152,33 +152,39 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
+	// Filter deals addressed to this validator before entering retry loop.
+	filteredDeals := make([]types.Deal, 0, len(deals))
+	for _, deal := range deals {
+		// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
+		// Guard against unset index (0) to avoid uint32 underflow.
+		if session.Index > 0 && deal.RecipientIndex == session.Index-1 {
+			filteredDeals = append(filteredDeals, deal)
+		}
+	}
+
+	if len(filteredDeals) == 0 {
+		log.Info(ctx, "No deals addressed to this validator; skipping",
+			"round", dkgNetwork.Round,
+			"total_deals", len(deals),
+		)
+
+		return
+	}
+
 	var resp *types.ProcessDealsResponse
 
 	if err := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
 			"round", session.Round,
-			"num_deals", len(deals),
+			"total_deals", len(deals),
+			"filtered_deals", len(filteredDeals),
 		)
 
 		req := &types.ProcessDealsRequest{
 			CodeCommitment: session.CodeCommitment,
 			Round:          session.Round,
-			Deals:          []types.Deal{},
+			Deals:          filteredDeals,
 			IsResharing:    session.IsResharing,
-		}
-
-		for _, deal := range deals {
-			// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
-			// Guard against unset index (0) to avoid uint32 underflow.
-			if session.Index > 0 && deal.RecipientIndex == session.Index-1 {
-				req.Deals = append(req.Deals, deal)
-			}
-		}
-
-		if len(req.Deals) == 0 {
-			log.Info(ctx, "No deals to process. Skip to request")
-
-			return nil
 		}
 
 		client, cErr := k.getClientWithReconnect(session.CodeCommitment)
@@ -206,7 +212,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 		// Cache unprocessed deals in memory for retry when kernel recovers.
 		// Not persisted to disk — process restart loses them (round will fail and retry).
-		cached := cachePendingIncomingDeals(deals, session.Index)
+		cached := cachePendingIncomingDeals(filteredDeals, session.Index)
 
 		log.Error(ctx, "Failed to process deals; cached for retry", err,
 			"round", dkgNetwork.Round,
@@ -220,6 +226,8 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 	log.Info(ctx, "Process deals complete",
 		"round", session.Round,
+		"submitted_deals", len(filteredDeals),
+		"responses_generated", len(resp.GetResponses()),
 	)
 }
 
@@ -303,6 +311,8 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		return
 	}
 
+	var totalJustifications int
+
 	for _, cc := range ccsToProcess {
 		var processResp *types.ProcessResponsesResponse
 
@@ -351,6 +361,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		// and the dealer needs to reveal the plaintext deal to prove its validity.
 		if processResp != nil && len(processResp.GetJustifications()) > 0 {
 			k.EnqueueJustifications(processResp.GetJustifications())
+			totalJustifications += len(processResp.GetJustifications())
 
 			log.Info(ctx, "Enqueued justifications for broadcast",
 				"code_commitment", hex.EncodeToString(cc),
@@ -362,6 +373,8 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 	log.Info(ctx, "Process responses complete",
 		"round", session.Round,
+		"submitted_responses", len(filteredResponses),
+		"justifications_received", totalJustifications,
 	)
 }
 
@@ -416,6 +429,11 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 			return
 		}
 	}
+
+	log.Info(ctx, "Process justifications complete",
+		"round", session.Round,
+		"submitted_justifications", len(justifications),
+	)
 }
 
 func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (bool, error) {
