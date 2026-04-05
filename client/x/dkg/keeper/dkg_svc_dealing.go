@@ -5,10 +5,14 @@ import (
 	"context"
 	"encoding/hex"
 	"slices"
+	"strings"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -189,6 +193,17 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 		return nil
 	}); err != nil {
+		// "all N submitted deals were rejected" means every deal was already processed
+		// by kyber (duplicate delivery via consecutive vote extensions). Retrying the
+		// same data will always fail, so drop instead of caching.
+		if status.Code(err) == codes.InvalidArgument && strings.Contains(status.Convert(err).Message(), "submitted deals were rejected") {
+			log.Warn(ctx, "All deals already processed by kernel; dropping duplicates", err,
+				"round", dkgNetwork.Round,
+			)
+
+			return
+		}
+
 		// Cache unprocessed deals in memory for retry when kernel recovers.
 		// Not persisted to disk — process restart loses them (round will fail and retry).
 		cached := cachePendingIncomingDeals(deals, session.Index)
