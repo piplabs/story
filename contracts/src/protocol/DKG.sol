@@ -4,11 +4,10 @@ pragma solidity 0.8.23;
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IDKG } from "../interfaces/IDKG.sol";
 import { IAttestationReportValidator } from "../interfaces/IAttestationReportValidator.sol";
 
-contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
     /// @dev Storage structure for the DKG
     /// @param minReqRegisteredParticipants The minimum number of participants needed to be registered for each round
     /// @param minReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
@@ -58,8 +57,6 @@ contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         __Ownable_init(owner);
         __ReentrancyGuard_init();
         __Pausable_init();
-        __UUPSUpgradeable_init();
-
         _setMinReqRegisteredParticipants(minReqRegisteredParticipants);
         _setMinReqFinalizedParticipants(minReqFinalizedParticipants);
         _setOperationalThreshold(operationalThreshold);
@@ -369,10 +366,6 @@ contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         );
         require(isValidReport, "DKG: Enclave authentication failed");
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of DKG.
     function _getDKGStorage() private pure returns (DKGStorage storage $) {
