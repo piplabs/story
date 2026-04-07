@@ -216,4 +216,42 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		reqs := session.GetDecryptRequests()
 		require.Empty(t, reqs)
 	})
+
+	t.Run("drain decrypt requests clears queue and returns contents", func(t *testing.T) {
+		t.Parallel()
+
+		session := types.NewDKGSession(1, nil, false, [32]byte{})
+		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")})
+		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")})
+
+		drained := session.DrainDecryptRequests()
+		require.Len(t, drained, 2)
+		require.Equal(t, []byte("ct1"), drained[0].Ciphertext)
+		require.Equal(t, []byte("ct2"), drained[1].Ciphertext)
+
+		// Queue should be empty after drain
+		require.Empty(t, session.GetDecryptRequests())
+	})
+
+	t.Run("drain then add preserves new requests", func(t *testing.T) {
+		t.Parallel()
+
+		// Simulates the race: worker drains, ABCI adds a new request,
+		// worker re-adds failures — the new request must survive.
+		session := types.NewDKGSession(1, nil, false, [32]byte{})
+		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid50")})
+
+		// Worker drains
+		drained := session.DrainDecryptRequests()
+		require.Len(t, drained, 1)
+
+		// ABCI thread adds uuid51 while worker is processing uuid50
+		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid51")})
+
+		// Worker finishes uuid50 successfully — no failures to re-add
+		// Queue should still contain uuid51
+		reqs := session.GetDecryptRequests()
+		require.Len(t, reqs, 1)
+		require.Equal(t, []byte("uuid51"), reqs[0].Ciphertext)
+	})
 }
