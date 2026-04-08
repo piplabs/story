@@ -293,7 +293,9 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
-		requests := session.GetDecryptRequests()
+		// Atomically drain the queue so that requests added by the ABCI thread
+		// during processing are not overwritten when we persist the remaining failures.
+		requests := session.DrainDecryptRequests()
 		if len(requests) == 0 {
 			continue
 		}
@@ -307,7 +309,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 				"code_commitment", hex.EncodeToString(session.CodeCommitment),
 				"dropped_requests", len(requests),
 			)
-			session.SetDecryptRequests(nil)
 
 			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 				log.Error(ctx, "Failed to clear stale decrypt requests", err,
@@ -339,9 +340,8 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		}
 
 		if len(validRequests) == 0 {
-			session.SetDecryptRequests(nil)
 			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+				log.Error(ctx, "Failed to persist session after clearing stale requests", err,
 					"session", session.GetSessionKey(),
 				)
 			}
@@ -355,7 +355,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			"pending_requests", len(requests),
 		)
 
-		remaining := make([]types.DecryptRequest, 0, len(requests))
 		for _, req := range requests {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
 				log.Error(ctx, "Failed to process decrypt request", err,
@@ -365,7 +364,9 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 					"label_len", len(req.Label),
 					"requester_pub_key_len", len(req.RequesterPubKey),
 				)
-				remaining = append(remaining, req) // keep for retry
+				// Re-add failed request; this appends to the live queue, preserving
+				// any new requests the ABCI thread added while we were processing.
+				session.AddDecryptRequest(req)
 
 				continue
 			}
@@ -376,12 +377,9 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			)
 		}
 
-		session.SetDecryptRequests(remaining)
-
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
 				"session", session.GetSessionKey(),
-				"remaining_requests", len(remaining),
 			)
 		}
 	}
