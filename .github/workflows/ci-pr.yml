@@ -1,10 +1,11 @@
 name: ci pr
-# continuous integration on pull requests to main
+# continuous integration on pull requests to main and dkg/dev
 
 on:
   pull_request:
     branches:
       - main
+      - dkg/dev
 
 permissions:
   contents: read
