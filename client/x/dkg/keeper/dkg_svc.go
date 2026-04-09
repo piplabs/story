@@ -297,6 +297,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		return
 	}
 
+	if k.kernelRouter == nil {
+		log.Error(ctx, "Kernel client not configured", nil)
+		return
+	}
+
 	currentHeight, err := k.contractClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
@@ -305,6 +310,24 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
+		// Check session-level preconditions before draining so that requests are
+		// not removed from the queue only to be re-added immediately.
+		if session.Index == 0 {
+			log.Warn(ctx, "Session index not set, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
+		if len(session.GlobalPubKey) == 0 {
+			log.Warn(ctx, "Missing global public key for session, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
 		// Atomically drain the queue so that requests added by the ABCI thread
 		// during processing are not overwritten when we persist the remaining failures.
 		requests := session.DrainDecryptRequests()
@@ -391,26 +414,6 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 // mutex, concurrent submissions would produce nonce collisions, so this phase must
 // remain sequential.
 func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.DecryptRequest) {
-	if k.kernelRouter == nil {
-		log.Error(ctx, "Kernel client not configured", nil)
-		return
-	}
-
-	if session.Index == 0 {
-		log.Error(ctx, "Session index not set, skipping decrypt requests", nil,
-			"session", session.GetSessionKey(),
-		)
-
-		return
-	}
-
-	if len(session.GlobalPubKey) == 0 {
-		log.Error(ctx, "Missing global public key for session, skipping decrypt requests", nil,
-			"session", session.GetSessionKey(),
-		)
-
-		return
-	}
 
 	// Phase 1: parallel kernel calls.
 	// Each goroutine sends exactly one result, so we read exactly len(requests) times

@@ -333,60 +333,89 @@ func TestDkgAsyncContext(t *testing.T) {
 
 // --- processDecryptRequests / computePartialDecrypt / submitPartialDecryption ---
 
-func TestProcessDecryptRequests_NilKernelRouter(t *testing.T) {
+// TestProcessDecryptQueue_NilKernelRouter verifies that processDecryptQueue returns early
+// without draining any session when kernelRouter is not configured.
+func TestProcessDecryptQueue_NilKernelRouter(t *testing.T) {
 	t.Parallel()
 
-	k := &Keeper{kernelRouter: nil}
-	session := &types.DKGSession{
-		Round: 1,
-		Index: 1,
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	// kernelRouter guard fires before BlockNumber — no BlockNumber call expected.
 
-	// Should log and return without panic; no requests re-queued because the guard
-	// fires before any requests are dispatched.
-	k.processDecryptRequests(context.Background(), session, []types.DecryptRequest{req})
-	require.Empty(t, session.GetDecryptRequests())
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: nil}
+	k.processDecryptQueue(ctx)
+
+	// Request must still be in the queue — kernelRouter guard fires before DrainDecryptRequests.
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when kernelRouter is nil")
 }
 
-func TestProcessDecryptRequests_ZeroIndex(t *testing.T) {
+// TestProcessDecryptQueue_ZeroIndex verifies that sessions with unset Index are skipped
+// without draining their request queue.
+func TestProcessDecryptQueue_ZeroIndex(t *testing.T) {
 	t.Parallel()
 
-	router := NewKernelRouter(nil, nil)
-	k := &Keeper{kernelRouter: router}
-	session := &types.DKGSession{
-		Round: 1,
-		Index: 0, // Not set
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
 
-	k.processDecryptRequests(context.Background(), session, []types.DecryptRequest{req})
-	require.Empty(t, session.GetDecryptRequests())
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: []byte("pub"), // Index not set
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when session index is unset")
 }
 
-func TestProcessDecryptRequests_MissingGlobalPubKey(t *testing.T) {
+// TestProcessDecryptQueue_MissingGlobalPubKey verifies that sessions without a global
+// public key are skipped without draining their request queue.
+func TestProcessDecryptQueue_MissingGlobalPubKey(t *testing.T) {
 	t.Parallel()
 
-	router := NewKernelRouter(nil, nil)
-	k := &Keeper{kernelRouter: router}
-	session := &types.DKGSession{
-		Round:        1,
-		Index:        1,
-		GlobalPubKey: nil, // Missing
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
 
-	k.processDecryptRequests(context.Background(), session, []types.DecryptRequest{req})
-	require.Empty(t, session.GetDecryptRequests())
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: nil, // Missing
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when global pub key is missing")
 }
 
 func TestComputePartialDecrypt_NoKernelClient(t *testing.T) {
