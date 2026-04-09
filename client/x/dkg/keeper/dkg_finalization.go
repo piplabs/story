@@ -27,6 +27,16 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
+	// Guard: global public key must be set before finalizing. If it's empty,
+	// the round did not complete key generation and should not be activated.
+	if len(latestRound.GlobalPublicKey) == 0 {
+		log.Info(ctx, "Global public key not set, skipping to next round",
+			"round", latestRound.Round,
+		)
+
+		return k.SkipToNextRound(ctx, latestRound)
+	}
+
 	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch DKG registrations in Finalized status")
@@ -69,10 +79,6 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 	// so that getLatestActiveDKGNetwork still returns the previous active round.
 	if err := k.settleRewardsForPreviousCommittee(ctx); err != nil {
 		return errors.Wrap(err, "failed to distribute DKG committee rewards")
-	}
-
-	if err := k.distributeCDRRewardPool(ctx); err != nil {
-		return errors.Wrap(err, "failed to distribute CDR fee pool")
 	}
 
 	// End the previous active round's stage before updating the active round pointer,

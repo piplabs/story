@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,6 +16,10 @@ import (
 	"github.com/piplabs/story/lib/errors"
 	clog "github.com/piplabs/story/lib/log"
 )
+
+// convert fee from wei to gwei to align with staking amounts
+// and avoid precision issues in the keeper's accounting
+var gwei = new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
 
 func (k *Keeper) ProcessCDREvents(ctx context.Context, height uint64, logs []*ethtypes.Log) error {
 	for _, ethlog := range logs {
@@ -122,6 +127,11 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		return errors.Wrap(err, "parse EncryptedPartialDecryptionSubmitted log")
 	}
 
+	if ev.Fee == nil || ev.Fee.Sign() == 0 {
+		return nil
+	}
+	ev.Fee = ev.Fee.Div(ev.Fee, gwei) // convert fee from wei to gwei for keeper accounting
+
 	label := uuidToLabel(ev.Uuid)
 
 	defer func() {
@@ -157,7 +167,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		})
 	}()
 
-	partialErr := k.dkgKeeper.PartialDecryptionSubmitted(
+	accepted, partialErr := k.dkgKeeper.PartialDecryptionSubmitted(
 		cachedCtx,
 		ev.Validator,
 		ev.Round,
@@ -171,7 +181,7 @@ func (k *Keeper) ProcessDKGPartialDecryptionSubmitted(ctx context.Context, ethlo
 		ev.Signature,
 	)
 
-	if partialErr == nil {
+	if accepted && partialErr == nil {
 		if err := k.dkgKeeper.IncrementCDRPartialSubmitCount(cachedCtx, ev.Validator); err != nil {
 			partialErr = errors.Wrap(err, "increment CDR submit count")
 		} else if ev.Fee != nil && ev.Fee.Sign() > 0 {
@@ -200,6 +210,8 @@ func (k *Keeper) ProcessCDRFeeCollected(ctx context.Context, ethlog *ethtypes.Lo
 	if ev.Amount == nil || ev.Amount.Sign() == 0 {
 		return nil
 	}
+
+	ev.Amount.Div(ev.Amount, gwei)
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cachedCtx, writeCache := sdkCtx.CacheContext()

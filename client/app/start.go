@@ -198,7 +198,16 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 	)
 
 	if cfg.DKG.Enable {
-		dkgKernelRouter = keeper.NewKernelRouter(cfg.DKG.KernelEndpoints)
+		var tlsCfg *keeper.TLSConfig
+		if cfg.DKG.KernelTLSCAFile != "" {
+			tlsCfg = &keeper.TLSConfig{
+				CAFile:   cfg.DKG.KernelTLSCAFile,
+				CertFile: cfg.DKG.KernelTLSCertFile,
+				KeyFile:  cfg.DKG.KernelTLSKeyFile,
+			}
+		}
+
+		dkgKernelRouter = keeper.NewKernelRouter(cfg.DKG.KernelEndpoints, tlsCfg)
 		for _, ep := range cfg.DKG.KernelEndpoints {
 			if err := dkgKernelRouter.ConnectAndDiscover(ctx, ep); err != nil {
 				log.Warn(ctx, "Failed to connect to kernel endpoint, continuing", err, "endpoint", ep)

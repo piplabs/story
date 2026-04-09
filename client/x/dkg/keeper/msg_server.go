@@ -20,6 +20,8 @@ func (s msgServer) AddVote(ctx context.Context, msg *types.MsgAddDkgVote,
 		return nil, errors.New("unauthorized")
 	}
 
+	s.RemoveBroadcastedVotes(msg.Vote)
+
 	latestRound, err := s.GetLatestDKGRound(ctx)
 	if err != nil {
 		return nil, err

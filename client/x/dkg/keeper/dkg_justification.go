@@ -116,10 +116,6 @@ func verifyJustificationSignature(suite *edwards25519.SuiteEd25519, j types.Just
 	return nil
 }
 
-// MaxJustificationsPerBlock is the maximum number of justifications processed
-// per block to prevent resource exhaustion from malicious or excessive inputs.
-const MaxJustificationsPerBlock = 10
-
 // verifyJustification performs Pedersen VSS verification on a single justification.
 // It returns true if the revealed deal is valid (share matches commitments), false otherwise.
 //
@@ -200,9 +196,8 @@ func (k *Keeper) buildDealerPubKeyMap(ctx context.Context, latestRound *types.DK
 // Invalidated dealers cannot finalize. This is idempotent — re-invalidating
 // an already-invalidated dealer is a no-op.
 //
-// NOTE: This function is NOT called from ProcessJustifications because justification
-// processing must not affect on-chain state. It is retained as a utility for
-// potential future use (e.g., explicit slashing proposals).
+// Called from ProcessJustifications (FinalizeBlock) when VSS verification proves
+// a dealer's deal was genuinely invalid.
 func (k *Keeper) invalidateDealerRegistration(ctx context.Context, latestRound *types.DKGNetwork, dealerIndex uint32) error {
 	// Find the registration with this index
 	registrations, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)

@@ -2,12 +2,12 @@
 pragma solidity 0.8.23;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IDKG } from "../interfaces/IDKG.sol";
 import { IAttestationReportValidator } from "../interfaces/IAttestationReportValidator.sol";
 
-contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
     /// @dev Storage structure for the DKG
     /// @param minReqRegisteredParticipants The minimum number of participants needed to be registered for each round
     /// @param minReqFinalizedParticipants The minimum number of participants needed to finish dkg for each round
@@ -55,9 +55,8 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         uint256 fee
     ) external initializer {
         __Ownable_init(owner);
+        __ReentrancyGuard_init();
         __Pausable_init();
-        __UUPSUpgradeable_init();
-
         _setMinReqRegisteredParticipants(minReqRegisteredParticipants);
         _setMinReqFinalizedParticipants(minReqFinalizedParticipants);
         _setOperationalThreshold(operationalThreshold);
@@ -124,6 +123,9 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @notice Schedules a story-kernel upgrade at the specified activation height.
     ///         State management is handled by the consensus layer (CL), so this only emits an event.
     ///         Not gated by whenNotPaused — upgrade scheduling should work even when paused.
+    /// @dev The upgradeVersion string is used as an opaque identifier for matching between
+    ///      schedule and cancel operations. It is not parsed semantically (e.g., no semver
+    ///      comparison). The CL uses it as a lookup key to locate the pending upgrade entry.
     /// @param activationHeight The block height at which the upgrade activates
     /// @param upgradeVersion The version identifier for the upgrade
     function scheduleUpgrade(uint256 activationHeight, string calldata upgradeVersion) external onlyOwner {
@@ -155,7 +157,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         EnclaveInstanceData calldata enclaveInstanceData,
         bytes calldata validationContext
     ) external payable chargesFee whenNotPaused {
-        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, validationContext);
+        _authenticateEnclaveReport(
+            enclaveReport,
+            enclaveInstanceData,
+            keccak256(abi.encode(enclaveInstanceData)),
+            validationContext
+        );
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -178,11 +185,25 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         require(enclaveReport.length != 0, "DKG: Enclave report cannot be empty");
         require(enclaveInstanceData.round != 0, "DKG: Round cannot be zero");
         require(enclaveInstanceData.validatorAddr != address(0), "DKG: Validator address cannot be empty");
+        require(enclaveInstanceData.validatorAddr == msg.sender, "DKG: Validator must be msg.sender");
         require(enclaveInstanceData.enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
         require(enclaveInstanceData.enclaveCommKey.length != 0, "DKG: Enclave communication key cannot be empty");
         require(enclaveInstanceData.dkgPubKey.length != 0, "DKG: DKG public key cannot be empty");
 
-        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, validationContext);
+        // Compute expectedDataCommitment matching kernel's calculateReportData:
+        // keccak256(validatorAddr(20) || round(4) || startBlockHeight(8) || startBlockHash(32) ||
+        //           dkgPubKey(64) || enclaveCommKey(65))
+        bytes32 expectedDataCommitment = keccak256(
+            abi.encodePacked(
+                enclaveInstanceData.validatorAddr,
+                enclaveInstanceData.round,
+                uint64(startBlockHeight),
+                startBlockHash,
+                enclaveInstanceData.dkgPubKey,
+                enclaveInstanceData.enclaveCommKey
+            )
+        );
+        _authenticateEnclaveReport(enclaveReport, enclaveInstanceData, expectedDataCommitment, validationContext);
 
         emit Registered(
             enclaveReport,
@@ -220,6 +241,9 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
         DKGStorage storage $ = _getDKGStorage();
         require(round != 0, "DKG: Round cannot be zero");
         require(validatorAddr != address(0), "DKG: Validator address cannot be empty");
+        // Prevent a single TEE keypair from finalizing on behalf of
+        // multiple validator addresses, which would produce an undecryptable committee.
+        require(validatorAddr == msg.sender, "DKG: Validator address must match sender");
         require($.isEnclaveTypeWhitelisted[enclaveType], "DKG: Enclave type is not whitelisted");
         require(participantsRoot != bytes32(0), "DKG: Participants root cannot be empty");
         require(globalPubKey.length != 0, "DKG: Global public key cannot be empty");
@@ -322,10 +346,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
     /// @dev Authenticates an enclave report
     /// @param enclaveReport The enclave report
     /// @param enclaveInstanceData The data of the enclave instance
+    /// @param expectedDataCommitment The expected data commitment to verify against the quote
     /// @param validationContext The validation context
     function _authenticateEnclaveReport(
         bytes calldata enclaveReport,
         EnclaveInstanceData calldata enclaveInstanceData,
+        bytes32 expectedDataCommitment,
         bytes calldata validationContext
     ) internal {
         DKGStorage storage $ = _getDKGStorage();
@@ -334,16 +360,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradea
 
         bool isValidReport = IAttestationReportValidator(enclaveTypeData.validationHookAddr).validateReport(
             enclaveTypeData.codeCommitment,
-            keccak256(abi.encode(enclaveInstanceData)),
+            expectedDataCommitment,
             enclaveReport,
             validationContext
         );
         require(isValidReport, "DKG: Enclave authentication failed");
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of DKG.
     function _getDKGStorage() private pure returns (DKGStorage storage $) {

@@ -10,7 +10,6 @@ import (
 	"github.com/piplabs/story/client/x/evmstaking/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"github.com/piplabs/story/lib/netconf"
 )
 
 func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
@@ -21,22 +20,10 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 		return errors.Wrap(err, "get ubi params")
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	currentHeight := sdkCtx.BlockHeight()
-
-	// DKG-related reward distribution only activates at the v2.0.0 upgrade height.
-	isV200, err := netconf.IsV200(sdkCtx.ChainID(), currentHeight)
+	// Sweep any settlement balance from the DKG module (leftover UBI from FinalizeDKGRound).
+	settlementAmount, err := k.dkgKeeper.ClaimSettlementBalance(ctx, types.ModuleName)
 	if err != nil {
-		return errors.Wrap(err, "check v2.0.0 upgrade height")
-	}
-
-	settlementAmount := math.ZeroInt()
-	if isV200 {
-		// Sweep any settlement balance from the DKG module (leftover UBI from FinalizeDKGRound).
-		settlementAmount, err = k.dkgKeeper.ClaimSettlementBalance(ctx, types.ModuleName)
-		if err != nil {
-			return errors.Wrap(err, "claim DKG settlement balance")
-		}
+		return errors.Wrap(err, "claim DKG settlement balance")
 	}
 
 	ubiBalance, err := k.distributionKeeper.GetUbiBalanceByDenom(ctx, sdk.DefaultBondDenom)
@@ -59,15 +46,13 @@ func (k Keeper) ProcessUbiWithdrawal(ctx context.Context) error {
 
 		withdrawnAmount = ubiCoin.Amount
 
-		if isV200 {
-			// Distribute DKG rewards for the current active DKG committee.
-			distributed, err := k.dkgKeeper.DistributeRewardsToActiveCommittee(ctx, types.ModuleName, withdrawnAmount)
-			if err != nil {
-				return errors.Wrap(err, "distribute DKG committee rewards")
-			}
-
-			withdrawnAmount = withdrawnAmount.Sub(distributed)
+		// Distribute DKG rewards for the current active DKG committee.
+		distributed, err := k.dkgKeeper.DistributeRewardsToActiveCommittee(ctx, types.ModuleName, withdrawnAmount)
+		if err != nil {
+			return errors.Wrap(err, "distribute DKG committee rewards")
 		}
+
+		withdrawnAmount = withdrawnAmount.Sub(distributed)
 	}
 
 	// Total amount to burn and add to withdrawal queue = withdrawn remainder + settlement.

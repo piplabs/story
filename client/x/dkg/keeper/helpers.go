@@ -9,15 +9,21 @@ import (
 )
 
 const (
-	retryAttemts = 3
+	retryAttempts = 3
 	retryDelay   = 2 * time.Second
 )
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
-	for i := range retryAttemts {
+	for i := range retryAttempts {
 		if err := fn(ctx); err != nil {
 			log.Warn(context.Background(), "retry failed", err, "attempt", i+1)
-			time.Sleep(retryDelay)
+
+			// Use context-aware sleep so that cancellation can interrupt the delay.
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(retryDelay):
+			}
 
 			continue
 		}

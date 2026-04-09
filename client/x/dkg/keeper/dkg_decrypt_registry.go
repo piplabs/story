@@ -12,15 +12,20 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
-// decryptRequestRegistryKey builds the key for the DecryptRequestRegistry map:
-// hex(sha256(requesterPubKey))_hex(sha256(label))_round_hex(sha256(ciphertext))
+// decryptRequestRegistryKey builds the key for the DecryptRequestRegistry map.
+// The label is hex-encoded to prevent raw bytes from containing the '_' separator
+// and causing key collisions between different (label, round) combinations.
 func decryptRequestRegistryKey(requesterPubKey []byte, label []byte, round uint32, ciphertext []byte) string {
+	if len(label) == 0 {
+		return ""
+	}
+
 	requesterHash := sha256.Sum256(requesterPubKey)
 	ciphertextHash := sha256.Sum256(ciphertext)
 	return fmt.Sprintf(
 		"%s_%s_%d_%s",
 		hex.EncodeToString(requesterHash[:]),
-		label,
+		hex.EncodeToString(label),
 		round,
 		hex.EncodeToString(ciphertextHash[:]),
 	)
@@ -30,6 +35,9 @@ func decryptRequestRegistryKey(requesterPubKey []byte, label []byte, round uint3
 // Called by all consensus nodes in ThresholdDecryptRequested.
 func (k *Keeper) setDecryptRequest(ctx context.Context, requesterPubKey []byte, label []byte, req types.DecryptRequest) error {
 	key := decryptRequestRegistryKey(requesterPubKey, label, req.Round, req.Ciphertext)
+	if key == "" {
+		return errors.New("cannot set decrypt request with empty label")
+	}
 	if err := k.DecryptRequestRegistry.Set(ctx, key, req); err != nil {
 		return errors.Wrap(err, "set decrypt request registry")
 	}
@@ -60,7 +68,7 @@ func (k *Keeper) deleteDecryptRequest(ctx context.Context, requesterPubKey []byt
 }
 
 // pruneTimedOutDecryptRequests iterates all registry entries and removes any whose
-// stored block height is older than PartialDecryptionTimeoutBlocks relative to currentHeight.
+// stored block height is older than the default decrypt timeout relative to currentHeight.
 // Called from BeginBlocker when the background cleanup worker signals.
 func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight uint64) error {
 	iter, err := k.DecryptRequestRegistry.Iterate(ctx, nil)
@@ -82,7 +90,7 @@ func (k *Keeper) pruneTimedOutDecryptRequests(ctx context.Context, currentHeight
 		if err != nil {
 			return errors.Wrap(err, "iterate decrypt request registry value")
 		}
-		if currentHeight > req.Height && currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
+		if currentHeight > req.Height && currentHeight-req.Height > types.DefaultDecryptTimeout {
 			expired = append(expired, entry{key})
 		}
 	}

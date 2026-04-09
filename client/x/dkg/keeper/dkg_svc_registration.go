@@ -16,7 +16,10 @@ import (
 // handleDKGRegistration handles the DKG registration.
 // oldCC is the pre-computed old code commitment from the previous active DKG round,
 // resolved before the goroutine (which requires SDK context for KV store access).
-func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork, oldCC []byte) {
+// alreadyRegistered indicates whether this validator already has an on-chain
+// registration for this round (pre-computed with SDK context before the goroutine).
+// When true, the contract call is skipped and the session advances directly.
+func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DKGNetwork, oldCC []byte, alreadyRegistered bool) {
 	log.Info(ctx, "Handling DKG registration",
 		"round", dkgNetwork.Round,
 	)
@@ -87,7 +90,11 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if err := k.callContractRegister(ctx, session); err != nil {
+	if alreadyRegistered {
+		log.Info(ctx, "Validator already registered on-chain; skipping contract call",
+			"round", session.Round,
+		)
+	} else if err := k.callContractRegister(ctx, session); err != nil {
 		log.Error(ctx, "Failed to call register method", err)
 		k.stateManager.MarkFailed(ctx, session)
 
@@ -121,9 +128,17 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 		return nil
 	}
 
-	// For upgrade rounds, route to the NEW binary's kernel client (CC != oldCC).
-	// For normal rounds, route to the previous active round's kernel client.
-	client, clientCC, cErr := k.getRegistrationKernelClient(isUpgrade, oldCC, session.OldCodeCommitment)
+	// Resolve kernel client by code commitment:
+	// - Normal rounds: use previous active round's CC to find the same binary.
+	// - Upgrade rounds: use old binary's CC to find the NEW binary (by exclusion).
+	var targetCC []byte
+	if isUpgrade {
+		targetCC = session.OldCodeCommitment
+	} else {
+		targetCC = oldCC
+	}
+
+	client, clientCC, cErr := k.getRegistrationKernelClient(isUpgrade, targetCC)
 	if cErr != nil {
 		return errors.Wrap(cErr, "no kernel client available for registration")
 	}
@@ -171,24 +186,37 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	return nil
 }
 
-// getRegistrationKernelClient returns the appropriate kernel client and its code commitment for key generation.
-//
-// Non-upgrade: looks up the previous active round's code commitment from on-chain state
-// and returns the corresponding kernel client. For the very first round (no previous active
-// round exists), falls back to the first connected client.
-//
-// Upgrade: uses the provided upgradeOldCC to find the NEW binary — returns the connected client
-// whose code commitment differs from upgradeOldCC.
-//
-// prevRoundCC is the code commitment from the previous active DKG round (pre-computed
-// from SDK context before the async goroutine).
-func (k *Keeper) getRegistrationKernelClient(isUpgrade bool, prevRoundCC []byte, upgradeOldCC []byte) (types.KernelServiceClient, []byte, error) {
+// getRegistrationKernelClient returns the appropriate kernel client and its code commitment
+// for key generation. The cc parameter is interpreted differently based on isUpgrade:
+//   - Normal round: cc is the previous active round's code commitment — used to find the
+//     same kernel binary. nil cc (first round) falls back to first connected client.
+//   - Upgrade round: cc is the OLD binary's code commitment — used to find the NEW binary
+//     by returning a connected client whose CC differs from cc.
+func (k *Keeper) getRegistrationKernelClient(isUpgrade bool, cc []byte) (types.KernelServiceClient, []byte, error) {
+	client, resolvedCC, err := k.resolveKernelClientForRegistration(isUpgrade, cc)
+	if err == nil {
+		return client, resolvedCC, nil
+	}
+
+	// First attempt failed — try reconnecting to any disconnected endpoints
+	// and resolve again. This handles the case where story started before kernel.
+	k.kernelRouter.TryReconnect()
+
+	return k.resolveKernelClientForRegistration(isUpgrade, cc)
+}
+
+// resolveKernelClientForRegistration looks up the appropriate kernel client without reconnection.
+// For normal rounds, it returns the client matching the given code commitment (or the first
+// available client when cc is nil, i.e. the very first DKG round).
+// For upgrade rounds, cc is the OLD binary's code commitment; the function finds a connected
+// client with a DIFFERENT code commitment, which is the new binary to generate keys on.
+func (k *Keeper) resolveKernelClientForRegistration(isUpgrade bool, cc []byte) (types.KernelServiceClient, []byte, error) {
 	if !isUpgrade {
 		// Use pre-computed CC from previous active round's registration.
-		if len(prevRoundCC) > 0 {
-			client, err := k.kernelRouter.GetClient(prevRoundCC)
+		if len(cc) > 0 {
+			client, err := k.kernelRouter.GetClient(cc)
 
-			return client, prevRoundCC, err
+			return client, cc, err
 		}
 
 		// First round: no previous active round exists. Use first connected client.
@@ -202,22 +230,32 @@ func (k *Keeper) getRegistrationKernelClient(isUpgrade bool, prevRoundCC []byte,
 		return client, allCCs[0], err
 	}
 
-	// Upgrade: upgradeOldCC must be provided so we can find the NEW binary.
-	if len(upgradeOldCC) == 0 {
-		return nil, nil, errors.New("old code commitment required for upgrade registration")
+	// Upgrade: cc is the old binary's CC. Find a connected client with a DIFFERENT CC.
+	// If cc is empty, this validator was not in the previous committee
+	// (newly joined). In this case, register directly against the new binary
+	// since there is no old CC to compare against.
+	allCCs := k.kernelRouter.GetAllCodeCommitments()
+	if len(cc) == 0 {
+		// New validator — use the first available client (should be the new binary).
+		if len(allCCs) == 0 {
+			return nil, nil, errors.New("no kernel clients available for upgrade registration (new validator)")
+		}
+
+		client, err := k.kernelRouter.GetClient(allCCs[0])
+
+		return client, allCCs[0], err
 	}
 
-	allCCs := k.kernelRouter.GetAllCodeCommitments()
-	for _, cc := range allCCs {
-		if !bytes.Equal(cc, upgradeOldCC) {
-			client, err := k.kernelRouter.GetClient(cc)
+	for _, connCC := range allCCs {
+		if !bytes.Equal(connCC, cc) {
+			client, err := k.kernelRouter.GetClient(connCC)
 
-			return client, cc, err
+			return client, connCC, err
 		}
 	}
 
 	return nil, nil, errors.New("no new kernel client found for upgrade; ensure the new binary is running",
-		"old_code_commitment", hex.EncodeToString(upgradeOldCC),
+		"old_code_commitment", hex.EncodeToString(cc),
 		"connected_clients", len(allCCs),
 	)
 }

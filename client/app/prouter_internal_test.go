@@ -56,7 +56,7 @@ func createRequest(t *testing.T, txConfig client.TxConfig, msg []types.Msg, isFi
 		txs = append(txs, txBz)
 	}
 
-	height := int64(200) // Past v2.0.0 upgrade height for TestChainID (110).
+	height := int64(200)
 	if isFirst {
 		height = 1
 	}

@@ -56,7 +56,17 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 		threshold       uint32
 		total           uint32
 		expectSkip      bool
+		emptyGlobalKey  bool
 	}{
+		{
+			name:            "skip: global public key not set",
+			finalizedCount:  4,
+			minReqFinalized: 3,
+			threshold:       4,
+			total:           5,
+			expectSkip:      true,
+			emptyGlobalKey:  true,
+		},
 		{
 			name:            "skip: finalized count below min_req_finalized_participants",
 			finalizedCount:  2,
@@ -109,13 +119,18 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 			params.MinReqFinalizedParticipants = tc.minReqFinalized
 			require.NoError(t, k.SetParams(ctx, params))
 
-			// Set up DKG network
+			// Set up DKG network (GlobalPublicKey must be non-empty for finalization to proceed)
+			var globalPubKey []byte
+			if !tc.emptyGlobalKey {
+				globalPubKey = []byte("global-pub-key")
+			}
 			latestRound := &types.DKGNetwork{
-				Round:        testRound,
-				ActiveValSet: activeValSet,
-				Total:        tc.total,
-				Threshold:    tc.threshold,
-				Stage:        types.DKGStageFinalization,
+				Round:           testRound,
+				ActiveValSet:    activeValSet,
+				Total:           tc.total,
+				Threshold:       tc.threshold,
+				Stage:           types.DKGStageFinalization,
+				GlobalPublicKey: globalPubKey,
 			}
 			require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -149,8 +164,10 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 	}
 }
 
-func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
-	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+// TestFinalizeDKGRound_UpgradeRound verifies that when IsUpgrade=true, FinalizeDKGRound
+// deletes the activated upgrade info after a successful round finalization.
+func TestFinalizeDKGRound_UpgradeRound(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	params := types.DefaultParams()
@@ -158,23 +175,96 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
 	require.NoError(t, k.SetParams(ctx, params))
 
-	prevActive := createTestDKGNetwork(t, k, ctx, 1)
-	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
-
 	latestRound := &types.DKGNetwork{
-		Round:        2,
-		ActiveValSet: []string{},
-		Total:        2,
-		Threshold:    1,
-		Stage:        types.DKGStageFinalization,
+		Round:           1,
+		ActiveValSet:    []string{},
+		Total:           1,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		IsUpgrade:       true, // upgrade resharing round
+		GlobalPublicKey: []byte("global-pub-key"),
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
+	val := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	setRegistration(t, k, ctx, latestRound, val, types.DKGRegStatusFinalized)
+
+	// Store an activated upgrade info so FinalizeDKGRound can delete it
+	upgradeInfo := &types.KernelUpgradeInfo{
+		UpgradeVersion:   "v2.0.0",
+		ActivationHeight: 100,
+		IsActivated:      true,
+	}
+	require.NoError(t, k.SetKernelUpgradeInfo(ctx, upgradeInfo))
+
+	err := k.FinalizeDKGRound(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Verify upgrade info was deleted after successful upgrade round
+	info, err := k.GetPendingUpgrade(ctx)
+	require.NoError(t, err)
+	require.Nil(t, info, "upgrade info should be deleted after successful upgrade round")
+
+	// Verify the round is now active
+	activeRound, err := k.GetLatestActiveRound(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, activeRound)
+	require.Equal(t, uint32(1), activeRound.Round)
+}
+
+// TestFinalizeDKGRound_DKGSvcEnabled verifies that FinalizeDKGRound spawns
+// an async goroutine when isDKGSvcEnabled=true (without waiting for it to complete).
+// The stateManager must be initialized so the goroutine (handleDKGComplete) does not panic.
+func TestFinalizeDKGRound_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	k.setIsDKGSvcEnabled()
+	initTestStateManager(t, k)
+
+	params := types.DefaultParams()
+	params.MinReqFinalizedParticipants = 1
+	params.DkgCommitteeRewardPortion = math.LegacyZeroDec()
+	require.NoError(t, k.SetParams(ctx, params))
+
+	latestRound := &types.DKGNetwork{
+		Round:           9,
+		ActiveValSet:    []string{},
+		Total:           1,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		IsUpgrade:       false,
+		GlobalPublicKey: []byte("global-pub-key"),
+	}
+	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
+
+	val := common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+	setRegistration(t, k, ctx, latestRound, val, types.DKGRegStatusFinalized)
+
+	// FinalizeDKGRound should succeed and the goroutine (handleDKGComplete) should be spawned.
+	// The goroutine will log an error (session not found for round 9) but will not panic.
+	err := k.FinalizeDKGRound(ctx, latestRound)
+	require.NoError(t, err)
+
+	// Verify round was set as active
+	activeRound, err := k.GetLatestActiveRound(sdkCtx)
+	require.NoError(t, err)
+	require.NotNil(t, activeRound)
+	require.Equal(t, uint32(9), activeRound.Round)
+}
+
+// TestDistributeCDRFee verifies that distributeCDRFee distributes the CDR fee
+// pool proportionally to partial submission counts and clears state afterwards.
+func TestDistributeCDRFee(t *testing.T) {
+	k, bk, _, ctx := setupDKGKeeperWithMocks(t)
+
+	// distributeCDRFee requires an active round to exist.
+	prevActive := createTestDKGNetwork(t, k, ctx, 1)
+	require.NoError(t, k.setLatestActiveRound(ctx, prevActive))
+
 	val1 := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	val2 := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-
-	setRegistration(t, k, ctx, latestRound, val1, types.DKGRegStatusFinalized)
-	setRegistration(t, k, ctx, latestRound, val2, types.DKGRegStatusFinalized)
 
 	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val1), 3))
 	require.NoError(t, k.CDRPartialSubmitCount.Set(ctx, cdrSubmitCountKey(val2), 1))
@@ -187,7 +277,7 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 			return nil
 		}).Times(2)
 
-	err := k.FinalizeDKGRound(ctx, latestRound)
+	err := k.distributeCDRFee(ctx)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, []int64{75, 25}, sent)
@@ -199,4 +289,44 @@ func TestFinalizeDKGRound_DistributesCDRFeePool(t *testing.T) {
 
 	_, err = k.CDRFeePoolBalance.Get(ctx)
 	require.ErrorIs(t, err, collections.ErrNotFound)
+}
+
+// --- Tests merged from dkg_process_test.go ---
+
+// TestBeginFinalization_DKGSvcDisabled verifies that BeginFinalization emits
+// the event and returns nil when DKG service is disabled.
+
+func TestBeginFinalization_DKGSvcDisabled(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	network := &types.DKGNetwork{
+		Round:     1,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageFinalization,
+	}
+
+	err := k.BeginFinalization(ctx, network)
+	require.NoError(t, err)
+}
+
+// TestBeginFinalization_DKGSvcEnabled verifies that BeginFinalization emits
+// the event even when the DKG service is enabled (async goroutine is launched).
+
+func TestBeginFinalization_DKGSvcEnabled(t *testing.T) {
+	// Not parallel: modifies global DKG service state
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	k.setIsDKGSvcEnabled()
+
+	network := &types.DKGNetwork{
+		Round:     22,
+		Total:     3,
+		Threshold: 2,
+		Stage:     types.DKGStageFinalization,
+	}
+
+	err := k.BeginFinalization(ctx, network)
+	require.NoError(t, err)
 }

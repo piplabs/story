@@ -55,10 +55,14 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Set session.Index from on-chain registration while SDK context is available.
 		// Session.Index stores the 1-based registration index used for deal/response
 		// routing (converted to 0-based for Kyber) and threshold decryption PID.
-		if err := k.ensureSessionIndex(ctx, latestRound.Round); err != nil {
+		if err := k.ensureSessionIndex(gaslessCtx, latestRound.Round); err != nil {
 			log.Warn(ctx, "Failed to set session index from registration", err,
 				"round", latestRound.Round,
 			)
@@ -66,7 +70,7 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 
 		// Pre-compute shouldDeal while SDK context is available.
 		// The async goroutine cannot access the KV store.
-		deal, err := k.shouldDeal(ctx, latestRound)
+		deal, err := k.shouldDeal(gaslessCtx, latestRound)
 		if err != nil {
 			log.Error(ctx, "Failed to check whether the validator should deal", err)
 
@@ -87,11 +91,10 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 
 // ProcessJustifications handles justifications from the Vote Extension.
 // Like ProcessDeals and ProcessResponses, it emits an event and then delegates
-// verification and story-kernel forwarding only when the DKG service is enabled.
-//
-// This function does NOT affect on-chain state. Invalid justifications are
-// silently dropped (logged but not returned as errors) to prevent consensus
-// divergence between validators running with different DKG service configurations.
+// Verification (signature, dedup, VSS) and dealer invalidation run synchronously
+// in FinalizeBlock regardless of whether the DKG service is enabled, because
+// invalidation is a consensus state change that all nodes must apply consistently.
+// Only the kernel gRPC forwarding is conditional on isDKGSvcEnabled and runs async.
 //
 // Replay protection is structural, not explicit:
 //   - Cross-round: kyber's DistKeyGenerator derives SessionID from (dealer pubkey +
@@ -99,7 +102,7 @@ func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork
 //     unique SessionIDs. Since SessionID is embedded in Justification.Hash(), Schnorr
 //     signature verification implicitly rejects replayed justifications from other rounds.
 //   - Stage gating: justifications are only accepted during DKGStageDealing (checked
-//     in msg_server.go) and PhaseDealing (checked in handleDKGProcessJustifications).
+//     in msg_server.go).
 //   - Within-block: deduplication by (dealerIndex, recipientIndex) prevents redundant
 //     processing of the same justification broadcast by multiple validators.
 func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.DKGNetwork, justifications []types.Justification) error {
@@ -107,21 +110,73 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 		return errors.Wrap(err, "failed to emit begin process justifications event")
 	}
 
-	if k.isDKGSvcEnabled {
-		// Pre-compute dealer pub key map while SDK context is available,
-		// because async goroutines cannot access the KV store.
-		suite := edwards25519.NewBlakeSHA256Ed25519()
-		dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, latestRound, suite)
-		if err != nil {
-			return errors.Wrap(err, "build dealer pub key map")
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, latestRound, suite)
+	if err != nil {
+		return errors.Wrap(err, "build dealer pub key map")
+	}
+
+	// Step 1: Signature verification (deterministic, no kernel needed).
+	var signatureVerified []types.Justification
+
+	for _, j := range justifications {
+		if err := verifyJustificationSignature(suite, j, dealerPubKeys); err != nil {
+			log.Debug(ctx, "Dropping justification with invalid signature",
+				"dealer_index", j.Index,
+				"error", err,
+			)
+
+			continue
 		}
 
+		signatureVerified = append(signatureVerified, j)
+	}
+
+	// Step 2: VSS verification + dealer invalidation (runs in SDK context so
+	// on-chain state can be updated). This MUST run regardless of isDKGSvcEnabled
+	// because invalidation is a consensus state change that all nodes must apply.
+	var validJustifications []types.Justification
+
+	for _, j := range signatureVerified {
+		valid, err := verifyJustification(latestRound, j)
+		if err != nil {
+			log.Warn(ctx, "Justification VSS verification error, dropping", err,
+				"dealer_index", j.Index,
+			)
+
+			continue
+		}
+
+		if !valid {
+			// Deal was genuinely invalid — invalidate the dealer's on-chain registration
+			// so they cannot finalize or receive committee rewards.
+			log.Info(ctx, "Justification VSS verification failed, invalidating dealer",
+				"dealer_index", j.Index,
+				"round", latestRound.Round,
+			)
+
+			if err := k.invalidateDealerRegistration(ctx, latestRound, j.Index); err != nil {
+				log.Error(ctx, "Failed to invalidate dealer registration", err,
+					"dealer_index", j.Index,
+				)
+			}
+
+			continue
+		}
+
+		validJustifications = append(validJustifications, j)
+	}
+
+	// Step 4: Forward valid justifications to story-kernel for DKG state update.
+	// Only when DKG service is enabled (kernel gRPC is async).
+	if k.isDKGSvcEnabled && len(validJustifications) > 0 {
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessJustifications(asyncCtx, latestRound, justifications, dealerPubKeys)
+			k.handleDKGProcessJustifications(asyncCtx, latestRound, validJustifications)
 		}()
 	}
 
@@ -152,8 +207,12 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 	}
 
 	if k.isDKGSvcEnabled {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
 		// Pre-compute shouldProcessResponses while SDK context is available.
-		shouldProcess, err := k.shouldProcessResponses(ctx, latestRound)
+		shouldProcess, err := k.shouldProcessResponses(gaslessCtx, latestRound)
 		if err != nil {
 			log.Error(ctx, "Failed to check shouldProcessResponses", err)
 

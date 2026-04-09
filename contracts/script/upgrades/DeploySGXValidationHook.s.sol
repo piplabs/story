@@ -38,12 +38,12 @@ contract DeploySGXValidationHook is Script {
     //                          Internal constants                            //
     //////////////////////////////////////////////////////////////////////////*/
 
-    bytes32 constant SGX_IMPL_SALT = keccak256(abi.encodePacked("SGXValidationHook_Implementation_v1_0_0"));
-    bytes32 constant SGX_PROXY_SALT = keccak256(abi.encodePacked("SGXValidationHook_Proxy_v1_0_0"));
+    bytes32 constant SGX_IMPL_SALT = keccak256(abi.encodePacked("SGXValidationHook_Impl_v1_0_0"));
+    bytes32 constant SGX_PROXY_SALT = keccak256(abi.encodePacked("SGXValidationHook_Prxy_v1_0_0"));
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address owner = vm.envAddress("OWNER_ADDRESS");
+        address owner = vm.envAddress("TIMELOCK_ADDRESS");
         address automataValidationAddr = vm.envAddress("AUTOMATA_VALIDATION_ADDR");
         uint32 tcbEvaluationDataNumber = uint32(vm.envUint("TCB_EVALUATION_DATA_NUMBER"));
 

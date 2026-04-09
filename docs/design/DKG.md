@@ -78,7 +78,6 @@ The DKG (Distributed Key Generation) and CDR (Confidential Data Rails) system en
 |                   DKG Module (x/dkg)                      |
 |                                                           |
 |  BeginBlocker:                                            |
-|  - IsV200 gate                                            |
 |  - Stage transitions (Reg -> Deal -> Final -> Active)     |
 |  - Kernel upgrade activation                              |
 |  - Decrypt request pruning                                |
@@ -304,28 +303,16 @@ Each validator maintains a local `DKGSession` with its own phase tracking. This 
                        PhaseFailed  -----> (ResumeDKGService recovers)
 ```
 
-### 2.3 V2.0.0 Activation & BeginBlocker
+### 2.3 V1.6.0 Activation & BeginBlocker
 
-The DKG module activates at the v2.0.0 upgrade height. Before that height, `BeginBlocker` is a complete no-op.
-
-**Gate check** (`abci.go`):
-```go
-isV200, err := netconf.IsV200(sdkCtx.ChainID(), currentHeight)
-if !isV200 {
-    return nil  // no-op before v2.0.0
-}
-```
+The DKG module activates at the v1.6.0 upgrade height. The upgrade handler registers the DKG store, and `BeginBlocker` starts managing DKG rounds from that point.
 
 **BeginBlocker flow**:
 
 ```
 BeginBlocker(ctx)
   |
-  +-- IsV200? No --> return nil
-  |
-  +-- Yes
-       |
-       +-- GetLatestDKGRound()
+  +-- GetLatestDKGRound()
        |     |
        |     +-- nil? --> InitiateDKGRound(isUpgrade=false)  [first round ever]
        |
@@ -526,7 +513,6 @@ DKG data (deals, responses, justifications) propagates between validators throug
                     Block N-1 (Proposer P)
                            |
                     ExtendVote() [each validator]
-                    - IsV200 gate (no-op before v2.0.0)
                     - DequeueDeals(maxItemsPerVote=80)
                     - DequeueResponses(80)
                     - DequeueJustifications(80)
@@ -534,7 +520,6 @@ DKG data (deals, responses, justifications) propagates between validators throug
                     - Return as VoteExtension bytes
                            |
                     VerifyVoteExtension() [each validator]
-                    - IsV200 gate (ACCEPT before v2.0.0)
                     - Size check (<= 256KB)
                     - Proto unmarshal
                     - Item count checks (<= 80 each)
@@ -543,7 +528,7 @@ DKG data (deals, responses, justifications) propagates between validators throug
                     Block N (Proposer Q)
                     PrepareProposal:
                       PrepareVotes(LocalLastCommit)
-                      - Skip first 2 blocks after v2.0.0
+                      - Skip first 2 blocks after v1.6.0
                       - ValidateVoteExtensions
                       - Parse, verify, discard invalid
                       - aggregateVotes (merge + deduplicate)
@@ -680,8 +665,6 @@ Every UBI withdrawal cycle, evmstaking distributes a portion of the withdrawn UB
 evmstaking.EndBlock()
   |
   +-- ProcessUbiWithdrawal()
-        |
-        +-- IsV200? No --> skip DKG reward distribution
         |
         +-- ClaimSettlementBalance() --> settlementAmount
         |     (claim leftover from previous round transition)
@@ -866,7 +849,7 @@ dkgKeeper.UpgradeCancelled(upgradeVersion)
 
 Vote extensions are the mechanism by which DKG data propagates through CometBFT consensus.
 
-**Timing after v2.0.0 upgrade**:
+**Timing after v1.6.0 upgrade**:
 - Height H: Upgrade handler sets `vote_extensions_enable_height = H+1`
 - Height H+1: CometBFT starts collecting VEs from validators
 - Height H+2: VEs appear in `LocalLastCommit`, `PrepareVotes` starts producing `MsgAddDkgVote`
@@ -874,11 +857,6 @@ Vote extensions are the mechanism by which DKG data propagates through CometBFT 
 **Size limits**:
 - `maxVoteExtensionSize`: 256 KB per vote extension
 - `maxItemsPerVote`: 80 deals, 80 responses, or 80 justifications per VE
-
-**IsV200 gating**:
-- `ExtendVote`: returns empty VE before v2.0.0 (no-op)
-- `VerifyVoteExtension`: returns `ACCEPT` before v2.0.0 (allow all)
-- `PrepareVotes`: skips first 2 blocks after v2.0.0 (`height <= v200Height+1`)
 
 **Malformation handling**:
 - `VerifyVoteExtension` returns `REJECT` (not Go error) for malformed VEs
@@ -1117,7 +1095,7 @@ The system uses two indexing conventions that must be carefully managed:
 ## Appendix E: Complete Lifecycle Sequence Diagram
 
 ```
-Height H: v2.0.0 upgrade
+Height H: v1.6.0 upgrade
 Height H+1: VE collection starts
 Height H+2: First MsgAddDkgVote
 

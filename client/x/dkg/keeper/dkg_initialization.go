@@ -39,7 +39,15 @@ func (k *Keeper) GetActiveValidators(ctx context.Context) ([]string, error) {
 // as an upgrade resharing round (IsResharing=true, IsUpgrade=true) and the current
 // active round is NOT inactive.
 func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
+	// Flush stale deals/responses/justifications from previous rounds to prevent
+	// them from contaminating the new round's vote extensions.
+	k.FlushAllQueues()
+
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	if err := k.distributeCDRFee(ctx); err != nil {
+		return errors.Wrap(err, "failed to distribute CDR fee pool")
+	}
 
 	activeValidators, err := k.GetActiveValidators(ctx)
 	if err != nil {
@@ -80,24 +88,27 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 	}
 
 	if k.isDKGSvcEnabled {
-		// Skip registration if this validator already has an on-chain registration
-		// for this round. This prevents overwriting a valid registration with
-		// different keys after a reset where sealed_keys were deleted.
-		if k.isAlreadyRegistered(ctx, roundNum) {
+		// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+		// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+		gaslessCtx := gaslessSDKContext(ctx)
+
+		// Pre-compute registration check while we still have SDK context.
+		// The async goroutine uses context.Background() which cannot access
+		// the Cosmos KV store.
+		alreadyRegistered := k.isAlreadyRegistered(gaslessCtx, roundNum)
+		if alreadyRegistered {
 			return nil
 		}
 
 		// Pre-compute old code commitment while we still have SDK context.
-		// The async goroutine uses context.Background() which cannot access
-		// the Cosmos KV store.
-		oldCC, _ := k.getOldCodeCommitment(ctx)
+		oldCC, _ := k.getOldCodeCommitment(gaslessCtx)
 
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC)
+			k.handleDKGRegistration(asyncCtx, &dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	}
 

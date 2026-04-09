@@ -208,3 +208,35 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 
 	return &types.QueryGetCDRPartialsResponse{Submissions: groupedResp}, nil
 }
+
+// HasDecryptRequest queries whether a decrypt request exists for the provided key parameters.
+func (k *Keeper) HasDecryptRequest(ctx context.Context, req *types.QueryHasDecryptRequestRequest) (*types.QueryHasDecryptRequestResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	requesterPubKey, err := hex.DecodeString(req.RequesterPubKeyHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid requester pubkey hex")
+	}
+
+	label, err := hex.DecodeString(req.LabelHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid label hex")
+	}
+	if len(label) != 32 {
+		return nil, status.Error(codes.InvalidArgument, "label must be 32 bytes")
+	}
+
+	ciphertext, err := hex.DecodeString(req.CiphertextHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid ciphertext hex")
+	}
+
+	_, found, err := k.getDecryptRequest(ctx, requesterPubKey, label, req.Round, ciphertext)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryHasDecryptRequestResponse{Exists: found}, nil
+}

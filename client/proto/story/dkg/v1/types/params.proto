@@ -48,4 +48,5 @@ message Params {
   uint32 operational_threshold = 8 [
     (gogoproto.moretags) = "yaml:\"operational_threshold\""
   ];
+
 }

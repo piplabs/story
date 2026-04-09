@@ -1,4 +1,4 @@
-package v_2_0_0
+package v_1_6_0
 
 import (
 	storetypes "cosmossdk.io/store/types"
@@ -8,11 +8,17 @@ import (
 	"github.com/piplabs/story/client/app/keepers"
 	"github.com/piplabs/story/client/app/upgrades"
 	dkgtypes "github.com/piplabs/story/client/x/dkg/types"
-	"github.com/piplabs/story/lib/log"
 	"github.com/piplabs/story/lib/netconf"
 )
 
-const UpgradeName = netconf.V200
+// UpgradeName is the on-chain name for the v1.6.0 upgrade that activates the
+// DKG module. This is a binary-swap upgrade: the old binary should halt at
+// the scheduled height, and operators replace it with the v1.6.0 binary.
+//
+// the upgrade is scheduled on-chain by calling UpgradeEntrypoint.planUpgrade("v1.6.0", height).
+// The old binary writes upgrade-info.json to disk before halting, which the new binary reads
+// to configure the store loader (see setupUpgradeStoreLoaders in upgrades.go).
+const UpgradeName = netconf.V160
 
 var Upgrade = upgrades.Upgrade{
 	UpgradeName:          UpgradeName,
@@ -26,15 +32,4 @@ var Fork = upgrades.Fork{
 	UpgradeName:    UpgradeName,
 	UpgradeInfo:    "activate DKG module on the network",
 	BeginForkLogic: func(_ sdk.Context, _ *keepers.Keepers) {},
-}
-
-func GetUpgradeHeight(ctx sdk.Context) (int64, bool) {
-	height, err := netconf.GetUpgradeHeight(ctx.ChainID(), UpgradeName)
-	if err != nil {
-		log.Error(ctx, "Failed to get upgrade height", err, "chain_id", ctx.ChainID(), "upgrade_name", UpgradeName)
-
-		return 0, false
-	}
-
-	return height, true
 }

@@ -162,3 +162,17 @@ func (s *DKGSession) SetDecryptRequests(remaining []DecryptRequest) {
 	s.DecryptRequests = remaining
 	s.LastUpdate = time.Now()
 }
+
+// DrainDecryptRequests atomically returns all pending decrypt requests and clears the queue.
+// This prevents the TOCTOU race where GetDecryptRequests + SetDecryptRequests could
+// overwrite requests added between the two calls by the ABCI thread.
+func (s *DKGSession) DrainDecryptRequests() []DecryptRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	reqs := s.DecryptRequests
+	s.DecryptRequests = make([]DecryptRequest, 0)
+	s.LastUpdate = time.Now()
+
+	return reqs
+}

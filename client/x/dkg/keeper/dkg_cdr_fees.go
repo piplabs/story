@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"math/big"
+	"sort"
 	"strings"
 
 	"cosmossdk.io/collections"
@@ -120,7 +121,7 @@ func (k *Keeper) IncrementCDRPartialSubmitCount(ctx context.Context, validator c
 	return nil
 }
 
-func (k *Keeper) distributeCDRRewardPool(ctx context.Context) error {
+func (k *Keeper) distributeCDRFee(ctx context.Context) error {
 	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get previous active round")
@@ -128,7 +129,6 @@ func (k *Keeper) distributeCDRRewardPool(ctx context.Context) error {
 	if prevActive == nil {
 		return nil
 	}
-
 	iter, err := k.CDRPartialSubmitCount.Iterate(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "iterate CDR submit counts")
@@ -176,11 +176,19 @@ func (k *Keeper) distributeCDRRewardPool(ctx context.Context) error {
 		return nil
 	}
 
-	totalCountInt := math.NewInt(int64(totalCount))
+	totalCountInt := math.NewIntFromUint64(totalCount)
 	distributed := math.ZeroInt()
 
-	for addr, count := range counts {
-		share := poolBalance.Mul(math.NewInt(int64(count))).Quo(totalCountInt)
+	// Sort keys for deterministic iteration order across all validators.
+	sortedAddrs := make([]string, 0, len(counts))
+	for addr := range counts {
+		sortedAddrs = append(sortedAddrs, addr)
+	}
+	sort.Strings(sortedAddrs)
+
+	for _, addr := range sortedAddrs {
+		count := counts[addr]
+		share := poolBalance.Mul(math.NewIntFromUint64(count)).Quo(totalCountInt)
 		if share.IsZero() {
 			continue
 		}

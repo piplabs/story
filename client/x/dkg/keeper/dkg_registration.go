@@ -13,10 +13,14 @@ import (
 	"github.com/piplabs/story/lib/errors"
 )
 
+func dkgRegistrationKey(round uint32, validatorAddr common.Address) string {
+	return fmt.Sprintf("%d_%s", round, strings.ToLower(validatorAddr.Hex()))
+}
+
 // setDKGRegistration stores a DKG registration in the store using round_address as the key.
 // The address is lowercased to match the format used in DKGNetwork.ActiveValSet and story-kernel queries.
 func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Address, dkgReg *types.DKGRegistration) error {
-	key := fmt.Sprintf("%d_%s", dkgReg.Round, strings.ToLower(validatorAddr.Hex()))
+	key := dkgRegistrationKey(dkgReg.Round, validatorAddr)
 	if err := k.DKGRegistrations.Set(ctx, key, *dkgReg); err != nil {
 		return errors.Wrap(err, "failed to set dkg registration")
 	}
@@ -26,7 +30,7 @@ func (k *Keeper) setDKGRegistration(ctx context.Context, validatorAddr common.Ad
 
 // getDKGRegistration retrieves a DKG registration by round and validator address.
 func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (*types.DKGRegistration, error) {
-	key := fmt.Sprintf("%d_%s", round, strings.ToLower(validatorAddr.Hex()))
+	key := dkgRegistrationKey(round, validatorAddr)
 
 	dkgReg, err := k.DKGRegistrations.Get(ctx, key)
 	if err != nil {
@@ -38,6 +42,18 @@ func (k *Keeper) getDKGRegistration(ctx context.Context, round uint32, validator
 	}
 
 	return &dkgReg, nil
+}
+
+// hasDKGRegistration checks if a DKG registration exists for a given round and validator address.
+func (k *Keeper) hasDKGRegistration(ctx context.Context, round uint32, validatorAddr common.Address) (bool, error) {
+	key := dkgRegistrationKey(round, validatorAddr)
+
+	exists, err := k.DKGRegistrations.Has(ctx, key)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to check dkg registration existence")
+	}
+
+	return exists, nil
 }
 
 // getNextDKGRegistrationIndex gets the next DKG registration index for a specific round.
@@ -55,15 +71,15 @@ func (k *Keeper) getNextDKGRegistrationIndex(ctx context.Context, round uint32) 
 }
 
 // getDKGRegistrationsByRound retrieves all DKG registrations for a specific round.
+// Uses a prefix range to iterate only keys matching the round, avoiding a full-table scan.
 func (k *Keeper) getDKGRegistrationsByRound(ctx context.Context, round uint32) ([]types.DKGRegistration, error) {
 	var registrations []types.DKGRegistration
 
 	prefix := fmt.Sprintf("%d_", round)
+	rng := (&collections.Range[string]{}).Prefix(prefix)
 
-	err := k.DKGRegistrations.Walk(ctx, nil, func(key string, reg types.DKGRegistration) (bool, error) {
-		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
-			registrations = append(registrations, reg)
-		}
+	err := k.DKGRegistrations.Walk(ctx, rng, func(_ string, reg types.DKGRegistration) (bool, error) {
+		registrations = append(registrations, reg)
 
 		return false, nil // Continue iteration
 	})

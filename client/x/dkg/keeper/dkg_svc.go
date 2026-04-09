@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"sync/atomic"
 	"time"
 
@@ -80,6 +81,15 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
+	// If the session is completed and the DKG round is active, ensure the decrypt
+	// worker is running. This covers node restarts and the case where the worker
+	// was never started due to context cancellation.
+	if session.Phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
+		k.StartDecryptWorker()
+
+		return
+	}
+
 	if session.Phase == types.PhaseFailed {
 		k.resumeFailedSession(ctx, session, dkgNetwork)
 
@@ -138,9 +148,9 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
-		// Skip re-registration if already registered on-chain. Prevents overwriting
-		// a valid registration with different keys after sealed_keys deletion.
-		if k.isAlreadyRegistered(ctx, dkgNetwork.Round) {
+		// Pre-compute registration check while SDK context is available.
+		alreadyRegistered := k.isAlreadyRegistered(ctx, dkgNetwork.Round)
+		if alreadyRegistered {
 			session.UpdatePhase(types.PhaseInitialized)
 
 			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
@@ -166,7 +176,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 		go func() {
 			defer cancel()
 
-			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC)
+			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC, alreadyRegistered)
 		}()
 	case types.DKGStageDealing:
 		session.UpdatePhase(types.PhaseInitialized)
@@ -237,39 +247,114 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 // StartDecryptWorker launches a background loop (non-ABCI) that drains pending decrypt requests
 // and performs TDH2 partial decrypts. Only one worker runs.
-func (k *Keeper) StartDecryptWorker(ctx context.Context) {
+// The worker uses its own long-lived context (derived from context.Background) because the
+// caller's context (dkgAsyncContext) is short-lived and gets cancelled when the parent
+// goroutine exits. The decrypt worker must run for the lifetime of the process.
+func (k *Keeper) StartDecryptWorker() {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
 		// already running
 		return
 	}
 
+	// Use a process-lifetime context independent of the caller's short-lived async context.
+	workerCtx := context.Background()
+
+	log.Info(workerCtx, "Decrypt worker started")
+
 	go func() {
-		defer decryptWorkerRunning.Store(false)
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error(workerCtx, "Decrypt worker panicked", errors.New("decrypt worker panic", "value", r))
+			}
+			decryptWorkerRunning.Store(false)
+		}()
 
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				k.processDecryptQueue(ctx)
-			}
+		for range ticker.C {
+			k.processDecryptQueue(workerCtx)
 		}
 	}()
 }
 
 // processDecryptQueue scans sessions for queued decrypt requests and starts TDH2 partial decrypt + submission.
 func (k *Keeper) processDecryptQueue(ctx context.Context) {
+	if k.contractClient == nil {
+		log.Error(ctx, "Contract client not configured", nil)
+		return
+	}
+
+	currentHeight, err := k.contractClient.BlockNumber(ctx)
+	if err != nil {
+		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
+		return
+	}
+
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
-		requests := session.GetDecryptRequests()
+		// Atomically drain the queue so that requests added by the ABCI thread
+		// during processing are not overwritten when we persist the remaining failures.
+		requests := session.DrainDecryptRequests()
 		if len(requests) == 0 {
 			continue
 		}
 
-		remaining := make([]types.DecryptRequest, 0, len(requests))
+		// Skip sessions whose kernel binary is no longer connected.
+		// This happens when old events are replayed during chain catch-up
+		// after a kernel binary change — the sealed keys are unreachable.
+		if _, err := k.getClientWithReconnect(session.CodeCommitment); err != nil {
+			log.Warn(ctx, "Dropping decrypt requests for session with unavailable kernel", nil,
+				"session", session.GetSessionKey(),
+				"code_commitment", hex.EncodeToString(session.CodeCommitment),
+				"dropped_requests", len(requests),
+			)
+
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to clear stale decrypt requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+
+			continue
+		}
+
+		// Filter out stale requests that are past the block timeout window.
+		// This is especially important during resync when processing old blocks.
+		validRequests := make([]types.DecryptRequest, 0, len(requests))
+		staleCount := 0
+		for _, req := range requests {
+			if currentHeight > types.DefaultDecryptTimeout && req.Height < currentHeight-types.DefaultDecryptTimeout {
+				staleCount++
+				continue
+			}
+			validRequests = append(validRequests, req)
+		}
+
+		if staleCount > 0 {
+			log.Info(ctx, "Filtered out stale decrypt requests past timeout window",
+				"session", session.GetSessionKey(),
+				"stale_requests", staleCount,
+				"current_height", currentHeight,
+			)
+		}
+
+		if len(validRequests) == 0 {
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to persist session after clearing stale requests", err,
+					"session", session.GetSessionKey(),
+				)
+			}
+			continue
+		}
+
+		requests = validRequests
+
+		log.Info(ctx, "Processing decrypt queue",
+			"session", session.GetSessionKey(),
+			"pending_requests", len(requests),
+		)
+
 		for _, req := range requests {
 			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
 				log.Error(ctx, "Failed to process decrypt request", err,
@@ -279,18 +364,22 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 					"label_len", len(req.Label),
 					"requester_pub_key_len", len(req.RequesterPubKey),
 				)
-				remaining = append(remaining, req) // keep for retry
+				// Re-add failed request; this appends to the live queue, preserving
+				// any new requests the ABCI thread added while we were processing.
+				session.AddDecryptRequest(req)
 
 				continue
 			}
-		}
 
-		session.SetDecryptRequests(remaining)
+			log.Info(ctx, "Successfully processed decrypt request",
+				"session", session.GetSessionKey(),
+				"round", req.Round,
+			)
+		}
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
 				"session", session.GetSessionKey(),
-				"remaining_requests", len(remaining),
 			)
 		}
 	}
@@ -298,7 +387,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 // handleDecryptRequest attempts TDH2 partial decrypt for a single request.
 func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.kernelRouter == nil || !k.kernelRouter.HasClients() {
+	if k.kernelRouter == nil {
 		return errors.New("kernel client not configured")
 	}
 
@@ -311,7 +400,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		return errors.New("missing global public key for session")
 	}
 
-	client, err := k.kernelRouter.GetClient(session.CodeCommitment)
+	client, err := k.getClientWithReconnect(session.CodeCommitment)
 	if err != nil {
 		return errors.Wrap(err, "no kernel client for session")
 	}
@@ -321,7 +410,6 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
-		Pid:             pid, // 1-based index from DKG registration (used in Kyber polynomial evaluation)
 		GlobalPubKey:    session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
@@ -357,4 +445,18 @@ func labelToUUID(label []byte) (uint32, error) {
 		return 0, errors.New("label must be 32 bytes")
 	}
 	return binary.BigEndian.Uint32(label[28:]), nil
+}
+
+// getClientWithReconnect returns the kernel client for the given code commitment.
+// If the initial lookup fails, it attempts to reconnect any disconnected endpoints
+// and retries the lookup once. This handles the case where story started before kernel.
+func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServiceClient, error) {
+	client, err := k.kernelRouter.GetClient(codeCommitment)
+	if err == nil {
+		return client, nil
+	}
+
+	k.kernelRouter.TryReconnect()
+
+	return k.kernelRouter.GetClient(codeCommitment)
 }

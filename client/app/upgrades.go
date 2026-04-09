@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"cosmossdk.io/store/rootmulti"
 	storetypes "cosmossdk.io/store/types"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
@@ -17,7 +16,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/singularity/virgil"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
-	"github.com/piplabs/story/client/app/upgrades/v_2_0_0"
+	"github.com/piplabs/story/client/app/upgrades/v_1_6_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -31,7 +30,7 @@ var (
 		polybius.Upgrade,
 		terence.Upgrade,
 		horace.Upgrade,
-		v_2_0_0.Upgrade,
+		v_1_6_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -40,7 +39,7 @@ var (
 		polybius.Fork,
 		terence.Fork,
 		horace.Fork,
-		v_2_0_0.Fork,
+		v_1_6_0.Fork,
 	}
 )
 
@@ -55,7 +54,7 @@ func (a *App) setupUpgradeHandlers() {
 	}
 }
 
-// setUpgradeStoreLoaders sets custom store loaders to customize the rootMultiStore initialization for software upgrades.
+// setupUpgradeStoreLoaders sets custom store loaders to customize the rootMultiStore initialization for software upgrades.
 func (a *App) setupUpgradeStoreLoaders() {
 	upgradeHistory, err := netconf.GetUpgradeHistory(a.ChainID())
 	if err != nil {
@@ -73,6 +72,18 @@ func (a *App) setupUpgradeStoreLoaders() {
 			if name == upgrade.UpgradeName {
 				storeUpgradesMap[height] = upgrade.StoreUpgrades
 			}
+		}
+	}
+
+	// For binary-swap upgrades scheduled on-chain via planUpgrade (not in
+	// UpgradeHistories), the old binary writes upgrade-info.json to disk
+	// before halting. Read it to register the store upgrades at the correct
+	// height so the new binary can mount new module stores on startup.
+	diskPlan, diskErr := a.Keepers.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	if diskErr == nil && diskPlan.Height > 0 && !a.Keepers.UpgradeKeeper.IsSkipHeight(diskPlan.Height) {
+		storeUpgrades, err := GetStoreUpgrades(diskPlan.Name)
+		if err == nil {
+			storeUpgradesMap[diskPlan.Height] = storeUpgrades
 		}
 	}
 
@@ -97,20 +108,6 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 			return baseapp.DefaultStoreLoader(ms)
 		}
 
-		// Build set of already-mounted store keys. Stores registered from
-		// genesis (via app_config.go) already exist and must NOT be re-added
-		// through StoreUpgrades — doing so would set an incorrect initial
-		// version and cause "initial version set to X, but found earlier
-		// version Y" errors on restart.
-		mountedStores := make(map[string]bool)
-		if rms, ok := ms.(*rootmulti.Store); ok {
-			for name := range rms.StoreKeysByName() {
-				mountedStores[name] = true
-			}
-		} else {
-			fmt.Println("WARN: CommitMultiStore is not *rootmulti.Store, cannot detect already-mounted stores")
-		}
-
 		// Sort heights for deterministic iteration order across all validators.
 		heights := make([]int64, 0, len(storeUpgradesMap))
 		for h := range storeUpgradesMap {
@@ -125,8 +122,13 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 			su := storeUpgradesMap[height]
 			if height == nextVersion {
 				// Exact upgrade height: apply all operations.
+				// Do NOT filter by mountedStores here — the new binary
+				// mounts modules at startup (via app_config.go), but the
+				// store does not yet exist on disk. We must include it in
+				// Added so LoadLatestVersionAndUpgrade creates it at the
+				// correct version.
 				for _, key := range su.Added {
-					if !addedSet[key] && !mountedStores[key] {
+					if !addedSet[key] {
 						merged.Added = append(merged.Added, key)
 						addedSet[key] = true
 					}
@@ -134,11 +136,11 @@ func UpgradeStoreLoader(storeUpgradesMap StoreUpgradesMap) baseapp.StoreLoader {
 				merged.Deleted = append(merged.Deleted, su.Deleted...)
 				merged.Renamed = append(merged.Renamed, su.Renamed...)
 			} else if height > nextVersion {
-				// Future upgrade only: pre-add new stores so the binary
-				// can load without crashing on missing stores. This
-				// covers rolling upgrades and late-joining validators.
+				// Future upgrade: pre-add new stores so the binary can
+				// load without crashing on missing stores. Same logic —
+				// the store is mounted in code but not yet on disk.
 				for _, key := range su.Added {
-					if !addedSet[key] && !mountedStores[key] {
+					if !addedSet[key] {
 						merged.Added = append(merged.Added, key)
 						addedSet[key] = true
 					}
@@ -215,11 +217,21 @@ func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64)
 	case netconf.Horace:
 		return horace.GetUpgradeHeight(ctx)
 
-	case netconf.V200:
-		return v_2_0_0.GetUpgradeHeight(ctx)
-
 	default:
 		// no dynamic resolver → use fallback (static height)
 		return fallbackHeight, true
+	}
+}
+
+// GetStoreUpgrades returns the store upgrades for a given scheduled upgrade on-chain.
+// This is used by the disk-based fallback in setupUpgradeStoreLoaders to
+// determine which stores to add when the upgrade height comes from
+// upgrade-info.json rather than from hardcoded UpgradeHistories.
+func GetStoreUpgrades(upgradeName string) (storetypes.StoreUpgrades, error) {
+	switch upgradeName {
+	case netconf.V160:
+		return v_1_6_0.Upgrade.StoreUpgrades, nil
+	default:
+		return storetypes.StoreUpgrades{}, errors.New("no matched store upgrades")
 	}
 }

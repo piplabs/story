@@ -3,7 +3,6 @@ package keeper
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -46,6 +46,14 @@ func (k *Keeper) Registered(ctx context.Context, validator common.Address, codeC
 
 	if !slices.Contains(latest.ActiveValSet, strings.ToLower(validator.Hex())) {
 		return errors.New("msg sender is not in the active validator set")
+	}
+
+	exists, err := k.hasDKGRegistration(ctx, round, validator)
+	if err != nil {
+		return errors.Wrap(err, "failed to check existing dkg registration")
+	}
+	if exists {
+		return errors.New("validator already registered for this round", "round", round, "validator", validator.Hex())
 	}
 
 	index, err := k.getNextDKGRegistrationIndex(ctx, round)
@@ -277,6 +285,19 @@ func (k *Keeper) UpgradeCancelled(ctx context.Context, upgradeVersion string) er
 	return nil
 }
 
+// finalizationSignatureMaterial holds the fields committed to by the validator
+// signature on a DKG finalization response. RLP encoding gives each field an
+// unambiguous length prefix, preventing boundary-shift collisions that arise
+// from raw concatenation of variable-length byte slices.
+type finalizationSignatureMaterial struct {
+	CodeCommitment   []byte
+	Round            uint32
+	ParticipantsRoot [32]byte
+	GlobalPubKey     []byte
+	PublicCoeffs     [][]byte
+	PubKeyShare      []byte
+}
+
 // verifyFinalizationSignature verifies the TEE's ECDSA signature over the DKG finalization data.
 // It reproduces the message hash signed by the TEE, recovers the signer, and checks it matches
 // the expected address derived from the validator's commPubKey.
@@ -286,37 +307,27 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
 	}
 
-	// Compute total size of publicCoeffs for accurate capacity hint
-	coeffsLen := 0
-
 	for _, coeff := range publicCoeffs {
 		if len(coeff) == 0 {
 			return errors.New("empty public coefficient")
 		}
-
-		coeffsLen += len(coeff)
 	}
 
-	// Construct encoded message: codeCommitment(32B) + round(4B big-endian) + participantsRoot(32B) + globalPubKey + publicCoeffs...
-	encoded := make([]byte, 0, 32+4+32+len(globalPubKey)+coeffsLen)
-	encoded = append(encoded, codeCommitment[:]...)
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, participantsRoot[:]...)
-
-	encoded = append(encoded, globalPubKey...)
-	for _, coeff := range publicCoeffs {
-		encoded = append(encoded, coeff...)
+	// RLP-encode the finalization signature material (must match kernel's hashFinalizeDKGResponse).
+	material := finalizationSignatureMaterial{
+		CodeCommitment:   codeCommitment[:],
+		Round:            round,
+		ParticipantsRoot: participantsRoot,
+		GlobalPubKey:     globalPubKey,
+		PublicCoeffs:     publicCoeffs,
+		PubKeyShare:      pubKeyShare,
 	}
-
-	encoded = append(encoded, pubKeyShare...)
+	encoded, err := rlp.EncodeToBytes(material)
+	if err != nil {
+		return errors.Wrap(err, "failed to RLP encode finalization signature material")
+	}
 
 	msgHash := crypto.Keccak256(encoded)
-
-	// Compute Ethereum signed message hash: keccak256("\x19Ethereum Signed Message:\n32" + msgHash)
-	prefix := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(append(prefix, msgHash...))
 
 	if len(signature) != 65 {
 		return errors.New("invalid signature length", "expected", 65, "got", len(signature))
@@ -331,7 +342,7 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 		sig[64] -= 27
 	}
 
-	recoveredPub, err := crypto.SigToPub(ethHash, sig)
+	recoveredPub, err := crypto.SigToPub(msgHash, sig)
 	if err != nil {
 		return errors.Wrap(err, "failed to recover public key from signature")
 	}
@@ -351,25 +362,41 @@ func verifyFinalizationSignature(commPubKey []byte, round uint32, codeCommitment
 	return nil
 }
 
+// partialDecryptSignatureMaterial holds the fields committed to by the validator
+// signature on a partial decryption response. RLP encoding gives each field an
+// unambiguous length prefix, preventing boundary-shift collisions that arise
+// from raw concatenation of variable-length byte slices.
+type partialDecryptSignatureMaterial struct {
+	Round            uint32
+	Ciphertext       []byte
+	EncryptedPartial []byte
+	EphemeralPubKey  []byte
+	PubShare         []byte
+}
+
 // verifyPartialDecryptionSignature verifies the TEE's ECDSA signature over the partial decryption response data.
 // It reproduces the message hash signed by signPartialDecryptResponse in the DKG server, recovers the signer,
 // and checks it matches the expected address derived from the validator's commPubKey.
+//
+// Both finalization and partial decryption signatures use RLP-encoded keccak256 hashes
+// without the Ethereum Signed Message prefix, so kernel and CL are consistent.
 func verifyPartialDecryptionSignature(commPubKey []byte, round uint32, ciphertext []byte, encryptedPartial, ephemeralPubKey, pubShare, signature []byte) error {
 	if len(commPubKey) != 64 {
 		return errors.New("invalid commPubKey length", "expected", 64, "got", len(commPubKey))
 	}
 
-	// Reconstruct the message exactly as in signPartialDecryptResponse:
-	// encoded = round(4B big-endian) || ciphertext || encryptedPartial || ephPubKey || pubShare
-	roundBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(roundBytes, round)
-
-	encoded := make([]byte, 0, 4+len(ciphertext)+len(encryptedPartial)+len(ephemeralPubKey)+len(pubShare))
-	encoded = append(encoded, roundBytes...)
-	encoded = append(encoded, ciphertext...)
-	encoded = append(encoded, encryptedPartial...)
-	encoded = append(encoded, ephemeralPubKey...)
-	encoded = append(encoded, pubShare...)
+	// RLP-encode the partial decryption signature material (must match kernel's signPartialDecryptResponse).
+	material := partialDecryptSignatureMaterial{
+		Round:            round,
+		Ciphertext:       ciphertext,
+		EncryptedPartial: encryptedPartial,
+		EphemeralPubKey:  ephemeralPubKey,
+		PubShare:         pubShare,
+	}
+	encoded, err := rlp.EncodeToBytes(material)
+	if err != nil {
+		return errors.Wrap(err, "failed to RLP encode partial decryption signature material")
+	}
 
 	respHash := crypto.Keccak256(encoded)
 
@@ -421,7 +448,11 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		return nil
 	}
 
-	dkgNetwork, err := k.getDKGNetwork(ctx, round)
+	// Use a gasless context for KV reads inside isDKGSvcEnabled so that
+	// DKG-enabled and DKG-disabled nodes produce identical GasUsed.
+	gaslessCtx := gaslessSDKContext(ctx)
+
+	dkgNetwork, err := k.getDKGNetwork(gaslessCtx, round)
 	if err != nil {
 		return errors.Wrap(err, "failed to get dkg network for decrypt request")
 	}
@@ -479,7 +510,7 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 }
 
 // PartialDecryptionSubmitted handles TDH2 partial decrypt submissions emitted by the contract.
-// It stores submission payloads for later processing.
+// It stores submission payloads for later processing and returns true only when validation succeeds.
 func (k *Keeper) PartialDecryptionSubmitted(
 	ctx context.Context,
 	validator common.Address,
@@ -492,22 +523,22 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	ciphertext []byte,
 	label []byte,
 	signature []byte,
-) error {
+) (bool, error) {
 	// Enforce timeout: reject partial decryptions submitted too late.
 	req, found, err := k.getDecryptRequest(ctx, requesterPubKey, label, round, ciphertext)
 	if err != nil {
-		return errors.Wrap(err, "failed to look up decrypt request registry")
+		return false, errors.Wrap(err, "failed to look up decrypt request registry")
 	}
 	if !found {
 		log.Info(ctx, "Partial decryption submitted for unknown or cleaned-up request",
 			"validator", validator.Hex(),
 			"round", round,
 		)
-		return nil
+		return false, nil
 	}
 
 	if round != req.Round {
-		return errors.New("round mismatch between partial decryption submission and decrypt request",
+		return false, errors.New("round mismatch between partial decryption submission and decrypt request",
 			"validator", validator.Hex(),
 			"submission_round", round,
 			"request_round", req.Round,
@@ -515,7 +546,7 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	}
 
 	if !bytes.Equal(ciphertext, req.Ciphertext) {
-		return errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
+		return false, errors.New("ciphertext mismatch between partial decryption submission and decrypt request",
 			"validator", validator.Hex(),
 			"label", hex.EncodeToString(label),
 			"round", round,
@@ -525,33 +556,33 @@ func (k *Keeper) PartialDecryptionSubmitted(
 	}
 
 	currentHeight := uint64(sdk.UnwrapSDKContext(ctx).BlockHeight())
-	if currentHeight-req.Height > types.PartialDecryptionTimeoutBlocks {
+	if currentHeight-req.Height > types.DefaultDecryptTimeout {
 		log.Info(ctx, "Partial decryption submission timeout exceeded; cleaning up registry entry",
 			"request_height", req.Height,
 			"current_height", currentHeight,
-			"timeout_blocks", types.PartialDecryptionTimeoutBlocks,
+			"timeout_blocks", types.DefaultDecryptTimeout,
 			"validator", validator.Hex(),
 		)
 		if err := k.deleteDecryptRequest(ctx, requesterPubKey, label, round, ciphertext); err != nil {
-			return errors.Wrap(err, "failed to delete expired decrypt request registry entry")
+			return false, errors.Wrap(err, "failed to delete expired decrypt request registry entry")
 		}
-		return nil
+		return false, nil
 	}
 
 	reg, err := k.getDKGRegistration(ctx, req.Round, validator)
 	if err != nil {
-		return errors.Wrap(err, "failed to get DKG registration for signature verification")
+		return false, errors.Wrap(err, "failed to get DKG registration for signature verification")
 	}
 
 	if !bytes.Equal(pubShare, reg.PubKeyShare) {
-		return errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
+		return false, errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
 			"validator", validator.Hex(),
 			"round", req.Round,
 		)
 	}
 
 	if err := verifyPartialDecryptionSignature(reg.CommPubKey, round, ciphertext, encryptedPartial, ephemeralPubKey, pubShare, signature); err != nil {
-		return errors.Wrap(err, "partial decryption signature verification failed")
+		return false, errors.Wrap(err, "partial decryption signature verification failed")
 	}
 
 	if err := k.setPartialDecryptionSubmission(
@@ -572,9 +603,9 @@ func (k *Keeper) PartialDecryptionSubmitted(
 				"round", round,
 				"pid", pid,
 			)
-			return nil
+			return false, nil
 		}
-		return errors.Wrap(err, "failed to store partial decryption submission")
+		return false, errors.Wrap(err, "failed to store partial decryption submission")
 	}
 
 	log.Info(ctx, "DKG PartialDecryptionSubmitted event received",
@@ -588,5 +619,5 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		"label_len", len(label),
 	)
 
-	return nil
+	return true, nil
 }

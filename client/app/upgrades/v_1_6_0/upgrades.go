@@ -1,4 +1,4 @@
-package v_2_0_0
+package v_1_6_0
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func CreateUpgradeHandler(
 	keepers *keepers.Keepers,
 ) upgradetypes.UpgradeHandler {
 	return func(ctx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
-		log.Info(ctx, "Start v2.0.0 upgrade — activating DKG module")
+		log.Info(ctx, "Start v1.6.0 upgrade — activating DKG module")
 
 		// RunMigrations handles InitGenesis for truly new modules (not in vm).
 		// On a fresh genesis chain, DKG is already in the vm so this is a no-op
@@ -48,7 +48,7 @@ func CreateUpgradeHandler(
 			return newVM, err
 		}
 
-		log.Info(ctx, "V2.0.0 upgrade complete — DKG module activated")
+		log.Info(ctx, "V1.6.0 upgrade complete — DKG module activated")
 
 		return newVM, nil
 	}

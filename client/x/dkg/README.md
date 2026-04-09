@@ -251,7 +251,7 @@ DKG.whitelistEnclaveType(
 The DKG contract owner schedules the upgrade:
 
 ```solidity
-DKG.scheduleUpgrade(activationHeight, "v2.0.0");
+DKG.scheduleUpgrade(activationHeight, "v1.6.0");
 ```
 
 - `activationHeight` must be in the future.
@@ -262,7 +262,7 @@ DKG.scheduleUpgrade(activationHeight, "v2.0.0");
 At `activationHeight`, the consensus layer automatically initiates an upgrade resharing round:
 
 ```
-INFO Kernel upgrade activated, initiating upgrade resharing round  upgrade_version=v2.0.0
+INFO Kernel upgrade activated, initiating upgrade resharing round  upgrade_version=v1.6.0
 ```
 
 #### Step 6: Clean Up
@@ -279,7 +279,7 @@ Cancel before the activation height, then re-schedule:
 
 ```solidity
 DKG.cancelUpgrade();
-DKG.scheduleUpgrade(newActivationHeight, "v2.0.0");
+DKG.scheduleUpgrade(newActivationHeight, "v1.6.0");
 ```
 
 ### Troubleshooting

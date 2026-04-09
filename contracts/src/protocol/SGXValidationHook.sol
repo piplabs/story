@@ -3,13 +3,12 @@ pragma solidity 0.8.23;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { ISGXValidationHook } from "../interfaces/ISGXValidationHook.sol";
 import { IAutomataDcapAttestationFee } from "../interfaces/external/IAutomataDcapAttestationFee.sol";
 import { BytesUtils } from "../libraries/BytesUtils.sol";
 
-contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, PausableUpgradeable {
     using BytesUtils for bytes;
 
     /// @dev Storage structure for the SGXValidationHook
@@ -44,7 +43,6 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
     ) external initializer {
         __Ownable_init(owner);
         __Pausable_init();
-        __UUPSUpgradeable_init();
 
         _setAutomataValidationAddr(automataValidationAddr);
         _setTcbEvaluationDataNumber(tcbEvaluationDataNumber);
@@ -83,6 +81,9 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         bytes calldata validationContext
     ) external override returns (bool) {
         require(msg.sender == DKG, "SGXValidationHook: Only DKG can call this function");
+        require(enclaveReport.length > 0, "SGXValidationHook: Empty enclave report");
+        require(expectedCodeCommitment != bytes32(0), "SGXValidationHook: Zero code commitment");
+        require(expectedDataCommitment != bytes32(0), "SGXValidationHook: Zero data commitment");
         SGXValidationHookStorage storage $ = _getSGXValidationHookStorage();
         // see verifyAndAttestOnChain in automata-dcap-attestation:
         // AutomataDcapAttestationFee.sol#L23
@@ -138,17 +139,19 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         _getSGXValidationHookStorage().tcbEvaluationDataNumber = newTcbEvaluationDataNumber;
     }
 
-    /// @dev Extracts the code commitment from the enclave report
-    /// @param enclaveReport The enclave report
-    /// @return The code commitment
-    function _extractReportCodeCommitment(bytes calldata enclaveReport) internal returns (bytes32) {
-        return bytes32(enclaveReport.substring(64, 32));
+    /// @dev Extracts the code commitment (MRENCLAVE) from the raw SGX quote
+    /// @param enclaveReport The raw SGX quote (header + report body + auth data)
+    /// @return The code commitment (MRENCLAVE)
+    function _extractReportCodeCommitment(bytes calldata enclaveReport) internal pure returns (bytes32) {
+        // SGX quote header is 48 bytes, MRENCLAVE is at offset 64 within the report body
+        // Total offset from raw quote start: 48 (header) + 64 (MRENCLAVE in body) = 112
+        return bytes32(enclaveReport.substring(112, 32));
     }
 
     /// @dev Extracts the instance data commitment from the enclave report
     /// @param enclaveReport The enclave report
     /// @return The instance data commitment
-    function _extractReportInstanceDataCommitment(bytes memory enclaveReport) internal returns (bytes32) {
+    function _extractReportInstanceDataCommitment(bytes memory enclaveReport) internal pure returns (bytes32) {
         // According to Intel’s SGX quote structure:
         // - The SGX quote header is 48 bytes in size
         // - The enclave report body is 384 bytes long
@@ -162,10 +165,6 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         }
         return first32;
     }
-
-    /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
-    /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of SGXValidationHook.
     function _getSGXValidationHookStorage() private pure returns (SGXValidationHookStorage storage $) {

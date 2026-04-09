@@ -12,7 +12,6 @@ import (
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
-	"github.com/piplabs/story/lib/netconf"
 )
 
 const (
@@ -25,20 +24,10 @@ const (
 	maxItemsPerVote = 80
 )
 
-func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
-	// Vote extensions are only active after v2.0.0 upgrade.
-	isV200, err := netconf.IsV200(ctx.ChainID(), ctx.BlockHeight())
-	if err != nil {
-		return nil, errors.Wrap(err, "check v2.0.0 upgrade height")
-	}
-
-	if !isV200 {
-		return &abci.ResponseExtendVote{}, nil
-	}
-
-	dequeuedDeals := k.DequeueDeals(maxItemsPerVote)
-	dequeuedResponses := k.DequeueResponses(maxItemsPerVote)
-	dequeuedJustifications := k.DequeueJustifications(maxItemsPerVote)
+func (k *Keeper) ExtendVote(_ sdk.Context, _ *abci.RequestExtendVote) (*abci.ResponseExtendVote, error) {
+	dequeuedDeals := k.PeekDeals(maxItemsPerVote)
+	dequeuedResponses := k.PeekResponses(maxItemsPerVote)
+	dequeuedJustifications := k.PeekJustifications(maxItemsPerVote)
 
 	bz, err := proto.Marshal(&types.Vote{
 		Deals:          dequeuedDeals,
@@ -55,19 +44,9 @@ func (k *Keeper) ExtendVote(ctx sdk.Context, _ *abci.RequestExtendVote) (*abci.R
 }
 
 func (k *Keeper) VerifyVoteExtension(ctx sdk.Context, req *abci.RequestVerifyVoteExtension) (*abci.ResponseVerifyVoteExtension, error) {
-	// Vote extensions are only active after v2.0.0 upgrade.
-	isV200, err := netconf.IsV200(ctx.ChainID(), ctx.BlockHeight())
-	if err != nil {
-		return nil, errors.Wrap(err, "check v2.0.0 upgrade height")
-	}
-
-	if !isV200 {
-		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_ACCEPT}, nil
-	}
-
 	// Reject malformed vote extensions via ABCI status (not Go error),
 	// as returning a Go error is treated as an application bug by CometBFT.
-	_, _, err = k.parseAndVerifyVoteExtension(req.VoteExtension)
+	_, _, err := k.parseAndVerifyVoteExtension(req.VoteExtension)
 	if err != nil {
 		log.Warn(ctx, "Rejecting malformed vote extension", err)
 		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
@@ -112,18 +91,20 @@ func (*Keeper) parseAndVerifyVoteExtension(voteExt []byte) ([]*types.Vote, bool,
 func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInfo, commitHeight uint64) (sdk.Msg, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Vote extensions become available in LocalLastCommit two blocks after the
-	// upgrade: the upgrade handler at height H sets vote_extensions_enable_height
-	// to H+1, CometBFT starts collecting VEs at H+1, and they appear in
-	// LocalLastCommit at H+2. Return nil so the caller omits MsgAddDkgVote
-	// from the proposal, keeping it compatible with pre-upgrade validators.
-	v200Height, err := netconf.GetUpgradeHeight(sdkCtx.ChainID(), netconf.V200)
-	if err != nil {
-		return nil, errors.Wrap(err, "get v2.0.0 upgrade height")
+	// Vote extensions become available in LocalLastCommit one block after the
+	// VoteExtensionsEnableHeight. At the enable height itself, LocalLastCommit
+	// contains votes from the previous height which have no VE data.
+	// Return an empty MsgAddDkgVote until VEs are actually present.
+	cp := sdkCtx.ConsensusParams()
+	veHeight := int64(0)
+	if cp.Abci != nil {
+		veHeight = cp.Abci.VoteExtensionsEnableHeight
 	}
-
-	if sdkCtx.BlockHeight() <= v200Height+1 {
-		return nil, nil
+	if veHeight == 0 || sdkCtx.BlockHeight() <= veHeight {
+		return &types.MsgAddDkgVote{
+			Authority: k.GetAuthority(),
+			Vote:      &types.Vote{},
+		}, nil
 	}
 
 	// The VEs in LastLocalCommit is expected to be valid
@@ -156,6 +137,15 @@ func (k *Keeper) PrepareVotes(ctx context.Context, commit abci.ExtendedCommitInf
 	}, nil
 }
 
+// aggregateVotes merges all vote extension payloads into a single Vote.
+// Deduplication is intentionally NOT performed here because
+// (1) the CL cannot validate DKG message authenticity — only the kernel can,
+// (2) first-seen dedup on unsigned fields lets an earlier-sorted validator
+//
+//	suppress honest messages by broadcasting colliding fake entries, and
+//
+// (3) VerifyVoteExtension already caps max items per VE, preventing DoS.
+// The kernel handles duplicate/invalid messages by logging and skipping them.
 func aggregateVotes(votes []*types.Vote) *types.Vote {
 	allDeals := make([]types.Deal, 0)
 	allResponses := make([]types.Response, 0)
@@ -167,98 +157,10 @@ func aggregateVotes(votes []*types.Vote) *types.Vote {
 	}
 
 	return &types.Vote{
-		Deals:          deduplicateDeals(allDeals),
-		Responses:      deduplicateResponses(allResponses),
-		Justifications: deduplicateJustifications(allJustifications),
+		Deals:          allDeals,
+		Responses:      allResponses,
+		Justifications: allJustifications,
 	}
-}
-
-// deduplicateDeals removes duplicate deals by (dealerIndex, recipientIndex).
-func deduplicateDeals(deals []types.Deal) []types.Deal {
-	type dedupKey struct {
-		dealerIndex    uint32
-		recipientIndex uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Deal, 0, len(deals))
-
-	for _, d := range deals {
-		key := dedupKey{dealerIndex: d.Index, recipientIndex: d.RecipientIndex}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, d)
-	}
-
-	return result
-}
-
-// deduplicateResponses removes duplicate responses by (responderIndex, dealerIndex).
-func deduplicateResponses(responses []types.Response) []types.Response {
-	type dedupKey struct {
-		responderIndex uint32
-		dealerIndex    uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Response, 0, len(responses))
-
-	for _, r := range responses {
-		var dealerIdx uint32
-		if r.VssResponse != nil {
-			dealerIdx = r.VssResponse.Index
-		}
-
-		key := dedupKey{responderIndex: r.Index, dealerIndex: dealerIdx}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, r)
-	}
-
-	return result
-}
-
-// deduplicateJustifications removes duplicate justifications by (dealerIndex, recipientIndex).
-// When multiple validators broadcast the same justification, only the first is processed.
-func deduplicateJustifications(justifications []types.Justification) []types.Justification {
-	type dedupKey struct {
-		dealerIndex    uint32
-		recipientIndex uint32
-	}
-
-	seen := make(map[dedupKey]struct{})
-	result := make([]types.Justification, 0, len(justifications))
-
-	for _, j := range justifications {
-		var recipientIdx uint32
-
-		if vssJ := j.GetVssJustification(); vssJ != nil {
-			if pd := vssJ.GetPlainDeal(); pd != nil {
-				if ss := pd.GetSecShare(); ss != nil {
-					recipientIdx = ss.GetI()
-				}
-			}
-		}
-
-		key := dedupKey{dealerIndex: j.Index, recipientIndex: recipientIdx}
-		if _, exists := seen[key]; exists {
-			continue
-		}
-
-		seen[key] = struct{}{}
-
-		result = append(result, j)
-	}
-
-	return result
 }
 
 // votesFromExtension returns the attestations contained in the vote extension, or false if none or an error.
