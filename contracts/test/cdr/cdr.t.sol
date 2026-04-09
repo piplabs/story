@@ -58,6 +58,10 @@ contract CDRTest is Test {
     MockReadCondition internal readCondition;
     RejectCondition internal rejectCondition;
 
+    // PausableUpgradeable storage slot (OZ v5 ERC-7201)
+    bytes32 internal constant PAUSABLE_STORAGE_LOCATION =
+        0xcd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f03300;
+
     function setUp() public virtual override {
         super.setUp();
         cdr = CDR(Predeploys.CDR);
@@ -487,9 +491,125 @@ contract CDRTest is Test {
         assertEq(address(0x0).balance, burnBefore + fee);
     }
 
-    // NOTE: CDR inherits PausableUpgradeable and uses whenNotPaused modifiers,
-    // but does not expose public pause()/unpause() functions.
-    // Pause tests are omitted until those are added.
+    /*//////////////////////////////////////////////////////////////////////////
+    //                       Write Fee & Event Tests                          //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function testCDR_Write_EmitsFeeCollected() public {
+        uint256 fee = 0.2 ether;
+        performTimelocked(address(cdr), abi.encodeWithSelector(CDR.setWriteFee.selector, fee));
+
+        uint32 vaultUuid = cdr.allocate(true, address(writeCondition), address(readCondition), "", "");
+
+        vm.deal(alice, fee);
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true);
+        emit ICDR.FeeCollected(alice, fee, ICDR.FeeType.Write);
+        cdr.write{ value: fee }(vaultUuid, "", hex"deadbeef");
+    }
+
+    function testCDR_Write_FeeBurned() public {
+        uint256 fee = 0.2 ether;
+        performTimelocked(address(cdr), abi.encodeWithSelector(CDR.setWriteFee.selector, fee));
+
+        uint32 vaultUuid = cdr.allocate(true, address(writeCondition), address(readCondition), "", "");
+
+        vm.deal(alice, fee);
+        uint256 burnBefore = address(0x0).balance;
+
+        vm.prank(alice);
+        cdr.write{ value: fee }(vaultUuid, "", hex"deadbeef");
+
+        assertEq(address(0x0).balance, burnBefore + fee);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                       Read Fee & Event Tests                           //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function testCDR_Read_EmitsFeeCollected() public {
+        uint256 fee = 0.3 ether;
+        performTimelocked(address(cdr), abi.encodeWithSelector(CDR.setReadFee.selector, fee));
+
+        uint32 vaultUuid = _allocateAndWrite();
+
+        vm.deal(alice, fee);
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true);
+        emit ICDR.FeeCollected(alice, fee, ICDR.FeeType.Read);
+        cdr.read{ value: fee }(vaultUuid, "", hex"04aabbccdd");
+    }
+
+    function testCDR_Read_FeeBurned() public {
+        uint256 fee = 0.3 ether;
+        performTimelocked(address(cdr), abi.encodeWithSelector(CDR.setReadFee.selector, fee));
+
+        uint32 vaultUuid = _allocateAndWrite();
+
+        vm.deal(alice, fee);
+        uint256 burnBefore = address(0x0).balance;
+
+        vm.prank(alice);
+        cdr.read{ value: fee }(vaultUuid, "", hex"04aabbccdd");
+
+        assertEq(address(0x0).balance, burnBefore + fee);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                    Read Condition Boundary Tests                        //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function testCDR_Read_RevertIfReadConditionAddrNotSet() public {
+        // Allocate with only write condition (readConditionAddr = address(0))
+        uint32 vaultUuid = cdr.allocate(true, address(writeCondition), address(0), "", "");
+        vm.prank(alice);
+        cdr.write(vaultUuid, "", hex"deadbeef");
+
+        // Read reverts because readConditionAddr is address(0) — unlike write(),
+        // read() lacks an explicit zero-address check, causing a low-level revert
+        vm.prank(alice);
+        vm.expectRevert();
+        cdr.read(vaultUuid, "", hex"04aabbccdd");
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                        WhenNotPaused Tests                             //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function testCDR_Allocate_RevertWhenPaused() public {
+        _pause(address(cdr));
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        cdr.allocate(true, address(writeCondition), address(readCondition), "", "");
+    }
+
+    function testCDR_Write_RevertWhenPaused() public {
+        uint32 vaultUuid = cdr.allocate(true, address(writeCondition), address(readCondition), "", "");
+
+        _pause(address(cdr));
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        cdr.write(vaultUuid, "", hex"deadbeef");
+    }
+
+    function testCDR_Read_RevertWhenPaused() public {
+        uint32 vaultUuid = _allocateAndWrite();
+
+        _pause(address(cdr));
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        cdr.read(vaultUuid, "", hex"04aabbccdd");
+    }
+
+    function testCDR_SubmitPartial_RevertWhenPaused() public {
+        _pause(address(cdr));
+
+        vm.prank(validator1);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        cdr.submitEncryptedPartialDecryption(1, 0, hex"aa", hex"bb", hex"cc", hex"dd", hex"ff", 0, hex"ee");
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
     //                           Helper Functions                             //
@@ -500,5 +620,10 @@ contract CDRTest is Test {
         vm.prank(alice);
         cdr.write(vaultUuid, "", hex"deadbeef");
         return vaultUuid;
+    }
+
+    /// @dev Directly sets the paused flag via storage manipulation (no public pause function exposed)
+    function _pause(address target) internal {
+        vm.store(target, PAUSABLE_STORAGE_LOCATION, bytes32(uint256(1)));
     }
 }

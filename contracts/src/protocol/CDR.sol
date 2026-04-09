@@ -11,7 +11,6 @@ import { ICDRWriteCondition } from "../interfaces/ICDRWriteCondition.sol";
 import { ICDRReadCondition } from "../interfaces/ICDRReadCondition.sol";
 
 contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-
     /// @dev Storage structure for the CDR
     /// @param uuid The UUID of the vault
     /// @param baseFee The base fee
