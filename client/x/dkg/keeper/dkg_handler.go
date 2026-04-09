@@ -475,38 +475,64 @@ func (k *Keeper) ThresholdDecryptRequested(ctx context.Context, round uint32, re
 		return nil
 	}
 
-	log.Info(ctx, "DKG ThresholdDecryptRequested event received",
-		"round", round,
-		"requester_pubkey_len", len(requesterPubKey),
-		"ciphertext_len", len(ciphertext),
-		"label_len", len(label),
-		"block_height", blockHeight,
-	)
-
-	session, err := k.stateManager.GetSession(round)
-	if err != nil {
-		return errors.Wrap(err, "failed to get DKG session for decrypt request")
-	}
-
-	// Record the request so the off-chain service can pick it up and produce a TDH2 partial decrypt.
-	session.AddDecryptRequest(types.DecryptRequest{
+	// Pre-compute values that require SDK context, then dispatch async.
+	decryptReq := types.DecryptRequest{
 		Round:           round,
 		Ciphertext:      ciphertext,
 		Label:           label[:],
 		RequesterPubKey: requesterPubKey,
 		Height:          blockHeight,
-	})
+	}
+
+	asyncCtx, cancel := dkgAsyncContext()
+
+	go func() {
+		defer cancel()
+
+		k.handleThresholdDecryptRequest(asyncCtx, round, decryptReq)
+	}()
+
+	return nil
+}
+
+// handleThresholdDecryptRequest queues a threshold decrypt request to the DKG session
+// for the decrypt worker to pick up. Runs asynchronously to avoid blocking FinalizeBlock.
+func (k *Keeper) handleThresholdDecryptRequest(ctx context.Context, round uint32, req types.DecryptRequest) {
+	log.Info(ctx, "Handling threshold decrypt request",
+		"round", round,
+		"label", hex.EncodeToString(req.Label),
+		"requester_pubkey_len", len(req.RequesterPubKey),
+		"ciphertext_len", len(req.Ciphertext),
+		"block_height", req.Height,
+	)
+
+	session, err := k.stateManager.GetSession(round)
+	if err != nil {
+		log.Error(ctx, "Failed to get DKG session for decrypt request", err,
+			"round", round,
+		)
+
+		return
+	}
+
+	session.AddDecryptRequest(req)
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-		return errors.Wrap(err, "failed to persist decrypt request")
+		log.Error(ctx, "Failed to persist decrypt request to session", err,
+			"round", round,
+			"label", hex.EncodeToString(req.Label),
+			"session", session.GetSessionKey(),
+		)
+
+		return
 	}
 
 	log.Info(ctx, "Queued threshold decrypt request",
 		"session", session.GetSessionKey(),
+		"round", round,
+		"label", hex.EncodeToString(req.Label),
 		"pending_requests", len(session.GetDecryptRequests()),
 	)
-
-	return nil
 }
 
 // PartialDecryptionSubmitted handles TDH2 partial decrypt submissions emitted by the contract.
