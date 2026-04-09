@@ -384,7 +384,6 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         emit FeeCollected(msg.sender, feeAmountToCollect, feeType);
     }
 
-
     /// @dev Returns the storage struct of CDR.
     function _getCDRStorage() private pure returns (CDRStorage storage $) {
         assembly {

@@ -49,14 +49,8 @@ contract UpgradeDKG is Script {
         Create3 create3 = Create3(Predeploys.Create3);
 
         // Derive new implementation addresses from Create3
-        address newDKGImpl = create3.getDeployed(
-            deployer,
-            keccak256(abi.encodePacked("DKG_Implementation_v1_0_0"))
-        );
-        address newCDRImpl = create3.getDeployed(
-            deployer,
-            keccak256(abi.encodePacked("CDR_Implementation_v1_0_0"))
-        );
+        address newDKGImpl = create3.getDeployed(deployer, keccak256(abi.encodePacked("DKG_Implementation_v1_0_0")));
+        address newCDRImpl = create3.getDeployed(deployer, keccak256(abi.encodePacked("CDR_Implementation_v1_0_0")));
 
         console2.log("New DKG implementation:", newDKGImpl);
         console2.log("New CDR implementation:", newCDRImpl);
@@ -128,12 +122,13 @@ contract UpgradeDKG is Script {
             )
         );
 
-        return abi.encodeWithSelector(
-            ProxyAdmin.upgradeAndCall.selector,
-            ITransparentUpgradeableProxy(Predeploys.DKG),
-            newImpl,
-            initData
-        );
+        return
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.DKG),
+                newImpl,
+                initData
+            );
     }
 
     function _buildCDRUpgradePayload(address newImpl) internal view returns (bytes memory) {
@@ -150,23 +145,25 @@ contract UpgradeDKG is Script {
             )
         );
 
-        return abi.encodeWithSelector(
-            ProxyAdmin.upgradeAndCall.selector,
-            ITransparentUpgradeableProxy(Predeploys.CDR),
-            newImpl,
-            initData
-        );
+        return
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.CDR),
+                newImpl,
+                initData
+            );
     }
 
     function _buildWhitelistPayload() internal view returns (bytes memory) {
-        return abi.encodeWithSelector(
-            DKG.whitelistEnclaveType.selector,
-            ENCLAVE_TYPE,
-            IDKG.EnclaveTypeData({
-                codeCommitment: COMMITMENT,
-                validationHookAddr: vm.envAddress("SGX_HOOK_PROXY")
-            }),
-            WHITELISTED_VALUE //true
-        );
+        return
+            abi.encodeWithSelector(
+                DKG.whitelistEnclaveType.selector,
+                ENCLAVE_TYPE,
+                IDKG.EnclaveTypeData({
+                    codeCommitment: COMMITMENT,
+                    validationHookAddr: vm.envAddress("SGX_HOOK_PROXY")
+                }),
+                WHITELISTED_VALUE //true
+            );
     }
 }
