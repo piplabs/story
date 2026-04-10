@@ -12,6 +12,18 @@ import (
 	"github.com/piplabs/story/lib/log"
 )
 
+// decryptComputeResult holds the outcome of a single parallel kernel partial-decrypt call.
+type decryptComputeResult struct {
+	req  types.DecryptRequest
+	resp *types.PartialDecryptTDH2Response
+	err  error
+}
+
+// decryptChanBuf is the fixed buffer size for the parallel-decrypt result channel.
+// This caps in-flight results and slows producers when the serial submission
+// loop is slower than the parallel kernel calls.
+const decryptChanBuf = 10
+
 // dkgSvcRound tracks which DKG round is currently being processed by async
 // goroutines. Zero means no round is running. A higher round number always
 // supersedes a stale lock from a previous round, preventing cross-round
@@ -285,6 +297,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		return
 	}
 
+	if k.kernelRouter == nil {
+		log.Error(ctx, "Kernel client not configured", nil)
+		return
+	}
+
 	currentHeight, err := k.contractClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
@@ -293,6 +310,24 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 	sessions := k.stateManager.ListSessions()
 	for _, session := range sessions {
+		// Check session-level preconditions before draining so that requests are
+		// not removed from the queue only to be re-added immediately.
+		if session.Index == 0 {
+			log.Warn(ctx, "Session index not set, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
+		if len(session.GlobalPubKey) == 0 {
+			log.Warn(ctx, "Missing global public key for session, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
 		// Atomically drain the queue so that requests added by the ABCI thread
 		// during processing are not overwritten when we persist the remaining failures.
 		requests := session.DrainDecryptRequests()
@@ -355,27 +390,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			"pending_requests", len(requests),
 		)
 
-		for _, req := range requests {
-			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
-				log.Error(ctx, "Failed to process decrypt request", err,
-					"session", session.GetSessionKey(),
-					"round", req.Round,
-					"ciphertext_len", len(req.Ciphertext),
-					"label_len", len(req.Label),
-					"requester_pub_key_len", len(req.RequesterPubKey),
-				)
-				// Re-add failed request; this appends to the live queue, preserving
-				// any new requests the ABCI thread added while we were processing.
-				session.AddDecryptRequest(req)
-
-				continue
-			}
-
-			log.Info(ctx, "Successfully processed decrypt request",
-				"session", session.GetSessionKey(),
-				"round", req.Round,
-			)
-		}
+		k.processDecryptRequests(ctx, session, requests)
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
@@ -385,24 +400,94 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	}
 }
 
-// handleDecryptRequest attempts TDH2 partial decrypt for a single request.
-func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.kernelRouter == nil {
-		return errors.New("kernel client not configured")
+// processDecryptRequests fans out kernel PartialDecryptTDH2 calls in parallel and
+// submits the results to the contract serially (nonce-safe).
+//
+// Phase 1 (parallel): each request is dispatched to the kernel in its own goroutine.
+// Results are sent to a fixed-size buffered channel (decryptChanBuf). Goroutines are
+// protected by a deferred recover so a panic in one never silently leaks the others —
+// the panic is converted to an error result and the goroutine count sent to the channel
+// is always exactly len(requests).
+//
+// Phase 2 (serial): the main goroutine reads results one-by-one and submits each to
+// the CDR contract. Because PendingNonceAt is called once per submission without a
+// mutex, concurrent submissions would produce nonce collisions, so this phase must
+// remain sequential.
+func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.DecryptRequest) {
+
+	// Phase 1: parallel kernel calls, concurrency limited to decryptChanBuf.
+	// sem acts as a semaphore: acquiring a slot before launch limits in-flight goroutines.
+	// Each goroutine sends exactly one result, so we read exactly len(requests) times below.
+	sem := make(chan struct{}, decryptChanBuf)
+	resultCh := make(chan decryptComputeResult, len(requests))
+
+	for _, req := range requests {
+		sem <- struct{}{}
+		go func(req types.DecryptRequest) {
+			defer func() { <-sem }()
+			// Pre-initialize with an error so that if runtime.Goexit() is called
+			// (e.g. t.Fatal from a test mock), the deferred send still fires and
+			// the consumer loop is not left blocked on an unreceived value.
+			// recover() inside computePartialDecrypt handles actual panics;
+			// this defer handles Goexit, which recover() cannot intercept.
+			result := decryptComputeResult{req: req, err: errors.New("goroutine exited without result")}
+			defer func() { resultCh <- result }()
+			result = k.computePartialDecrypt(ctx, session, req)
+		}(req)
 	}
 
-	pid := session.Index
-	if pid == 0 {
-		return errors.New("session index not set")
-	}
+	// Phase 2: serial contract submission.
+	// Read exactly len(requests) results — guaranteed because every goroutine above
+	// sends exactly one value via the deferred send (covers both normal return,
+	// panic via recover, and runtime.Goexit from test helpers).
+	for range requests {
+		r := <-resultCh
+		if r.err != nil {
+			log.Error(ctx, "Kernel partial decrypt failed", r.err,
+				"session", session.GetSessionKey(),
+				"round", r.req.Round,
+			)
+			session.AddDecryptRequest(r.req)
 
-	if len(session.GlobalPubKey) == 0 {
-		return errors.New("missing global public key for session")
+			continue
+		}
+
+		if err := k.submitPartialDecryption(ctx, session, r.req, r.resp); err != nil {
+			log.Error(ctx, "Failed to submit partial decryption", err,
+				"session", session.GetSessionKey(),
+				"round", r.req.Round,
+				"ciphertext_len", len(r.req.Ciphertext),
+				"label_len", len(r.req.Label),
+				"requester_pub_key_len", len(r.req.RequesterPubKey),
+			)
+			session.AddDecryptRequest(r.req)
+
+			continue
+		}
+
+		log.Info(ctx, "Successfully processed decrypt request",
+			"session", session.GetSessionKey(),
+			"round", r.req.Round,
+		)
 	}
+}
+
+// computePartialDecrypt calls the kernel for a single TDH2 partial decrypt.
+// Any panic is recovered and returned as an error so the parent processDecryptRequests
+// goroutine always sends exactly one result to the channel.
+func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) (result decryptComputeResult) {
+	result.req = req
+
+	defer func() {
+		if r := recover(); r != nil {
+			result.err = errors.New("panic in computePartialDecrypt", "value", r)
+		}
+	}()
 
 	client, err := k.getClientWithReconnect(session.CodeCommitment)
 	if err != nil {
-		return errors.Wrap(err, "no kernel client for session")
+		result.err = errors.Wrap(err, "no kernel client for session")
+		return
 	}
 
 	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
@@ -414,9 +499,19 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	if err != nil {
-		return errors.Wrap(err, "generating partial decrypt failed")
+		result.err = errors.Wrap(err, "generating partial decrypt failed")
+		return
 	}
 
+	result.resp = resp
+
+	return
+}
+
+// submitPartialDecryption submits the kernel's partial-decrypt response to the CDR contract.
+// Must be called serially — ContractClient.createTransactOpts fetches PendingNonceAt without
+// a mutex, so concurrent calls produce nonce collisions.
+func (k *Keeper) submitPartialDecryption(ctx context.Context, session *types.DKGSession, req types.DecryptRequest, resp *types.PartialDecryptTDH2Response) error {
 	uuid, err := labelToUUID(req.Label)
 	if err != nil {
 		return errors.Wrap(err, "invalid decrypt request label")
@@ -425,7 +520,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
 		session.Round,
-		pid,
+		session.Index,
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,
 		resp.PubShare,

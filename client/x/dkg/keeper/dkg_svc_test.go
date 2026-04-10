@@ -13,6 +13,7 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 )
 
 // resetDKGSvcRound resets the package-level dkgSvcRound atomic for test isolation.
@@ -330,66 +331,94 @@ func TestDkgAsyncContext(t *testing.T) {
 
 // --- Tests merged from dkg_svc_decrypt_test.go ---
 
-// --- handleDecryptRequest ---
+// --- processDecryptRequests / computePartialDecrypt / submitPartialDecryption ---
 
-func TestHandleDecryptRequest_NilKernelRouter(t *testing.T) {
+// TestProcessDecryptQueue_NilKernelRouter verifies that processDecryptQueue returns early
+// without draining any session when kernelRouter is not configured.
+func TestProcessDecryptQueue_NilKernelRouter(t *testing.T) {
 	t.Parallel()
 
-	k := &Keeper{kernelRouter: nil}
-	session := &types.DKGSession{
-		Round: 1,
-		Index: 1,
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	// kernelRouter guard fires before BlockNumber — no BlockNumber call expected.
 
-	err := k.handleDecryptRequest(context.Background(), session, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "kernel client not configured")
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: nil}
+	k.processDecryptQueue(ctx)
+
+	// Request must still be in the queue — kernelRouter guard fires before DrainDecryptRequests.
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when kernelRouter is nil")
 }
 
-func TestHandleDecryptRequest_ZeroIndex(t *testing.T) {
+// TestProcessDecryptQueue_ZeroIndex verifies that sessions with unset Index are skipped
+// without draining their request queue.
+func TestProcessDecryptQueue_ZeroIndex(t *testing.T) {
 	t.Parallel()
 
-	router := NewKernelRouter(nil, nil)
-	k := &Keeper{kernelRouter: router}
-	session := &types.DKGSession{
-		Round: 1,
-		Index: 0, // Not set
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
 
-	err := k.handleDecryptRequest(context.Background(), session, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "session index not set")
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: []byte("pub"), // Index not set
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when session index is unset")
 }
 
-func TestHandleDecryptRequest_MissingGlobalPubKey(t *testing.T) {
+// TestProcessDecryptQueue_MissingGlobalPubKey verifies that sessions without a global
+// public key are skipped without draining their request queue.
+func TestProcessDecryptQueue_MissingGlobalPubKey(t *testing.T) {
 	t.Parallel()
 
-	router := NewKernelRouter(nil, nil)
-	k := &Keeper{kernelRouter: router}
-	session := &types.DKGSession{
-		Round:        1,
-		Index:        1,
-		GlobalPubKey: nil, // Missing
-	}
-	req := types.DecryptRequest{
-		Ciphertext: []byte("encrypted"),
-		Label:      make([]byte, 32),
-	}
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
 
-	err := k.handleDecryptRequest(context.Background(), session, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing global public key")
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: nil, // Missing
+		DecryptRequests: []types.DecryptRequest{req},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "requests must remain queued when global pub key is missing")
 }
 
-func TestHandleDecryptRequest_NoKernelClient(t *testing.T) {
+func TestComputePartialDecrypt_NoKernelClient(t *testing.T) {
 	t.Parallel()
 
 	router := NewKernelRouter(nil, nil)
@@ -405,9 +434,9 @@ func TestHandleDecryptRequest_NoKernelClient(t *testing.T) {
 		Label:      make([]byte, 32),
 	}
 
-	err := k.handleDecryptRequest(context.Background(), session, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "no kernel client for session")
+	result := k.computePartialDecrypt(context.Background(), session, req)
+	require.Error(t, result.err)
+	require.Contains(t, result.err.Error(), "no kernel client for session")
 }
 
 // --- processDecryptQueue ---
@@ -442,6 +471,31 @@ func TestProcessDecryptQueue_SessionWithNoRequests(t *testing.T) {
 
 	// Should be a no-op
 	k.processDecryptQueue(ctx)
+}
+
+// TestProcessDecryptQueue_SessionReadyButEmpty verifies that a session with valid
+// index and pubkey but no pending requests is skipped without error after the drain.
+func TestProcessDecryptQueue_SessionReadyButEmpty(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// Session has index and pubkey set (passes pre-drain guards) but no requests.
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
+		CodeCommitment:  []byte("cc"),
+		DecryptRequests: nil,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx) // should be a no-op after drain
 }
 
 func TestProcessDecryptQueue_FailedRequestsRetained(t *testing.T) {
@@ -482,11 +536,198 @@ func TestProcessDecryptQueue_FailedRequestsRetained(t *testing.T) {
 	require.Len(t, got.GetDecryptRequests(), 1, "failed requests should be retained")
 }
 
+func TestProcessDecryptQueue_BlockNumberError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(0), errors.New("rpc error"))
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx) // should return early without panic
+}
+
+func TestProcessDecryptQueue_KernelUnavailable(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// Session with requests but no kernel client registered for its code commitment.
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
+		CodeCommitment: []byte("unknown-cc"),
+		DecryptRequests: []types.DecryptRequest{
+			{Ciphertext: []byte("ct"), Label: make([]byte, 32), RequesterPubKey: []byte("rpk")},
+		},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	// Requests are dropped (not re-queued) when kernel binary is unavailable.
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Empty(t, got.GetDecryptRequests(), "requests must be dropped for unavailable kernel")
+}
+
+func TestProcessDecryptQueue_StaleRequestsFiltered(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	cc := []byte("cc-stale")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	// Current height well beyond the stale timeout.
+	currentHeight := uint64(types.DefaultDecryptTimeout + 1000)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(currentHeight, nil)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// Request with Height=0 is far below currentHeight-DefaultDecryptTimeout → stale.
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+		DecryptRequests: []types.DecryptRequest{
+			{Ciphertext: []byte("ct"), Label: make([]byte, 32), Height: 0},
+		},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: router}
+	k.processDecryptQueue(ctx)
+
+	// Stale requests must be dropped — no kernel call expected (mockKernel has no EXPECT).
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Empty(t, got.GetDecryptRequests(), "stale requests must be dropped")
+}
+
+func TestProcessDecryptQueue_PartialStaleRequests(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	cc := []byte("cc-partial-stale")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	currentHeight := uint64(types.DefaultDecryptTimeout + 1000)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(currentHeight, nil)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// One stale request (Height=0) and one fresh request (Height=currentHeight-1).
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+		DecryptRequests: []types.DecryptRequest{
+			{Ciphertext: []byte("stale"), Label: makeLabel(1), Height: 0},
+			{Ciphertext: []byte("fresh"), Label: makeLabel(2), Height: currentHeight - 1},
+		},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(&types.PartialDecryptTDH2Response{
+			EncryptedPartialDecryption: []byte("p"), EphemeralPubKey: []byte("e"),
+			PubShare: []byte("s"), Signature: []byte("sig"),
+		}, nil).Times(1)
+
+	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).Times(1)
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: router}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Empty(t, got.GetDecryptRequests(), "only fresh request processed, nothing re-queued")
+}
+
+// TestComputePartialDecrypt_PanicRecovery verifies that a panic inside the kernel call
+// is caught by the deferred recover and returned as an error (not a crash).
+func TestComputePartialDecrypt_PanicRecovery(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	cc := []byte("cc-panic")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			panic("simulated kernel panic")
+		}).Times(1)
+
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+	result := k.computePartialDecrypt(ctx, session, req)
+	require.Error(t, result.err)
+	require.Contains(t, result.err.Error(), "panic in computePartialDecrypt")
+}
+
+// TestSubmitPartialDecryption_ContractError verifies that a contract call failure is
+// returned as an error so the caller can re-queue the request.
+func TestSubmitPartialDecryption_ContractError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	k := &Keeper{contractClient: mockContract}
+	session := &types.DKGSession{Round: 1, Index: 2}
+
+	label := makeLabel(99)
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: label, RequesterPubKey: []byte("rpk")}
+	resp := &types.PartialDecryptTDH2Response{
+		EncryptedPartialDecryption: []byte("p"), EphemeralPubKey: []byte("e"),
+		PubShare: []byte("s"), Signature: []byte("sig"),
+	}
+
+	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(nil, errors.New("contract rejected"))
+
+	err := k.submitPartialDecryption(ctx, session, req, resp)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to submit partial decryption")
+}
+
 // --- Tests merged from dkg_svc_decrypt_full_test.go ---
 
-// TestHandleDecryptRequest_FullPath exercises the complete decrypt request flow
-// with mocked kernel and contract clients.
-func TestHandleDecryptRequest_FullPath(t *testing.T) {
+// TestComputePartialDecrypt_FullPath exercises the kernel gRPC leg of the decrypt flow.
+func TestComputePartialDecrypt_FullPath(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -494,21 +735,56 @@ func TestHandleDecryptRequest_FullPath(t *testing.T) {
 
 	cc := []byte("decrypt-cc")
 	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
-	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
 
 	router := NewKernelRouter(nil, nil)
 	router.RegisterClient(cc, mockKernel)
 
-	k := &Keeper{
-		kernelRouter:   router,
-		contractClient: mockContract,
-	}
+	k := &Keeper{kernelRouter: router}
 
 	session := &types.DKGSession{
 		Round:          1,
 		Index:          2,
 		GlobalPubKey:   []byte("global-pub"),
 		CodeCommitment: cc,
+	}
+
+	label := make([]byte, 32)
+	label[31] = 42
+
+	req := types.DecryptRequest{
+		Ciphertext:      []byte("ciphertext"),
+		Label:           label,
+		RequesterPubKey: []byte("requester-pub"),
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).Return(
+		&types.PartialDecryptTDH2Response{
+			EncryptedPartialDecryption: []byte("partial"),
+			EphemeralPubKey:            []byte("eph-pub"),
+			PubShare:                   []byte("pub-share"),
+			Signature:                  []byte("sig"),
+		}, nil,
+	)
+
+	result := k.computePartialDecrypt(ctx, session, req)
+	require.NoError(t, result.err)
+	require.NotNil(t, result.resp)
+	require.Equal(t, []byte("partial"), result.resp.EncryptedPartialDecryption)
+}
+
+// TestSubmitPartialDecryption_FullPath exercises the contract submission leg.
+func TestSubmitPartialDecryption_FullPath(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	k := &Keeper{contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round: 1,
+		Index: 2,
 	}
 
 	label := make([]byte, 32)
@@ -520,17 +796,13 @@ func TestHandleDecryptRequest_FullPath(t *testing.T) {
 		RequesterPubKey: []byte("requester-pub"),
 	}
 
-	// Kernel PartialDecryptTDH2 returns partial decrypt data
-	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).Return(
-		&types.PartialDecryptTDH2Response{
-			EncryptedPartialDecryption: []byte("partial"),
-			EphemeralPubKey:            []byte("eph-pub"),
-			PubShare:                   []byte("pub-share"),
-			Signature:                  []byte("sig"),
-		}, nil,
-	)
+	resp := &types.PartialDecryptTDH2Response{
+		EncryptedPartialDecryption: []byte("partial"),
+		EphemeralPubKey:            []byte("eph-pub"),
+		PubShare:                   []byte("pub-share"),
+		Signature:                  []byte("sig"),
+	}
 
-	// Contract SubmitEncryptedPartialDecryption
 	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
 		gomock.Any(),
 		uint32(1), // round
@@ -544,27 +816,65 @@ func TestHandleDecryptRequest_FullPath(t *testing.T) {
 		[]byte("sig"),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil)
 
-	err := k.handleDecryptRequest(ctx, session, req)
+	err := k.submitPartialDecryption(ctx, session, req, resp)
 	require.NoError(t, err)
 }
 
-// TestHandleDecryptRequest_InvalidLabel exercises the label-too-short error.
-func TestHandleDecryptRequest_InvalidLabel(t *testing.T) {
+// TestSubmitPartialDecryption_InvalidLabel exercises the label-too-short error path.
+func TestSubmitPartialDecryption_InvalidLabel(t *testing.T) {
 	t.Parallel()
+
+	k := &Keeper{}
+	session := &types.DKGSession{Round: 1, Index: 2}
+
+	req := types.DecryptRequest{
+		Ciphertext:      []byte("ciphertext"),
+		Label:           make([]byte, 20), // < 32 bytes
+		RequesterPubKey: []byte("requester-pub"),
+	}
+
+	resp := &types.PartialDecryptTDH2Response{
+		EncryptedPartialDecryption: []byte("partial"),
+		EphemeralPubKey:            []byte("eph-pub"),
+		PubShare:                   []byte("pub-share"),
+		Signature:                  []byte("sig"),
+	}
+
+	err := k.submitPartialDecryption(context.Background(), session, req, resp)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid decrypt request label")
+}
+
+// --- processDecryptRequests concurrent scenarios ---
+
+// makeLabel builds a 32-byte label with the given UUID encoded in the last 4 bytes.
+func makeLabel(uuid uint32) []byte {
+	label := make([]byte, 32)
+	label[28] = byte(uuid >> 24)
+	label[29] = byte(uuid >> 16)
+	label[30] = byte(uuid >> 8)
+	label[31] = byte(uuid)
+	return label
+}
+
+// TestProcessDecryptRequests_AllSucceed verifies that N requests are computed in parallel
+// and all submitted serially with no re-queuing.
+func TestProcessDecryptRequests_AllSucceed(t *testing.T) {
+	t.Parallel()
+
+	const n = 5
 
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 
-	cc := []byte("decrypt-cc-short")
+	cc := []byte("cc-all-succeed")
 	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
 
 	router := NewKernelRouter(nil, nil)
 	router.RegisterClient(cc, mockKernel)
 
-	k := &Keeper{
-		kernelRouter:   router,
-		contractClient: nil, // won't be called
-	}
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
 
 	session := &types.DKGSession{
 		Round:          1,
@@ -573,26 +883,318 @@ func TestHandleDecryptRequest_InvalidLabel(t *testing.T) {
 		CodeCommitment: cc,
 	}
 
-	// Label too short
-	req := types.DecryptRequest{
-		Ciphertext:      []byte("ciphertext"),
-		Label:           make([]byte, 20), // < 32 bytes
-		RequesterPubKey: []byte("requester-pub"),
+	requests := make([]types.DecryptRequest, n)
+	for i := range n {
+		requests[i] = types.DecryptRequest{
+			Ciphertext:      []byte("ct"),
+			Label:           makeLabel(uint32(i + 1)),
+			RequesterPubKey: []byte("rpk"),
+		}
 	}
 
-	// Kernel PartialDecryptTDH2 returns success, but labelToUUID will fail
-	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).Return(
-		&types.PartialDecryptTDH2Response{
+	// Each kernel call may arrive in any order — use AnyTimes with Times(n).
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(&types.PartialDecryptTDH2Response{
 			EncryptedPartialDecryption: []byte("partial"),
-			EphemeralPubKey:            []byte("eph-pub"),
-			PubShare:                   []byte("pub-share"),
+			EphemeralPubKey:            []byte("eph"),
+			PubShare:                   []byte("share"),
 			Signature:                  []byte("sig"),
-		}, nil,
+		}, nil).
+		Times(n)
+
+	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
+		Times(n)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	// No failures — nothing should be re-queued.
+	require.Empty(t, session.GetDecryptRequests(), "no requests should be re-queued on full success")
+}
+
+// TestProcessDecryptRequests_PartialKernelFailure verifies that requests whose kernel
+// call fails are re-queued while successfully computed requests are submitted.
+func TestProcessDecryptRequests_PartialKernelFailure(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-partial-fail")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// 3 requests: first two succeed, third fails at kernel.
+	requests := []types.DecryptRequest{
+		{Ciphertext: []byte("ct0"), Label: makeLabel(1), RequesterPubKey: []byte("rpk")},
+		{Ciphertext: []byte("ct1"), Label: makeLabel(2), RequesterPubKey: []byte("rpk")},
+		{Ciphertext: []byte("ct2"), Label: makeLabel(3), RequesterPubKey: []byte("rpk")},
+	}
+
+	successResp := &types.PartialDecryptTDH2Response{
+		EncryptedPartialDecryption: []byte("partial"),
+		EphemeralPubKey:            []byte("eph"),
+		PubShare:                   []byte("share"),
+		Signature:                  []byte("sig"),
+	}
+
+	// Use DoAndReturn to simulate one failure and two successes in any order.
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			// Fail on the request carrying ciphertext "ct2".
+			if string(req.Ciphertext) == "ct2" {
+				return nil, errors.New("kernel error")
+			}
+			return successResp, nil
+		}).
+		Times(3)
+
+	// Only 2 successful kernel results reach submission.
+	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
+		Times(2)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	// The failed request must be re-queued for retry.
+	requeued := session.GetDecryptRequests()
+	require.Len(t, requeued, 1, "exactly one failed request should be re-queued")
+	require.Equal(t, []byte("ct2"), requeued[0].Ciphertext)
+}
+
+// TestProcessDecryptRequests_ConcurrentABCIWrite verifies that new requests added by the
+// ABCI thread via AddDecryptRequest while processDecryptRequests is running are not lost.
+// This is the key race scenario: DrainDecryptRequests atomically clears the queue before
+// processing; any request added after the drain must survive in the queue.
+func TestProcessDecryptRequests_ConcurrentABCIWrite(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-abci-race")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// One pre-existing request that processDecryptRequests will process.
+	existing := types.DecryptRequest{
+		Ciphertext:      []byte("existing-ct"),
+		Label:           makeLabel(10),
+		RequesterPubKey: []byte("rpk"),
+	}
+
+	// While the kernel gRPC is in-flight (simulated by a brief sleep), the ABCI
+	// thread concurrently adds a new request.
+	abciAdded := types.DecryptRequest{
+		Ciphertext:      []byte("abci-ct"),
+		Label:           makeLabel(11),
+		RequesterPubKey: []byte("rpk"),
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			// Simulate kernel latency; ABCI thread writes concurrently during this window.
+			go session.AddDecryptRequest(abciAdded)
+			time.Sleep(5 * time.Millisecond)
+			return &types.PartialDecryptTDH2Response{
+				EncryptedPartialDecryption: []byte("partial"),
+				EphemeralPubKey:            []byte("eph"),
+				PubShare:                   []byte("share"),
+				Signature:                  []byte("sig"),
+			}, nil
+		}).Times(1)
+
+	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).Times(1)
+
+	k.processDecryptRequests(ctx, session, []types.DecryptRequest{existing})
+
+	// Give the concurrent AddDecryptRequest goroutine time to complete.
+	time.Sleep(20 * time.Millisecond)
+
+	// The ABCI-added request must still be present — processDecryptRequests must not
+	// overwrite it when it calls UpdateSession at the end.
+	requeued := session.GetDecryptRequests()
+	require.Len(t, requeued, 1, "ABCI-added request must not be lost")
+	require.Equal(t, []byte("abci-ct"), requeued[0].Ciphertext)
+}
+
+// --- Parallel vs sequential throughput comparison ---
+
+// TestProcessDecryptRequests_ParallelSpeedup measures the wall-clock improvement of the
+// parallel kernel phase over a naive sequential implementation.
+//
+// Simulated latencies:
+//   - kernelDelay: 100ms per request (proxy for real 6-8s TEE computation)
+//   - contractDelay: 20ms per request (proxy for real ~2s tx mining)
+//
+// With N=5:
+//
+//	Sequential: 5 × (100ms + 20ms) = 600ms
+//	Parallel:   100ms + 5 × 20ms   = 200ms   → ~3× speedup
+//
+// Extrapolated to production latencies (kernel=7s, contract=2s, N=5):
+//
+//	Sequential: 5 × 9s = 45s
+//	Parallel:   7s + 5 × 2s = 17s  → ~62% reduction
+func TestProcessDecryptRequests_ParallelSpeedup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping throughput comparison in short mode")
+	}
+
+	const (
+		n             = 5
+		kernelDelay   = 100 * time.Millisecond
+		contractDelay = 20 * time.Millisecond
+		// Minimum expected speedup ratio (parallel / sequential elapsed).
+		// We use a conservative 2× to avoid flakiness on loaded CI machines.
+		minSpeedup = 2.0
 	)
 
-	err := k.handleDecryptRequest(ctx, session, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid decrypt request label")
+	cc := []byte("cc-speedup")
+
+	buildSession := func() *types.DKGSession {
+		return &types.DKGSession{
+			Round:          1,
+			Index:          2,
+			GlobalPubKey:   []byte("global-pub"),
+			CodeCommitment: cc,
+		}
+	}
+
+	buildRequests := func() []types.DecryptRequest {
+		reqs := make([]types.DecryptRequest, n)
+		for i := range n {
+			reqs[i] = types.DecryptRequest{
+				Ciphertext:      []byte("ct"),
+				Label:           makeLabel(uint32(i + 1)),
+				RequesterPubKey: []byte("rpk"),
+			}
+		}
+		return reqs
+	}
+
+	kernelResp := &types.PartialDecryptTDH2Response{
+		EncryptedPartialDecryption: []byte("partial"),
+		EphemeralPubKey:            []byte("eph"),
+		PubShare:                   []byte("share"),
+		Signature:                  []byte("sig"),
+	}
+
+	// --- Sequential baseline ---
+	seqCtrl := gomock.NewController(t)
+	seqKernel := dkgtestutil.NewMockKernelServiceClient(seqCtrl)
+	seqContract := dkgtestutil.NewMockDKGContractClient(seqCtrl)
+
+	seqKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			time.Sleep(kernelDelay)
+			return kernelResp, nil
+		}).Times(n)
+
+	seqContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).DoAndReturn(func(_ context.Context, _, _ uint32, _, _, _, _, _ []byte, _ uint32, _ []byte) (*ethtypes.Receipt, error) {
+		time.Sleep(contractDelay)
+		return &ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil
+	}).Times(n)
+
+	seqRouter := NewKernelRouter(nil, nil)
+	seqRouter.RegisterClient(cc, seqKernel)
+	seqKeeper := &Keeper{kernelRouter: seqRouter, contractClient: seqContract}
+	seqSession := buildSession()
+
+	seqStart := time.Now()
+	// Sequential: process each request one by one (old approach).
+	for _, req := range buildRequests() {
+		result := seqKeeper.computePartialDecrypt(context.Background(), seqSession, req)
+		if result.err != nil {
+			t.Fatalf("sequential kernel call failed: %v", result.err)
+		}
+		if err := seqKeeper.submitPartialDecryption(context.Background(), seqSession, result.req, result.resp); err != nil {
+			t.Fatalf("sequential submit failed: %v", err)
+		}
+	}
+	seqElapsed := time.Since(seqStart)
+
+	// --- Parallel implementation ---
+	parCtrl := gomock.NewController(t)
+	parKernel := dkgtestutil.NewMockKernelServiceClient(parCtrl)
+	parContract := dkgtestutil.NewMockDKGContractClient(parCtrl)
+
+	parKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			time.Sleep(kernelDelay)
+			return kernelResp, nil
+		}).Times(n)
+
+	parContract.EXPECT().SubmitEncryptedPartialDecryption(
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(),
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	).DoAndReturn(func(_ context.Context, _, _ uint32, _, _, _, _, _ []byte, _ uint32, _ []byte) (*ethtypes.Receipt, error) {
+		time.Sleep(contractDelay)
+		return &ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil
+	}).Times(n)
+
+	parRouter := NewKernelRouter(nil, nil)
+	parRouter.RegisterClient(cc, parKernel)
+	parKeeper := &Keeper{kernelRouter: parRouter, contractClient: parContract}
+	parSession := buildSession()
+
+	parStart := time.Now()
+	parKeeper.processDecryptRequests(context.Background(), parSession, buildRequests())
+	parElapsed := time.Since(parStart)
+
+	speedup := float64(seqElapsed) / float64(parElapsed)
+
+	t.Logf("n=%d  kernel_delay=%s  contract_delay=%s", n, kernelDelay, contractDelay)
+	t.Logf("sequential: %s", seqElapsed.Round(time.Millisecond))
+	t.Logf("parallel:   %s", parElapsed.Round(time.Millisecond))
+	t.Logf("speedup:    %.2fx", speedup)
+	t.Logf("")
+	t.Logf("Extrapolated to production (kernel=7s, contract=2s, n=%d):", n)
+	t.Logf("  sequential: %s", (time.Duration(n) * (7*time.Second + 2*time.Second)).Round(time.Second))
+	t.Logf("  parallel:   %s", (7*time.Second + time.Duration(n)*2*time.Second).Round(time.Second))
+
+	require.GreaterOrEqual(t, speedup, minSpeedup,
+		"parallel should be at least %.1fx faster than sequential", minSpeedup)
+	require.Empty(t, parSession.GetDecryptRequests(), "no requests should be re-queued")
 }
 
 // --- Tests merged from dkg_svc_worker_test.go ---
