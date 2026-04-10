@@ -415,15 +415,16 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 // remain sequential.
 func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.DecryptRequest) {
 
-	// Phase 1: parallel kernel calls.
-	// Each goroutine sends exactly one result, so we read exactly len(requests) times
-	// below — no close or WaitGroup needed.
-	// Buffer size is capped at decryptChanBuf to limit concurrent in-flight RPCs.
-	bufSize := min(len(requests), decryptChanBuf)
-	resultCh := make(chan decryptComputeResult, bufSize)
+	// Phase 1: parallel kernel calls, concurrency limited to decryptChanBuf.
+	// sem acts as a semaphore: acquiring a slot before launch limits in-flight goroutines.
+	// Each goroutine sends exactly one result, so we read exactly len(requests) times below.
+	sem := make(chan struct{}, decryptChanBuf)
+	resultCh := make(chan decryptComputeResult, len(requests))
 
 	for _, req := range requests {
+		sem <- struct{}{}
 		go func(req types.DecryptRequest) {
+			defer func() { <-sem }()
 			// Pre-initialize with an error so that if runtime.Goexit() is called
 			// (e.g. t.Fatal from a test mock), the deferred send still fires and
 			// the consumer loop is not left blocked on an unreceived value.
