@@ -100,7 +100,16 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 	}
 }
 
+// maxQueryDepth limits the nesting depth of dot-separated query parameter keys
+// to prevent O(D^2) CPU and memory consumption from deeply nested keys.
+// Current max actual usage is depth 2 (e.g. "pagination.limit").
+const maxQueryDepth = 5
+
 func buildMap(query url.Values, prefix ...string) (ret map[string]any) {
+	if len(prefix) > maxQueryDepth {
+		return nil
+	}
+
 	fullPrefix := strings.Join(prefix, ".")
 	if len(fullPrefix) > 0 {
 		fullPrefix += "."
