@@ -23,13 +23,13 @@ type decryptComputeResult struct {
 // decryptChanBuf limits the number of goroutines running kernel calls concurrently.
 const decryptChanBuf = 10
 
-// decryptBatchSize is the number of partial decryptions to submit in a single
-// batch contract call. The CDR contract enforces its own maxBatchSize;
-// this client-side value should be ≤ that limit.
+// defaultDecryptBatchSize is the default number of partial decryptions to submit
+// in a single batch contract call when no explicit batch size is configured.
+// The CDR contract enforces its own maxBatchSize; this client-side value should be ≤ that limit.
 // One single submission tx consumes nearly 72k gas, including fixed overhead and per-decryption cost.
 // Batching reduces total gas by amortizing the fixed overhead across multiple decryptions.
 // With 20 decryptions, we get ~35% gas savings compared to single submissions, while keeping batch size manageable.
-const decryptBatchSize = 20
+const defaultDecryptBatchSize = 20
 
 // dkgSvcRound tracks which DKG round is currently being processed by async
 // goroutines. Zero means no round is running. A higher round number always
@@ -470,7 +470,8 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 		}
 	}()
 
-	batch := make([]decryptComputeResult, 0, decryptBatchSize)
+	batchSize := k.decryptBatchSize
+	batch := make([]decryptComputeResult, 0, batchSize)
 
 	flushBatch := func() {
 		if len(batch) == 0 {
@@ -504,7 +505,7 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 			continue
 		}
 		batch = append(batch, r)
-		if len(batch) >= decryptBatchSize {
+		if len(batch) >= batchSize {
 			flushBatch()
 		}
 	}

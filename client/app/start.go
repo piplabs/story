@@ -248,6 +248,7 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 		if err := app.Keepers.DKGKeeper.InitDKGService(cfg.DKGStateDir(), addr, enclaveType); err != nil {
 			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
 		}
+		app.Keepers.DKGKeeper.SetDecryptBatchSize(cfg.DKG.DecryptBatchSize)
 	}
 
 	return app, privVal, nil
