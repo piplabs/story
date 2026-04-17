@@ -110,6 +110,7 @@ enable = true                                          # Enable DKG service
 kernel_endpoints = ["127.0.0.1:50051"]                 # story-kernel gRPC endpoints
 engine_rpc_endpoint = "http://127.0.0.1:8545"          # Execution layer JSON-RPC
 enclave_type = 1                                       # TEE enclave type (1 = SGX)
+decrypt_batch_size = 20                                # Partial decryptions per CDR batch call (≤ contract maxBatchSize)
 ```
 
 | CLI Flag | Description |
@@ -118,6 +119,7 @@ enclave_type = 1                                       # TEE enclave type (1 = S
 | `--dkg-kernel-endpoints` | Comma-separated list of story-kernel gRPC endpoints |
 | `--dkg-engine-rpc-endpoint` | Execution layer JSON-RPC endpoint |
 | `--dkg-enc-type` | TEE enclave type identifier |
+| `--dkg-decrypt-batch-size` | Number of partial decryptions per CDR batch call (must be ≤ contract `maxBatchSize`, default 20) |
 
 ## On-Chain State
 
