@@ -471,6 +471,9 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 	}()
 
 	batchSize := k.decryptBatchSize
+	if batchSize <= 0 {
+		batchSize = defaultDecryptBatchSize
+	}
 	batch := make([]decryptComputeResult, 0, batchSize)
 
 	flushBatch := func() {
