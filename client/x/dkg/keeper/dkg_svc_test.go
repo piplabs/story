@@ -652,9 +652,8 @@ func TestProcessDecryptQueue_PartialStaleRequests(t *testing.T) {
 			PubShare: []byte("s"), Signature: []byte("sig"),
 		}, nil).Times(1)
 
-	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).Times(1)
 
 	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: router}
@@ -902,12 +901,11 @@ func TestProcessDecryptRequests_AllSucceed(t *testing.T) {
 		}, nil).
 		Times(n)
 
-	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	// All n results fit in one batch (n=5 < decryptBatchSize=20).
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
-		Times(n)
+		Times(1)
 
 	k.processDecryptRequests(ctx, session, requests)
 
@@ -964,13 +962,11 @@ func TestProcessDecryptRequests_PartialKernelFailure(t *testing.T) {
 		}).
 		Times(3)
 
-	// Only 2 successful kernel results reach submission.
-	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	// 2 successful results go into one batch.
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
-		Times(2)
+		Times(1)
 
 	k.processDecryptRequests(ctx, session, requests)
 
@@ -1034,10 +1030,8 @@ func TestProcessDecryptRequests_ConcurrentABCIWrite(t *testing.T) {
 			}, nil
 		}).Times(1)
 
-	mockContract.EXPECT().SubmitEncryptedPartialDecryption(
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).Times(1)
 
 	k.processDecryptRequests(ctx, session, []types.DecryptRequest{existing})
@@ -1050,6 +1044,66 @@ func TestProcessDecryptRequests_ConcurrentABCIWrite(t *testing.T) {
 	requeued := session.GetDecryptRequests()
 	require.Len(t, requeued, 1, "ABCI-added request must not be lost")
 	require.Equal(t, []byte("abci-ct"), requeued[0].Ciphertext)
+}
+
+// TestProcessDecryptRequests_MultiBatch verifies that when the number of requests
+// exceeds decryptBatchSize, batchSubmitConsumer calls flushBatch multiple times:
+// once per full batch and once for the remainder.
+//
+// With n=25 and decryptBatchSize=20 we expect exactly 2 contract calls:
+//   - first flush:  20 items (full batch)
+//   - second flush:  5 items (remainder)
+func TestProcessDecryptRequests_MultiBatch(t *testing.T) {
+	t.Parallel()
+
+	const n = 25 // intentionally > decryptBatchSize(20)
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-multi-batch")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	requests := make([]types.DecryptRequest, n)
+	for i := range n {
+		requests[i] = types.DecryptRequest{
+			Ciphertext:      []byte("ct"),
+			Label:           makeLabel(uint32(i + 1)),
+			RequesterPubKey: []byte("rpk"),
+		}
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(&types.PartialDecryptTDH2Response{
+			EncryptedPartialDecryption: []byte("partial"),
+			EphemeralPubKey:            []byte("eph"),
+			PubShare:                   []byte("share"),
+			Signature:                  []byte("sig"),
+		}, nil).
+		Times(n)
+
+	// 25 results → flush at 20 + flush remainder 5 = 2 contract calls.
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
+	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
+		Times(2)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	require.Empty(t, session.GetDecryptRequests(), "no requests should be re-queued on full success")
 }
 
 // --- Parallel vs sequential throughput comparison ---
@@ -1163,14 +1217,13 @@ func TestProcessDecryptRequests_ParallelSpeedup(t *testing.T) {
 			return kernelResp, nil
 		}).Times(n)
 
-	parContract.EXPECT().SubmitEncryptedPartialDecryption(
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _, _ uint32, _, _, _, _, _ []byte, _ uint32, _ []byte) (*ethtypes.Receipt, error) {
+	// All n results fit in one batch (n=5 < decryptBatchSize=20).
+	parContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
+	).DoAndReturn(func(_ context.Context, _ interface{}) (*ethtypes.Receipt, error) {
 		time.Sleep(contractDelay)
 		return &ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil
-	}).Times(n)
+	}).Times(1)
 
 	parRouter := NewKernelRouter(nil, nil)
 	parRouter.RegisterClient(cc, parKernel)

@@ -102,8 +102,9 @@ func (m *mockDKGContract) Finalize(opts *bind.TransactOpts, round uint32, valida
 
 // mockCDRContract implements CDRContractBinding for testing.
 type mockCDRContract struct {
-	baseFeeFn                          func(opts *bind.CallOpts) (*big.Int, error)
-	submitEncryptedPartialDecryptionFn func(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error)
+	baseFeeFn                               func(opts *bind.CallOpts) (*big.Int, error)
+	submitEncryptedPartialDecryptionFn      func(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error)
+	submitEncryptedPartialDecryptionBatchFn func(opts *bind.TransactOpts, requests []bindings.ICDRPartialDecryptionRequest) (*types.Transaction, error)
 }
 
 func (m *mockCDRContract) BaseFee(opts *bind.CallOpts) (*big.Int, error) {
@@ -117,6 +118,14 @@ func (m *mockCDRContract) BaseFee(opts *bind.CallOpts) (*big.Int, error) {
 func (m *mockCDRContract) SubmitEncryptedPartialDecryption(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error) {
 	if m.submitEncryptedPartialDecryptionFn != nil {
 		return m.submitEncryptedPartialDecryptionFn(opts, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
+	}
+
+	return makeTx(opts.Nonce.Uint64()), nil
+}
+
+func (m *mockCDRContract) SubmitEncryptedPartialDecryptionBatch(opts *bind.TransactOpts, requests []bindings.ICDRPartialDecryptionRequest) (*types.Transaction, error) {
+	if m.submitEncryptedPartialDecryptionBatchFn != nil {
+		return m.submitEncryptedPartialDecryptionBatchFn(opts, requests)
 	}
 
 	return makeTx(opts.Nonce.Uint64()), nil

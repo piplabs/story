@@ -139,3 +139,7 @@ engine-rpc-endpoint = "{{ .DKG.EngineRPCEndpoint }}"
 
 # TEE enclave type identifier (e.g. 1 for SGX)
 enc-type = {{ .DKG.EnclaveType }}
+
+# Number of partial decryptions submitted in a single CDR contract call.
+# Must be ≤ the CDR contract's maxBatchSize (default 20).
+decrypt-batch-size = {{ .DKG.DecryptBatchSize }}

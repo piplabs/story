@@ -27,7 +27,7 @@ contract DeployNewCDR is Script {
         // CDR has no constructor args (only _disableInitializers in constructor)
         bytes memory creationCode = type(CDR).creationCode;
 
-        bytes32 salt = keccak256(abi.encodePacked("CDR_Implementation_v1_0_0"));
+        bytes32 salt = keccak256(abi.encodePacked("CDR_Implementation_v1_1_0"));
 
         // Deploy using Create3 for deterministic address
         address newImplementation = create3.deploy(salt, creationCode);

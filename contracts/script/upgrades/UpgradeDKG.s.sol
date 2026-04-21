@@ -141,7 +141,8 @@ contract UpgradeDKG is Script {
                 vm.envUint("CDR_READ_FEE"),
                 vm.envUint("CDR_ALLOCATE_FEE"),
                 vm.envUint("CDR_MAX_ENCRYPTED_DATA_SIZE"),
-                vm.envUint("CDR_MAX_ENCRYPTED_PARTIAL_SIZE")
+                vm.envUint("CDR_MAX_ENCRYPTED_PARTIAL_SIZE"),
+                vm.envUint("CDR_MAX_BATCH_SIZE")
             )
         );
 

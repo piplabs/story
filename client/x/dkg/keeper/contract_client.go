@@ -48,6 +48,7 @@ type DKGContractBinding interface {
 type CDRContractBinding interface {
 	BaseFee(opts *bind.CallOpts) (*big.Int, error)
 	SubmitEncryptedPartialDecryption(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error)
+	SubmitEncryptedPartialDecryptionBatch(opts *bind.TransactOpts, requests []bindings.ICDRPartialDecryptionRequest) (*types.Transaction, error)
 }
 
 // Compile-time assertions.
@@ -285,6 +286,35 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 
 	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
+	})
+}
+
+// SubmitEncryptedPartialDecryptionBatch calls the batch submitEncryptedPartialDecryptionBatch
+// contract method, submitting multiple partial decryptions in a single transaction.
+func (c *ContractClient) SubmitEncryptedPartialDecryptionBatch(
+	ctx context.Context,
+	requests []bindings.ICDRPartialDecryptionRequest,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling submitEncryptedPartialDecryptionBatch contract method",
+		"batch_size", len(requests),
+	)
+
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryptionBatch", requests)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryptionBatch call data")
+	}
+
+	baseFee, err := c.cdrContract.BaseFee(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query CDR base fee for batch partial decryption")
+	}
+
+	totalFee := new(big.Int).Mul(baseFee, big.NewInt(int64(len(requests))))
+
+	log.Info(ctx, "CDR batch fee computed", "base_fee_wei", baseFee.String(), "total_fee_wei", totalFee.String(), "batch_size", len(requests))
+
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryptionBatch", c.cdrContractAddr, callData, totalFee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.cdrContract.SubmitEncryptedPartialDecryptionBatch(auth, requests)
 	})
 }
 
