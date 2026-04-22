@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -69,7 +70,8 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	var resp *types.GenerateDealsResponse
 
-	if err := retry(ctx, func(ctx context.Context) error {
+	start := time.Now()
+	retryErr := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "GenerateDeals call to kernel client",
 			"round", session.Round,
 			"is_upgrade", dkgNetwork.IsUpgrade,
@@ -91,8 +93,11 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		}
 
 		return nil
-	}); err != nil {
-		log.Error(ctx, "Failed to generate deals", err)
+	})
+	observeKernelCall("generate_deals", start, retryErr)
+
+	if retryErr != nil {
+		log.Error(ctx, "Failed to generate deals", retryErr)
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
@@ -173,7 +178,8 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 	var resp *types.ProcessDealsResponse
 
-	if err := retry(ctx, func(ctx context.Context) error {
+	start := time.Now()
+	retryErr := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
 			"round", session.Round,
 			"total_deals", len(deals),
@@ -198,12 +204,15 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		}
 
 		return nil
-	}); err != nil {
+	})
+	observeKernelCall("process_deals", start, retryErr)
+
+	if retryErr != nil {
 		// "all N submitted deals were rejected" means every deal was already processed
 		// by kyber (duplicate delivery via consecutive vote extensions). Retrying the
 		// same data will always fail, so drop instead of caching.
-		if status.Code(err) == codes.InvalidArgument && strings.Contains(status.Convert(err).Message(), "submitted deals were rejected") {
-			log.Warn(ctx, "All deals already processed by kernel; dropping duplicates", err,
+		if status.Code(retryErr) == codes.InvalidArgument && strings.Contains(status.Convert(retryErr).Message(), "submitted deals were rejected") {
+			log.Warn(ctx, "All deals already processed by kernel; dropping duplicates", retryErr,
 				"round", dkgNetwork.Round,
 			)
 
@@ -214,7 +223,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		// Not persisted to disk — process restart loses them (round will fail and retry).
 		cached := cachePendingIncomingDeals(filteredDeals, session.Index)
 
-		log.Error(ctx, "Failed to process deals; cached for retry", err,
+		log.Error(ctx, "Failed to process deals; cached for retry", retryErr,
 			"round", dkgNetwork.Round,
 			"cached_deals", cached,
 		)
@@ -249,6 +258,8 @@ func cachePendingIncomingDeals(allDeals []types.Deal, sessionIndex uint32) int {
 			cached++
 		}
 	}
+
+	incPendingData("deals", "cached", cached)
 
 	return cached
 }
@@ -316,7 +327,8 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	for _, cc := range ccsToProcess {
 		var processResp *types.ProcessResponsesResponse
 
-		if err := retry(ctx, func(ctx context.Context) error {
+		start := time.Now()
+		retryErr := retry(ctx, func(ctx context.Context) error {
 			log.Info(ctx, "ProcessResponses call to kernel client",
 				"round", session.Round,
 				"num_responses", len(filteredResponses),
@@ -340,8 +352,11 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 			}
 
 			return nil
-		}); err != nil {
-			log.Error(ctx, "Failed to process responses", err,
+		})
+		observeKernelCall("process_responses", start, retryErr)
+
+		if retryErr != nil {
+			log.Error(ctx, "Failed to process responses", retryErr,
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
@@ -399,7 +414,8 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	}
 
 	for _, cc := range ccsToProcess {
-		if err := retry(ctx, func(ctx context.Context) error {
+		start := time.Now()
+		retryErr := retry(ctx, func(ctx context.Context) error {
 			req := &types.ProcessJustificationRequest{
 				CodeCommitment: cc,
 				Round:          session.Round,
@@ -417,10 +433,13 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 			}
 
 			return nil
-		}); err != nil {
+		})
+		observeKernelCall("process_justifications", start, retryErr)
+
+		if retryErr != nil {
 			cached := cachePendingIncomingJustifications(justifications)
 
-			log.Error(ctx, "Failed to process justifications via kernel; cached for retry", err,
+			log.Error(ctx, "Failed to process justifications via kernel; cached for retry", retryErr,
 				"round", dkgNetwork.Round,
 				"code_commitment", hex.EncodeToString(cc),
 				"cached_justifications", cached,
@@ -470,6 +489,7 @@ func cachePendingIncomingResponses(filteredResponses []types.Response) {
 	}
 
 	pendingIncomingResponses = append(pendingIncomingResponses, filteredResponses...)
+	incPendingData("responses", "cached", len(filteredResponses))
 }
 
 // cachePendingIncomingJustifications saves justifications that failed kernel processing for later retry.
@@ -488,6 +508,7 @@ func cachePendingIncomingJustifications(justifications []types.Justification) in
 	}
 
 	pendingIncomingJustifications = append(pendingIncomingJustifications, justifications...)
+	incPendingData("justifications", "cached", len(justifications))
 
 	return len(justifications)
 }
@@ -557,6 +578,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessDeals(asyncCtx, dkgNetwork, drainedDeals)
+			incPendingData("deals", "replayed", len(drainedDeals))
 		}
 
 		// Then process responses.
@@ -569,6 +591,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessResponses(asyncCtx, dkgNetwork, drainedResponses, true)
+			incPendingData("responses", "replayed", len(drainedResponses))
 		}
 
 		// Finally process justifications (already verified before caching,
@@ -582,6 +605,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessJustifications(asyncCtx, dkgNetwork, drainedJustifications)
+			incPendingData("justifications", "replayed", len(drainedJustifications))
 		}
 	}()
 }

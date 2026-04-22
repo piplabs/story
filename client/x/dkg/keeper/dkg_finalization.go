@@ -112,6 +112,7 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 		}()
 	}
 
+	roundsTotal.WithLabelValues("completed").Inc()
 	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round)
 
 	return nil
