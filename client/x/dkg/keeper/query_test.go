@@ -300,6 +300,99 @@ func TestQuery_GetAllVerifiedDKGRegistrations_EmptyRound(t *testing.T) {
 	require.Empty(t, resp.Registrations)
 }
 
+// TestQuery_GetAllDKGRegistrations_ReturnsAllStatuses verifies that
+// GetAllDKGRegistrations returns registrations regardless of status — including
+// Finalized ones. This is the primary motivation for exposing the query through
+// the story-api at /dkg/registrations (see piplabs/story#802): the CDR SDK
+// needs commPubKeys for partials signed under a round that has already
+// finalized, and GetAllVerifiedDKGRegistrations returns empty in that case.
+func TestQuery_GetAllDKGRegistrations_ReturnsAllStatuses(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
+
+	round := uint32(5)
+
+	addrVerified := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	addrFinalized := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	addrInvalidated := common.HexToAddress("0x3333333333333333333333333333333333333333")
+
+	require.NoError(t, k.setDKGRegistration(ctx, addrVerified, &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: addrVerified.Hex(),
+		Index:         1,
+		CommPubKey:    []byte("comm-pubkey-verified"),
+		Status:        types.DKGRegStatusVerified,
+	}))
+	require.NoError(t, k.setDKGRegistration(ctx, addrFinalized, &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: addrFinalized.Hex(),
+		Index:         2,
+		CommPubKey:    []byte("comm-pubkey-finalized"),
+		Status:        types.DKGRegStatusFinalized,
+	}))
+	require.NoError(t, k.setDKGRegistration(ctx, addrInvalidated, &types.DKGRegistration{
+		Round:         round,
+		ValidatorAddr: addrInvalidated.Hex(),
+		Index:         3,
+		CommPubKey:    []byte("comm-pubkey-invalidated"),
+		Status:        types.DKGRegStatusInvalidated,
+	}))
+
+	resp, err := k.GetAllDKGRegistrations(ctx, &types.QueryGetAllDKGRegistrationsRequest{Round: round})
+	require.NoError(t, err)
+	require.Len(t, resp.Registrations, 3, "all registrations for the round should be returned regardless of status")
+
+	seen := make(map[types.DKGRegStatus]bool, 3)
+	for _, reg := range resp.Registrations {
+		seen[reg.Status] = true
+	}
+	require.True(t, seen[types.DKGRegStatusVerified])
+	require.True(t, seen[types.DKGRegStatusFinalized])
+	require.True(t, seen[types.DKGRegStatusInvalidated])
+}
+
+// TestQuery_GetAllDKGRegistrations_IsolatesRounds verifies the query only
+// returns registrations for the requested round. This guards the underlying
+// prefix iteration against spilling across adjacent rounds (e.g. round 5 vs 50
+// when the key format is "%d_...").
+func TestQuery_GetAllDKGRegistrations_IsolatesRounds(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
+
+	addrR5 := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	addrR50 := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	addrR6 := common.HexToAddress("0x3333333333333333333333333333333333333333")
+
+	require.NoError(t, k.setDKGRegistration(ctx, addrR5, &types.DKGRegistration{
+		Round:         5,
+		ValidatorAddr: addrR5.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusFinalized,
+	}))
+	require.NoError(t, k.setDKGRegistration(ctx, addrR50, &types.DKGRegistration{
+		Round:         50,
+		ValidatorAddr: addrR50.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusVerified,
+	}))
+	require.NoError(t, k.setDKGRegistration(ctx, addrR6, &types.DKGRegistration{
+		Round:         6,
+		ValidatorAddr: addrR6.Hex(),
+		Index:         1,
+		Status:        types.DKGRegStatusVerified,
+	}))
+
+	resp, err := k.GetAllDKGRegistrations(ctx, &types.QueryGetAllDKGRegistrationsRequest{Round: 5})
+	require.NoError(t, err)
+	require.Len(t, resp.Registrations, 1)
+	require.Equal(t, uint32(5), resp.Registrations[0].Round)
+	require.Equal(t, addrR5.Hex(), resp.Registrations[0].ValidatorAddr)
+}
+
 // TestQuery_GetLatestActiveDKGNetwork_NilRequest verifies that nil request
 // returns InvalidArgument.
 func TestQuery_GetLatestActiveDKGNetwork_NilRequest(t *testing.T) {

@@ -63,7 +63,9 @@ message QueryGetDKGNetworkRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
+  // Deprecated: ignored by the keeper; results are scoped only by round.
   string code_commitment_hex = 2 [
+    deprecated = true,
     (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 }
@@ -102,7 +104,9 @@ message QueryGetDKGRegistrationRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
+  // Deprecated: ignored by the keeper; results are scoped only by round and validator_address.
   string code_commitment_hex = 2 [
+    deprecated = true,
     (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 
@@ -123,7 +127,9 @@ message QueryGetAllDKGRegistrationsRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
+  // Deprecated: ignored by the keeper; results are scoped only by round.
   string code_commitment_hex = 2 [
+    deprecated = true,
     (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 
@@ -144,7 +150,9 @@ message QueryGetAllVerifiedDKGRegistrationsRequest {
     (gogoproto.moretags) = "yaml:\"round\""
   ];
 
+  // Deprecated: ignored by the keeper; results are scoped only by round.
   string code_commitment_hex = 2 [
+    deprecated = true,
     (gogoproto.moretags) = "yaml:\"code_commitment_hex\""
   ];
 }

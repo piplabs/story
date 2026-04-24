@@ -77,8 +77,28 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 		switch t {
 		case reflect.Bool:
 			return strconv.ParseBool(from)
+		case reflect.Int64:
+			return strconv.ParseInt(from, 10, 64)
+		case reflect.Int32:
+			parseInt, err := strconv.ParseInt(from, 10, 32)
+			return int32(parseInt), err
+		case reflect.Int16:
+			parseInt, err := strconv.ParseInt(from, 10, 16)
+			return int16(parseInt), err
+		case reflect.Int8:
+			parseInt, err := strconv.ParseInt(from, 10, 8)
+			return int8(parseInt), err
 		case reflect.Uint64:
 			return strconv.ParseUint(from, 10, 64)
+		case reflect.Uint32:
+			parseUint, err := strconv.ParseUint(from, 10, 32)
+			return uint32(parseUint), err
+		case reflect.Uint16:
+			parseUint, err := strconv.ParseUint(from, 10, 16)
+			return uint16(parseUint), err
+		case reflect.Uint8:
+			parseUint, err := strconv.ParseUint(from, 10, 8)
+			return uint8(parseUint), err
 		case reflect.Int:
 			return strconv.ParseInt(from, 10, 64)
 		case reflect.Uint:
