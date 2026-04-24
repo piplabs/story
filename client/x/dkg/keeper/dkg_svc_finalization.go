@@ -117,7 +117,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 
 		return nil
 	})
-	observeKernelCall("finalize_dkg", start, retryErr)
+	observeKernelCall(labelOpFinalizeDKG, start, retryErr)
 
 	if retryErr != nil {
 		return errors.Wrap(retryErr, "kernel client Finalize request failed")

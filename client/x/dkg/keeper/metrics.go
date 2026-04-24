@@ -7,6 +7,58 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+// Label values for roundsTotal "result" label.
+const (
+	labelRoundInitiated = "initiated"
+	labelRoundCompleted = "completed"
+	labelRoundSkipped   = "skipped"
+)
+
+// Label values for kernelCallDuration/Total "operation" label.
+const (
+	labelOpGenerateAndSealKey    = "generate_and_seal_key"
+	labelOpGenerateDeals         = "generate_deals"
+	labelOpProcessDeals          = "process_deals"
+	labelOpProcessResponses      = "process_responses"
+	labelOpProcessJustifications = "process_justifications"
+	labelOpFinalizeDKG           = "finalize_dkg"
+	labelOpPartialDecryptTDH2    = "partial_decrypt_tdh2"
+)
+
+// Label values for decryptRequestTotal "result" label.
+const (
+	labelDecryptStaleDropped = "stale_dropped"
+	labelDecryptKernelFailed = "kernel_failed"
+	labelDecryptRequeued     = "requeued"
+	labelDecryptSubmitted    = "submitted"
+)
+
+// Label values for decryptBatchTotal "result" label.
+const (
+	labelBatchSuccess = "success"
+	labelBatchError   = "error"
+)
+
+// Label values for pendingDataTotal "type" label.
+const (
+	labelPendingDeals          = "deals"
+	labelPendingResponses      = "responses"
+	labelPendingJustifications = "justifications"
+)
+
+// Label values for pendingDataTotal "op" label.
+const (
+	labelPendingCached   = "cached"
+	labelPendingReplayed = "replayed"
+)
+
+// Label values for kernelClientLookupDuration "result" label.
+const (
+	labelLookupHit       = "hit"
+	labelLookupReconnect = "reconnect"
+	labelLookupError     = "error"
+)
+
 var (
 	roundsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "story",

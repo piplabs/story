@@ -169,7 +169,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 
 		return nil
 	})
-	observeKernelCall("generate_and_seal_key", start, retryErr)
+	observeKernelCall(labelOpGenerateAndSealKey, start, retryErr)
 
 	if retryErr != nil {
 		return errors.Wrap(retryErr, "kernel client GenerateAndSealKey request failed")

@@ -94,7 +94,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 		return nil
 	})
-	observeKernelCall("generate_deals", start, retryErr)
+	observeKernelCall(labelOpGenerateDeals, start, retryErr)
 
 	if retryErr != nil {
 		log.Error(ctx, "Failed to generate deals", retryErr)
@@ -205,7 +205,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 
 		return nil
 	})
-	observeKernelCall("process_deals", start, retryErr)
+	observeKernelCall(labelOpProcessDeals, start, retryErr)
 
 	if retryErr != nil {
 		// "all N submitted deals were rejected" means every deal was already processed
@@ -259,7 +259,7 @@ func cachePendingIncomingDeals(allDeals []types.Deal, sessionIndex uint32) int {
 		}
 	}
 
-	incPendingData("deals", "cached", cached)
+	incPendingData(labelPendingDeals, labelPendingCached, cached)
 
 	return cached
 }
@@ -353,7 +353,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 			return nil
 		})
-		observeKernelCall("process_responses", start, retryErr)
+		observeKernelCall(labelOpProcessResponses, start, retryErr)
 
 		if retryErr != nil {
 			log.Error(ctx, "Failed to process responses", retryErr,
@@ -434,7 +434,7 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 
 			return nil
 		})
-		observeKernelCall("process_justifications", start, retryErr)
+		observeKernelCall(labelOpProcessJustifications, start, retryErr)
 
 		if retryErr != nil {
 			cached := cachePendingIncomingJustifications(justifications)
@@ -489,7 +489,7 @@ func cachePendingIncomingResponses(filteredResponses []types.Response) {
 	}
 
 	pendingIncomingResponses = append(pendingIncomingResponses, filteredResponses...)
-	incPendingData("responses", "cached", len(filteredResponses))
+	incPendingData(labelPendingResponses, labelPendingCached, len(filteredResponses))
 }
 
 // cachePendingIncomingJustifications saves justifications that failed kernel processing for later retry.
@@ -508,7 +508,7 @@ func cachePendingIncomingJustifications(justifications []types.Justification) in
 	}
 
 	pendingIncomingJustifications = append(pendingIncomingJustifications, justifications...)
-	incPendingData("justifications", "cached", len(justifications))
+	incPendingData(labelPendingJustifications, labelPendingCached, len(justifications))
 
 	return len(justifications)
 }
@@ -578,7 +578,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessDeals(asyncCtx, dkgNetwork, drainedDeals)
-			incPendingData("deals", "replayed", len(drainedDeals))
+			incPendingData(labelPendingDeals, labelPendingReplayed, len(drainedDeals))
 		}
 
 		// Then process responses.
@@ -591,7 +591,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessResponses(asyncCtx, dkgNetwork, drainedResponses, true)
-			incPendingData("responses", "replayed", len(drainedResponses))
+			incPendingData(labelPendingResponses, labelPendingReplayed, len(drainedResponses))
 		}
 
 		// Finally process justifications (already verified before caching,
@@ -605,7 +605,7 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 			)
 
 			k.handleDKGProcessJustifications(asyncCtx, dkgNetwork, drainedJustifications)
-			incPendingData("justifications", "replayed", len(drainedJustifications))
+			incPendingData(labelPendingJustifications, labelPendingReplayed, len(drainedJustifications))
 		}
 	}()
 }

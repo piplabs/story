@@ -380,7 +380,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 				"stale_requests", staleCount,
 				"current_height", currentHeight,
 			)
-			incDecryptRequest("stale_dropped", staleCount)
+			incDecryptRequest(labelDecryptStaleDropped, staleCount)
 		}
 
 		if len(validRequests) == 0 {
@@ -487,18 +487,18 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 				"session", session.GetSessionKey(),
 				"batch_size", len(batch),
 			)
-			incDecryptBatch("error", len(batch))
+			incDecryptBatch(labelBatchError, len(batch))
 			for _, r := range batch {
 				session.AddDecryptRequest(r.req)
 			}
-			incDecryptRequest("requeued", len(batch))
+			incDecryptRequest(labelDecryptRequeued, len(batch))
 		} else {
 			log.Info(ctx, "Successfully submitted partial decryption batch",
 				"session", session.GetSessionKey(),
 				"batch_size", len(batch),
 			)
-			incDecryptBatch("success", len(batch))
-			incDecryptRequest("submitted", len(batch))
+			incDecryptBatch(labelBatchSuccess, len(batch))
+			incDecryptRequest(labelDecryptSubmitted, len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -511,7 +511,7 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 				"round", r.req.Round,
 			)
 			session.AddDecryptRequest(r.req)
-			incDecryptRequest("kernel_failed", 1)
+			incDecryptRequest(labelDecryptKernelFailed, 1)
 			continue
 		}
 		batch = append(batch, r)
@@ -551,7 +551,7 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	kernelDuration := time.Since(kernelStart)
-	observeKernelCall("partial_decrypt_tdh2", kernelStart, err)
+	observeKernelCall(labelOpPartialDecryptTDH2, kernelStart, err)
 
 	if err != nil {
 		result.err = errors.Wrap(err, "generating partial decrypt failed")
@@ -645,7 +645,7 @@ func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServ
 
 	client, err := k.kernelRouter.GetClient(codeCommitment)
 	if err == nil {
-		kernelClientLookupDuration.WithLabelValues("hit").Observe(time.Since(start).Seconds())
+		kernelClientLookupDuration.WithLabelValues(labelLookupHit).Observe(time.Since(start).Seconds())
 		return client, nil
 	}
 
@@ -654,11 +654,11 @@ func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServ
 
 	client, err = k.kernelRouter.GetClient(codeCommitment)
 	if err != nil {
-		kernelClientLookupDuration.WithLabelValues("error").Observe(time.Since(start).Seconds())
+		kernelClientLookupDuration.WithLabelValues(labelLookupError).Observe(time.Since(start).Seconds())
 		return nil, err
 	}
 
-	kernelClientLookupDuration.WithLabelValues("reconnect").Observe(time.Since(start).Seconds())
+	kernelClientLookupDuration.WithLabelValues(labelLookupReconnect).Observe(time.Since(start).Seconds())
 
 	return client, nil
 }
