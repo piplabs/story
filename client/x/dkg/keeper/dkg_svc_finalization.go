@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"slices"
+	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -96,7 +97,8 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		resp *types.FinalizeDKGResponse
 		err  error
 	)
-	if err := retry(ctx, func(ctx context.Context) error {
+	start := time.Now()
+	retryErr := retry(ctx, func(ctx context.Context) error {
 		req := &types.FinalizeDKGRequest{
 			CodeCommitment: session.CodeCommitment,
 			Round:          session.Round,
@@ -114,8 +116,11 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		}
 
 		return nil
-	}); err != nil {
-		return errors.Wrap(err, "kernel client Finalize request failed")
+	})
+	observeKernelCall(labelOpFinalizeDKG, start, retryErr)
+
+	if retryErr != nil {
+		return errors.Wrap(retryErr, "kernel client Finalize request failed")
 	}
 
 	session.ParticipantsRoot = resp.GetParticipantsRoot()

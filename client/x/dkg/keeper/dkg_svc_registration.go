@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"slices"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -153,7 +154,8 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 		resp *types.GenerateAndSealKeyResponse
 		err  error
 	)
-	if err := retry(ctx, func(ctx context.Context) error {
+	start := time.Now()
+	retryErr := retry(ctx, func(ctx context.Context) error {
 		req := &types.GenerateAndSealKeyRequest{
 			Address:        k.validatorEVMAddr,
 			CodeCommitment: session.CodeCommitment,
@@ -166,8 +168,11 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 		}
 
 		return nil
-	}); err != nil {
-		return errors.Wrap(err, "kernel client GenerateAndSealKey request failed")
+	})
+	observeKernelCall(labelOpGenerateAndSealKey, start, retryErr)
+
+	if retryErr != nil {
+		return errors.Wrap(retryErr, "kernel client GenerateAndSealKey request failed")
 	}
 
 	// Persist the code commitment from the TEE response for future routing

@@ -82,6 +82,7 @@ func (k *Keeper) InitiateDKGRound(ctx context.Context, isUpgrade bool) error {
 		"start_block", sdkCtx.BlockHeight(),
 		"is_upgrade", isUpgrade,
 	)
+	roundsTotal.WithLabelValues(labelRoundInitiated).Inc()
 
 	if err := k.emitBeginDKGInitialization(ctx, &dkgNetwork); err != nil {
 		return errors.Wrap(err, "failed to emit begin dkg initialization event")

@@ -48,6 +48,7 @@ func (*Keeper) shouldTransitionStage(currentHeight int64, dkgNetwork *types.DKGN
 }
 
 func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNetwork) error {
+	roundsTotal.WithLabelValues(labelRoundSkipped).Inc()
 	// Flush all queues to prevent stale data from the failed round
 	// from being broadcast in the new round's vote extensions.
 	k.FlushAllQueues()

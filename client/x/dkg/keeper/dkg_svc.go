@@ -165,6 +165,7 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 // resumeFailedSession dispatches a PhaseFailed session to the appropriate handler
 // based on the current DKG network stage.
 func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
+	sessionRecoveryTotal.Inc()
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
 		// Pre-compute registration check while SDK context is available.
@@ -379,6 +380,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 				"stale_requests", staleCount,
 				"current_height", currentHeight,
 			)
+			incDecryptRequest(labelDecryptStaleDropped, staleCount)
 		}
 
 		if len(validRequests) == 0 {
@@ -485,14 +487,18 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 				"session", session.GetSessionKey(),
 				"batch_size", len(batch),
 			)
+			incDecryptBatch(labelBatchError, len(batch))
 			for _, r := range batch {
 				session.AddDecryptRequest(r.req)
 			}
+			incDecryptRequest(labelDecryptRequeued, len(batch))
 		} else {
 			log.Info(ctx, "Successfully submitted partial decryption batch",
 				"session", session.GetSessionKey(),
 				"batch_size", len(batch),
 			)
+			incDecryptBatch(labelBatchSuccess, len(batch))
+			incDecryptRequest(labelDecryptSubmitted, len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -505,6 +511,7 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 				"round", r.req.Round,
 			)
 			session.AddDecryptRequest(r.req)
+			incDecryptRequest(labelDecryptKernelFailed, 1)
 			continue
 		}
 		batch = append(batch, r)
@@ -544,6 +551,7 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	kernelDuration := time.Since(kernelStart)
+	observeKernelCall(labelOpPartialDecryptTDH2, kernelStart, err)
 
 	if err != nil {
 		result.err = errors.Wrap(err, "generating partial decrypt failed")
@@ -633,13 +641,24 @@ func labelToUUID(label []byte) (uint32, error) {
 // If the initial lookup fails, it attempts to reconnect any disconnected endpoints
 // and retries the lookup once. This handles the case where story started before kernel.
 func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServiceClient, error) {
+	start := time.Now()
+
 	client, err := k.kernelRouter.GetClient(codeCommitment)
 	if err == nil {
+		kernelClientLookupDuration.WithLabelValues(labelLookupHit).Observe(time.Since(start).Seconds())
 		return client, nil
 	}
 
 	k.kernelRouter.TryReconnect()
 	log.Info(context.Background(), "Retrying kernel client lookup after reconnect", "code_commitment", hex.EncodeToString(codeCommitment))
 
-	return k.kernelRouter.GetClient(codeCommitment)
+	client, err = k.kernelRouter.GetClient(codeCommitment)
+	if err != nil {
+		kernelClientLookupDuration.WithLabelValues(labelLookupError).Observe(time.Since(start).Seconds())
+		return nil, err
+	}
+
+	kernelClientLookupDuration.WithLabelValues(labelLookupReconnect).Observe(time.Since(start).Seconds())
+
+	return client, nil
 }
