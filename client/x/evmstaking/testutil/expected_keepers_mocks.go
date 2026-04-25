@@ -400,6 +400,35 @@ func (m *MockStakingKeeper) EXPECT() *MockStakingKeeperMockRecorder {
 	return m.recorder
 }
 
+// GetParams mocks base method.
+func (m *MockStakingKeeper) GetParams(ctx context.Context) (types2.Params, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetParams", ctx)
+	ret0, _ := ret[0].(types2.Params)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetParams indicates an expected call of GetParams.
+func (mr *MockStakingKeeperMockRecorder) GetParams(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParams", reflect.TypeOf((*MockStakingKeeper)(nil).GetParams), ctx)
+}
+
+// SetParams mocks base method.
+func (m *MockStakingKeeper) SetParams(ctx context.Context, params types2.Params) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetParams", ctx, params)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetParams indicates an expected call of SetParams.
+func (mr *MockStakingKeeperMockRecorder) SetParams(ctx, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetParams", reflect.TypeOf((*MockStakingKeeper)(nil).SetParams), ctx, params)
+}
+
 // BondDenom mocks base method.
 func (m *MockStakingKeeper) BondDenom(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
