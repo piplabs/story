@@ -1518,6 +1518,76 @@ Round 1 on Aeneid still has 5 entries in `Verified` status. `enclave_report` is 
 }
 ```
 
+## GetCDRPartials
+
+URL: [GET] /dkg/cdr_partials
+
+Returns the partial decryption submissions stored for a `(uuid, requesterPubKey)` pair, grouped by DKG round and ciphertext. Within each group the response carries the round's `threshold` and a precomputed `threshold_met` flag so callers do not need to query the network separately.
+
+`requester_pub_key_hex` is the hex encoding of the requester's public key as used when the decrypt request was submitted on-chain. A leading `0x` (or `0X`) prefix is accepted and stripped before decoding. Internally the keeper iterates the partial-decryption store under the `(requester_pub_key, label)` prefix where `label` is the 32-byte big-endian encoding of `uuid`.
+
+Bytes-typed fields (`encrypted_partial`, `ephemeral_pub_key`, `pub_share`, `label`, `ciphertext`) are encoded as base64 strings on the wire.
+
+### Query Params
+| Name                  | Type   | Example                                                       | Required |
+|-----------------------|--------|---------------------------------------------------------------|----------|
+| uuid                  | uint32 | 42                                                            |    ✔     |
+| requester_pub_key_hex | string | `0x048a70…` (hex, `0x`/`0X` prefix optional; 65-byte pubkey)  |    ✔     |
+
+The server-wide envelope is `{"code": <int>, "msg": ..., "error": <string>}`. On success, HTTP status is 200, `code` is 200, and `msg` carries the response. On any error (validation, keeper, encoding) the framework currently returns HTTP 500 with `{"code": 500, "msg": null, "error": "<message>"}` regardless of the underlying error category — see `client/server/utils/wrap.go`. Validation errors emitted before the keeper is reached:
+
+- "requester_pub_key_hex is required" — missing/empty (or just `0x` after stripping)
+- "requester_pub_key_hex must be valid hex: …" — non-hex characters or odd-length
+- "requester_pub_key_hex must decode to an uncompressed secp256k1 public key (65 bytes)" — wrong length
+- "uuid out of range" — `uuid > math.MaxUint32-1` (the CDR contract enforces `uuid < type(uint32).max` at allocation)
+
+Keeper-side miss surfaces as `rpc error: code = NotFound desc = partial decryption submission not found` (also HTTP 500 today).
+
+### Response Example
+
+Two of three validators have submitted partials for round 6, ciphertext `Q…`, so `threshold_met` is `false` (threshold is 3). Long byte fields are truncated.
+
+```json
+{
+  "code": 200,
+  "msg": {
+    "submissions": [
+      {
+        "round": 6,
+        "submissions": [
+          {
+            "validator": "0x38D44fC22C6EC6BF43F6776aE986ECCAa55EbA84",
+            "round": 6,
+            "pid": 1,
+            "encrypted_partial": "BD/epjiGun5PcXZxWKOY... (truncated)",
+            "ephemeral_pub_key": "BD/bQKBszsJwi6Ok5LGL... (truncated)",
+            "pub_share": "BD/epjiGun5PcXZxWKOYLytQPn0+yh2sXLFevagcm/muow==",
+            "label": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACo=",
+            "ciphertext": "QwAB... (truncated)"
+          },
+          {
+            "validator": "0x816020985Ffd8ac7852BaA23e7664461E194c1Bc",
+            "round": 6,
+            "pid": 5,
+            "encrypted_partial": "Z5762cEL4N0UG4hW80y/... (truncated)",
+            "ephemeral_pub_key": "FXkfHHve0rkE0EOaJEuo... (truncated)",
+            "pub_share": "BD/bQKBszsJwi6Ok5LGLjDa2ALIIEjTEwk2MiRTXikoWfQ==",
+            "label": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACo=",
+            "ciphertext": "QwAB... (truncated)"
+          }
+        ],
+        "ciphertext": "QwAB... (truncated)",
+        "threshold": 3,
+        "threshold_met": false
+      }
+    ]
+  },
+  "error": ""
+}
+```
+
+`label` decodes to the 32-byte big-endian uuid; the lower 4 bytes carry the value (here `0x0000002a` for uuid `42`), the upper 28 bytes are zero. Submissions in different rounds appear as separate elements in `submissions[]` and are sorted ascending by `(round, ciphertext)`.
+
 ## GetLatestActiveDKGNetwork
 
 URL: [GET] /dkg/latest_active
