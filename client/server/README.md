@@ -1372,3 +1372,173 @@ URL: [GET] /upgrade/module_versions
 | Name        | Type   | Example | Required |
 |-------------|--------|---------|----------|
 | module_name | string | staking |    ✔     |
+
+# DKG Module
+
+`DKGRegStatus` values: `0` Unspecified, `1` Verified, `2` Finalized, `3` Invalidated.
+
+`DKGStage` values: `0` Unspecified, `1` Registration, `2` Dealing, `3` Finalization, `4` Active, `5` Failed, `6` Ended.
+
+Bytes-typed fields (`dkg_pub_key`, `comm_pub_key`, `pub_key_share`, `enclave_report`, `code_commitment`, `enclave_type`, `start_block_hash`, `global_public_key`, `public_coeffs[]`) are encoded as base64 strings on the wire.
+
+`enclave_type` is a 32-byte big-endian tag; the only value in use today is `1` (so the bytes are `0x00…0001`, which encodes to `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE=` in base64).
+
+The response examples below are excerpts captured from Aeneid testnet on round 6 (active, resharing); long fields like `enclave_report` (a TEE attestation quote, ~4.7 KiB) and `active_val_set` (55 validators) are truncated for readability.
+
+## GetDKGNetwork
+
+URL: [GET] /dkg/dkg_network
+
+### Query Params
+| Name                          | Type   | Example | Required |
+|-------------------------------|--------|---------|----------|
+| round                         | uint32 | 6       |    ✔     |
+| code_commitment_hex *(deprecated)* | string | —       |          |
+
+`code_commitment_hex` is accepted for backward compatibility but ignored by the keeper; do not rely on it for filtering.
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "network": {
+      "round": 6,
+      "start_block_height": "17196000",
+      "start_block_hash": "80kfYGXuDkSbw4IzUobff6lqzS0g8dayABJQoaBxeXI=",
+      "active_val_set": [
+        "0x01946a273caa675a2206a4d336c34313c8fe3dea",
+        "0x05995d76b053fbe24ba2354e62f896f66ce377aa",
+        "0x12d68944bb8b12186871da0b00069a318e3806e3",
+        "..."
+      ],
+      "total": 5,
+      "threshold": 3,
+      "stage": 4,
+      "is_resharing": true,
+      "global_public_key": "zSYlIvKyXT2G29HgM7wkqzzfzOs/PWAJCqIP+YYeJAM=",
+      "public_coeffs": [
+        "zSYlIvKyXT2G29HgM7wkqzzfzOs/PWAJCqIP+YYeJAM=",
+        "flumZquVCzTY8HUfWPft9ueinMKLBWxq17FLi8ggjSM=",
+        "602Kd9SApo9DOuB+WDIwYDvwDgcvVWSI7sOHX+vNlLo="
+      ]
+    }
+  },
+  "error": ""
+}
+```
+
+## GetAllDKGRegistrations
+
+URL: [GET] /dkg/registrations
+
+Returns every DKG registration stored for the given round regardless of status (`Verified`, `Finalized`, or `Invalidated`). Clients should use this endpoint to fetch the `comm_pub_key` of each registered validator when verifying partial decryption signatures, since it works even after a round has finalized.
+
+### Query Params
+| Name  | Type   | Example | Required |
+|-------|--------|---------|----------|
+| round | uint32 | 6       |    ✔     |
+
+### Response Example
+
+Round 6 on Aeneid is in `Active` stage, so all 5 registrations are `Finalized` (status `2`). `GetVerifiedDKGRegistrations` would return an empty list for this round; this endpoint returns the entries below. Two of the five entries are shown, with `enclave_report` truncated.
+
+```json
+{
+  "code": 200,
+  "msg": {
+    "registrations": [
+      {
+        "round": 6,
+        "validator_addr": "0x38D44fC22C6EC6BF43F6776aE986ECCAa55EbA84",
+        "index": 1,
+        "dkg_pub_key": "Uznnm9bKtVSSP69T8GMjwbqwbe4u3XbV+Vhqls7BZW4=",
+        "comm_pub_key": "UMl1MlPmUnWwjRX4iCDGNmFuXkar6gQS9b3vQLhr2W/8rfWrBVve3VmhEDtLxsV8uon05bEUx2YDMAbV6GiQOw==",
+        "pub_key_share": "BD/epjiGun5PcXZxWKOYLytQPn0+yh2sXLFevagcm/muow==",
+        "enclave_report": "AwACAAAAAAALABAAk5pyMw== (truncated)",
+        "status": 2,
+        "code_commitment": "ay+yXgCErW7L9s/O/gni+g/KK4QJL3LAH4/pjp19tc0=",
+        "enclave_type": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+      },
+      {
+        "round": 6,
+        "validator_addr": "0x816020985Ffd8ac7852BaA23e7664461E194c1Bc",
+        "index": 5,
+        "dkg_pub_key": "FXkfHHve0rkE0EOaJEuoWC8o2DnNdFZIIzdIV3IUqao=",
+        "comm_pub_key": "Z5762cEL4N0UG4hW80y/KIFpp6VH34OQpxbwYlogPRllAzEdqYQaeWUVxn72VjVXSZWu4KeXZAabIvvBzELRKg==",
+        "pub_key_share": "BD/bQKBszsJwi6Ok5LGLjDa2ALIIEjTEwk2MiRTXikoWfQ==",
+        "enclave_report": "AwACAAAAAAALABAAk5pyMw== (truncated)",
+        "status": 2,
+        "code_commitment": "ay+yXgCErW7L9s/O/gni+g/KK4QJL3LAH4/pjp19tc0=",
+        "enclave_type": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+      }
+    ]
+  },
+  "error": ""
+}
+```
+
+## GetVerifiedDKGRegistrations
+
+URL: [GET] /dkg/registrations/verified
+
+Returns registrations whose status is `Verified`. Once a round enters the finalized phase the keeper transitions verified entries to `Finalized` and this endpoint returns an empty list for that round. Use [`GetAllDKGRegistrations`](#getalldkgregistrations) to fetch the registrations for an already-finalized round (e.g. for partial decryption signature verification).
+
+### Query Params
+| Name                          | Type   | Example | Required |
+|-------------------------------|--------|---------|----------|
+| round                         | uint32 | 1       |    ✔     |
+| code_commitment_hex *(deprecated)* | string | —       |          |
+
+`code_commitment_hex` is accepted for backward compatibility but ignored by the keeper; do not rely on it for filtering.
+
+### Response Example
+
+Round 1 on Aeneid still has 5 entries in `Verified` status. `enclave_report` is truncated below; an unfinalized entry has no `pub_key_share`.
+
+```json
+{
+  "code": 200,
+  "msg": {
+    "registrations": [
+      {
+        "round": 1,
+        "validator_addr": "0x38D44fC22C6EC6BF43F6776aE986ECCAa55EbA84",
+        "index": 3,
+        "dkg_pub_key": "GfA4CtchbRKTOMQtvi8NgRNQ3dtLexygk5Xr08yEPCA=",
+        "comm_pub_key": "E56ILkKenmcsUiireAg26dml3vFNeIcxv2w3DgkjCCusZGB02/HRrPI6ToypYxcI/6WhMpo6M32FK/Xr/1ZjkA==",
+        "enclave_report": "AwACAAAAAAALABAAk5pyMw== (truncated)",
+        "status": 1,
+        "code_commitment": "ay+yXgCErW7L9s/O/gni+g/KK4QJL3LAH4/pjp19tc0=",
+        "enclave_type": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+      }
+    ]
+  },
+  "error": ""
+}
+```
+
+## GetLatestActiveDKGNetwork
+
+URL: [GET] /dkg/latest_active
+
+### Response Example
+
+Mirrors `GetDKGNetwork` for the highest round that ever reached `Active` stage. See [GetDKGNetwork](#getdkgnetwork) for the response shape.
+
+## GetDKGGlobalPubKey
+
+URL: [GET] /dkg/global_public_key
+
+Returns the hex-encoded global public key of the latest active DKG round. Returns an error if the active round has not yet finalized a global public key.
+
+### Response Example
+```json
+{
+  "code": 200,
+  "msg": {
+    "public_key": "cd262522f2b25d3d86dbd1e033bc24ab3cdfcceb3f3d60090aa20ff9861e2403"
+  },
+  "error": ""
+}
+```
