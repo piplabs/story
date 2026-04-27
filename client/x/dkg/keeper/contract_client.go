@@ -61,6 +61,12 @@ var (
 
 const (
 	maxRetries = 3
+
+	// maxGasPriceWei caps the gas price used for DKG contract calls to prevent
+	// outlier transactions in the oracle from inflating fees past the RPC fee cap.
+	// 50 gwei is generous for any Story network; raise if the network's base fee
+	// legitimately exceeds this.
+	maxGasPriceWei = 50_000_000_000 // 50 gwei
 )
 
 // ContractClient wraps the DKG contract interaction.
@@ -329,6 +335,15 @@ func (c *ContractClient) createTransactOpts(ctx context.Context, gasLimit uint64
 	gasPrice, err := c.ethClient.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get gas price")
+	}
+
+	maxGasPrice := big.NewInt(maxGasPriceWei)
+	if gasPrice.Cmp(maxGasPrice) > 0 {
+		log.Warn(ctx, "Suggested gas price exceeds cap; clamping", nil,
+			"suggested_gwei", new(big.Int).Div(gasPrice, big.NewInt(1e9)),
+			"cap_gwei", maxGasPriceWei/1e9,
+		)
+		gasPrice = maxGasPrice
 	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(c.privateKey, c.chainID)
