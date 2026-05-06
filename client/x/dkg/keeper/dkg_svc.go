@@ -317,7 +317,36 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	}
 
 	sessions := k.stateManager.ListSessions()
+
+	var maxRound uint32
+	for _, s := range sessions {
+		if s.Round > maxRound {
+			maxRound = s.Round
+		}
+	}
+
 	for _, session := range sessions {
+		// Drop queued requests from sessions that are at least 2 rounds behind the
+		// current round — their keys are no longer relevant and the requests would
+		// never be processed successfully.
+		if maxRound >= 2 && session.Round <= maxRound-2 {
+			dropped := session.DrainDecryptRequests()
+			if len(dropped) > 0 {
+				log.Warn(ctx, "Dropping decrypt requests from stale session", nil,
+					"session", session.GetSessionKey(),
+					"dropped_requests", len(dropped),
+				)
+				incDecryptRequest(labelDecryptStaleDropped, len(dropped))
+				if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+					log.Error(ctx, "Failed to persist stale session after clearing requests", err,
+						"session", session.GetSessionKey(),
+					)
+				}
+			}
+
+			continue
+		}
+
 		// Check session-level preconditions before draining so that requests are
 		// not removed from the queue only to be re-added immediately.
 		if session.Index == 0 {
