@@ -81,7 +81,13 @@ func releaseDKGSvc(round uint32) {
 // communicate with the story-kernel. These goroutines must NOT use the CometBFT
 // consensus context because it gets canceled when block processing completes,
 // which can abort in-flight gRPC calls to the story-kernel.
-const dkgAsyncTimeout = 1 * time.Minute
+//
+// The budget must cover a TEE kernel call plus one waitForTransaction call
+// (which has its own 60s inner timeout). 2 minutes gives ~60s for the kernel
+// operation and ~60s for the on-chain transaction to be mined. If the async
+// context expires before waitForTransaction's inner timeout fires, the tx wait
+// is cut short — so this value must stay above 60s to be meaningful.
+const dkgAsyncTimeout = 2 * time.Minute
 
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
 // This replaces the consensus context that would otherwise be canceled after block processing.
