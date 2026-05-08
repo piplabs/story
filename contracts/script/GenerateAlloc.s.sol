@@ -14,6 +14,7 @@ import { UBIPool } from "../src/protocol/UBIPool.sol";
 import { DKG } from "../src/protocol/DKG.sol";
 import { CDR } from "../src/protocol/CDR.sol";
 import { SGXValidationHook } from "../src/protocol/SGXValidationHook.sol";
+import { TDXValidationHook } from "../src/protocol/TDXValidationHook.sol";
 import { IDKG } from "../src/interfaces/IDKG.sol";
 
 import { ChainIds } from "./utils/ChainIds.sol";
@@ -67,6 +68,16 @@ contract GenerateAlloc is Script {
     // SGXValidationHook configuration — edit before running the script
     bytes32 private constant SGX_CODE_COMMITMENT =
         hex"cfac25c990dc7517d9704fc51e65199a379332802f4c15d7fb966cba0813301c";
+
+    // TDXValidationHook configuration. CodeCommitment is the on-chain
+    // compressed identity: keccak256(MRTD || RTMR0 || RTMR1 || RTMR2 || RTMR3).
+    // Update this hex value before deployment to match the running TDX kernel's
+    // identity. Bootstrap mode emits the first measured digest in the kernel's
+    // startup WARN log; paste that 240-byte concatenation into a keccak256 to
+    // get this value.
+    bytes32 private constant TDX_CODE_COMMITMENT =
+        hex"0000000000000000000000000000000000000000000000000000000000000002";
+
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
@@ -212,6 +223,7 @@ contract GenerateAlloc is Script {
         setDKG();
         setCDR();
         setSGXValidationHook();
+        setTDXValidationHook();
     }
 
     /// @dev Populates the upgradeable predeploys namespace with proxies, to reserve the addresses
@@ -378,9 +390,12 @@ contract GenerateAlloc is Script {
 
         InitializableHelper.disableInitializers(impl);
 
-        uint256 minReqRegisteredParticipants = 3;
-        uint256 minReqFinalizedParticipants = 3;
-        uint256 operationalThreshold = 670; // 67%
+        // SGX + TDX 2-validator devnet: n=2 t=2 means we require BOTH validators
+        // to register, finalize, and partial-decrypt. operationalThreshold is in
+        // basis points of operationalThresholdBasis (1000), so 1000 = 100%.
+        uint256 minReqRegisteredParticipants = 2;
+        uint256 minReqFinalizedParticipants = 2;
+        uint256 operationalThreshold = 1000; // 100% (t=n)
         uint256 fee = 1 ether; // 1 IP
         DKG(Predeploys.DKG).initialize(
             getContractOwner(),
@@ -472,6 +487,51 @@ contract GenerateAlloc is Script {
         console2.log("SGXValidationHook impl deployed at:", sgxHookImpl);
         console2.log("SGXValidationHook proxy deployed at:", sgxHookProxy);
         console2.log("SGXValidationHook owner:", SGXValidationHook(sgxHookProxy).owner());
+    }
+
+    /// @notice Deploys TDXValidationHook (impl + proxy) via Create3 and whitelists it on DKG
+    /// @dev Edit TDX_CODE_COMMITMENT, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER constants above.
+    ///      TDX_CODE_COMMITMENT must equal keccak256(MRTD || RTMR0..3) of the running TDX kernel.
+    function setTDXValidationHook() internal {
+        // Deploy TDXValidationHook implementation via Create3
+        bytes memory implCreationCode = abi.encodePacked(
+            type(TDXValidationHook).creationCode,
+            abi.encode(Predeploys.DKG)
+        );
+        address tdxHookImpl = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_TDX_VALIDATION_HOOK_IMPL"),
+            implCreationCode
+        );
+
+        // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
+        bytes memory initData = abi.encodeCall(
+            TDXValidationHook.initialize,
+            (0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
+        );
+        bytes memory proxyCreationCode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(tdxHookImpl, getContractOwner(), initData)
+        );
+        address tdxHookProxy = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_TDX_VALIDATION_HOOK_PROXY"),
+            proxyCreationCode
+        );
+
+        // Whitelist TDX enclave type on DKG. enclaveType=2 distinguishes from
+        // SGX (which uses enclaveType=1 in setSGXValidationHook).
+        bytes32 enclaveType = bytes32(uint256(2));
+        IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
+            codeCommitment: TDX_CODE_COMMITMENT,
+            validationHookAddr: tdxHookProxy
+        });
+        vm.stopPrank();
+        vm.prank(getContractOwner());
+        DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
+        vm.startPrank(deployer);
+
+        console2.log("TDXValidationHook impl deployed at:", tdxHookImpl);
+        console2.log("TDXValidationHook proxy deployed at:", tdxHookProxy);
+        console2.log("TDXValidationHook owner:", TDXValidationHook(tdxHookProxy).owner());
     }
 
     /// @notice Sets the bytecode for Create3 factory as a predeploy
