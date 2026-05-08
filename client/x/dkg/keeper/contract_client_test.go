@@ -858,7 +858,7 @@ func TestCheckAndResumePendingTx_StillPending(t *testing.T) {
 	pendingTx := makeTx(99)
 	mock := &mockEthClient{
 		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
-			return nil, nil // not yet mined
+			return nil, ethereum.NotFound // not yet mined
 		},
 	}
 	client := newTestContractClient(t, mock)
@@ -930,7 +930,7 @@ func TestRegister_PendingTxStillPending(t *testing.T) {
 	pendingTx := makeTx(99)
 	ethMock := &mockEthClient{
 		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
-			return nil, nil // all txs still pending
+			return nil, ethereum.NotFound // all txs still pending
 		},
 	}
 	dkgMock := &mockDKGContract{
@@ -1060,7 +1060,7 @@ func TestFinalize_PendingTxStillPending(t *testing.T) {
 	pendingTx := makeTx(99)
 	ethMock := &mockEthClient{
 		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
-			return nil, nil
+			return nil, ethereum.NotFound
 		},
 	}
 	dkgMock := &mockDKGContract{
