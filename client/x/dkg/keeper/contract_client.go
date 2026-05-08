@@ -514,9 +514,13 @@ func (c *ContractClient) checkAndResumePendingTx(ctx context.Context, key string
 		return nil, nil
 	}
 
-	receipt, _ := c.ethClient.TransactionReceipt(ctx, tx.Hash())
+	receipt, err := c.ethClient.TransactionReceipt(ctx, tx.Hash())
 	if receipt == nil {
-		return nil, errors.New("previous tx still pending, skipping to avoid nonce gap",
+		if errors.Is(err, ethereum.NotFound) {
+			return nil, errors.New("previous tx still pending, skipping to avoid nonce gap",
+				"key", key, "tx_hash", tx.Hash().Hex())
+		}
+		return nil, errors.Wrap(err, "failed to check pending transaction receipt",
 			"key", key, "tx_hash", tx.Hash().Hex())
 	}
 
