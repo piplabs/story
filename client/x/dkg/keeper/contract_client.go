@@ -522,6 +522,10 @@ func (c *ContractClient) checkAndResumePendingTx(ctx context.Context, key string
 
 	c.clearPendingTx(key)
 	if receipt.Status == types.ReceiptStatusSuccessful {
+		log.Info(ctx, key+" succeeded",
+			"tx_hash", tx.Hash().Hex(),
+			"gas_used", receipt.GasUsed)
+
 		return receipt, nil
 	}
 	return nil, nil
