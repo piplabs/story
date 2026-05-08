@@ -349,7 +349,7 @@ func TestProcessDecryptQueue_NilKernelRouter(t *testing.T) {
 	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
 	session := &types.DKGSession{
 		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
-		DecryptRequests: []types.DecryptRequest{req},
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
 
@@ -378,7 +378,7 @@ func TestProcessDecryptQueue_ZeroIndex(t *testing.T) {
 	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
 	session := &types.DKGSession{
 		Round: 1, Index: 0, GlobalPubKey: []byte("pub"), // Index not set
-		DecryptRequests: []types.DecryptRequest{req},
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
 
@@ -406,7 +406,7 @@ func TestProcessDecryptQueue_MissingGlobalPubKey(t *testing.T) {
 	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
 	session := &types.DKGSession{
 		Round: 1, Index: 1, GlobalPubKey: nil, // Missing
-		DecryptRequests: []types.DecryptRequest{req},
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
 
@@ -512,12 +512,12 @@ func TestProcessDecryptQueue_FailedRequestsRetained(t *testing.T) {
 		Index:          1,
 		GlobalPubKey:   []byte("pubkey"),
 		CodeCommitment: []byte("nonexistent-cc"),
-		DecryptRequests: []types.DecryptRequest{
-			{
+		DecryptRequests: []types.PendingDecryptRequest{
+			{DecryptRequest: types.DecryptRequest{
 				Ciphertext:      []byte("encrypted1"),
 				Label:           make([]byte, 32),
 				RequesterPubKey: []byte("pub1"),
-			},
+			}},
 		},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
@@ -566,8 +566,8 @@ func TestProcessDecryptQueue_KernelUnavailable(t *testing.T) {
 	session := &types.DKGSession{
 		Round: 1, Index: 1, GlobalPubKey: []byte("pub"),
 		CodeCommitment: []byte("unknown-cc"),
-		DecryptRequests: []types.DecryptRequest{
-			{Ciphertext: []byte("ct"), Label: make([]byte, 32), RequesterPubKey: []byte("rpk")},
+		DecryptRequests: []types.PendingDecryptRequest{
+			{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32), RequesterPubKey: []byte("rpk")}},
 		},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
@@ -603,8 +603,8 @@ func TestProcessDecryptQueue_StaleRequestsFiltered(t *testing.T) {
 	// Request with Height=0 is far below currentHeight-DefaultDecryptTimeout → stale.
 	session := &types.DKGSession{
 		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
-		DecryptRequests: []types.DecryptRequest{
-			{Ciphertext: []byte("ct"), Label: make([]byte, 32), Height: 0},
+		DecryptRequests: []types.PendingDecryptRequest{
+			{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32), Height: 0}},
 		},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
@@ -639,9 +639,9 @@ func TestProcessDecryptQueue_PartialStaleRequests(t *testing.T) {
 	// One stale request (Height=0) and one fresh request (Height=currentHeight-1).
 	session := &types.DKGSession{
 		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
-		DecryptRequests: []types.DecryptRequest{
-			{Ciphertext: []byte("stale"), Label: makeLabel(1), Height: 0},
-			{Ciphertext: []byte("fresh"), Label: makeLabel(2), Height: currentHeight - 1},
+		DecryptRequests: []types.PendingDecryptRequest{
+			{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("stale"), Label: makeLabel(1), Height: 0}},
+			{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("fresh"), Label: makeLabel(2), Height: currentHeight - 1}},
 		},
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
@@ -989,13 +989,13 @@ func TestProcessDecryptRequests_AllSucceed(t *testing.T) {
 		CodeCommitment: cc,
 	}
 
-	requests := make([]types.DecryptRequest, n)
+	requests := make([]types.PendingDecryptRequest, n)
 	for i := range n {
-		requests[i] = types.DecryptRequest{
+		requests[i] = types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{
 			Ciphertext:      []byte("ct"),
 			Label:           makeLabel(uint32(i + 1)),
 			RequesterPubKey: []byte("rpk"),
-		}
+		}}
 	}
 
 	// Each kernel call may arrive in any order — use AnyTimes with Times(n).
@@ -1045,10 +1045,10 @@ func TestProcessDecryptRequests_PartialKernelFailure(t *testing.T) {
 	}
 
 	// 3 requests: first two succeed, third fails at kernel.
-	requests := []types.DecryptRequest{
-		{Ciphertext: []byte("ct0"), Label: makeLabel(1), RequesterPubKey: []byte("rpk")},
-		{Ciphertext: []byte("ct1"), Label: makeLabel(2), RequesterPubKey: []byte("rpk")},
-		{Ciphertext: []byte("ct2"), Label: makeLabel(3), RequesterPubKey: []byte("rpk")},
+	requests := []types.PendingDecryptRequest{
+		{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct0"), Label: makeLabel(1), RequesterPubKey: []byte("rpk")}},
+		{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct1"), Label: makeLabel(2), RequesterPubKey: []byte("rpk")}},
+		{DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct2"), Label: makeLabel(3), RequesterPubKey: []byte("rpk")}},
 	}
 
 	successResp := &types.PartialDecryptTDH2Response{
@@ -1110,19 +1110,19 @@ func TestProcessDecryptRequests_ConcurrentABCIWrite(t *testing.T) {
 	}
 
 	// One pre-existing request that processDecryptRequests will process.
-	existing := types.DecryptRequest{
+	existing := types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{
 		Ciphertext:      []byte("existing-ct"),
 		Label:           makeLabel(10),
 		RequesterPubKey: []byte("rpk"),
-	}
+	}}
 
 	// While the kernel gRPC is in-flight (simulated by a brief sleep), the ABCI
 	// thread concurrently adds a new request.
-	abciAdded := types.DecryptRequest{
+	abciAdded := types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{
 		Ciphertext:      []byte("abci-ct"),
 		Label:           makeLabel(11),
 		RequesterPubKey: []byte("rpk"),
-	}
+	}}
 
 	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
@@ -1141,7 +1141,7 @@ func TestProcessDecryptRequests_ConcurrentABCIWrite(t *testing.T) {
 		gomock.Any(), gomock.Any(),
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).Times(1)
 
-	k.processDecryptRequests(ctx, session, []types.DecryptRequest{existing})
+	k.processDecryptRequests(ctx, session, []types.PendingDecryptRequest{existing})
 
 	// Give the concurrent AddDecryptRequest goroutine time to complete.
 	time.Sleep(20 * time.Millisecond)
@@ -1208,7 +1208,7 @@ func TestProcessDecryptRequests_MultiBatch(t *testing.T) {
 	).Return(&ethtypes.Receipt{Status: ethtypes.ReceiptStatusSuccessful}, nil).
 		Times(2)
 
-	k.processDecryptRequests(ctx, session, requests)
+	k.processDecryptRequests(ctx, session, wrapDecryptRequests(requests))
 
 	require.Empty(t, session.GetDecryptRequests(), "no requests should be re-queued on full success")
 }
@@ -1256,14 +1256,14 @@ func TestProcessDecryptRequests_ParallelSpeedup(t *testing.T) {
 		}
 	}
 
-	buildRequests := func() []types.DecryptRequest {
-		reqs := make([]types.DecryptRequest, n)
+	buildRequests := func() []types.PendingDecryptRequest {
+		reqs := make([]types.PendingDecryptRequest, n)
 		for i := range n {
-			reqs[i] = types.DecryptRequest{
+			reqs[i] = types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{
 				Ciphertext:      []byte("ct"),
 				Label:           makeLabel(uint32(i + 1)),
 				RequesterPubKey: []byte("rpk"),
-			}
+			}}
 		}
 		return reqs
 	}
@@ -1302,8 +1302,8 @@ func TestProcessDecryptRequests_ParallelSpeedup(t *testing.T) {
 
 	seqStart := time.Now()
 	// Sequential: process each request one by one (old approach).
-	for _, req := range buildRequests() {
-		result := seqKeeper.computePartialDecrypt(context.Background(), seqSession, req)
+	for _, preq := range buildRequests() {
+		result := seqKeeper.computePartialDecrypt(context.Background(), seqSession, preq.DecryptRequest)
 		if result.err != nil {
 			t.Fatalf("sequential kernel call failed: %v", result.err)
 		}
@@ -1355,6 +1355,153 @@ func TestProcessDecryptRequests_ParallelSpeedup(t *testing.T) {
 	require.GreaterOrEqual(t, speedup, minSpeedup,
 		"parallel should be at least %.1fx faster than sequential", minSpeedup)
 	require.Empty(t, parSession.GetDecryptRequests(), "no requests should be re-queued")
+}
+
+// --- Decrypt retry limit tests ---
+
+// TestProcessDecryptRequests_RetryLimitDrops verifies that a decrypt request at
+// maxReprocessAttempts retryCount is dropped (not re-queued) on failure.
+func TestProcessDecryptRequests_RetryLimitDrops(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-retry-drop")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// Request already at max retry count — should be dropped on next failure.
+	requests := []types.PendingDecryptRequest{
+		{
+			DecryptRequest: types.DecryptRequest{
+				Ciphertext:      []byte("ct-drop"),
+				Label:           makeLabel(1),
+				RequesterPubKey: []byte("rpk"),
+			},
+			RetryCount: maxReprocessAttempts,
+		},
+	}
+
+	// Kernel fails for this request.
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("kernel unavailable")).Times(1)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	// The request should be dropped, not re-queued.
+	requeued := session.GetDecryptRequests()
+	require.Empty(t, requeued, "request at max retries should be dropped, not re-queued")
+}
+
+// TestProcessDecryptRequests_RetryCountIncrements verifies that retry count
+// increments on each failure and the request is re-queued until the limit.
+func TestProcessDecryptRequests_RetryCountIncrements(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-retry-inc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// Request at retryCount=2 — should survive (incremented to 3, still <= 5).
+	requests := []types.PendingDecryptRequest{
+		{
+			DecryptRequest: types.DecryptRequest{
+				Ciphertext:      []byte("ct-inc"),
+				Label:           makeLabel(1),
+				RequesterPubKey: []byte("rpk"),
+			},
+			RetryCount: 2,
+		},
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("transient error")).Times(1)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	requeued := session.GetDecryptRequests()
+	require.Len(t, requeued, 1, "request below limit should be re-queued")
+	require.Equal(t, 3, requeued[0].RetryCount, "retry count should be incremented from 2 to 3")
+}
+
+// TestProcessDecryptRequests_SubmitFailureRetryLimit verifies that a decrypt request
+// at max retries is dropped when the contract submission fails (not just kernel failure).
+func TestProcessDecryptRequests_SubmitFailureRetryLimit(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-submit-drop")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// Request at max retry count — kernel succeeds but submit fails.
+	requests := []types.PendingDecryptRequest{
+		{
+			DecryptRequest: types.DecryptRequest{
+				Ciphertext:      []byte("ct-submit-drop"),
+				Label:           makeLabel(1),
+				RequesterPubKey: []byte("rpk"),
+			},
+			RetryCount: maxReprocessAttempts,
+		},
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(&types.PartialDecryptTDH2Response{
+			EncryptedPartialDecryption: []byte("partial"),
+			EphemeralPubKey:            []byte("eph"),
+			PubShare:                   []byte("share"),
+			Signature:                  []byte("sig"),
+		}, nil).Times(1)
+
+	mockContract.EXPECT().SubmitEncryptedPartialDecryptionBatch(
+		gomock.Any(), gomock.Any(),
+	).Return(nil, errors.New("contract rejected")).Times(1)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	requeued := session.GetDecryptRequests()
+	require.Empty(t, requeued, "request at max retries should be dropped on submit failure")
 }
 
 // --- Tests merged from dkg_svc_worker_test.go ---

@@ -15,6 +15,7 @@ import (
 
 // decryptComputeResult holds the outcome of a single parallel kernel partial-decrypt call.
 type decryptComputeResult struct {
+	idx  int // index into the original requests slice for retry tracking
 	req  types.DecryptRequest
 	resp *types.PartialDecryptTDH2Response
 	err  error
@@ -393,7 +394,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 		// Filter out stale requests that are past the block timeout window.
 		// This is especially important during resync when processing old blocks.
-		validRequests := make([]types.DecryptRequest, 0, len(requests))
+		validRequests := make([]types.PendingDecryptRequest, 0, len(requests))
 		staleCount := 0
 		for _, req := range requests {
 			if currentHeight > types.DefaultDecryptTimeout && req.Height < currentHeight-types.DefaultDecryptTimeout {
@@ -452,7 +453,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 //
 // The function blocks until Phase 2 completes so the caller can safely persist
 // the session (UpdateSession must see all re-queued requests).
-func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.DecryptRequest) {
+func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.PendingDecryptRequest) {
 	sem := make(chan struct{}, decryptChanBuf)
 	// Buffer len(requests) so kernel goroutines never block on send regardless of
 	// how fast Phase 2 consumes — this is what enables true Phase 1/2 overlap.
@@ -460,20 +461,22 @@ func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGS
 
 	// Phase 2: start the batch-submission consumer before launching any kernel
 	// goroutines so it is already draining resultCh while Phase 1 is still running.
+	// Pass requests so the consumer can look up RetryCount by idx on failure.
 	done := make(chan struct{})
-	go k.batchSubmitConsumer(ctx, session, resultCh, len(requests), done)
+	go k.batchSubmitConsumer(ctx, session, requests, resultCh, len(requests), done)
 
 	// Phase 1: launch kernel goroutines. May block on sem when decryptChanBuf slots
 	// are exhausted, but Phase 2 runs concurrently and submits batches in parallel.
-	for _, req := range requests {
+	for i, preq := range requests {
 		sem <- struct{}{}
-		go func(req types.DecryptRequest) {
+		go func(req types.DecryptRequest, idx int) {
 			defer func() { <-sem }()
 			// Pre-initialize so deferred send fires even on runtime.Goexit (t.Fatal).
-			result := decryptComputeResult{req: req, err: errors.New("goroutine exited without result")}
+			result := decryptComputeResult{idx: idx, req: req, err: errors.New("goroutine exited without result")}
 			defer func() { resultCh <- result }()
 			result = k.computePartialDecrypt(ctx, session, req)
-		}(req)
+			result.idx = idx // preserve idx since computePartialDecrypt overwrites result
+		}(preq.DecryptRequest, i)
 	}
 
 	// Wait for Phase 2 to finish before returning so the caller can safely
@@ -488,7 +491,7 @@ func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGS
 //
 // The done channel is closed when all n results have been consumed and submitted,
 // signalling processDecryptRequests that it is safe to return.
-func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSession, resultCh <-chan decryptComputeResult, n int, done chan struct{}) {
+func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSession, requests []types.PendingDecryptRequest, resultCh <-chan decryptComputeResult, n int, done chan struct{}) {
 	defer close(done)
 	defer func() {
 		if r := recover(); r != nil {
@@ -518,7 +521,18 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 			)
 			incDecryptBatch(labelBatchError, len(batch))
 			for _, r := range batch {
-				session.AddDecryptRequest(r.req)
+				preq := requests[r.idx]
+				preq.RetryCount++
+				if preq.RetryCount > maxReprocessAttempts {
+					log.Warn(ctx, "Dropping decrypt request after max retry attempts", nil,
+						"session", session.GetSessionKey(),
+						"round", r.req.Round,
+						"retry_count", preq.RetryCount,
+						"max_reprocess_attempts", maxReprocessAttempts,
+					)
+					continue
+				}
+				session.AddDecryptRequest(preq)
 			}
 			incDecryptRequest(labelDecryptRequeued, len(batch))
 		} else {
@@ -534,13 +548,25 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 
 	for range n {
 		r := <-resultCh
+
 		if r.err != nil {
 			log.Error(ctx, "Kernel partial decrypt failed", r.err,
 				"session", session.GetSessionKey(),
 				"round", r.req.Round,
 			)
-			session.AddDecryptRequest(r.req)
 			incDecryptRequest(labelDecryptKernelFailed, 1)
+			preq := requests[r.idx]
+			preq.RetryCount++
+			if preq.RetryCount > maxReprocessAttempts {
+				log.Warn(ctx, "Dropping decrypt request after max retry attempts", nil,
+					"session", session.GetSessionKey(),
+					"round", r.req.Round,
+					"retry_count", preq.RetryCount,
+					"max_reprocess_attempts", maxReprocessAttempts,
+				)
+				continue
+			}
+			session.AddDecryptRequest(preq)
 			continue
 		}
 		batch = append(batch, r)

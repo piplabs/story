@@ -28,47 +28,47 @@ func resetPendingIncoming() {
 	pendingIncomingJustificationsMu.Unlock()
 }
 
-// --- cachePendingIncomingDeals ---
+// --- cachePendingDeals ---
 
-func TestCachePendingIncomingDeals(t *testing.T) {
+func TestCachePendingDeals(t *testing.T) {
 	tests := []struct {
-		name         string
-		deals        []types.Deal
-		sessionIndex uint32
-		expected     int // expected number of cached deals
+		name     string
+		items    []pendingDeal
+		preload  int
+		expected int // expected total after caching
 	}{
 		{
-			name: "caches deals addressed to this validator",
-			deals: []types.Deal{
-				{Index: 0, RecipientIndex: 0}, // sessionIndex=1, recipientIndex=sessionIndex-1=0
-				{Index: 1, RecipientIndex: 0},
-				{Index: 2, RecipientIndex: 1}, // different recipient, not cached
+			name: "cache deals when empty",
+			items: []pendingDeal{
+				{deal: types.Deal{Index: 0}},
+				{deal: types.Deal{Index: 1}},
 			},
-			sessionIndex: 1,
-			expected:     2,
+			preload:  0,
+			expected: 2,
 		},
 		{
-			name: "no deals match this validator",
-			deals: []types.Deal{
-				{Index: 0, RecipientIndex: 5},
-				{Index: 1, RecipientIndex: 6},
+			name: "cache with partial capacity remaining",
+			items: []pendingDeal{
+				{deal: types.Deal{Index: 0}},
+				{deal: types.Deal{Index: 1}},
+				{deal: types.Deal{Index: 2}},
 			},
-			sessionIndex: 1,
-			expected:     0,
+			preload:  maxPendingIncoming - 2,
+			expected: maxPendingIncoming,
 		},
 		{
-			name:         "empty deals list",
-			deals:        nil,
-			sessionIndex: 1,
-			expected:     0,
+			name: "cache at full capacity (no-op)",
+			items: []pendingDeal{
+				{deal: types.Deal{Index: 0}},
+			},
+			preload:  maxPendingIncoming,
+			expected: maxPendingIncoming,
 		},
 		{
-			name: "session index 0 means unset, no deals cached",
-			deals: []types.Deal{
-				{Index: 0, RecipientIndex: 0},
-			},
-			sessionIndex: 0, // 0 means unset; guard (sessionIndex > 0) fails
-			expected:     0,
+			name:     "empty items list",
+			items:    nil,
+			preload:  0,
+			expected: 0,
 		},
 	}
 
@@ -77,61 +77,172 @@ func TestCachePendingIncomingDeals(t *testing.T) {
 			resetPendingIncoming()
 			defer resetPendingIncoming()
 
-			cached := cachePendingIncomingDeals(tc.deals, tc.sessionIndex)
-			require.Equal(t, tc.expected, cached)
+			// Pre-load
+			pendingIncomingDealsMu.Lock()
+			for i := range tc.preload {
+				pendingIncomingDeals = append(pendingIncomingDeals, pendingDeal{deal: types.Deal{Index: uint32(i + 100)}})
+			}
+			pendingIncomingDealsMu.Unlock()
+
+			cachePendingDeals(context.Background(), tc.items)
+
+			pendingIncomingDealsMu.Lock()
+			got := len(pendingIncomingDeals)
+			pendingIncomingDealsMu.Unlock()
+			require.Equal(t, tc.expected, got)
 		})
 	}
 }
 
-func TestCachePendingIncomingDeals_MaxCapEnforced(t *testing.T) {
+func TestCachePendingDeals_PreservesRetryCount(t *testing.T) {
 	resetPendingIncoming()
 	defer resetPendingIncoming()
 
-	// Pre-fill to max capacity
-	pendingIncomingDealsMu.Lock()
-	for i := range maxPendingIncoming {
-		pendingIncomingDeals = append(pendingIncomingDeals, types.Deal{Index: uint32(i), RecipientIndex: 0})
+	items := []pendingDeal{
+		{deal: types.Deal{Index: 1}, retryCount: 3},
+		{deal: types.Deal{Index: 2}, retryCount: 5},
 	}
-	pendingIncomingDealsMu.Unlock()
 
-	// Try to add one more
-	deals := []types.Deal{{Index: 99, RecipientIndex: 0}}
-	cached := cachePendingIncomingDeals(deals, 1)
-	require.Equal(t, 0, cached, "should not cache beyond maxPendingIncoming")
+	cachePendingDeals(context.Background(), items)
+
+	pendingIncomingDealsMu.Lock()
+	defer pendingIncomingDealsMu.Unlock()
+
+	require.Len(t, pendingIncomingDeals, 2)
+	require.Equal(t, 3, pendingIncomingDeals[0].retryCount, "retryCount must be preserved")
+	require.Equal(t, 5, pendingIncomingDeals[1].retryCount, "retryCount must be preserved")
 }
 
-// --- cachePendingIncomingResponses ---
+// TestCachePending_DropsAtCapacity verifies that overflow items are dropped
+// (not appended past capacity) when the queue is saturated. Earlier items
+// in the input slice are kept; later ones are discarded — the queue acts as
+// a fixed-size buffer that does NOT silently grow without bound.
+func TestCachePending_DropsAtCapacity(t *testing.T) {
+	t.Run("deals partial overflow", func(t *testing.T) {
+		resetPendingIncoming()
+		defer resetPendingIncoming()
 
-func TestCachePendingIncomingResponses(t *testing.T) {
+		pendingIncomingDealsMu.Lock()
+		for i := range maxPendingIncoming - 2 {
+			pendingIncomingDeals = append(pendingIncomingDeals, pendingDeal{deal: types.Deal{Index: uint32(i + 100)}})
+		}
+		pendingIncomingDealsMu.Unlock()
+
+		// Try to cache 5 items when only 2 slots remain.
+		items := []pendingDeal{
+			{deal: types.Deal{Index: 1}},
+			{deal: types.Deal{Index: 2}},
+			{deal: types.Deal{Index: 3}},
+			{deal: types.Deal{Index: 4}},
+			{deal: types.Deal{Index: 5}},
+		}
+		cachePendingDeals(context.Background(), items)
+
+		pendingIncomingDealsMu.Lock()
+		defer pendingIncomingDealsMu.Unlock()
+		require.Equal(t, maxPendingIncoming, len(pendingIncomingDeals))
+		// Earlier items are kept, later ones dropped.
+		last := pendingIncomingDeals[len(pendingIncomingDeals)-2:]
+		require.Equal(t, uint32(1), last[0].deal.Index)
+		require.Equal(t, uint32(2), last[1].deal.Index)
+	})
+
+	t.Run("deals full overflow", func(t *testing.T) {
+		resetPendingIncoming()
+		defer resetPendingIncoming()
+
+		pendingIncomingDealsMu.Lock()
+		for i := range maxPendingIncoming {
+			pendingIncomingDeals = append(pendingIncomingDeals, pendingDeal{deal: types.Deal{Index: uint32(i + 100)}})
+		}
+		pendingIncomingDealsMu.Unlock()
+
+		// Queue is at capacity — every item must be dropped.
+		items := []pendingDeal{
+			{deal: types.Deal{Index: 1}},
+			{deal: types.Deal{Index: 2}},
+		}
+		cachePendingDeals(context.Background(), items)
+
+		pendingIncomingDealsMu.Lock()
+		defer pendingIncomingDealsMu.Unlock()
+		require.Equal(t, maxPendingIncoming, len(pendingIncomingDeals))
+		for i, p := range pendingIncomingDeals {
+			require.Equal(t, uint32(i+100), p.deal.Index, "pre-existing items must not be evicted")
+		}
+	})
+
+	t.Run("responses full overflow", func(t *testing.T) {
+		resetPendingIncoming()
+		defer resetPendingIncoming()
+
+		pendingIncomingResponsesMu.Lock()
+		for i := range maxPendingIncoming {
+			pendingIncomingResponses = append(pendingIncomingResponses, pendingResponse{response: types.Response{Index: uint32(i + 100)}})
+		}
+		pendingIncomingResponsesMu.Unlock()
+
+		cachePendingResponses(context.Background(), []pendingResponse{
+			{response: types.Response{Index: 1}},
+		})
+
+		pendingIncomingResponsesMu.Lock()
+		defer pendingIncomingResponsesMu.Unlock()
+		require.Equal(t, maxPendingIncoming, len(pendingIncomingResponses))
+	})
+
+	t.Run("justifications full overflow", func(t *testing.T) {
+		resetPendingIncoming()
+		defer resetPendingIncoming()
+
+		pendingIncomingJustificationsMu.Lock()
+		for i := range maxPendingIncoming {
+			pendingIncomingJustifications = append(pendingIncomingJustifications, pendingJustification{justification: types.Justification{Index: uint32(i + 100)}})
+		}
+		pendingIncomingJustificationsMu.Unlock()
+
+		cachePendingJustifications(context.Background(), []pendingJustification{
+			{justification: types.Justification{Index: 1}},
+		})
+
+		pendingIncomingJustificationsMu.Lock()
+		defer pendingIncomingJustificationsMu.Unlock()
+		require.Equal(t, maxPendingIncoming, len(pendingIncomingJustifications))
+	})
+}
+
+// --- cachePendingResponses ---
+
+func TestCachePendingResponses(t *testing.T) {
 	tests := []struct {
-		name      string
-		responses []types.Response
-		preload   int // number of pre-loaded responses
-		expected  int // expected total after caching
+		name     string
+		items    []pendingResponse
+		preload  int // number of pre-loaded responses
+		expected int // expected total after caching
 	}{
 		{
-			name:      "cache responses when empty",
-			responses: []types.Response{{Index: 1}, {Index: 2}},
-			preload:   0,
-			expected:  2,
+			name:     "cache responses when empty",
+			items:    []pendingResponse{{response: types.Response{Index: 1}}, {response: types.Response{Index: 2}}},
+			preload:  0,
+			expected: 2,
 		},
 		{
-			name:      "cache with partial capacity remaining",
-			responses: []types.Response{{Index: 1}, {Index: 2}, {Index: 3}},
-			preload:   maxPendingIncoming - 2,
-			expected:  maxPendingIncoming,
+			name:     "cache with partial capacity remaining",
+			items:    []pendingResponse{{response: types.Response{Index: 1}}, {response: types.Response{Index: 2}}, {response: types.Response{Index: 3}}},
+			preload:  maxPendingIncoming - 2,
+			expected: maxPendingIncoming,
 		},
 		{
-			name:      "cache at full capacity (no-op)",
-			responses: []types.Response{{Index: 1}},
-			preload:   maxPendingIncoming,
-			expected:  maxPendingIncoming,
+			name:     "cache at full capacity (no-op)",
+			items:    []pendingResponse{{response: types.Response{Index: 1}}},
+			preload:  maxPendingIncoming,
+			expected: maxPendingIncoming,
 		},
 		{
-			name:      "empty response list",
-			responses: nil,
-			preload:   0,
-			expected:  0,
+			name:     "empty items list",
+			items:    nil,
+			preload:  0,
+			expected: 0,
 		},
 	}
 
@@ -143,11 +254,11 @@ func TestCachePendingIncomingResponses(t *testing.T) {
 			// Pre-load
 			pendingIncomingResponsesMu.Lock()
 			for i := range tc.preload {
-				pendingIncomingResponses = append(pendingIncomingResponses, types.Response{Index: uint32(i + 100)})
+				pendingIncomingResponses = append(pendingIncomingResponses, pendingResponse{response: types.Response{Index: uint32(i + 100)}})
 			}
 			pendingIncomingResponsesMu.Unlock()
 
-			cachePendingIncomingResponses(tc.responses)
+			cachePendingResponses(context.Background(), tc.items)
 
 			pendingIncomingResponsesMu.Lock()
 			got := len(pendingIncomingResponses)
@@ -157,32 +268,32 @@ func TestCachePendingIncomingResponses(t *testing.T) {
 	}
 }
 
-// --- cachePendingIncomingJustifications ---
+// --- cachePendingJustifications ---
 
-func TestCachePendingIncomingJustifications(t *testing.T) {
+func TestCachePendingJustifications(t *testing.T) {
 	tests := []struct {
-		name           string
-		justifications []types.Justification
-		preload        int
-		expected       int
+		name     string
+		items    []pendingJustification
+		preload  int
+		expected int
 	}{
 		{
-			name:           "cache justifications when empty",
-			justifications: []types.Justification{{Index: 1}, {Index: 2}},
-			preload:        0,
-			expected:       2,
+			name:     "cache justifications when empty",
+			items:    []pendingJustification{{justification: types.Justification{Index: 1}}, {justification: types.Justification{Index: 2}}},
+			preload:  0,
+			expected: 2,
 		},
 		{
-			name:           "cache with partial capacity",
-			justifications: []types.Justification{{Index: 1}, {Index: 2}, {Index: 3}},
-			preload:        maxPendingIncoming - 1,
-			expected:       maxPendingIncoming,
+			name:     "cache with partial capacity",
+			items:    []pendingJustification{{justification: types.Justification{Index: 1}}, {justification: types.Justification{Index: 2}}, {justification: types.Justification{Index: 3}}},
+			preload:  maxPendingIncoming - 1,
+			expected: maxPendingIncoming,
 		},
 		{
-			name:           "cache at full capacity (no-op)",
-			justifications: []types.Justification{{Index: 1}},
-			preload:        maxPendingIncoming,
-			expected:       maxPendingIncoming,
+			name:     "cache at full capacity (no-op)",
+			items:    []pendingJustification{{justification: types.Justification{Index: 1}}},
+			preload:  maxPendingIncoming,
+			expected: maxPendingIncoming,
 		},
 	}
 
@@ -193,11 +304,11 @@ func TestCachePendingIncomingJustifications(t *testing.T) {
 
 			pendingIncomingJustificationsMu.Lock()
 			for i := range tc.preload {
-				pendingIncomingJustifications = append(pendingIncomingJustifications, types.Justification{Index: uint32(i + 100)})
+				pendingIncomingJustifications = append(pendingIncomingJustifications, pendingJustification{justification: types.Justification{Index: uint32(i + 100)}})
 			}
 			pendingIncomingJustificationsMu.Unlock()
 
-			cachePendingIncomingJustifications(tc.justifications)
+			cachePendingJustifications(context.Background(), tc.items)
 
 			pendingIncomingJustificationsMu.Lock()
 			got := len(pendingIncomingJustifications)
@@ -215,13 +326,13 @@ func TestDrainPendingIncomingDeals(t *testing.T) {
 
 	// Pre-populate
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 1}, {Index: 2}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 1}}, {deal: types.Deal{Index: 2}}}
 	pendingIncomingDealsMu.Unlock()
 
 	drained := drainPendingIncomingDeals()
 	require.Len(t, drained, 2)
-	require.Equal(t, uint32(1), drained[0].Index)
-	require.Equal(t, uint32(2), drained[1].Index)
+	require.Equal(t, uint32(1), drained[0].deal.Index)
+	require.Equal(t, uint32(2), drained[1].deal.Index)
 
 	// After drain, queue should be empty
 	pendingIncomingDealsMu.Lock()
@@ -242,7 +353,7 @@ func TestDrainPendingIncomingResponses(t *testing.T) {
 	defer resetPendingIncoming()
 
 	pendingIncomingResponsesMu.Lock()
-	pendingIncomingResponses = []types.Response{{Index: 3}, {Index: 4}}
+	pendingIncomingResponses = []pendingResponse{{response: types.Response{Index: 3}}, {response: types.Response{Index: 4}}}
 	pendingIncomingResponsesMu.Unlock()
 
 	drained := drainPendingIncomingResponses()
@@ -258,7 +369,7 @@ func TestDrainPendingIncomingJustifications(t *testing.T) {
 	defer resetPendingIncoming()
 
 	pendingIncomingJustificationsMu.Lock()
-	pendingIncomingJustifications = []types.Justification{{Index: 5}}
+	pendingIncomingJustifications = []pendingJustification{{justification: types.Justification{Index: 5}}}
 	pendingIncomingJustificationsMu.Unlock()
 
 	drained := drainPendingIncomingJustifications()
@@ -277,15 +388,15 @@ func TestFlushPendingIncoming(t *testing.T) {
 
 	// Pre-populate all queues
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 1}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 1}}}
 	pendingIncomingDealsMu.Unlock()
 
 	pendingIncomingResponsesMu.Lock()
-	pendingIncomingResponses = []types.Response{{Index: 2}}
+	pendingIncomingResponses = []pendingResponse{{response: types.Response{Index: 2}}}
 	pendingIncomingResponsesMu.Unlock()
 
 	pendingIncomingJustificationsMu.Lock()
-	pendingIncomingJustifications = []types.Justification{{Index: 3}}
+	pendingIncomingJustifications = []pendingJustification{{justification: types.Justification{Index: 3}}}
 	pendingIncomingJustificationsMu.Unlock()
 
 	flushPendingIncoming()
@@ -447,7 +558,7 @@ func TestHandleDKGProcessDeals_NotInValSet(t *testing.T) {
 	deals := []types.Deal{{Index: 0, RecipientIndex: 0}}
 
 	// Should skip because validator is not in current round set
-	k.handleDKGProcessDeals(ctx, dkgNetwork, deals)
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals(deals))
 }
 
 func TestHandleDKGProcessDeals_NoSession(t *testing.T) {
@@ -467,7 +578,7 @@ func TestHandleDKGProcessDeals_NoSession(t *testing.T) {
 	deals := []types.Deal{{Index: 0, RecipientIndex: 0}}
 
 	// Should log error but not panic
-	k.handleDKGProcessDeals(ctx, dkgNetwork, deals)
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals(deals))
 }
 
 func TestHandleDKGProcessDeals_WrongPhase(t *testing.T) {
@@ -493,7 +604,7 @@ func TestHandleDKGProcessDeals_WrongPhase(t *testing.T) {
 	deals := []types.Deal{{Index: 0, RecipientIndex: 0}}
 
 	// Should skip — wrong phase
-	k.handleDKGProcessDeals(ctx, dkgNetwork, deals)
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals(deals))
 
 	got, err := k.stateManager.GetSession(2)
 	require.NoError(t, err)
@@ -531,7 +642,7 @@ func TestHandleDKGProcessDeals_NoMatchingDeals(t *testing.T) {
 	}
 
 	// Should succeed without calling kernel (no matching deals)
-	k.handleDKGProcessDeals(ctx, dkgNetwork, deals)
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals(deals))
 }
 
 // --- handleDKGProcessResponses ---
@@ -550,7 +661,7 @@ func TestHandleDKGProcessResponses_ShouldNotProcess(t *testing.T) {
 	responses := []types.Response{{Index: 1}}
 
 	// shouldProcess=false → skip
-	k.handleDKGProcessResponses(ctx, dkgNetwork, responses, false)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses(responses), false)
 }
 
 func TestHandleDKGProcessResponses_NoSession(t *testing.T) {
@@ -567,7 +678,7 @@ func TestHandleDKGProcessResponses_NoSession(t *testing.T) {
 	responses := []types.Response{{Index: 1}}
 
 	// Should log error but not panic
-	k.handleDKGProcessResponses(ctx, dkgNetwork, responses, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses(responses), true)
 }
 
 func TestHandleDKGProcessResponses_WrongPhase(t *testing.T) {
@@ -589,7 +700,7 @@ func TestHandleDKGProcessResponses_WrongPhase(t *testing.T) {
 
 	responses := []types.Response{{Index: 1}}
 
-	k.handleDKGProcessResponses(ctx, dkgNetwork, responses, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses(responses), true)
 
 	got, err := k.stateManager.GetSession(2)
 	require.NoError(t, err)
@@ -624,7 +735,7 @@ func TestHandleDKGProcessResponses_AllSelfResponses_Filtered(t *testing.T) {
 	}
 
 	// All responses are from self → filtered out → no kernel call
-	k.handleDKGProcessResponses(ctx, dkgNetwork, responses, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses(responses), true)
 }
 
 // --- Tests merged from dkg_svc_justifications_test.go ---
@@ -643,7 +754,7 @@ func TestHandleDKGProcessJustifications_NoSession(t *testing.T) {
 	justifications := []types.Justification{{Index: 1}}
 
 	// Should log error but not panic when session doesn't exist
-	k.handleDKGProcessJustifications(ctx, dkgNetwork, justifications)
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, wrapJustifications(justifications))
 }
 
 func TestHandleDKGProcessJustifications_NoKernelClient(t *testing.T) {
@@ -673,7 +784,7 @@ func TestHandleDKGProcessJustifications_NoKernelClient(t *testing.T) {
 	resetPendingIncoming()
 	defer resetPendingIncoming()
 
-	k.handleDKGProcessJustifications(ctx, dkgNetwork, justifications)
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, wrapJustifications(justifications))
 
 	// Justifications should be cached for retry
 	pendingIncomingJustificationsMu.Lock()
@@ -877,11 +988,11 @@ func TestReprocessPendingIncomingData_WrongStage_FlushesData(t *testing.T) {
 
 	// Pre-populate pending data
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 1}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 1}}}
 	pendingIncomingDealsMu.Unlock()
 
 	pendingIncomingResponsesMu.Lock()
-	pendingIncomingResponses = []types.Response{{Index: 2}}
+	pendingIncomingResponses = []pendingResponse{{response: types.Response{Index: 2}}}
 	pendingIncomingResponsesMu.Unlock()
 
 	k := setupKeeperWithStateManager(t)
@@ -907,7 +1018,7 @@ func TestReprocessPendingIncomingData_NilKernelRouter(t *testing.T) {
 	defer resetPendingIncoming()
 
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 1}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 1}}}
 	pendingIncomingDealsMu.Unlock()
 
 	k := &Keeper{kernelRouter: nil}
@@ -930,7 +1041,7 @@ func TestReprocessPendingIncomingData_NoClients(t *testing.T) {
 	defer resetPendingIncoming()
 
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 1}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 1}}}
 	pendingIncomingDealsMu.Unlock()
 
 	router := NewKernelRouter(nil, nil)
@@ -1096,7 +1207,7 @@ func TestHandleDKGProcessDeals_SessionIndexFiltering(t *testing.T) {
 		ActiveValSet: []string{testValidatorAddr},
 	}
 
-	k.handleDKGProcessDeals(ctx, dkgNetwork, []types.Deal{myDeal, otherDeal})
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals([]types.Deal{myDeal, otherDeal}))
 }
 
 // TestHandleDKGProcessDeals_ProcessDealsError_CachesDeals verifies that failed
@@ -1142,7 +1253,7 @@ func TestHandleDKGProcessDeals_ProcessDealsError_CachesDeals(t *testing.T) {
 	resetPendingIncoming()
 	defer resetPendingIncoming()
 
-	k.handleDKGProcessDeals(ctx, dkgNetwork, []types.Deal{myDeal})
+	k.handleDKGProcessDeals(ctx, dkgNetwork, wrapDeals([]types.Deal{myDeal}))
 
 	pendingIncomingDealsMu.Lock()
 	cached := len(pendingIncomingDeals)
@@ -1198,7 +1309,7 @@ func TestHandleDKGProcessResponses_UpgradeCCFiltering(t *testing.T) {
 		IsUpgrade: true,
 	}
 
-	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{resp}, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses([]types.Response{resp}), true)
 }
 
 // TestHandleDKGProcessResponses_ResponseIndexFiltering verifies that responses
@@ -1239,7 +1350,7 @@ func TestHandleDKGProcessResponses_ResponseIndexFiltering(t *testing.T) {
 	)
 
 	dkgNetwork := &types.DKGNetwork{Round: 10, Stage: types.DKGStageDealing}
-	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{selfResp, otherResp}, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses([]types.Response{selfResp, otherResp}), true)
 }
 
 // TestHandleDKGProcessResponses_Error_CachesResponses verifies that failed
@@ -1276,7 +1387,7 @@ func TestHandleDKGProcessResponses_Error_CachesResponses(t *testing.T) {
 	defer resetPendingIncoming()
 
 	resp := types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}
-	k.handleDKGProcessResponses(ctx, dkgNetwork, []types.Response{resp}, true)
+	k.handleDKGProcessResponses(ctx, dkgNetwork, wrapResponses([]types.Response{resp}), true)
 
 	pendingIncomingResponsesMu.Lock()
 	cached := len(pendingIncomingResponses)
@@ -1327,7 +1438,7 @@ func TestHandleDKGProcessJustifications_UpgradeCCFiltering(t *testing.T) {
 	)
 
 	dkgNetwork := &types.DKGNetwork{Round: 12, Stage: types.DKGStageDealing, IsUpgrade: true}
-	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, wrapJustifications([]types.Justification{just}))
 }
 
 // TestHandleDKGProcessJustifications_Error_CachesJustifications verifies that
@@ -1363,7 +1474,7 @@ func TestHandleDKGProcessJustifications_Error_CachesJustifications(t *testing.T)
 	defer resetPendingIncoming()
 
 	just := types.Justification{Index: 0}
-	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, wrapJustifications([]types.Justification{just}))
 
 	pendingIncomingJustificationsMu.Lock()
 	cached := len(pendingIncomingJustifications)
@@ -1406,7 +1517,7 @@ func TestHandleDKGProcessJustifications_SuccessPath(t *testing.T) {
 	defer resetPendingIncoming()
 
 	just := types.Justification{Index: 0}
-	k.handleDKGProcessJustifications(ctx, dkgNetwork, []types.Justification{just})
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, wrapJustifications([]types.Justification{just}))
 
 	pendingIncomingJustificationsMu.Lock()
 	cached := len(pendingIncomingJustifications)
@@ -1451,15 +1562,15 @@ func TestReprocessPendingIncomingData_SuccessPath(t *testing.T) {
 	defer resetPendingIncoming()
 
 	pendingIncomingDealsMu.Lock()
-	pendingIncomingDeals = []types.Deal{{Index: 0, RecipientIndex: 0}}
+	pendingIncomingDeals = []pendingDeal{{deal: types.Deal{Index: 0, RecipientIndex: 0}}}
 	pendingIncomingDealsMu.Unlock()
 
 	pendingIncomingResponsesMu.Lock()
-	pendingIncomingResponses = []types.Response{{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}}
+	pendingIncomingResponses = []pendingResponse{{response: types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}}}
 	pendingIncomingResponsesMu.Unlock()
 
 	pendingIncomingJustificationsMu.Lock()
-	pendingIncomingJustifications = []types.Justification{{Index: 0}}
+	pendingIncomingJustifications = []pendingJustification{{justification: types.Justification{Index: 0}}}
 	pendingIncomingJustificationsMu.Unlock()
 
 	dkgNetwork := &types.DKGNetwork{
@@ -1550,4 +1661,676 @@ func TestHandleDKGDealing_FullPath(t *testing.T) {
 	dequeued := k.DequeueDeals(10)
 	require.Len(t, dequeued, 1)
 	require.Equal(t, uint32(0), dequeued[0].Index)
+}
+
+// --- retry limit tests: handleDKGProcessDeals increments retryCount and drops exceeded ---
+
+func TestHandleDKGProcessDeals_RetryLimit_IncrementsAndDrops(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("retry-limit-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          20,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1, // accept RecipientIndex=0
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        20,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	// Item with retryCount at max — should be dropped after increment.
+	// Item with retryCount=0 — should survive with retryCount=1.
+	pending := []pendingDeal{
+		{deal: types.Deal{Index: 0, RecipientIndex: 0}, retryCount: maxReprocessAttempts},
+		{deal: types.Deal{Index: 1, RecipientIndex: 0}, retryCount: 0},
+	}
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, pending)
+
+	pendingIncomingDealsMu.Lock()
+	cached := pendingIncomingDeals
+	pendingIncomingDealsMu.Unlock()
+
+	require.Len(t, cached, 1, "only the item below max should be cached")
+	require.Equal(t, uint32(1), cached[0].deal.Index)
+	require.Equal(t, 1, cached[0].retryCount, "retryCount should be incremented to 1")
+}
+
+func TestHandleDKGProcessResponses_RetryLimit_IncrementsAndDrops(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("retry-limit-resp-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          21,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          0, // unset: include all responses
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
+
+	dkgNetwork := &types.DKGNetwork{Round: 21, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingResponse{
+		{response: types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}, retryCount: maxReprocessAttempts},
+		{response: types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}, retryCount: 0},
+	}
+
+	k.handleDKGProcessResponses(ctx, dkgNetwork, pending, true)
+
+	pendingIncomingResponsesMu.Lock()
+	cached := pendingIncomingResponses
+	pendingIncomingResponsesMu.Unlock()
+
+	require.Len(t, cached, 1, "only the item below max should be cached")
+	require.Equal(t, uint32(1), cached[0].response.Index)
+	require.Equal(t, 1, cached[0].retryCount, "retryCount should be incremented to 1")
+}
+
+func TestHandleDKGProcessJustifications_RetryLimit_IncrementsAndDrops(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("retry-limit-just-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          22,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel returns error on all retries.
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(nil, errSentinel).Times(retryAttempts)
+
+	dkgNetwork := &types.DKGNetwork{Round: 22, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingJustification{
+		{justification: types.Justification{Index: 0}, retryCount: maxReprocessAttempts},
+		{justification: types.Justification{Index: 1}, retryCount: 1},
+	}
+
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, pending)
+
+	pendingIncomingJustificationsMu.Lock()
+	cached := pendingIncomingJustifications
+	pendingIncomingJustificationsMu.Unlock()
+
+	require.Len(t, cached, 1, "only the item below max should be cached")
+	require.Equal(t, uint32(1), cached[0].justification.Index)
+	require.Equal(t, 2, cached[0].retryCount, "retryCount should be incremented to 2")
+}
+
+// --- wrap helper tests ---
+
+func TestWrapDeals(t *testing.T) {
+	t.Parallel()
+
+	deals := []types.Deal{
+		{Index: 0, RecipientIndex: 1},
+		{Index: 1, RecipientIndex: 2},
+	}
+
+	wrapped := wrapDeals(deals)
+	require.Len(t, wrapped, 2)
+	require.Equal(t, uint32(0), wrapped[0].deal.Index)
+	require.Equal(t, uint32(1), wrapped[1].deal.Index)
+	require.Equal(t, 0, wrapped[0].retryCount, "new items should have retryCount=0")
+	require.Equal(t, 0, wrapped[1].retryCount, "new items should have retryCount=0")
+}
+
+func TestWrapResponses(t *testing.T) {
+	t.Parallel()
+
+	responses := []types.Response{{Index: 5}, {Index: 6}}
+	wrapped := wrapResponses(responses)
+	require.Len(t, wrapped, 2)
+	require.Equal(t, uint32(5), wrapped[0].response.Index)
+	require.Equal(t, 0, wrapped[0].retryCount)
+}
+
+func TestWrapJustifications(t *testing.T) {
+	t.Parallel()
+
+	justifications := []types.Justification{{Index: 7}}
+	wrapped := wrapJustifications(justifications)
+	require.Len(t, wrapped, 1)
+	require.Equal(t, uint32(7), wrapped[0].justification.Index)
+	require.Equal(t, 0, wrapped[0].retryCount)
+}
+
+// --- per-item retry tests (kernel reports rejected items via rejected_* fields) ---
+
+// TestRejectedKey_DealUsesOuterOnly verifies that for deals the inner part of
+// rejectedKey stays zero (Deal.Index is unique within a filtered batch
+// because the CL pre-filters by RecipientIndex).
+func TestRejectedKey_DealUsesOuterOnly(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, rejectedKey{outer: 5}, rejectedDealKey(types.Deal{Index: 5, RecipientIndex: 2}))
+}
+
+// TestRejectedKey_ResponseDisambiguatesByInner verifies that responses with
+// the same dealer index but different complainer indices map to distinct keys.
+// This is the regression test for the multi-complainer-per-dealer case.
+func TestRejectedKey_ResponseDisambiguatesByInner(t *testing.T) {
+	t.Parallel()
+	a := rejectedResponseKey(types.Response{Index: 7, VssResponse: &types.VSSResponse{Index: 1}})
+	b := rejectedResponseKey(types.Response{Index: 7, VssResponse: &types.VSSResponse{Index: 2}})
+	require.NotEqual(t, a, b, "same dealer index + different complainer indices must produce distinct keys")
+}
+
+// TestHandleDKGProcessDeals_PerItemRetry_RequeuesOnlyFailed verifies that when
+// the kernel returns success with failed_items populated, only those items are
+// requeued (not the whole batch).
+func TestHandleDKGProcessDeals_PerItemRetry_RequeuesOnlyFailed(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("per-item-deals-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router, validatorEVMAddr: testValidatorAddr}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:          30,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1, // accept RecipientIndex=0
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel succeeds overall, reports item Index=1 as rejected.
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessDealsResponse{
+			CodeCommitment: cc,
+			Round:          30,
+			Responses:      []types.Response{{Index: 0}},
+			RejectedDeals:  []types.Deal{{Index: 1, RecipientIndex: 0}},
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        30,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingDeal{
+		{deal: types.Deal{Index: 0, RecipientIndex: 0}, retryCount: 0},
+		{deal: types.Deal{Index: 1, RecipientIndex: 0}, retryCount: 0},
+	}
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, pending)
+
+	pendingIncomingDealsMu.Lock()
+	cached := pendingIncomingDeals
+	pendingIncomingDealsMu.Unlock()
+
+	require.Len(t, cached, 1, "only the failed item should be requeued")
+	require.Equal(t, uint32(1), cached[0].deal.Index)
+	require.Equal(t, 1, cached[0].retryCount)
+}
+
+// TestHandleDKGProcessDeals_NewKernel_AllSuccess verifies that when the new kernel
+// returns success with empty failed_items, nothing is requeued.
+func TestHandleDKGProcessDeals_NewKernel_AllSuccess_NoRequeue(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("new-kernel-all-success-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router, validatorEVMAddr: testValidatorAddr}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:          31,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessDealsResponse{
+			CodeCommitment: cc,
+			Round:          31,
+			Responses:      []types.Response{{Index: 0}, {Index: 1}},
+			RejectedDeals:  nil,
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        31,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingDeal{
+		{deal: types.Deal{Index: 0, RecipientIndex: 0}, retryCount: 0},
+		{deal: types.Deal{Index: 1, RecipientIndex: 0}, retryCount: 0},
+	}
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, pending)
+
+	pendingIncomingDealsMu.Lock()
+	defer pendingIncomingDealsMu.Unlock()
+	require.Empty(t, pendingIncomingDeals, "no items should be requeued when failed_items is empty")
+}
+
+// TestHandleDKGProcessDeals_OldKernel_Fallback verifies that an old kernel
+// (without rejected_deals support) leaves the new client in legacy batch
+// mode: RPC success with non-empty responses and empty rejected_deals →
+// no requeue.
+func TestHandleDKGProcessDeals_OldKernel_Fallback(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("old-kernel-fallback-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router, validatorEVMAddr: testValidatorAddr}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:          32,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          1,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Old kernel: responds with responses only, no rejected_deals field set.
+	mockKernel.EXPECT().ProcessDeals(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessDealsResponse{
+			CodeCommitment: cc,
+			Round:          32,
+			Responses:      []types.Response{{Index: 0}},
+			// RejectedDeals intentionally omitted — simulates pre-feature kernel.
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        32,
+		Stage:        types.DKGStageDealing,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingDeal{
+		{deal: types.Deal{Index: 0, RecipientIndex: 0}, retryCount: 0},
+		{deal: types.Deal{Index: 1, RecipientIndex: 0}, retryCount: 0},
+	}
+
+	k.handleDKGProcessDeals(ctx, dkgNetwork, pending)
+
+	pendingIncomingDealsMu.Lock()
+	defer pendingIncomingDealsMu.Unlock()
+	require.Empty(t, pendingIncomingDeals,
+		"old-kernel fallback: success RPC with empty rejected_deals must not requeue anything")
+}
+
+// TestHandleDKGProcessResponses_PerItemRetry_RequeuesOnlyFailed is the responses
+// counterpart of the deals per-item retry test.
+func TestHandleDKGProcessResponses_PerItemRetry_RequeuesOnlyFailed(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("per-item-resp-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          40,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+		Index:          0, // unset: include all responses
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{
+			Justifications: nil,
+			// Composite key (outer=1, inner=2) matches the second pending response.
+			RejectedResponses: []types.Response{{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}},
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{Round: 40, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingResponse{
+		{response: types.Response{Index: 0, VssResponse: &types.VSSResponse{Index: 1}}, retryCount: 0},
+		{response: types.Response{Index: 1, VssResponse: &types.VSSResponse{Index: 2}}, retryCount: 0},
+	}
+
+	k.handleDKGProcessResponses(ctx, dkgNetwork, pending, true)
+
+	pendingIncomingResponsesMu.Lock()
+	cached := pendingIncomingResponses
+	pendingIncomingResponsesMu.Unlock()
+
+	require.Len(t, cached, 1)
+	require.Equal(t, uint32(1), cached[0].response.Index)
+	require.Equal(t, 1, cached[0].retryCount)
+}
+
+// TestHandleDKGProcessJustifications_PerItemRetry_RequeuesOnlyFailed is the
+// justifications counterpart of the deals per-item retry test.
+func TestHandleDKGProcessJustifications_PerItemRetry_RequeuesOnlyFailed(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("per-item-just-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round:          50,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	mockKernel.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{
+			RejectedJustifications: []types.Justification{{Index: 0, VssJustification: &types.VSSJustification{Index: 3}}},
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{Round: 50, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingJustification{
+		{justification: types.Justification{Index: 0, VssJustification: &types.VSSJustification{Index: 3}}, retryCount: 0},
+		{justification: types.Justification{Index: 1, VssJustification: &types.VSSJustification{Index: 4}}, retryCount: 0},
+	}
+
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, pending)
+
+	pendingIncomingJustificationsMu.Lock()
+	cached := pendingIncomingJustifications
+	pendingIncomingJustificationsMu.Unlock()
+
+	require.Len(t, cached, 1)
+	require.Equal(t, uint32(0), cached[0].justification.Index)
+	require.Equal(t, 1, cached[0].retryCount)
+}
+
+// --- RETRY-1 regression: multiple responses targeting the same dealer ---
+
+// TestHandleDKGProcessResponses_MultiComplainerPerDealer_OnlyFailedInnerRequeued
+// verifies that when multiple complainers produce Responses with the SAME
+// Response.Index (dealer), a kernel rejected_response targeting one specific
+// (dealer, complainer) pair via VssResponse.Index requeues ONLY that pair.
+// Previous design collapsed duplicate outer Index into a single map entry and
+// requeued every response with that dealer index — the typed rejected slice
+// fixes this because the entire Response is included in the wire.
+func TestHandleDKGProcessResponses_MultiComplainerPerDealer_OnlyFailedInnerRequeued(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	cc := []byte("multi-complainer-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:          60,
+		Phase:          types.PhaseDealing,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Kernel reports only (dealer=7, complainer=1) as rejected.
+	// Previously this would have requeued all three items (all have Response.Index=7).
+	mockKernel.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{
+			RejectedResponses: []types.Response{
+				{Index: 7, VssResponse: &types.VSSResponse{Index: 1}},
+			},
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{Round: 60, Stage: types.DKGStageDealing}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	// Three responses all targeting dealer 7 from different complainers (0, 1, 2).
+	pending := []pendingResponse{
+		{response: types.Response{Index: 7, VssResponse: &types.VSSResponse{Index: 0}}},
+		{response: types.Response{Index: 7, VssResponse: &types.VSSResponse{Index: 1}}},
+		{response: types.Response{Index: 7, VssResponse: &types.VSSResponse{Index: 2}}},
+	}
+
+	k.handleDKGProcessResponses(ctx, dkgNetwork, pending, true)
+
+	pendingIncomingResponsesMu.Lock()
+	cached := pendingIncomingResponses
+	pendingIncomingResponsesMu.Unlock()
+
+	require.Len(t, cached, 1, "only the (7, 1) pair should be requeued")
+	require.Equal(t, uint32(7), cached[0].response.Index)
+	require.Equal(t, uint32(1), cached[0].response.VssResponse.Index)
+	require.Equal(t, 1, cached[0].retryCount)
+}
+
+// --- RETRY-2 regression: upgrade resharing must not double-increment retryCount ---
+
+// TestHandleDKGProcessResponses_UpgradeResharing_BothCCsFail_SingleIncrement
+// verifies that during upgrade resharing, when BOTH code commitments report the
+// same item as failed, the retryCount is incremented exactly once (not twice
+// per ccsToProcess iteration). Previous implementation shared the filtered
+// slice across iterations and mutated retryCount in-place, effectively halving
+// the retry budget.
+func TestHandleDKGProcessResponses_UpgradeResharing_BothCCsFail_SingleIncrement(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	newCC := []byte("upgrade-new-cc")
+	oldCC := []byte("upgrade-old-cc")
+	mockKernelNew := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockKernelOld := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(newCC, mockKernelNew)
+	router.RegisterClient(oldCC, mockKernelOld)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:             70,
+		Phase:             types.PhaseDealing,
+		CodeCommitment:    newCC,
+		OldCodeCommitment: oldCC,
+		IsResharing:       true,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// Both kernels report the SAME item as rejected.
+	rejectedResp := []types.Response{{Index: 3, VssResponse: &types.VSSResponse{Index: 5}}}
+	mockKernelNew.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{RejectedResponses: rejectedResp}, nil,
+	).Times(1)
+	mockKernelOld.EXPECT().ProcessResponses(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessResponsesResponse{RejectedResponses: rejectedResp}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{Round: 70, Stage: types.DKGStageDealing, IsUpgrade: true}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingResponse{
+		{response: types.Response{Index: 3, VssResponse: &types.VSSResponse{Index: 5}}, retryCount: 0},
+	}
+
+	k.handleDKGProcessResponses(ctx, dkgNetwork, pending, true)
+
+	pendingIncomingResponsesMu.Lock()
+	cached := pendingIncomingResponses
+	pendingIncomingResponsesMu.Unlock()
+
+	require.Len(t, cached, 1, "item must be cached exactly once (not once per CC)")
+	require.Equal(t, 1, cached[0].retryCount, "retryCount must increment exactly once (not twice)")
+}
+
+// TestHandleDKGProcessJustifications_UpgradeResharing_BothCCsFail_SingleIncrement
+// is the justifications counterpart.
+func TestHandleDKGProcessJustifications_UpgradeResharing_BothCCsFail_SingleIncrement(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	newCC := []byte("upgrade-just-new-cc")
+	oldCC := []byte("upgrade-just-old-cc")
+	mockKernelNew := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockKernelOld := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(newCC, mockKernelNew)
+	router.RegisterClient(oldCC, mockKernelOld)
+
+	k := &Keeper{stateManager: sm, kernelRouter: router}
+	defer k.FlushAllQueues()
+
+	session := &types.DKGSession{
+		Round:             71,
+		Phase:             types.PhaseDealing,
+		CodeCommitment:    newCC,
+		OldCodeCommitment: oldCC,
+		IsResharing:       true,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	rejectedJust := []types.Justification{{Index: 2, VssJustification: &types.VSSJustification{Index: 4}}}
+	mockKernelNew.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{RejectedJustifications: rejectedJust}, nil,
+	).Times(1)
+	mockKernelOld.EXPECT().ProcessJustification(gomock.Any(), gomock.Any()).Return(
+		&types.ProcessJustificationResponse{RejectedJustifications: rejectedJust}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{Round: 71, Stage: types.DKGStageDealing, IsUpgrade: true}
+
+	resetPendingIncoming()
+	defer resetPendingIncoming()
+
+	pending := []pendingJustification{
+		{justification: types.Justification{Index: 2, VssJustification: &types.VSSJustification{Index: 4}}, retryCount: 0},
+	}
+
+	k.handleDKGProcessJustifications(ctx, dkgNetwork, pending)
+
+	pendingIncomingJustificationsMu.Lock()
+	cached := pendingIncomingJustifications
+	pendingIncomingJustificationsMu.Unlock()
+
+	require.Len(t, cached, 1, "item must be cached exactly once (not once per CC)")
+	require.Equal(t, 1, cached[0].retryCount, "retryCount must increment exactly once (not twice)")
 }

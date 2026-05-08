@@ -161,8 +161,8 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
 		require.Empty(t, session.GetDecryptRequests())
 
-		req1 := types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")}
-		req2 := types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")}
+		req1 := types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")}}
+		req2 := types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")}}
 
 		session.AddDecryptRequest(req1)
 		reqs := session.GetDecryptRequests()
@@ -178,7 +178,7 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		t.Parallel()
 
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")}})
 
 		// Modify the returned copy
 		reqs := session.GetDecryptRequests()
@@ -193,12 +193,12 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		t.Parallel()
 
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")}})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")}})
 		require.Len(t, session.GetDecryptRequests(), 2)
 
 		// Replace with only the failed request
-		remaining := []types.DecryptRequest{{Round: 1, Ciphertext: []byte("ct2")}}
+		remaining := []types.PendingDecryptRequest{{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")}}}
 		session.SetDecryptRequests(remaining)
 
 		reqs := session.GetDecryptRequests()
@@ -210,7 +210,7 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		t.Parallel()
 
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1}})
 
 		session.SetDecryptRequests(nil)
 		reqs := session.GetDecryptRequests()
@@ -221,8 +221,8 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		t.Parallel()
 
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct1")}})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("ct2")}})
 
 		drained := session.DrainDecryptRequests()
 		require.Len(t, drained, 2)
@@ -239,14 +239,14 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		// Simulates the race: worker drains, ABCI adds a new request,
 		// worker re-adds failures — the new request must survive.
 		session := types.NewDKGSession(1, nil, false, [32]byte{})
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid50")})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid50")}})
 
 		// Worker drains
 		drained := session.DrainDecryptRequests()
 		require.Len(t, drained, 1)
 
 		// ABCI thread adds uuid51 while worker is processing uuid50
-		session.AddDecryptRequest(types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid51")})
+		session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: types.DecryptRequest{Round: 1, Ciphertext: []byte("uuid51")}})
 
 		// Worker finishes uuid50 successfully — no failures to re-add
 		// Queue should still contain uuid51
