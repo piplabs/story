@@ -176,7 +176,7 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessJustifications(asyncCtx, latestRound, wrapJustifications(validJustifications))
+			k.handleDKGProcessJustifications(asyncCtx, latestRound, validJustifications)
 		}()
 	}
 
@@ -194,7 +194,7 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessDeals(asyncCtx, latestRound, wrapDeals(deals))
+			k.handleDKGProcessDeals(asyncCtx, latestRound, deals)
 		}()
 	}
 
@@ -224,7 +224,7 @@ func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNet
 		go func() {
 			defer cancel()
 
-			k.handleDKGProcessResponses(asyncCtx, latestRound, wrapResponses(responses), shouldProcess)
+			k.handleDKGProcessResponses(asyncCtx, latestRound, responses, shouldProcess)
 		}()
 	}
 

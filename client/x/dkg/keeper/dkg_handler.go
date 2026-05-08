@@ -515,7 +515,7 @@ func (k *Keeper) handleThresholdDecryptRequest(ctx context.Context, round uint32
 		return
 	}
 
-	session.AddDecryptRequest(types.PendingDecryptRequest{DecryptRequest: req, RetryCount: 0})
+	session.AddDecryptRequest(req)
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to persist decrypt request to session", err,

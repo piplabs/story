@@ -5,11 +5,15 @@ import (
 	"context"
 	"encoding/hex"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // handleDKGDealing handles the dealing phase event.
@@ -116,16 +120,14 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 }
 
 // handleDKGProcessDeals handles the deals from other committee members.
-// Accepts []pendingDeal so that both first-time callers (via wrapDeals) and
-// reprocess callers (with preserved retryCount) use the same code path.
-func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, pending []pendingDeal) {
+func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DKGNetwork, deals []types.Deal) {
 	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
 	dkgKernelMu.Lock()
 	defer dkgKernelMu.Unlock()
 
 	log.Info(ctx, "Handling DKG process deals",
 		"round", dkgNetwork.Round,
-		"num_deals", len(pending),
+		"num_deals", len(deals),
 	)
 
 	if !slices.Contains(dkgNetwork.ActiveValSet, k.validatorEVMAddr) {
@@ -156,28 +158,22 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	// Filter deals addressed to this validator before entering retry loop.
-	// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
-	// Guard against unset index (0) to avoid uint32 underflow.
-	filtered := make([]pendingDeal, 0, len(pending))
-	for _, pd := range pending {
-		if session.Index > 0 && pd.deal.RecipientIndex == session.Index-1 {
-			filtered = append(filtered, pd)
+	filteredDeals := make([]types.Deal, 0, len(deals))
+	for _, deal := range deals {
+		// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
+		// Guard against unset index (0) to avoid uint32 underflow.
+		if session.Index > 0 && deal.RecipientIndex == session.Index-1 {
+			filteredDeals = append(filteredDeals, deal)
 		}
 	}
 
-	if len(filtered) == 0 {
+	if len(filteredDeals) == 0 {
 		log.Info(ctx, "No deals addressed to this validator; skipping",
 			"round", dkgNetwork.Round,
-			"total_deals", len(pending),
+			"total_deals", len(deals),
 		)
 
 		return
-	}
-
-	// Extract raw deals from filtered pending items for the kernel call.
-	rawDeals := make([]types.Deal, len(filtered))
-	for i, pd := range filtered {
-		rawDeals[i] = pd.deal
 	}
 
 	var resp *types.ProcessDealsResponse
@@ -186,14 +182,14 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	retryErr := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
 			"round", session.Round,
-			"total_deals", len(pending),
-			"filtered_deals", len(filtered),
+			"total_deals", len(deals),
+			"filtered_deals", len(filteredDeals),
 		)
 
 		req := &types.ProcessDealsRequest{
 			CodeCommitment: session.CodeCommitment,
 			Round:          session.Round,
-			Deals:          rawDeals,
+			Deals:          filteredDeals,
 			IsResharing:    session.IsResharing,
 		}
 
@@ -212,153 +208,72 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	observeKernelCall(labelOpProcessDeals, start, retryErr)
 
 	if retryErr != nil {
-		// Increment retryCount and drop items exceeding maxReprocessAttempts.
-		var remaining []pendingDeal
-		for i := range filtered {
-			filtered[i].retryCount++
-			if filtered[i].retryCount > maxReprocessAttempts {
-				log.Warn(ctx, "Dropping pending deal after max retry attempts", nil,
-					"round", dkgNetwork.Round,
-					"deal_index", filtered[i].deal.Index,
-					"retry_count", filtered[i].retryCount,
-				)
+		// "all N submitted deals were rejected" means every deal was already processed
+		// by kyber (duplicate delivery via consecutive vote extensions). Retrying the
+		// same data will always fail, so drop instead of caching.
+		if status.Code(retryErr) == codes.InvalidArgument && strings.Contains(status.Convert(retryErr).Message(), "submitted deals were rejected") {
+			log.Warn(ctx, "All deals already processed by kernel; dropping duplicates", retryErr,
+				"round", dkgNetwork.Round,
+			)
 
-				continue
-			}
-
-			remaining = append(remaining, filtered[i])
+			return
 		}
 
-		if len(remaining) > 0 {
-			cachePendingDeals(ctx, remaining)
-		}
+		// Cache unprocessed deals in memory for retry when kernel recovers.
+		// Not persisted to disk — process restart loses them (round will fail and retry).
+		cached := cachePendingIncomingDeals(filteredDeals, session.Index)
 
 		log.Error(ctx, "Failed to process deals; cached for retry", retryErr,
 			"round", dkgNetwork.Round,
-			"cached_deals", len(remaining),
+			"cached_deals", cached,
 		)
 
 		return
-	}
-
-	// Per-item retry: requeue any deals the kernel rejected. Idempotent
-	// re-submissions are silently skipped on the kernel side and never appear
-	// in rejected_deals; old kernels leave the field absent. Both cases fall
-	// through with an empty `rejected` slice.
-	rejected := resp.GetRejectedDeals()
-	if len(rejected) > 0 {
-		rejectedSet := make(map[rejectedKey]struct{}, len(rejected))
-		for _, r := range rejected {
-			rejectedSet[rejectedDealKey(r)] = struct{}{}
-		}
-		var remaining []pendingDeal
-		for i := range filtered {
-			if _, isRejected := rejectedSet[rejectedDealKey(filtered[i].deal)]; !isRejected {
-				continue
-			}
-			filtered[i].retryCount++
-			if filtered[i].retryCount > maxReprocessAttempts {
-				log.Warn(ctx, "Dropping pending deal after max retry attempts", nil,
-					"round", dkgNetwork.Round,
-					"deal_index", filtered[i].deal.Index,
-					"retry_count", filtered[i].retryCount,
-				)
-
-				continue
-			}
-			remaining = append(remaining, filtered[i])
-		}
-		if len(remaining) > 0 {
-			cachePendingDeals(ctx, remaining)
-		}
 	}
 
 	k.EnqueueResponses(resp.GetResponses())
 
 	log.Info(ctx, "Process deals complete",
 		"round", session.Round,
-		"submitted_deals", len(rawDeals),
+		"submitted_deals", len(filteredDeals),
 		"responses_generated", len(resp.GetResponses()),
-		"rejected_deals", len(resp.GetRejectedDeals()),
 	)
 }
 
-// rejectedKey identifies a single rejected item within a batch. For deals
-// the outer Index (sender) is unique within the filtered batch (the CL
-// pre-filters by RecipientIndex). For responses and justifications the
-// outer Index is the dealer and can legitimately repeat across complainers,
-// so the inner index (VssResponse.Index / VssJustification.Index) is needed
-// for disambiguation.
-type rejectedKey struct {
-	outer uint32
-	inner uint32
-}
-
-func rejectedDealKey(d types.Deal) rejectedKey {
-	return rejectedKey{outer: d.Index}
-}
-
-func rejectedResponseKey(r types.Response) rejectedKey {
-	if r.VssResponse == nil {
-		return rejectedKey{outer: r.Index}
-	}
-
-	return rejectedKey{outer: r.Index, inner: r.VssResponse.Index}
-}
-
-func rejectedJustificationKey(j types.Justification) rejectedKey {
-	if j.VssJustification == nil {
-		return rejectedKey{outer: j.Index}
-	}
-
-	return rejectedKey{outer: j.Index, inner: j.VssJustification.Index}
-}
-
-// cachePendingDeals saves pending deals for later retry, respecting the
-// capacity limit. The pending-deals metric is incremented by the number of
-// items actually cached (post-capacity-trim). Items dropped because the
-// queue is at capacity are logged and counted under op="dropped".
-func cachePendingDeals(ctx context.Context, items []pendingDeal) {
+// cachePendingIncomingDeals saves deals that failed kernel processing for later retry.
+// Only deals addressed to this validator (matching recipientIndex) are cached.
+// Returns the number of deals cached.
+func cachePendingIncomingDeals(allDeals []types.Deal, sessionIndex uint32) int {
 	pendingIncomingDealsMu.Lock()
 	defer pendingIncomingDealsMu.Unlock()
 
-	remaining := maxPendingIncoming - len(pendingIncomingDeals)
-	if remaining <= 0 {
-		log.Warn(ctx, "Pending deals queue at capacity; dropping items", nil,
-			"dropped", len(items),
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingDeals, labelPendingDropped, len(items))
+	cached := 0
+	for _, deal := range allDeals {
+		if sessionIndex > 0 && deal.RecipientIndex == sessionIndex-1 {
+			if len(pendingIncomingDeals) >= maxPendingIncoming {
+				return cached
+			}
 
-		return
+			pendingIncomingDeals = append(pendingIncomingDeals, deal)
+			cached++
+		}
 	}
 
-	if len(items) > remaining {
-		dropped := len(items) - remaining
-		log.Warn(ctx, "Pending deals queue near capacity; dropping overflow", nil,
-			"dropped", dropped,
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingDeals, labelPendingDropped, dropped)
-		items = items[:remaining]
-	}
+	incPendingData(labelPendingDeals, labelPendingCached, cached)
 
-	pendingIncomingDeals = append(pendingIncomingDeals, items...)
-	incPendingData(labelPendingDeals, labelPendingCached, len(items))
+	return cached
 }
 
 // handleDKGProcessResponses handles the responses of processDeals from other committee members.
 // shouldProcess must be pre-computed by the caller while the SDK context is available.
-// Accepts []pendingResponse so that both first-time callers (via wrapResponses) and
-// reprocess callers (with preserved retryCount) use the same code path.
-func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, pending []pendingResponse, shouldProcess bool) {
+func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *types.DKGNetwork, responses []types.Response, shouldProcess bool) {
 	// Serialize kernel DKG operations to prevent concurrent DistKeyGenerator mutation.
 	dkgKernelMu.Lock()
 	defer dkgKernelMu.Unlock()
 
 	log.Info(ctx, "Handling DKG process responses",
 		"round", dkgNetwork.Round,
-		"num_responses", len(pending),
+		"num_responses", len(responses),
 		"should_process", shouldProcess,
 	)
 
@@ -392,32 +307,22 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
 	}
 
-	// Filter self-responses: VssResponse.Index is 0-based (Kyber), session.Index is 1-based.
-	// If session.Index is 0 (unset), include all responses (no self-filtering).
-	filtered := make([]pendingResponse, 0, len(pending))
-	for _, pr := range pending {
-		if session.Index == 0 || pr.response.VssResponse.Index != session.Index-1 {
-			filtered = append(filtered, pr)
+	filteredResponses := make([]types.Response, 0, len(responses))
+	for _, resp := range responses {
+		// VssResponse.Index is 0-based (Kyber), session.Index is 1-based (on-chain).
+		// If session.Index is 0 (unset), include all responses (no self-filtering).
+		if session.Index == 0 || resp.VssResponse.Index != session.Index-1 {
+			filteredResponses = append(filteredResponses, resp)
 		}
 	}
 
-	if len(filtered) == 0 {
+	if len(filteredResponses) == 0 {
 		log.Info(ctx, "No responses to process. Skip to request")
 
 		return
 	}
 
-	// Extract raw responses from filtered pending items for the kernel call.
-	rawResponses := make([]types.Response, len(filtered))
-	for i, pr := range filtered {
-		rawResponses[i] = pr.response
-	}
-
 	var totalJustifications int
-	// Union of rejected items across ccsToProcess (up to 2 in upgrade
-	// resharing). retryCount is incremented exactly once per filtered item
-	// regardless of how many CCs rejected it.
-	rejected := make(map[rejectedKey]struct{})
 
 	for _, cc := range ccsToProcess {
 		var processResp *types.ProcessResponsesResponse
@@ -426,14 +331,14 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		retryErr := retry(ctx, func(ctx context.Context) error {
 			log.Info(ctx, "ProcessResponses call to kernel client",
 				"round", session.Round,
-				"num_responses", len(rawResponses),
+				"num_responses", len(filteredResponses),
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
 			req := &types.ProcessResponsesRequest{
 				CodeCommitment: cc,
 				Round:          session.Round,
-				Responses:      rawResponses,
+				Responses:      filteredResponses,
 				IsResharing:    session.IsResharing,
 			}
 
@@ -442,10 +347,8 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 				return errors.Wrap(cErr, "no kernel client for session")
 			}
 
-			var rpcErr error
-			processResp, rpcErr = client.ProcessResponses(ctx, req)
-			if rpcErr != nil {
-				return rpcErr
+			if processResp, err = client.ProcessResponses(ctx, req); err != nil {
+				return err
 			}
 
 			return nil
@@ -457,11 +360,13 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
-			// Batch RPC failure: mark every filtered item as rejected (we
-			// cannot tell which items the kernel actually accepted).
-			for i := range filtered {
-				rejected[rejectedResponseKey(filtered[i].response)] = struct{}{}
-			}
+			// Cache unprocessed responses for retry when kernel recovers.
+			cachePendingIncomingResponses(filteredResponses)
+
+			log.Info(ctx, "Cached responses for retry",
+				"round", session.Round,
+				"cached_responses", len(filteredResponses),
+			)
 
 			continue
 		}
@@ -479,45 +384,12 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 				"num_justifications", len(processResp.GetJustifications()),
 			)
 		}
-
-		// Union the kernel-reported rejections from this CC into the set.
-		if processResp != nil {
-			for _, r := range processResp.GetRejectedResponses() {
-				rejected[rejectedResponseKey(r)] = struct{}{}
-			}
-		}
-	}
-
-	// Apply retry decisions exactly once (critical when ccsToProcess has 2
-	// entries — same item rejected by both must increment retryCount once).
-	if len(rejected) > 0 {
-		var remaining []pendingResponse
-		for i := range filtered {
-			if _, isRejected := rejected[rejectedResponseKey(filtered[i].response)]; !isRejected {
-				continue
-			}
-			filtered[i].retryCount++
-			if filtered[i].retryCount > maxReprocessAttempts {
-				log.Warn(ctx, "Dropping pending response after max retry attempts", nil,
-					"round", dkgNetwork.Round,
-					"response_index", filtered[i].response.Index,
-					"retry_count", filtered[i].retryCount,
-				)
-
-				continue
-			}
-			remaining = append(remaining, filtered[i])
-		}
-		if len(remaining) > 0 {
-			cachePendingResponses(ctx, remaining)
-		}
 	}
 
 	log.Info(ctx, "Process responses complete",
 		"round", session.Round,
-		"submitted_responses", len(rawResponses),
+		"submitted_responses", len(filteredResponses),
 		"justifications_received", totalJustifications,
-		"rejected_responses", len(rejected),
 	)
 }
 
@@ -525,9 +397,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 // Justifications have passed Schnorr signature and VSS verification in ProcessJustifications
 // (FinalizeBlock context). This function only forwards them to the kernel via gRPC.
 // Also used for replaying cached justifications that failed the kernel gRPC call.
-// Accepts []pendingJustification so that both first-time callers (via wrapJustifications) and
-// reprocess callers (with preserved retryCount) use the same code path.
-func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, pending []pendingJustification) {
+func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork *types.DKGNetwork, justifications []types.Justification) {
 	dkgKernelMu.Lock()
 	defer dkgKernelMu.Unlock()
 
@@ -543,25 +413,13 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
 	}
 
-	// Extract raw justifications from pending items for the kernel call.
-	rawJustifications := make([]types.Justification, len(pending))
-	for i, pj := range pending {
-		rawJustifications[i] = pj.justification
-	}
-
-	// Union of rejected justifications across ccsToProcess (up to 2 in upgrade
-	// resharing). retryCount is incremented exactly once per pending item.
-	rejected := make(map[rejectedKey]struct{})
-
 	for _, cc := range ccsToProcess {
-		var processResp *types.ProcessJustificationResponse
-
 		start := time.Now()
 		retryErr := retry(ctx, func(ctx context.Context) error {
 			req := &types.ProcessJustificationRequest{
 				CodeCommitment: cc,
 				Round:          session.Round,
-				Justifications: rawJustifications,
+				Justifications: justifications,
 				IsResharing:    session.IsResharing,
 			}
 
@@ -570,10 +428,8 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 				return errors.Wrap(cErr, "no kernel client for session")
 			}
 
-			var rpcErr error
-			processResp, rpcErr = client.ProcessJustification(ctx, req)
-			if rpcErr != nil {
-				return rpcErr
+			if _, err := client.ProcessJustification(ctx, req); err != nil {
+				return err
 			}
 
 			return nil
@@ -581,56 +437,21 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		observeKernelCall(labelOpProcessJustifications, start, retryErr)
 
 		if retryErr != nil {
-			log.Error(ctx, "Failed to process justifications via kernel", retryErr,
+			cached := cachePendingIncomingJustifications(justifications)
+
+			log.Error(ctx, "Failed to process justifications via kernel; cached for retry", retryErr,
 				"round", dkgNetwork.Round,
 				"code_commitment", hex.EncodeToString(cc),
+				"cached_justifications", cached,
 			)
 
-			// Batch RPC failure: mark every pending item as rejected.
-			for i := range pending {
-				rejected[rejectedJustificationKey(pending[i].justification)] = struct{}{}
-			}
-
-			continue
-		}
-
-		// Union the kernel-reported rejections from this CC into the set.
-		if processResp != nil {
-			for _, j := range processResp.GetRejectedJustifications() {
-				rejected[rejectedJustificationKey(j)] = struct{}{}
-			}
-		}
-	}
-
-	// Apply retry decisions exactly once (critical when ccsToProcess has 2
-	// entries — same item rejected by both must increment retryCount once).
-	if len(rejected) > 0 {
-		var remaining []pendingJustification
-		for i := range pending {
-			if _, isRejected := rejected[rejectedJustificationKey(pending[i].justification)]; !isRejected {
-				continue
-			}
-			pending[i].retryCount++
-			if pending[i].retryCount > maxReprocessAttempts {
-				log.Warn(ctx, "Dropping pending justification after max retry attempts", nil,
-					"round", dkgNetwork.Round,
-					"justification_index", pending[i].justification.Index,
-					"retry_count", pending[i].retryCount,
-				)
-
-				continue
-			}
-			remaining = append(remaining, pending[i])
-		}
-		if len(remaining) > 0 {
-			cachePendingJustifications(ctx, remaining)
+			return
 		}
 	}
 
 	log.Info(ctx, "Process justifications complete",
 		"round", session.Round,
-		"submitted_justifications", len(rawJustifications),
-		"rejected_justifications", len(rejected),
+		"submitted_justifications", len(justifications),
 	)
 }
 
@@ -653,71 +474,43 @@ func (k *Keeper) shouldDeal(ctx context.Context, dkgNetwork *types.DKGNetwork) (
 	return inPrevSet, nil
 }
 
-// cachePendingResponses saves pending responses for later retry, respecting
-// the capacity limit. The pending-responses metric is incremented by the
-// number of items actually cached (post-capacity-trim). Items dropped because
-// the queue is at capacity are logged and counted under op="dropped".
-func cachePendingResponses(ctx context.Context, items []pendingResponse) {
+// cachePendingIncomingResponses saves responses that failed kernel processing for later retry.
+func cachePendingIncomingResponses(filteredResponses []types.Response) {
 	pendingIncomingResponsesMu.Lock()
 	defer pendingIncomingResponsesMu.Unlock()
 
 	remaining := maxPendingIncoming - len(pendingIncomingResponses)
 	if remaining <= 0 {
-		log.Warn(ctx, "Pending responses queue at capacity; dropping items", nil,
-			"dropped", len(items),
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingResponses, labelPendingDropped, len(items))
-
 		return
 	}
 
-	if len(items) > remaining {
-		dropped := len(items) - remaining
-		log.Warn(ctx, "Pending responses queue near capacity; dropping overflow", nil,
-			"dropped", dropped,
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingResponses, labelPendingDropped, dropped)
-		items = items[:remaining]
+	if len(filteredResponses) > remaining {
+		filteredResponses = filteredResponses[:remaining]
 	}
 
-	pendingIncomingResponses = append(pendingIncomingResponses, items...)
-	incPendingData(labelPendingResponses, labelPendingCached, len(items))
+	pendingIncomingResponses = append(pendingIncomingResponses, filteredResponses...)
+	incPendingData(labelPendingResponses, labelPendingCached, len(filteredResponses))
 }
 
-// cachePendingJustifications saves pending justifications for later retry,
-// respecting the capacity limit. The pending-justifications metric is
-// incremented by the number of items actually cached (post-capacity-trim).
-// Items dropped because the queue is at capacity are logged and counted
-// under op="dropped".
-func cachePendingJustifications(ctx context.Context, items []pendingJustification) {
+// cachePendingIncomingJustifications saves justifications that failed kernel processing for later retry.
+// Returns the number of justifications cached.
+func cachePendingIncomingJustifications(justifications []types.Justification) int {
 	pendingIncomingJustificationsMu.Lock()
 	defer pendingIncomingJustificationsMu.Unlock()
 
 	remaining := maxPendingIncoming - len(pendingIncomingJustifications)
 	if remaining <= 0 {
-		log.Warn(ctx, "Pending justifications queue at capacity; dropping items", nil,
-			"dropped", len(items),
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingJustifications, labelPendingDropped, len(items))
-
-		return
+		return 0
 	}
 
-	if len(items) > remaining {
-		dropped := len(items) - remaining
-		log.Warn(ctx, "Pending justifications queue near capacity; dropping overflow", nil,
-			"dropped", dropped,
-			"capacity", maxPendingIncoming,
-		)
-		incPendingData(labelPendingJustifications, labelPendingDropped, dropped)
-		items = items[:remaining]
+	if len(justifications) > remaining {
+		justifications = justifications[:remaining]
 	}
 
-	pendingIncomingJustifications = append(pendingIncomingJustifications, items...)
-	incPendingData(labelPendingJustifications, labelPendingCached, len(items))
+	pendingIncomingJustifications = append(pendingIncomingJustifications, justifications...)
+	incPendingData(labelPendingJustifications, labelPendingCached, len(justifications))
+
+	return len(justifications)
 }
 
 // reprocessPendingIncomingData retries cached deals, responses, and justifications when the kernel recovers.
@@ -777,35 +570,47 @@ func (k *Keeper) reprocessPendingIncomingData(dkgNetwork *types.DKGNetwork) {
 		// Process deals FIRST — kyber returns ErrNoDealBeforeResponse if
 		// a response arrives for a dealer whose deal hasn't been processed.
 		if hasPendingDeals {
-			drained := drainPendingIncomingDeals()
+			drainedDeals := drainPendingIncomingDeals()
+
 			log.Info(asyncCtx, "Replaying cached deals after kernel recovery",
-				"round", dkgNetwork.Round, "num_deals", len(drained))
-			k.handleDKGProcessDeals(asyncCtx, dkgNetwork, drained)
-			incPendingData(labelPendingDeals, labelPendingReplayed, len(drained))
+				"round", dkgNetwork.Round,
+				"num_deals", len(drainedDeals),
+			)
+
+			k.handleDKGProcessDeals(asyncCtx, dkgNetwork, drainedDeals)
+			incPendingData(labelPendingDeals, labelPendingReplayed, len(drainedDeals))
 		}
 
 		// Then process responses.
 		if hasPendingResponses {
-			drained := drainPendingIncomingResponses()
+			drainedResponses := drainPendingIncomingResponses()
+
 			log.Info(asyncCtx, "Replaying cached responses after kernel recovery",
-				"round", dkgNetwork.Round, "num_responses", len(drained))
-			k.handleDKGProcessResponses(asyncCtx, dkgNetwork, drained, true)
-			incPendingData(labelPendingResponses, labelPendingReplayed, len(drained))
+				"round", dkgNetwork.Round,
+				"num_responses", len(drainedResponses),
+			)
+
+			k.handleDKGProcessResponses(asyncCtx, dkgNetwork, drainedResponses, true)
+			incPendingData(labelPendingResponses, labelPendingReplayed, len(drainedResponses))
 		}
 
 		// Finally process justifications (already verified before caching,
 		// so forward directly to kernel without re-verification).
 		if hasPendingJustifications {
-			drained := drainPendingIncomingJustifications()
+			drainedJustifications := drainPendingIncomingJustifications()
+
 			log.Info(asyncCtx, "Replaying cached justifications after kernel recovery",
-				"round", dkgNetwork.Round, "num_justifications", len(drained))
-			k.handleDKGProcessJustifications(asyncCtx, dkgNetwork, drained)
-			incPendingData(labelPendingJustifications, labelPendingReplayed, len(drained))
+				"round", dkgNetwork.Round,
+				"num_justifications", len(drainedJustifications),
+			)
+
+			k.handleDKGProcessJustifications(asyncCtx, dkgNetwork, drainedJustifications)
+			incPendingData(labelPendingJustifications, labelPendingReplayed, len(drainedJustifications))
 		}
 	}()
 }
 
-func drainPendingIncomingDeals() []pendingDeal {
+func drainPendingIncomingDeals() []types.Deal {
 	pendingIncomingDealsMu.Lock()
 	defer pendingIncomingDealsMu.Unlock()
 
@@ -815,7 +620,7 @@ func drainPendingIncomingDeals() []pendingDeal {
 	return out
 }
 
-func drainPendingIncomingResponses() []pendingResponse {
+func drainPendingIncomingResponses() []types.Response {
 	pendingIncomingResponsesMu.Lock()
 	defer pendingIncomingResponsesMu.Unlock()
 
@@ -825,7 +630,7 @@ func drainPendingIncomingResponses() []pendingResponse {
 	return out
 }
 
-func drainPendingIncomingJustifications() []pendingJustification {
+func drainPendingIncomingJustifications() []types.Justification {
 	pendingIncomingJustificationsMu.Lock()
 	defer pendingIncomingJustificationsMu.Unlock()
 
@@ -833,50 +638,6 @@ func drainPendingIncomingJustifications() []pendingJustification {
 	pendingIncomingJustifications = nil
 
 	return out
-}
-
-// wrapDeals converts raw deals into the first-attempt retry wrappers.
-// retryCount is explicitly initialized to 0 for the first attempt.
-func wrapDeals(deals []types.Deal) []pendingDeal {
-	pd := make([]pendingDeal, len(deals))
-	for i, d := range deals {
-		pd[i] = pendingDeal{deal: d, retryCount: 0}
-	}
-
-	return pd
-}
-
-// wrapResponses converts raw responses into the first-attempt retry wrappers.
-// retryCount is explicitly initialized to 0 for the first attempt.
-func wrapResponses(responses []types.Response) []pendingResponse {
-	pr := make([]pendingResponse, len(responses))
-	for i, r := range responses {
-		pr[i] = pendingResponse{response: r, retryCount: 0}
-	}
-
-	return pr
-}
-
-// wrapJustifications converts raw justifications into the first-attempt retry
-// wrappers. retryCount is explicitly initialized to 0 for the first attempt.
-func wrapJustifications(justifications []types.Justification) []pendingJustification {
-	pj := make([]pendingJustification, len(justifications))
-	for i, j := range justifications {
-		pj[i] = pendingJustification{justification: j, retryCount: 0}
-	}
-
-	return pj
-}
-
-// wrapDecryptRequests converts raw decrypt requests into the first-attempt
-// retry wrappers. RetryCount is explicitly initialized to 0 for the first attempt.
-func wrapDecryptRequests(requests []types.DecryptRequest) []types.PendingDecryptRequest {
-	pd := make([]types.PendingDecryptRequest, len(requests))
-	for i, r := range requests {
-		pd[i] = types.PendingDecryptRequest{DecryptRequest: r, RetryCount: 0}
-	}
-
-	return pd
 }
 
 func flushPendingIncoming() {

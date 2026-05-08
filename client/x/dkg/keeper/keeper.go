@@ -40,37 +40,15 @@ var (
 	// In-memory only — lost on process restart (round will fail and retry naturally).
 	// Deals MUST be replayed before responses (kyber's ErrNoDealBeforeResponse).
 	pendingIncomingDealsMu          sync.Mutex
-	pendingIncomingDeals            []pendingDeal
+	pendingIncomingDeals            []types.Deal
 	pendingIncomingResponsesMu      sync.Mutex
-	pendingIncomingResponses        []pendingResponse
+	pendingIncomingResponses        []types.Response
 	pendingIncomingJustificationsMu sync.Mutex
-	pendingIncomingJustifications   []pendingJustification
+	pendingIncomingJustifications   []types.Justification
+
+	// maxPendingIncoming caps the pending queue to prevent memory exhaustion.
+	maxPendingIncoming = 80
 )
-
-// maxPendingIncoming caps the pending queue to prevent memory exhaustion.
-const maxPendingIncoming = 80
-
-// maxReprocessAttempts is the maximum number of times a pending item can be
-// retried before being permanently dropped from the reprocess queue.
-const maxReprocessAttempts = 3
-
-// pendingDeal wraps a Deal with a retry counter for the reprocess queue.
-type pendingDeal struct {
-	deal       types.Deal
-	retryCount int
-}
-
-// pendingResponse wraps a Response with a retry counter for the reprocess queue.
-type pendingResponse struct {
-	response   types.Response
-	retryCount int
-}
-
-// pendingJustification wraps a Justification with a retry counter for the reprocess queue.
-type pendingJustification struct {
-	justification types.Justification
-	retryCount    int
-}
 
 // Keeper of the dkg store.
 type Keeper struct {
