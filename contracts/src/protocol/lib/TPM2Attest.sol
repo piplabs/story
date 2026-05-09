@@ -66,8 +66,10 @@ library TPM2Attest {
         require(attest.length <= MAX_ATTEST_LEN, "TPM2Attest: too long");
 
         // magic (4 bytes BE) at offset 0.
-        uint32 magic = (uint32(uint8(attest[0])) << 24) | (uint32(uint8(attest[1])) << 16)
-            | (uint32(uint8(attest[2])) << 8) | uint32(uint8(attest[3]));
+        uint32 magic = (uint32(uint8(attest[0])) << 24) |
+            (uint32(uint8(attest[1])) << 16) |
+            (uint32(uint8(attest[2])) << 8) |
+            uint32(uint8(attest[3]));
         require(magic == TPM_GENERATED_VALUE, "TPM2Attest: bad magic");
 
         // type (2 bytes BE) at offset 4.

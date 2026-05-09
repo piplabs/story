@@ -75,7 +75,7 @@ contract GenerateAlloc is Script {
     // compressed identity: keccak256(MRTD || RTMR0 || RTMR1 || RTMR2 || RTMR3).
     // Captured 2026-05-09 from tdx1 (weu-dkg-tdx-test-tdx1, 20.126.100.96).
     // MRTD = ff450b138c5ee6734a43dc35afb437abfa24ef743bc9e9484ef4af365fcd89a6c50913248ed7fcb92a7d42b1ba7da984
-    // RTMR0..3 are zero on Azure CVM TDX (paravisor exposes them as zero).
+    // RTMR0..3 are zero on paravisor-mediated TDX guests (paravisor exposes them as zero).
     bytes32 private constant TDX_CODE_COMMITMENT =
         hex"56bd26902b05a0d9d6dcc4c13c7c7861fb1c79d47f166665a3a684df1d4f1a35";
 

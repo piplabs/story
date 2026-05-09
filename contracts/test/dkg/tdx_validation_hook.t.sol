@@ -30,12 +30,10 @@ contract MockAutomataDcap is IAutomataDcapAttestationFee {
         shouldSucceed = s;
     }
 
-    function verifyAndAttestOnChain(bytes calldata rawQuote, uint32 tcbEvaluationDataNumber)
-        external
-        payable
-        override
-        returns (bool success, bytes memory output)
-    {
+    function verifyAndAttestOnChain(
+        bytes calldata rawQuote,
+        uint32 tcbEvaluationDataNumber
+    ) external payable override returns (bool success, bytes memory output) {
         lastQuote = rawQuote;
         lastTcbNum = tcbEvaluationDataNumber;
         callCount++;
@@ -251,7 +249,7 @@ contract TDXValidationHookTest is ForgeTest {
 
     function test_ValidateReport_DataCommitmentMismatch() public {
         bytes memory quote = _buildV4QuoteDefault();
-        (bytes32 codeCommit,) = _expectedDigests(quote);
+        (bytes32 codeCommit, ) = _expectedDigests(quote);
         bytes32 wrongData = keccak256("wrong-data");
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Data commitment does not match"));
@@ -374,9 +372,9 @@ contract TDXValidationHookTest is ForgeTest {
         return _loadHex("test/dkg/fixtures/direct_bundle.hex");
     }
 
-    /// @dev Loads the canonical Azure-vendor bundle from disk.
-    function _loadAzureBundle() internal view returns (bytes memory) {
-        return _loadHex("test/dkg/fixtures/azure_bundle.hex");
+    /// @dev Loads the canonical paravisor-vendor bundle from disk.
+    function _loadParavisorBundle() internal view returns (bytes memory) {
+        return _loadHex("test/dkg/fixtures/paravisor_bundle.hex");
     }
 
     /// @dev Reads an ASCII hex file from `path` and returns the
@@ -405,8 +403,10 @@ contract TDXValidationHookTest is ForgeTest {
     ///      raw-V4 path's constants.
     function _bundleCodeCommitment(bytes memory bundle) internal pure returns (bytes32) {
         // Read the inner V4 length (BE uint32 at offset 8).
-        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) | (uint256(uint8(bundle[9])) << 16)
-            | (uint256(uint8(bundle[10])) << 8) | uint256(uint8(bundle[11]));
+        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) |
+            (uint256(uint8(bundle[9])) << 16) |
+            (uint256(uint8(bundle[10])) << 8) |
+            uint256(uint8(bundle[11]));
         require(v4Len >= 632, "fixture v4 too short");
         // Build MRTD||RTMR0..3 by indexing into the bundle directly.
         bytes memory ident = new bytes(240);
@@ -458,8 +458,8 @@ contract TDXValidationHookTest is ForgeTest {
         assertEq(automata.lastTcbNum(), TCB_NUM);
     }
 
-    function test_ValidateReport_BundleHappyPath_Azure() public {
-        bytes memory bundle = _loadAzureBundle();
+    function test_ValidateReport_BundleHappyPath_Paravisor() public {
+        bytes memory bundle = _loadParavisorBundle();
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         bool ok = hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
@@ -534,14 +534,14 @@ contract TDXValidationHookTest is ForgeTest {
         hook.validateReport(bytes32(uint256(1)), bytes32(uint256(2)), bundle, "");
     }
 
-    function test_ValidateReport_BundleAzureMissingRuntimeData() public {
-        // Take the Direct bundle but flip the vendor tag to AZURE.
+    function test_ValidateReport_BundleParavisorMissingRuntimeData() public {
+        // Take the Direct bundle but flip the vendor tag to PARAVISOR.
         // The runtime_data length is 0 (direct vendor), violating the
-        // azure invariant.
+        // paravisor invariant.
         bytes memory bundle = _loadDirectBundle();
         bundle = _patch1(bundle, BUNDLE_OFFSET_VENDOR + 1, bytes1(uint8(0x01)));
         vm.prank(dkg);
-        vm.expectRevert(bytes("TDXBundle: azure missing runtime_data"));
+        vm.expectRevert(bytes("TDXBundle: paravisor missing runtime_data"));
         hook.validateReport(bytes32(uint256(1)), bytes32(uint256(2)), bundle, "");
     }
 
@@ -597,12 +597,12 @@ contract TDXValidationHookTest is ForgeTest {
         hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
     }
 
-    function test_ValidateReport_BundleAKBindingMismatch_Azure() public {
-        bytes memory bundle = _loadAzureBundle();
+    function test_ValidateReport_BundleAKBindingMismatch_Paravisor() public {
+        bytes memory bundle = _loadParavisorBundle();
         bundle = _patch1(bundle, BUNDLE_OFFSET_TDX + OFFSET_REPORT_DATA, bytes1(uint8(0xDE)));
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
-        vm.expectRevert(bytes("TDXValidationHook: AK binding (azure) mismatch"));
+        vm.expectRevert(bytes("TDXValidationHook: AK binding (paravisor) mismatch"));
         hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
     }
 
@@ -624,20 +624,25 @@ contract TDXValidationHookTest is ForgeTest {
     ///      inside the bundle (after tdx_v4 + tpm_attest).
     function _bundleTpmSigOffset(bytes memory bundle) internal pure returns (uint256 off) {
         // tdx_v4 length at offset 8.
-        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) | (uint256(uint8(bundle[9])) << 16)
-            | (uint256(uint8(bundle[10])) << 8) | uint256(uint8(bundle[11]));
+        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) |
+            (uint256(uint8(bundle[9])) << 16) |
+            (uint256(uint8(bundle[10])) << 8) |
+            uint256(uint8(bundle[11]));
         // Bundle header (12) + tdx_v4 + 4 (attest_len) + attest_len + 4 (sig_len) = sig start.
         uint256 attestLenOff = 12 + v4Len;
-        uint256 attestLen = (uint256(uint8(bundle[attestLenOff])) << 24)
-            | (uint256(uint8(bundle[attestLenOff + 1])) << 16) | (uint256(uint8(bundle[attestLenOff + 2])) << 8)
-            | uint256(uint8(bundle[attestLenOff + 3]));
+        uint256 attestLen = (uint256(uint8(bundle[attestLenOff])) << 24) |
+            (uint256(uint8(bundle[attestLenOff + 1])) << 16) |
+            (uint256(uint8(bundle[attestLenOff + 2])) << 8) |
+            uint256(uint8(bundle[attestLenOff + 3]));
         // sig section starts after the 4-byte sig_len field.
         off = attestLenOff + 4 + attestLen + 4;
     }
 
     function _bundleTpmAttestOffset(bytes memory bundle) internal pure returns (uint256 off) {
-        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) | (uint256(uint8(bundle[9])) << 16)
-            | (uint256(uint8(bundle[10])) << 8) | uint256(uint8(bundle[11]));
+        uint256 v4Len = (uint256(uint8(bundle[8])) << 24) |
+            (uint256(uint8(bundle[9])) << 16) |
+            (uint256(uint8(bundle[10])) << 8) |
+            uint256(uint8(bundle[11]));
         // tpm_attest starts after bundle header + tdx_v4 + 4-byte attest_len.
         off = 12 + v4Len + 4;
     }

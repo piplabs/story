@@ -93,10 +93,11 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @param owner The address of the owner of the contract
     /// @param automataValidationAddr The address of the automata validation contract
     /// @param tcbEvaluationDataNumber The TCB evaluation data number
-    function initialize(address owner, address automataValidationAddr, uint32 tcbEvaluationDataNumber)
-        external
-        initializer
-    {
+    function initialize(
+        address owner,
+        address automataValidationAddr,
+        uint32 tcbEvaluationDataNumber
+    ) external initializer {
         __Ownable_init(owner);
         __Pausable_init();
         __UUPSUpgradeable_init();
@@ -128,11 +129,12 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @dev Validates a TDX attestation quote.
     ///
     ///      Dispatches on the first four bytes of `enclaveReport`:
-    ///      - "STBN" (0x5354424E) → Path-B bundle (Azure CVM TDX and any
-    ///        future bundle-emitting vendor). The bundle composes a V4
-    ///        quote with a TPM2_Quote signed by the AK; binding the
-    ///        kernel-controlled qualifyingData against
-    ///        `expectedDataCommitment` is what authorizes the registration.
+    ///      - "STBN" (0x5354424E) → Path-B bundle (paravisor-mediated
+    ///        TDX guests and any future bundle-emitting vendor). The
+    ///        bundle composes a V4 quote with a TPM2_Quote signed by
+    ///        the AK; binding the kernel-controlled qualifyingData
+    ///        against `expectedDataCommitment` is what authorizes the
+    ///        registration.
     ///      - any other prefix → legacy raw V4/V5 path (direct vendor on
     ///        GCP/bare-metal). V4.report_data is under guest control so
     ///        `expectedDataCommitment` is read directly from there,
@@ -177,8 +179,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         // contract changes that might soften that dispatch.
         require(enclaveReport.length >= QUOTE_HEADER_SIZE, "TDXValidationHook: Quote too short for header");
         require(
-            uint8(enclaveReport[4]) == TEE_TYPE_TDX_BYTE0 && uint8(enclaveReport[5]) == 0
-                && uint8(enclaveReport[6]) == 0 && uint8(enclaveReport[7]) == 0,
+            uint8(enclaveReport[4]) == TEE_TYPE_TDX_BYTE0 &&
+                uint8(enclaveReport[5]) == 0 &&
+                uint8(enclaveReport[6]) == 0 &&
+                uint8(enclaveReport[7]) == 0,
             "TDXValidationHook: Not a TDX quote"
         );
 
@@ -196,8 +200,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         // Cryptographic chain of trust: Automata DCAP verifies signatures and TCB.
         // Automata routes V4 and V5 internally based on header.version + tee_type.
         TDXValidationHookStorage storage $ = _getTDXValidationHookStorage();
-        (bool success,) = IAutomataDcapAttestationFee($.automataValidationAddr)
-            .verifyAndAttestOnChain(enclaveReport, $.tcbEvaluationDataNumber);
+        (bool success, ) = IAutomataDcapAttestationFee($.automataValidationAddr).verifyAndAttestOnChain(
+            enclaveReport,
+            $.tcbEvaluationDataNumber
+        );
         require(success, "TDXValidationHook: Attestation failed");
 
         // Identity match: hash MRTD || RTMR0..3 and compare against the whitelisted digest.
@@ -227,8 +233,9 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     ///        3. DCAP verify the inner V4 (same trust anchor as raw path).
     ///        4. Code commitment: keccak256(MRTD||RTMR0..3) == expected.
     ///        5. AK binding (vendor-aware): direct binds SHA256(AK_pub)
-    ///           into V4.report_data[0:32]; azure binds SHA256(runtime_data)
-    ///           there; report_data[32:64] MUST be zero either way.
+    ///           into V4.report_data[0:32]; paravisor binds
+    ///           SHA256(runtime_data) there; report_data[32:64] MUST be
+    ///           zero either way.
     ///        6. RSASSA-PKCS#1 v1.5 verify TPM2_Quote signature with AK pub.
     ///        7. Extract qualifyingData (TPMS_ATTEST.extraData).
     ///        8. qualifyingData == expectedDataCommitment (32-byte equality).
@@ -244,8 +251,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         // version length. Mirrors the raw-V4 path's gate.
         require(bundle.tdxV4.length >= QUOTE_HEADER_SIZE, "TDXValidationHook: Quote too short for header");
         require(
-            uint8(bundle.tdxV4[4]) == TEE_TYPE_TDX_BYTE0 && uint8(bundle.tdxV4[5]) == 0 && uint8(bundle.tdxV4[6]) == 0
-                && uint8(bundle.tdxV4[7]) == 0,
+            uint8(bundle.tdxV4[4]) == TEE_TYPE_TDX_BYTE0 &&
+                uint8(bundle.tdxV4[5]) == 0 &&
+                uint8(bundle.tdxV4[6]) == 0 &&
+                uint8(bundle.tdxV4[7]) == 0,
             "TDXValidationHook: Not a TDX quote"
         );
         uint16 version = uint16(uint8(bundle.tdxV4[0])) | (uint16(uint8(bundle.tdxV4[1])) << 8);
@@ -260,8 +269,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         // Step 3: DCAP verify the inner V4. Identical trust anchor as the
         // raw-V4 path; Automata routes by tee_type + version internally.
         TDXValidationHookStorage storage $ = _getTDXValidationHookStorage();
-        (bool success,) = IAutomataDcapAttestationFee($.automataValidationAddr)
-            .verifyAndAttestOnChain(bundle.tdxV4, $.tcbEvaluationDataNumber);
+        (bool success, ) = IAutomataDcapAttestationFee($.automataValidationAddr).verifyAndAttestOnChain(
+            bundle.tdxV4,
+            $.tcbEvaluationDataNumber
+        );
         require(success, "TDXValidationHook: Attestation failed");
 
         // Step 4: code commitment match. Reuses the same MRTD/RTMR
@@ -281,15 +292,23 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         if (bundle.vendorTag == TDXBundle.VENDOR_TAG_DIRECT) {
             // Direct vendor: report_data[0:32] == sha256(AK_pub_DER).
             require(sha256(bundle.akPub) == reportDataLeft, "TDXValidationHook: AK binding (direct) mismatch");
-        } else {
-            // Azure (or test): report_data[0:32] == sha256(runtime_data).
+        } else if (
+            bundle.vendorTag == TDXBundle.VENDOR_TAG_PARAVISOR || bundle.vendorTag == TDXBundle.VENDOR_TAG_TEST
+        ) {
+            // Paravisor-mediated (or test): report_data[0:32] == sha256(runtime_data).
             // Trust model A: we intentionally do NOT parse the JWK on
             // chain — the kernel selfcheck enforces HCLAkPub.n match
             // locally. The chain trusts that the AK in the bundle is
             // the one whose pub-hash sits inside runtime_data because
             // any divergence would be caught by the selfcheck refusing
             // to start.
-            require(sha256(bundle.runtimeData) == reportDataLeft, "TDXValidationHook: AK binding (azure) mismatch");
+            require(sha256(bundle.runtimeData) == reportDataLeft, "TDXValidationHook: AK binding (paravisor) mismatch");
+        } else {
+            // Defense in depth: TDXBundle.parse already rejects unknown
+            // vendor tags, so this branch is unreachable in well-formed
+            // input. Explicit revert keeps the dispatch exhaustive against
+            // future vendor tag additions.
+            revert("TDXValidationHook: unsupported vendor tag");
         }
 
         // Step 6: parse TPMT_SIGNATURE, pin algorithm + hash, RSASSA-
@@ -300,7 +319,8 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         bytes memory qualifyingData = TPM2Attest.extractQualifyingData(bundle.tpmAttest);
         require(qualifyingData.length == 32, "TDXValidationHook: qualifyingData not 32 bytes");
         require(
-            _bytes32From(qualifyingData) == expectedDataCommitment, "TDXValidationHook: Data commitment does not match"
+            _bytes32From(qualifyingData) == expectedDataCommitment,
+            "TDXValidationHook: Data commitment does not match"
         );
     }
 
@@ -411,12 +431,13 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @param enclaveReport The raw TDX quote (header + body + auth_data)
     /// @return The compressed code commitment (32 bytes)
     function _extractReportCodeCommitment(bytes calldata enclaveReport) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                enclaveReport[OFFSET_MRTD:OFFSET_MRTD + MEASUREMENT_SIZE],
-                enclaveReport[OFFSET_RTMR0:OFFSET_RTMR0 + RTMR_COUNT * MEASUREMENT_SIZE]
-            )
-        );
+        return
+            keccak256(
+                abi.encodePacked(
+                    enclaveReport[OFFSET_MRTD:OFFSET_MRTD + MEASUREMENT_SIZE],
+                    enclaveReport[OFFSET_RTMR0:OFFSET_RTMR0 + RTMR_COUNT * MEASUREMENT_SIZE]
+                )
+            );
     }
 
     /// @dev Extracts the first 32 bytes of REPORT_DATA from a raw TDX quote.
@@ -435,7 +456,7 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
 
     /// @dev Hook to authorize the upgrade according to UUPSUpgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Returns the storage struct of TDXValidationHook.
     function _getTDXValidationHookStorage() private pure returns (TDXValidationHookStorage storage $) {

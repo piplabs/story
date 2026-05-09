@@ -21,7 +21,7 @@ pragma solidity 0.8.23;
 ///        prevents an attacker from forging by swapping in their own
 ///        AK pub.
 ///      - The exponent is hard-coded to 65537. This matches every
-///        Microsoft Azure paravisor AK we have observed and the
+///        OpenHCL-class paravisor AK we have observed and the
 ///        AKTemplate used by the kernel-side direct vendor (see
 ///        story-kernel/enclave/tdx/platform/tpmquote.go AKTemplate).
 ///        Bundles signed with a non-65537 exponent are rejected.
@@ -72,11 +72,11 @@ library RSASSAVerify {
     ///      the public quantities (modulus, signature, prefix). Reverts
     ///      on malformed inputs (wrong lengths) so the caller can rely
     ///      on the boolean for cryptographic outcome only.
-    function verify(bytes32 messageDigest, bytes memory signature, bytes memory modulus)
-        internal
-        view
-        returns (bool ok)
-    {
+    function verify(
+        bytes32 messageDigest,
+        bytes memory signature,
+        bytes memory modulus
+    ) internal view returns (bool ok) {
         require(signature.length == RSA2048_BYTES, "RSASSAVerify: bad sig length");
         require(modulus.length == RSA2048_BYTES, "RSASSAVerify: bad modulus length");
 
@@ -182,9 +182,11 @@ library RSASSAVerify {
 
         // Validate exponent suffix: 02 03 01 00 01 (INTEGER, 3 bytes, 65537).
         require(
-            der[SPKI_PREFIX_LEN + RSA2048_BYTES + 0] == 0x02 && der[SPKI_PREFIX_LEN + RSA2048_BYTES + 1] == 0x03
-                && der[SPKI_PREFIX_LEN + RSA2048_BYTES + 2] == 0x01 && der[SPKI_PREFIX_LEN + RSA2048_BYTES + 3] == 0x00
-                && der[SPKI_PREFIX_LEN + RSA2048_BYTES + 4] == 0x01,
+            der[SPKI_PREFIX_LEN + RSA2048_BYTES + 0] == 0x02 &&
+                der[SPKI_PREFIX_LEN + RSA2048_BYTES + 1] == 0x03 &&
+                der[SPKI_PREFIX_LEN + RSA2048_BYTES + 2] == 0x01 &&
+                der[SPKI_PREFIX_LEN + RSA2048_BYTES + 3] == 0x00 &&
+                der[SPKI_PREFIX_LEN + RSA2048_BYTES + 4] == 0x01,
             "RSASSAVerify: bad SPKI exponent"
         );
 

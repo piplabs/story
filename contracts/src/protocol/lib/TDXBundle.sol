@@ -7,11 +7,11 @@ pragma solidity 0.8.23;
 /// @dev Mirrors the wire-format spec defined in
 ///      story-kernel/enclave/tdx/platform/bundle.go. The kernel emits
 ///      this bundle on vendors where V4.report_data is not under guest
-///      control (notably Azure CVM TDX, where the OpenHCL paravisor
-///      locks report_data at boot to hash(VariableData)). The bundle
-///      composes a TDX V4 quote with a TPM2_Quote signed by the AK so
-///      the on-chain hook can bind arbitrary user_data via the TPM
-///      qualifyingData channel.
+///      control (notably paravisor-mediated TDX guests, where the
+///      paravisor locks report_data at boot to hash(VariableData)).
+///      The bundle composes a TDX V4 quote with a TPM2_Quote signed by
+///      the AK so the on-chain hook can bind arbitrary user_data via
+///      the TPM qualifyingData channel.
 ///
 ///      Wire layout (locked, big-endian length fields):
 ///
@@ -20,7 +20,7 @@ pragma solidity 0.8.23;
 ///        0                 4     magic = "STBN" (0x5354424E)
 ///        4                 1     version = 0x01
 ///        5                 1     flags  (bit0 TPM_PRESENT; bit1..7 MUST be 0)
-///        6                 2     vendor_tag (0x0000 direct, 0x0001 azure, 0xFFFF test)
+///        6                 2     vendor_tag (0x0000 direct, 0x0001 paravisor, 0xFFFF test)
 ///        8                 4     tdx_v4_len (BE) = N
 ///        12                N     tdx_v4 bytes
 ///        12+N              4     tpm_attest_len (BE) = M
@@ -30,7 +30,7 @@ pragma solidity 0.8.23;
 ///        20+N+M+K          4     ak_pub_len (BE) = L
 ///        24+N+M+K          L     ak_pub DER SubjectPublicKeyInfo (RSA-2048)
 ///        24+N+M+K+L        4     runtime_data_len (BE) = R
-///        28+N+M+K+L        R     runtime_data (Azure: VariableData JSON; direct: empty)
+///        28+N+M+K+L        R     runtime_data (paravisor: VariableData JSON; direct: empty)
 ///
 ///      Length caps mirror the kernel-side enforcement so on-chain DoS
 ///      surfaces are bounded.
@@ -59,12 +59,12 @@ library TDXBundle {
     uint8 internal constant FLAGS_RESERVED_MASK = 0xFE;
 
     /// @dev Vendor-tag values. Used for vendor-aware AK binding (direct
-    ///      vendor binds via SHA256(AK_pub); Azure binds via
-    ///      SHA256(runtime_data)). On-chain trust does NOT depend on
-    ///      these values — they merely select which binding equation
+    ///      vendor binds via SHA256(AK_pub); paravisor-mediated binds
+    ///      via SHA256(runtime_data)). On-chain trust does NOT depend
+    ///      on these values — they merely select which binding equation
     ///      the verifier evaluates.
     uint16 internal constant VENDOR_TAG_DIRECT = 0x0000;
-    uint16 internal constant VENDOR_TAG_AZURE = 0x0001;
+    uint16 internal constant VENDOR_TAG_PARAVISOR = 0x0001;
     uint16 internal constant VENDOR_TAG_TEST = 0xFFFF;
 
     /// @dev Fixed prefix size up to and including the tdx_v4_len field.
@@ -147,7 +147,7 @@ library TDXBundle {
         // Vendor tag.
         uint16 vendorTag = (uint16(uint8(input[6])) << 8) | uint16(uint8(input[7]));
         require(
-            vendorTag == VENDOR_TAG_DIRECT || vendorTag == VENDOR_TAG_AZURE || vendorTag == VENDOR_TAG_TEST,
+            vendorTag == VENDOR_TAG_DIRECT || vendorTag == VENDOR_TAG_PARAVISOR || vendorTag == VENDOR_TAG_TEST,
             "TDXBundle: unknown vendor tag"
         );
 
@@ -200,8 +200,8 @@ library TDXBundle {
         // / UnmarshalBundle in the kernel.
         if (vendorTag == VENDOR_TAG_DIRECT) {
             require(rtLen == 0, "TDXBundle: direct must omit runtime_data");
-        } else if (vendorTag == VENDOR_TAG_AZURE) {
-            require(rtLen != 0, "TDXBundle: azure missing runtime_data");
+        } else if (vendorTag == VENDOR_TAG_PARAVISOR) {
+            require(rtLen != 0, "TDXBundle: paravisor missing runtime_data");
         }
 
         parsed = ParsedBundle({
@@ -223,8 +223,11 @@ library TDXBundle {
     /// @dev Reads a big-endian uint32 from `input` at `offset`.
     ///      Caller must have already bounds-checked offset + 4.
     function _readBE32(bytes calldata input, uint256 offset) private pure returns (uint256) {
-        return (uint256(uint8(input[offset])) << 24) | (uint256(uint8(input[offset + 1])) << 16)
-            | (uint256(uint8(input[offset + 2])) << 8) | uint256(uint8(input[offset + 3]));
+        return
+            (uint256(uint8(input[offset])) << 24) |
+            (uint256(uint8(input[offset + 1])) << 16) |
+            (uint256(uint8(input[offset + 2])) << 8) |
+            uint256(uint8(input[offset + 3]));
     }
 
     /// @dev Copies `len` bytes from `input` at `offset` into a fresh
