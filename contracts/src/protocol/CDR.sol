@@ -18,6 +18,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param maxEncryptedDataSize Maximum allowed size for encrypted vault data (bytes)
     /// @param maxEncryptedPartialSize Maximum allowed size for encrypted partial decryptions (bytes)
     /// @param vaults The mapping of the vaults
+    /// @param maxBatchSize Maximum number of items allowed in a single batch submission
     /// @custom:storage-location erc7201:story.CDR
     struct CDRStorage {
         uint32 uuid;
@@ -27,8 +28,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         uint256 allocateFee;
         uint256 maxEncryptedDataSize;
         uint256 maxEncryptedPartialSize;
-        uint256 maxBatchSize;
         mapping(uint32 uuid => Vault vault) vaults;
+        uint256 maxBatchSize;
     }
 
     // keccak256(abi.encode(uint256(keccak256("story.CDR")) - 1)) & ~bytes32(uint256(0xff));
