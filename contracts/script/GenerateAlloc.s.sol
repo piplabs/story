@@ -65,18 +65,19 @@ contract GenerateAlloc is Script {
     // going through the TimelockController.
     bool private constant USE_DEPLOYER_AS_OWNER = true;
 
-    // SGXValidationHook configuration — edit before running the script
+    // SGXValidationHook configuration — edit before running the script.
+    // Captured 2026-05-09 from sgx1 (weu-dkg-tdx-test-sgx1, 52.157.106.205)
+    // via `gramine-sgx-sigstruct-view story-kernel.sig | grep mr_enclave`.
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"cfac25c990dc7517d9704fc51e65199a379332802f4c15d7fb966cba0813301c";
+        hex"65c07c4493e4baa0661d818563ae08e5d8d4ca2d54a9b1e1fa1e9b6c42a0bc60";
 
     // TDXValidationHook configuration. CodeCommitment is the on-chain
     // compressed identity: keccak256(MRTD || RTMR0 || RTMR1 || RTMR2 || RTMR3).
-    // Update this hex value before deployment to match the running TDX kernel's
-    // identity. Bootstrap mode emits the first measured digest in the kernel's
-    // startup WARN log; paste that 240-byte concatenation into a keccak256 to
-    // get this value.
+    // Captured 2026-05-09 from tdx1 (weu-dkg-tdx-test-tdx1, 20.126.100.96).
+    // MRTD = ff450b138c5ee6734a43dc35afb437abfa24ef743bc9e9484ef4af365fcd89a6c50913248ed7fcb92a7d42b1ba7da984
+    // RTMR0..3 are zero on Azure CVM TDX (paravisor exposes them as zero).
     bytes32 private constant TDX_CODE_COMMITMENT =
-        hex"0000000000000000000000000000000000000000000000000000000000000002";
+        hex"56bd26902b05a0d9d6dcc4c13c7c7861fb1c79d47f166665a3a684df1d4f1a35";
 
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
