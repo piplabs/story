@@ -32,13 +32,43 @@ import { RSASSAVerify } from "./lib/RSASSAVerify.sol";
 ///        the same absolute byte offset in V4 and V5, so the offset constants are
 ///        version-independent. Only the quote-length minimum varies per version.
 contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-    /// @dev Storage structure for the TDXValidationHook
+    /*//////////////////////////////////////////////////////////////////////////
+    //                              Events                                    //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a (MRTD, RTMR0) cloud-platform tuple is approved.
+    /// @param key keccak256(mrtd48 || rtmr048)
+    /// @param label Free-form governance label
+    event CloudPlatformApproved(bytes32 indexed key, string label);
+
+    /// @notice Emitted when a (MRTD, RTMR0) cloud-platform tuple is revoked.
+    /// @param key keccak256(mrtd48 || rtmr048)
+    event CloudPlatformRevoked(bytes32 indexed key);
+
+    /// @notice Emitted when a (RTMR1, RTMR2) binary-release tuple is approved.
+    /// @param key keccak256(rtmr148 || rtmr248)
+    /// @param version Free-form governance label
+    event BinaryReleaseApproved(bytes32 indexed key, string version);
+
+    /// @notice Emitted when a (RTMR1, RTMR2) binary-release tuple is revoked.
+    /// @param key keccak256(rtmr148 || rtmr248)
+    event BinaryReleaseRevoked(bytes32 indexed key);
+
+    /// @dev Storage structure for the TDXValidationHook.
+    ///      Option D (decomposed whitelist): we split the on-chain identity check into
+    ///      two independent tables so cloud-vendor lifecycle (MRTD/RTMR0 changes) and
+    ///      Story binary release lifecycle (RTMR1/RTMR2 changes) can be governed
+    ///      independently. Governance cost becomes N+M instead of N*M.
     /// @param automataValidationAddr The address of the automata validation contract
     /// @param tcbEvaluationDataNumber The tcb evaluation data number
+    /// @param approvedCloudPlatforms keccak256(MRTD || RTMR0) => approved flag
+    /// @param approvedBinaryReleases keccak256(RTMR1 || RTMR2) => approved flag
     /// @custom:storage-location erc7201:story.TDXValidationHook
     struct TDXValidationHookStorage {
         address automataValidationAddr;
         uint32 tcbEvaluationDataNumber;
+        mapping(bytes32 => bool) approvedCloudPlatforms;
+        mapping(bytes32 => bool) approvedBinaryReleases;
     }
 
     address public immutable DKG;
@@ -80,6 +110,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     uint256 private constant OFFSET_MRTD = 184;
     /// @dev RTMR0 absolute offset. RTMR0..3 are contiguous (4 * 48 = 192 bytes ending at 568).
     uint256 private constant OFFSET_RTMR0 = 376;
+    /// @dev RTMR1 absolute offset (= OFFSET_RTMR0 + MEASUREMENT_SIZE). Option D binary identity.
+    uint256 private constant OFFSET_RTMR1 = 424;
+    /// @dev RTMR2 absolute offset (= OFFSET_RTMR0 + 2 * MEASUREMENT_SIZE). Option D binary identity.
+    uint256 private constant OFFSET_RTMR2 = 472;
     /// @dev REPORT_DATA absolute offset. Total length 64 bytes; we compare only the first 32.
     uint256 private constant OFFSET_REPORT_DATA = 568;
 
@@ -122,6 +156,56 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         _setTcbEvaluationDataNumber(newTcbEvaluationDataNumber);
     }
 
+    /// @notice Approves a (MRTD, RTMR0) cloud platform tuple (Option D).
+    /// @dev On-chain key is keccak256(mrtd48 || rtmr048). Both arguments MUST be the
+    ///      raw 48-byte SHA-384 measurements from the quote (NOT pre-hashed).
+    function approveCloudPlatform(
+        bytes calldata mrtd48,
+        bytes calldata rtmr048,
+        string calldata label
+    ) external override onlyOwner {
+        require(mrtd48.length == MEASUREMENT_SIZE, "TDXValidationHook: MRTD must be 48 bytes");
+        require(rtmr048.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR0 must be 48 bytes");
+        bytes32 key = keccak256(abi.encodePacked(mrtd48, rtmr048));
+        _getTDXValidationHookStorage().approvedCloudPlatforms[key] = true;
+        emit CloudPlatformApproved(key, label);
+    }
+
+    /// @notice Revokes a previously approved (MRTD, RTMR0) cloud platform tuple.
+    function revokeCloudPlatform(bytes calldata mrtd48, bytes calldata rtmr048) external override onlyOwner {
+        require(mrtd48.length == MEASUREMENT_SIZE, "TDXValidationHook: MRTD must be 48 bytes");
+        require(rtmr048.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR0 must be 48 bytes");
+        bytes32 key = keccak256(abi.encodePacked(mrtd48, rtmr048));
+        delete _getTDXValidationHookStorage().approvedCloudPlatforms[key];
+        emit CloudPlatformRevoked(key);
+    }
+
+    /// @notice Approves a (RTMR1, RTMR2) binary release tuple (Option D).
+    /// @dev On-chain key is keccak256(rtmr148 || rtmr248). RTMR1 is the TDVF-anchored
+    ///      kernel measurement; RTMR2 is the initrd + cmdline measurement. Together they
+    ///      bind the user-space binary IF the binary is baked into the initrd as PID 1
+    ///      (TDVF measures kernel/initrd before any user-space code executes).
+    function approveBinaryRelease(
+        bytes calldata rtmr148,
+        bytes calldata rtmr248,
+        string calldata version
+    ) external override onlyOwner {
+        require(rtmr148.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR1 must be 48 bytes");
+        require(rtmr248.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR2 must be 48 bytes");
+        bytes32 key = keccak256(abi.encodePacked(rtmr148, rtmr248));
+        _getTDXValidationHookStorage().approvedBinaryReleases[key] = true;
+        emit BinaryReleaseApproved(key, version);
+    }
+
+    /// @notice Revokes a previously approved (RTMR1, RTMR2) binary release tuple.
+    function revokeBinaryRelease(bytes calldata rtmr148, bytes calldata rtmr248) external override onlyOwner {
+        require(rtmr148.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR1 must be 48 bytes");
+        require(rtmr248.length == MEASUREMENT_SIZE, "TDXValidationHook: RTMR2 must be 48 bytes");
+        bytes32 key = keccak256(abi.encodePacked(rtmr148, rtmr248));
+        delete _getTDXValidationHookStorage().approvedBinaryReleases[key];
+        emit BinaryReleaseRevoked(key);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                           Authentication Logic                         //
     //////////////////////////////////////////////////////////////////////////*/
@@ -143,7 +227,11 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     ///      Both paths converge on the same return shape and same
     ///      require-fail semantics so callers (DKG.register) need not
     ///      know which vendor produced the quote.
-    /// @param expectedCodeCommitment keccak256(MRTD || RTMR0 || RTMR1 || RTMR2 || RTMR3)
+    /// @param expectedCodeCommitment Retained for ABI compatibility with the DKG caller and
+    ///        SGX hook. **No longer consulted** under Option D — code identity is now enforced
+    ///        by the two decomposed whitelists `approvedCloudPlatforms` (MRTD, RTMR0) and
+    ///        `approvedBinaryReleases` (RTMR1, RTMR2). Callers MUST still pass a non-zero
+    ///        value (kept as a sanity-check input gate).
     /// @param expectedDataCommitment First 32 bytes of REPORT_DATA (raw V4 path) or
     ///        TPMS_ATTEST.qualifyingData (bundle path), set by the kernel to
     ///        keccak256(validatorAddr || round || startBlockHeight || startBlockHash ||
@@ -206,11 +294,34 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         );
         require(success, "TDXValidationHook: Attestation failed");
 
-        // Identity match: hash MRTD || RTMR0..3 and compare against the whitelisted digest.
-        require(
-            _extractReportCodeCommitment(enclaveReport) == expectedCodeCommitment,
-            "TDXValidationHook: Code commitment does not match"
-        );
+        // Option D — decomposed identity match.
+        //
+        // (1) Cloud platform: keccak256(MRTD || RTMR0) must be in the approved set.
+        //     MRTD anchors the cloud's TDVF + machine type; RTMR0 anchors the cloud's
+        //     TDVF configuration. Together they identify the cloud SKU + TDVF version.
+        // (2) Binary release: keccak256(RTMR1 || RTMR2) must be in the approved set.
+        //     RTMR1 captures the kernel image (TDVF-measured); RTMR2 captures the
+        //     initrd + cmdline. With the story-kernel binary baked into the initrd as
+        //     PID 1 init, these tuples hardware-bind the user-space binary identity
+        //     (TDVF measures kernel/initrd before user-space code can run, so an
+        //     attacker cannot fake matching values without actually loading our binary).
+        bytes32 cloudKey;
+        bytes32 binaryKey;
+        assembly {
+            // Allocate a 96-byte scratch buffer at the free memory pointer; copy MRTD
+            // (48 bytes) from the calldata quote, then RTMR0 (48 bytes) directly after.
+            // This avoids the overhead of abi.encodePacked / new bytes allocation.
+            let ptr := mload(0x40)
+            calldatacopy(ptr, add(enclaveReport.offset, OFFSET_MRTD), MEASUREMENT_SIZE)
+            calldatacopy(add(ptr, MEASUREMENT_SIZE), add(enclaveReport.offset, OFFSET_RTMR0), MEASUREMENT_SIZE)
+            cloudKey := keccak256(ptr, mul(MEASUREMENT_SIZE, 2))
+            // Reuse the same scratch buffer for the (RTMR1, RTMR2) tuple.
+            calldatacopy(ptr, add(enclaveReport.offset, OFFSET_RTMR1), MEASUREMENT_SIZE)
+            calldatacopy(add(ptr, MEASUREMENT_SIZE), add(enclaveReport.offset, OFFSET_RTMR2), MEASUREMENT_SIZE)
+            binaryKey := keccak256(ptr, mul(MEASUREMENT_SIZE, 2))
+        }
+        require($.approvedCloudPlatforms[cloudKey], "TDXValidationHook: unapproved cloud platform");
+        require($.approvedBinaryReleases[binaryKey], "TDXValidationHook: unapproved binary release");
 
         // Instance-data match: first 32 bytes of REPORT_DATA must equal the kernel-bound
         // attestation payload computed by DKG.register from EnclaveInstanceData.
@@ -275,12 +386,14 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         );
         require(success, "TDXValidationHook: Attestation failed");
 
-        // Step 4: code commitment match. Reuses the same MRTD/RTMR
-        // extraction as the raw-V4 path against the inner V4.
-        require(
-            _extractCodeCommitmentMemory(bundle.tdxV4) == expectedCodeCommitment,
-            "TDXValidationHook: Code commitment does not match"
-        );
+        // Step 4: Option D decomposed identity match against the inner V4.
+        // Caveat (Azure paravisor): paravisor may extend RTMRs differently from
+        // standard TDVF — operators MUST register the paravisor-specific
+        // (MRTD, RTMR0) and (RTMR1, RTMR2) tuples observed under that vendor.
+        // The on-chain check is the same shape; only the registered values differ.
+        (bytes32 cloudKey, bytes32 binaryKey) = _bundleDecomposedKeys(bundle.tdxV4);
+        require($.approvedCloudPlatforms[cloudKey], "TDXValidationHook: unapproved cloud platform");
+        require($.approvedBinaryReleases[binaryKey], "TDXValidationHook: unapproved binary release");
 
         // Step 5: vendor-aware AK binding plus reserved-zero check on
         // V4.report_data[32:64]. The kernel-side mirror is in
@@ -353,19 +466,23 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         require(RSASSAVerify.verify(digest, sig, modulus), "TDXValidationHook: TPM sig verify failed");
     }
 
-    /// @dev Memory-version of MRTD||RTMR0..3 keccak. Mirrors the
-    ///      calldata version used on the raw-V4 path, but operates on
-    ///      `bytes memory` because the inner V4 inside a bundle is a
-    ///      copied buffer rather than a calldata slice.
-    function _extractCodeCommitmentMemory(bytes memory v4) internal pure returns (bytes32) {
-        bytes memory ident = new bytes(MEASUREMENT_SIZE + RTMR_COUNT * MEASUREMENT_SIZE);
+    /// @dev Option D — memory-buffer version of the decomposed key extraction.
+    ///      Used by the bundle path because the inner V4 is held in `bytes memory`
+    ///      after envelope parsing.
+    /// @return cloudKey  keccak256(MRTD || RTMR0)
+    /// @return binaryKey keccak256(RTMR1 || RTMR2)
+    function _bundleDecomposedKeys(bytes memory v4) internal pure returns (bytes32 cloudKey, bytes32 binaryKey) {
+        // 96-byte scratch buffer for the two paired hashes.
+        bytes memory cloudBuf = new bytes(MEASUREMENT_SIZE * 2);
+        bytes memory binaryBuf = new bytes(MEASUREMENT_SIZE * 2);
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
-            ident[i] = v4[OFFSET_MRTD + i];
+            cloudBuf[i] = v4[OFFSET_MRTD + i];
+            cloudBuf[MEASUREMENT_SIZE + i] = v4[OFFSET_RTMR0 + i];
+            binaryBuf[i] = v4[OFFSET_RTMR1 + i];
+            binaryBuf[MEASUREMENT_SIZE + i] = v4[OFFSET_RTMR2 + i];
         }
-        for (uint256 i = 0; i < RTMR_COUNT * MEASUREMENT_SIZE; i++) {
-            ident[MEASUREMENT_SIZE + i] = v4[OFFSET_RTMR0 + i];
-        }
-        return keccak256(ident);
+        cloudKey = keccak256(cloudBuf);
+        binaryKey = keccak256(binaryBuf);
     }
 
     /// @dev Reads V4.report_data[0:32] from a memory-buffered V4 quote.
@@ -407,6 +524,30 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         return _getTDXValidationHookStorage().tcbEvaluationDataNumber;
     }
 
+    /// @notice Returns whether the given (MRTD, RTMR0) tuple is approved.
+    function isCloudPlatformApproved(
+        bytes calldata mrtd48,
+        bytes calldata rtmr048
+    ) external view override returns (bool) {
+        if (mrtd48.length != MEASUREMENT_SIZE || rtmr048.length != MEASUREMENT_SIZE) {
+            return false;
+        }
+        bytes32 key = keccak256(abi.encodePacked(mrtd48, rtmr048));
+        return _getTDXValidationHookStorage().approvedCloudPlatforms[key];
+    }
+
+    /// @notice Returns whether the given (RTMR1, RTMR2) tuple is approved.
+    function isBinaryReleaseApproved(
+        bytes calldata rtmr148,
+        bytes calldata rtmr248
+    ) external view override returns (bool) {
+        if (rtmr148.length != MEASUREMENT_SIZE || rtmr248.length != MEASUREMENT_SIZE) {
+            return false;
+        }
+        bytes32 key = keccak256(abi.encodePacked(rtmr148, rtmr248));
+        return _getTDXValidationHookStorage().approvedBinaryReleases[key];
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                           Internal Functions                           //
     //////////////////////////////////////////////////////////////////////////*/
@@ -422,22 +563,6 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @param newTcbEvaluationDataNumber The TCB evaluation data number
     function _setTcbEvaluationDataNumber(uint32 newTcbEvaluationDataNumber) internal {
         _getTDXValidationHookStorage().tcbEvaluationDataNumber = newTcbEvaluationDataNumber;
-    }
-
-    /// @dev Extracts the code commitment from a raw TDX quote.
-    ///      Computes keccak256(MRTD || RTMR0 || RTMR1 || RTMR2 || RTMR3).
-    ///      RTMR0..3 are contiguous in the body (4 * 48 = 192 bytes), so we hash
-    ///      across two calldata slices: [MRTD] and [RTMR0..RTMR3].
-    /// @param enclaveReport The raw TDX quote (header + body + auth_data)
-    /// @return The compressed code commitment (32 bytes)
-    function _extractReportCodeCommitment(bytes calldata enclaveReport) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    enclaveReport[OFFSET_MRTD:OFFSET_MRTD + MEASUREMENT_SIZE],
-                    enclaveReport[OFFSET_RTMR0:OFFSET_RTMR0 + RTMR_COUNT * MEASUREMENT_SIZE]
-                )
-            );
     }
 
     /// @dev Extracts the first 32 bytes of REPORT_DATA from a raw TDX quote.

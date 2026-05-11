@@ -64,7 +64,10 @@ contract TDXValidationHookTest is ForgeTest {
     uint256 internal constant OFFSET_TEE_TYPE = 4;
     uint256 internal constant OFFSET_MRTD = 184;
     uint256 internal constant OFFSET_RTMR0 = 376;
+    uint256 internal constant OFFSET_RTMR1 = 424;
+    uint256 internal constant OFFSET_RTMR2 = 472;
     uint256 internal constant OFFSET_REPORT_DATA = 568;
+    uint256 internal constant MEASUREMENT_SIZE = 48;
     uint8 internal constant TEE_TYPE_TDX_BYTE0 = 0x81;
 
     function setUp() public {
@@ -73,6 +76,44 @@ contract TDXValidationHookTest is ForgeTest {
         bytes memory initData = abi.encodeCall(TDXValidationHook.initialize, (owner, address(automata), TCB_NUM));
         address proxy = address(new ERC1967Proxy(impl, initData));
         hook = TDXValidationHook(proxy);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //              Option D — measurement extraction helpers                 //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Extracts a 48-byte slice from `buf` starting at `start`.
+    function _slice48(bytes memory buf, uint256 start) internal pure returns (bytes memory out) {
+        out = new bytes(MEASUREMENT_SIZE);
+        for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
+            out[i] = buf[start + i];
+        }
+    }
+
+    /// @dev Approves the (MRTD, RTMR0) and (RTMR1, RTMR2) tuples that a raw V4
+    ///      quote carries, so the Option D whitelist checks pass during the
+    ///      happy-path tests.
+    function _approveTuplesForRawQuote(bytes memory quote) internal {
+        bytes memory mrtd = _slice48(quote, OFFSET_MRTD);
+        bytes memory rtmr0 = _slice48(quote, OFFSET_RTMR0);
+        bytes memory rtmr1 = _slice48(quote, OFFSET_RTMR1);
+        bytes memory rtmr2 = _slice48(quote, OFFSET_RTMR2);
+        vm.startPrank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "test-cloud");
+        hook.approveBinaryRelease(rtmr1, rtmr2, "test-binary");
+        vm.stopPrank();
+    }
+
+    /// @dev Same as above but takes a bundle whose inner V4 starts at offset 12.
+    function _approveTuplesForBundle(bytes memory bundle) internal {
+        bytes memory mrtd = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_MRTD);
+        bytes memory rtmr0 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR0);
+        bytes memory rtmr1 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR1);
+        bytes memory rtmr2 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR2);
+        vm.startPrank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "test-cloud-bundle");
+        hook.approveBinaryRelease(rtmr1, rtmr2, "test-binary-bundle");
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -137,6 +178,127 @@ contract TDXValidationHookTest is ForgeTest {
         hook.setTcbEvaluationDataNumber(99);
         assertEq(hook.tcbEvaluationDataNumber(), 99);
     }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                  Option D — decomposed whitelist setters               //
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function _dummyMeasurement(uint8 seed) internal pure returns (bytes memory out) {
+        out = new bytes(MEASUREMENT_SIZE);
+        for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
+            out[i] = bytes1(uint8(seed + (i & 0x0F)));
+        }
+    }
+
+    function test_ApproveCloudPlatform_OnlyOwner() public {
+        bytes memory mrtd = _dummyMeasurement(0x10);
+        bytes memory rtmr0 = _dummyMeasurement(0x20);
+        vm.prank(stranger);
+        vm.expectRevert();
+        hook.approveCloudPlatform(mrtd, rtmr0, "x");
+    }
+
+    function test_RevokeCloudPlatform_OnlyOwner() public {
+        bytes memory mrtd = _dummyMeasurement(0x10);
+        bytes memory rtmr0 = _dummyMeasurement(0x20);
+        vm.prank(stranger);
+        vm.expectRevert();
+        hook.revokeCloudPlatform(mrtd, rtmr0);
+    }
+
+    function test_ApproveBinaryRelease_OnlyOwner() public {
+        bytes memory rtmr1 = _dummyMeasurement(0x30);
+        bytes memory rtmr2 = _dummyMeasurement(0x40);
+        vm.prank(stranger);
+        vm.expectRevert();
+        hook.approveBinaryRelease(rtmr1, rtmr2, "x");
+    }
+
+    function test_RevokeBinaryRelease_OnlyOwner() public {
+        bytes memory rtmr1 = _dummyMeasurement(0x30);
+        bytes memory rtmr2 = _dummyMeasurement(0x40);
+        vm.prank(stranger);
+        vm.expectRevert();
+        hook.revokeBinaryRelease(rtmr1, rtmr2);
+    }
+
+    function test_ApproveCloudPlatform_RejectsBadLength() public {
+        bytes memory short = new bytes(47);
+        bytes memory good = _dummyMeasurement(0x20);
+        vm.prank(owner);
+        vm.expectRevert(bytes("TDXValidationHook: MRTD must be 48 bytes"));
+        hook.approveCloudPlatform(short, good, "x");
+        vm.prank(owner);
+        vm.expectRevert(bytes("TDXValidationHook: RTMR0 must be 48 bytes"));
+        hook.approveCloudPlatform(good, short, "x");
+    }
+
+    function test_ApproveBinaryRelease_RejectsBadLength() public {
+        bytes memory short = new bytes(47);
+        bytes memory good = _dummyMeasurement(0x30);
+        vm.prank(owner);
+        vm.expectRevert(bytes("TDXValidationHook: RTMR1 must be 48 bytes"));
+        hook.approveBinaryRelease(short, good, "x");
+        vm.prank(owner);
+        vm.expectRevert(bytes("TDXValidationHook: RTMR2 must be 48 bytes"));
+        hook.approveBinaryRelease(good, short, "x");
+    }
+
+    function test_ApproveCloudPlatform_EmitsEvent() public {
+        bytes memory mrtd = _dummyMeasurement(0x10);
+        bytes memory rtmr0 = _dummyMeasurement(0x20);
+        bytes32 key = keccak256(abi.encodePacked(mrtd, rtmr0));
+        vm.expectEmit(true, false, false, true, address(hook));
+        emit CloudPlatformApproved(key, "GCP c3-standard-4");
+        vm.prank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "GCP c3-standard-4");
+        assertTrue(hook.isCloudPlatformApproved(mrtd, rtmr0));
+    }
+
+    function test_RevokeCloudPlatform_EmitsEvent() public {
+        bytes memory mrtd = _dummyMeasurement(0x10);
+        bytes memory rtmr0 = _dummyMeasurement(0x20);
+        bytes32 key = keccak256(abi.encodePacked(mrtd, rtmr0));
+        vm.prank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "x");
+        vm.expectEmit(true, false, false, true, address(hook));
+        emit CloudPlatformRevoked(key);
+        vm.prank(owner);
+        hook.revokeCloudPlatform(mrtd, rtmr0);
+        assertFalse(hook.isCloudPlatformApproved(mrtd, rtmr0));
+    }
+
+    function test_ApproveBinaryRelease_EmitsEvent() public {
+        bytes memory rtmr1 = _dummyMeasurement(0x30);
+        bytes memory rtmr2 = _dummyMeasurement(0x40);
+        bytes32 key = keccak256(abi.encodePacked(rtmr1, rtmr2));
+        vm.expectEmit(true, false, false, true, address(hook));
+        emit BinaryReleaseApproved(key, "story-kernel v1.7.0");
+        vm.prank(owner);
+        hook.approveBinaryRelease(rtmr1, rtmr2, "story-kernel v1.7.0");
+        assertTrue(hook.isBinaryReleaseApproved(rtmr1, rtmr2));
+    }
+
+    function test_RevokeBinaryRelease_EmitsEvent() public {
+        bytes memory rtmr1 = _dummyMeasurement(0x30);
+        bytes memory rtmr2 = _dummyMeasurement(0x40);
+        bytes32 key = keccak256(abi.encodePacked(rtmr1, rtmr2));
+        vm.prank(owner);
+        hook.approveBinaryRelease(rtmr1, rtmr2, "x");
+        vm.expectEmit(true, false, false, true, address(hook));
+        emit BinaryReleaseRevoked(key);
+        vm.prank(owner);
+        hook.revokeBinaryRelease(rtmr1, rtmr2);
+        assertFalse(hook.isBinaryReleaseApproved(rtmr1, rtmr2));
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    //                  Event signatures (mirrored for vm.expectEmit)         //
+    //////////////////////////////////////////////////////////////////////////*/
+    event CloudPlatformApproved(bytes32 indexed key, string label);
+    event CloudPlatformRevoked(bytes32 indexed key);
+    event BinaryReleaseApproved(bytes32 indexed key, string version);
+    event BinaryReleaseRevoked(bytes32 indexed key);
 
     /*//////////////////////////////////////////////////////////////////////////
     //                          validateReport guards                         //
@@ -232,23 +394,45 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_AutomataFailureReverts() public {
         automata.setShouldSucceed(false);
         bytes memory quote = _buildV4QuoteDefault();
+        _approveTuplesForRawQuote(quote);
         (bytes32 codeCommit, bytes32 dataCommit) = _expectedDigests(quote);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Attestation failed"));
         hook.validateReport(codeCommit, dataCommit, quote, "");
     }
 
-    function test_ValidateReport_CodeCommitmentMismatch() public {
+    /// @dev Option D — unapproved cloud platform must revert. Replaces the
+    ///      previous single-hash code-commitment mismatch test.
+    function test_ValidateReport_UnapprovedCloudPlatform() public {
         bytes memory quote = _buildV4QuoteDefault();
-        (, bytes32 dataCommit) = _expectedDigests(quote);
-        bytes32 wrongCode = keccak256("wrong-code");
+        // Approve ONLY the binary release; cloud tuple stays unapproved.
+        bytes memory rtmr1 = _slice48(quote, OFFSET_RTMR1);
+        bytes memory rtmr2 = _slice48(quote, OFFSET_RTMR2);
+        vm.prank(owner);
+        hook.approveBinaryRelease(rtmr1, rtmr2, "test-binary");
+        (bytes32 codeCommit, bytes32 dataCommit) = _expectedDigests(quote);
         vm.prank(dkg);
-        vm.expectRevert(bytes("TDXValidationHook: Code commitment does not match"));
-        hook.validateReport(wrongCode, dataCommit, quote, "");
+        vm.expectRevert(bytes("TDXValidationHook: unapproved cloud platform"));
+        hook.validateReport(codeCommit, dataCommit, quote, "");
+    }
+
+    /// @dev Option D — unapproved binary release must revert. Approves the
+    ///      cloud tuple so we can isolate the binary-side failure.
+    function test_ValidateReport_UnapprovedBinaryRelease() public {
+        bytes memory quote = _buildV4QuoteDefault();
+        bytes memory mrtd = _slice48(quote, OFFSET_MRTD);
+        bytes memory rtmr0 = _slice48(quote, OFFSET_RTMR0);
+        vm.prank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "test-cloud");
+        (bytes32 codeCommit, bytes32 dataCommit) = _expectedDigests(quote);
+        vm.prank(dkg);
+        vm.expectRevert(bytes("TDXValidationHook: unapproved binary release"));
+        hook.validateReport(codeCommit, dataCommit, quote, "");
     }
 
     function test_ValidateReport_DataCommitmentMismatch() public {
         bytes memory quote = _buildV4QuoteDefault();
+        _approveTuplesForRawQuote(quote);
         (bytes32 codeCommit, ) = _expectedDigests(quote);
         bytes32 wrongData = keccak256("wrong-data");
         vm.prank(dkg);
@@ -258,6 +442,7 @@ contract TDXValidationHookTest is ForgeTest {
 
     function test_ValidateReport_HappyPathV4() public {
         bytes memory quote = _buildV4QuoteDefault();
+        _approveTuplesForRawQuote(quote);
         (bytes32 codeCommit, bytes32 dataCommit) = _expectedDigests(quote);
         vm.prank(dkg);
         bool ok = hook.validateReport(codeCommit, dataCommit, quote, "");
@@ -269,6 +454,7 @@ contract TDXValidationHookTest is ForgeTest {
 
     function test_ValidateReport_HappyPathV5() public {
         bytes memory quote = _buildV5QuoteDefault();
+        _approveTuplesForRawQuote(quote);
         (bytes32 codeCommit, bytes32 dataCommit) = _expectedDigests(quote);
         vm.prank(dkg);
         bool ok = hook.validateReport(codeCommit, dataCommit, quote, "");
@@ -445,6 +631,7 @@ contract TDXValidationHookTest is ForgeTest {
 
     function test_ValidateReport_BundleHappyPath_Direct() public {
         bytes memory bundle = _loadDirectBundle();
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         bool ok = hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
@@ -460,6 +647,7 @@ contract TDXValidationHookTest is ForgeTest {
 
     function test_ValidateReport_BundleHappyPath_Paravisor() public {
         bytes memory bundle = _loadParavisorBundle();
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         bool ok = hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
@@ -573,17 +761,36 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_BundleAutomataFailure() public {
         automata.setShouldSucceed(false);
         bytes memory bundle = _loadDirectBundle();
+        // Approval irrelevant — Automata gate is BEFORE whitelist checks.
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Attestation failed"));
         hook.validateReport(codeCommit, FIXTURE_QUALIFYING_DATA, bundle, "");
     }
 
-    function test_ValidateReport_BundleCodeCommitmentMismatch() public {
+    /// @dev Option D — bundle with unapproved cloud platform must revert.
+    function test_ValidateReport_BundleUnapprovedCloudPlatform() public {
         bytes memory bundle = _loadDirectBundle();
+        // Approve binary only.
+        bytes memory rtmr1 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR1);
+        bytes memory rtmr2 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR2);
+        vm.prank(owner);
+        hook.approveBinaryRelease(rtmr1, rtmr2, "binary-only");
         vm.prank(dkg);
-        vm.expectRevert(bytes("TDXValidationHook: Code commitment does not match"));
-        hook.validateReport(keccak256("wrong-code"), FIXTURE_QUALIFYING_DATA, bundle, "");
+        vm.expectRevert(bytes("TDXValidationHook: unapproved cloud platform"));
+        hook.validateReport(keccak256("anything"), FIXTURE_QUALIFYING_DATA, bundle, "");
+    }
+
+    /// @dev Option D — bundle with unapproved binary release must revert.
+    function test_ValidateReport_BundleUnapprovedBinaryRelease() public {
+        bytes memory bundle = _loadDirectBundle();
+        bytes memory mrtd = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_MRTD);
+        bytes memory rtmr0 = _slice48(bundle, BUNDLE_OFFSET_TDX + OFFSET_RTMR0);
+        vm.prank(owner);
+        hook.approveCloudPlatform(mrtd, rtmr0, "cloud-only");
+        vm.prank(dkg);
+        vm.expectRevert(bytes("TDXValidationHook: unapproved binary release"));
+        hook.validateReport(keccak256("anything"), FIXTURE_QUALIFYING_DATA, bundle, "");
     }
 
     function test_ValidateReport_BundleAKBindingMismatch_Direct() public {
@@ -591,6 +798,7 @@ contract TDXValidationHookTest is ForgeTest {
         // no longer matches.
         bytes memory bundle = _loadDirectBundle();
         bundle = _patch1(bundle, BUNDLE_OFFSET_TDX + OFFSET_REPORT_DATA, bytes1(uint8(0xDE)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: AK binding (direct) mismatch"));
@@ -600,6 +808,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_BundleAKBindingMismatch_Paravisor() public {
         bytes memory bundle = _loadParavisorBundle();
         bundle = _patch1(bundle, BUNDLE_OFFSET_TDX + OFFSET_REPORT_DATA, bytes1(uint8(0xDE)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: AK binding (paravisor) mismatch"));
@@ -610,6 +819,7 @@ contract TDXValidationHookTest is ForgeTest {
         // Tamper a byte in V4.report_data[32:64] (must be zero).
         bytes memory bundle = _loadDirectBundle();
         bundle = _patch1(bundle, BUNDLE_OFFSET_TDX + OFFSET_REPORT_DATA + 32, bytes1(uint8(0xFF)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: report_data[32:64] must be zero"));
@@ -653,6 +863,7 @@ contract TDXValidationHookTest is ForgeTest {
         uint256 sigOff = _bundleTpmSigOffset(bundle);
         bundle = _patch1(bundle, sigOff + 0, bytes1(uint8(0x00)));
         bundle = _patch1(bundle, sigOff + 1, bytes1(uint8(0x16)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: TPM sig alg != RSASSA"));
@@ -665,6 +876,7 @@ contract TDXValidationHookTest is ForgeTest {
         uint256 sigOff = _bundleTpmSigOffset(bundle);
         bundle = _patch1(bundle, sigOff + 2, bytes1(uint8(0x00)));
         bundle = _patch1(bundle, sigOff + 3, bytes1(uint8(0x0C)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: TPM hash alg != SHA-256"));
@@ -679,6 +891,7 @@ contract TDXValidationHookTest is ForgeTest {
         uint256 sigOff = _bundleTpmSigOffset(bundle);
         // Sig bytes start 6 bytes after sigOff (algId+hashAlg+sigLen).
         bundle[sigOff + 6 + 100] ^= bytes1(uint8(0x55));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: TPM sig verify failed"));
@@ -700,6 +913,7 @@ contract TDXValidationHookTest is ForgeTest {
         bytes memory bundle = _loadDirectBundle();
         uint256 attOff = _bundleTpmAttestOffset(bundle);
         bundle = _patch1(bundle, attOff, bytes1(uint8(0x00)));
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: TPM sig verify failed"));
@@ -709,6 +923,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_BundleQualifyingDataMismatch() public {
         // Happy-path bundle, but caller passes the wrong expected data.
         bytes memory bundle = _loadDirectBundle();
+        _approveTuplesForBundle(bundle);
         bytes32 codeCommit = _bundleCodeCommitment(bundle);
         bytes32 wrong = keccak256("not-the-fixture-commitment");
         vm.prank(dkg);
