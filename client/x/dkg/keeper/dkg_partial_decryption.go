@@ -6,10 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
+	"cosmossdk.io/collections"
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
+	"github.com/piplabs/story/lib/log"
 )
 
 var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
@@ -30,6 +35,20 @@ func dkgPartialDecryptKey(requesterPubKey []byte, label []byte, ciphertext []byt
 func dkgPartialDecryptPrefix(requesterPubKey []byte, label []byte) string {
 	requesterHash := sha256.Sum256(requesterPubKey)
 	return fmt.Sprintf("%s_%s_", hex.EncodeToString(requesterHash[:]), hex.EncodeToString(label))
+}
+
+// dkgPartialDecryptRoundIndexKey builds the secondary index key for round-based pruning.
+// Format: "{round:010d}_{primaryKey}"
+// Round is zero-padded to 10 digits (uint32 max = 4,294,967,295 = 10 digits) so that
+// lexicographic prefix scans equal numeric range scans over round values.
+func dkgPartialDecryptRoundIndexKey(round uint32, primaryKey string) string {
+	return fmt.Sprintf("%010d_%s", round, primaryKey)
+}
+
+// dkgPartialDecryptRoundIndexUpperBound returns the exclusive upper bound for an
+// EndExclusive range scan over all secondary index entries with round <= cutoffRound.
+func dkgPartialDecryptRoundIndexUpperBound(cutoffRound uint32) string {
+	return fmt.Sprintf("%010d_", cutoffRound+1)
 }
 
 func (k *Keeper) setPartialDecryptionSubmission(
@@ -70,6 +89,130 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	if err := k.DKGPartialDecrypt.Set(ctx, key, bz); err != nil {
 		return errors.Wrap(err, "set partial decryption submission")
 	}
+
+	// Write secondary round index entry alongside the primary. Value is empty;
+	// presence is sufficient for range-delete pruning.
+	indexKey := dkgPartialDecryptRoundIndexKey(round, key)
+	if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+		return errors.Wrap(err, "set partial decrypt round index")
+	}
+
+	return nil
+}
+
+// pruneOldPartialDecryptions removes all DKGPartialDecrypt entries (primary +
+// secondary index) for rounds <= cutoffRound. It uses the secondary round index
+// to avoid a full table scan: only entries in the range [0, cutoffRound] are visited.
+// Called from BeginBlocker after a DKG round successfully becomes Active.
+func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uint32) error {
+	upperBound := dkgPartialDecryptRoundIndexUpperBound(cutoffRound)
+	rng := (&collections.Range[string]{}).EndExclusive(upperBound)
+
+	iter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, rng)
+	if err != nil {
+		return errors.Wrap(err, "iterate partial decrypt round index for pruning")
+	}
+
+	indexKeys, err := iter.Keys()
+	iter.Close()
+	if err != nil {
+		return errors.Wrap(err, "collect partial decrypt round index keys for pruning")
+	}
+
+	for _, indexKey := range indexKeys {
+		// Safety guard: index key must be at least "XXXXXXXXXX_" (11 bytes) + 1 char primary key.
+		if len(indexKey) <= 11 {
+			log.Warn(ctx, "Skipping malformed partial decrypt round index key during pruning", nil, "key", indexKey)
+			continue
+		}
+		primaryKey := indexKey[11:] // strip "{round:010d}_" prefix
+
+		if err := k.DKGPartialDecrypt.Remove(ctx, primaryKey); err != nil {
+			return errors.Wrap(err, "remove partial decryption primary entry during pruning")
+		}
+		if err := k.DKGPartialDecryptRoundIndex.Remove(ctx, indexKey); err != nil {
+			return errors.Wrap(err, "remove partial decryption round index entry during pruning")
+		}
+	}
+
+	return nil
+}
+
+// MigratePartialDecryptRoundIndex is called once by the upgrade handler to
+// backfill the secondary round index and prune entries that are already stale.
+// For each existing DKGPartialDecrypt entry:
+//   - If its round < prevActiveRound: delete primary (stale, older than retention window).
+//   - Otherwise: write the secondary index entry so future pruning can find it.
+func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
+	activeRound, err := k.GetLatestActiveRound(ctx)
+	if err != nil {
+		return errors.Wrap(err, "migrate partial decrypt round index: get latest active round")
+	}
+
+	// Compute cutoff: prune rounds older than the previous active round.
+	// This mirrors the ongoing pruning logic in BeginBlocker.
+	var cutoffRound uint32
+	hasCutoff := false
+	if activeRound != nil {
+		prevActive, err := k.findPrevActiveRound(ctx, activeRound.Round)
+		if err != nil {
+			return errors.Wrap(err, "migrate partial decrypt round index: find previous active round")
+		}
+		if prevActive > 0 {
+			cutoffRound = prevActive - 1
+			hasCutoff = true
+		}
+	}
+
+	iter, err := k.DKGPartialDecrypt.Iterate(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "migrate partial decrypt round index: iterate primary entries")
+	}
+
+	type entry struct {
+		primaryKey string
+		round      uint32
+	}
+	var entries []entry
+	for ; iter.Valid(); iter.Next() {
+		primaryKey, err := iter.Key()
+		if err != nil {
+			iter.Close()
+			return errors.Wrap(err, "migrate partial decrypt round index: read key")
+		}
+		// Primary key format: {reqHash}_{labelHex}_{ciphertextHash}_{round}_{validator}
+		// All components are hex or decimal — no underscores within any component.
+		parts := strings.SplitN(primaryKey, "_", 5)
+		if len(parts) < 5 {
+			log.Warn(ctx, "Skipping malformed partial decrypt primary key during migration", nil, "key", primaryKey)
+			continue
+		}
+		roundVal, err := strconv.ParseUint(parts[3], 10, 32)
+		if err != nil {
+			log.Warn(ctx, "Skipping partial decrypt key with unparseable round during migration", nil, "key", primaryKey, "round_field", parts[3])
+			continue
+		}
+		entries = append(entries, entry{primaryKey: primaryKey, round: uint32(roundVal)})
+	}
+	iter.Close()
+
+	var pruned, indexed int
+	for _, e := range entries {
+		if hasCutoff && e.round <= cutoffRound {
+			if err := k.DKGPartialDecrypt.Remove(ctx, e.primaryKey); err != nil {
+				return errors.Wrap(err, "migrate partial decrypt round index: remove stale primary entry")
+			}
+			pruned++
+		} else {
+			indexKey := dkgPartialDecryptRoundIndexKey(e.round, e.primaryKey)
+			if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+				return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
+			}
+			indexed++
+		}
+	}
+
+	log.Info(ctx, "Migrated partial decrypt round index", "pruned", pruned, "indexed", indexed)
 
 	return nil
 }

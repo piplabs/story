@@ -78,8 +78,9 @@ type Keeper struct {
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt      collections.Map[string, []byte]               // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
-	DecryptRequestRegistry collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
+	DKGPartialDecrypt           collections.Map[string, []byte]               // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
+	DKGPartialDecryptRoundIndex collections.Map[string, []byte]               // secondary index key: {round:010d}_{primary_key}; value: empty (presence only)
+	DecryptRequestRegistry      collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
 
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
@@ -108,27 +109,28 @@ func NewKeeper(
 
 	sb := collections.NewSchemaBuilder(storeService)
 	k := Keeper{
-		cdc:                    cdc,
-		storeService:           storeService,
-		stakingKeeper:          sk,
-		bankKeeper:             bk,
-		distributionKeeper:     dk,
-		valStore:               valStore,
-		kernelRouter:           kernelRouter,
-		contractClient:         contractClient,
-		authority:              authority,
-		decryptBatchSize:       defaultDecryptBatchSize,
-		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
-		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
-		LatestActiveRound:      collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
-		DKGRegistrations:       collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
-		GlobalPubKeyVotes:      collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
-		SettlementBalance:      collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
-		KernelUpgradeInfos:     collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
-		DKGPartialDecrypt:      collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
-		DecryptRequestRegistry: collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, codec.CollValue[types.DecryptRequest](cdc)),
-		CDRPartialSubmitCount:  collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
-		CDRFeePoolBalance:      collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),
+		cdc:                         cdc,
+		storeService:                storeService,
+		stakingKeeper:               sk,
+		bankKeeper:                  bk,
+		distributionKeeper:          dk,
+		valStore:                    valStore,
+		kernelRouter:                kernelRouter,
+		contractClient:              contractClient,
+		authority:                   authority,
+		decryptBatchSize:            defaultDecryptBatchSize,
+		DKGNetworks:                 collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
+		LatestDKGNetwork:            collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
+		LatestActiveRound:           collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
+		DKGRegistrations:            collections.NewMap(sb, types.DKGRegistrationKey, "dkg_registrations", collections.StringKey, codec.CollValue[types.DKGRegistration](cdc)),
+		GlobalPubKeyVotes:           collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
+		SettlementBalance:           collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
+		KernelUpgradeInfos:          collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
+		DKGPartialDecrypt:           collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
+		DKGPartialDecryptRoundIndex: collections.NewMap(sb, types.DKGPartialDecryptRoundIndexKey, "dkg_partial_decrypt_round_index", collections.StringKey, collections.BytesValue),
+		DecryptRequestRegistry:      collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, codec.CollValue[types.DecryptRequest](cdc)),
+		CDRPartialSubmitCount:       collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
+		CDRFeePoolBalance:           collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),
 	}
 
 	schema, err := sb.Build()

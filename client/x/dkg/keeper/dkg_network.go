@@ -213,6 +213,23 @@ func (k *Keeper) getLatestActiveDKGNetwork(ctx context.Context) (*types.DKGNetwo
 	return &dkgNetwork, nil
 }
 
+// findPrevActiveRound returns the round number of the most recent successful
+// (Active or Ended) DKG round strictly before beforeRound. Returns 0 if none found.
+// DKG rounds are small in number so a full Walk is acceptable here.
+func (k *Keeper) findPrevActiveRound(ctx context.Context, beforeRound uint32) (uint32, error) {
+	var prev uint32
+	err := k.DKGNetworks.Walk(ctx, nil, func(_ string, network types.DKGNetwork) (bool, error) {
+		if network.Round >= beforeRound {
+			return false, nil
+		}
+		if (network.Stage == types.DKGStageActive || network.Stage == types.DKGStageEnded) && network.Round > prev {
+			prev = network.Round
+		}
+		return false, nil
+	})
+	return prev, errors.Wrap(err, "find previous active round")
+}
+
 // endPreviousActiveRound finds the previous active round and sets its stage to Ended.
 // This prevents the previous round from continuing stage transitions after a new round
 // has been finalized and becomes the active round.
