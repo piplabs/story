@@ -506,11 +506,11 @@ func TestSetPartialDecryptionSubmission_DuplicateDoesNotDoubleWriteIndex(t *test
 	require.Len(t, keys, 1, "duplicate rejection must not write a second secondary index entry")
 }
 
-// TestMigratePartialDecryptRoundIndex_PrunesStaleAndIndexesSurviving writes raw
-// primary entries for rounds 1, 2, 3 (no secondary index), sets up active round = 4
-// and previous active round = 3, runs migration, and asserts that rounds 1 and 2 are
-// deleted (cutoff = prevActive-1 = 2) while round 3 is backfilled in the secondary index.
-func TestMigratePartialDecryptRoundIndex_PrunesStaleAndIndexesSurviving(t *testing.T) {
+// TestMigratePartialDecryptRoundIndex_BackfillsAllEntries writes raw primary
+// entries for rounds 1, 2, 3 (no secondary index) and verifies that migration
+// backfills the secondary index for every entry without deleting any primary data.
+// Pruning is left to BeginBlocker on the next FinalizeDKGRound.
+func TestMigratePartialDecryptRoundIndex_BackfillsAllEntries(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
@@ -523,39 +523,29 @@ func TestMigratePartialDecryptRoundIndex_PrunesStaleAndIndexesSurviving(t *testi
 	key2 := writePrimaryEntry(t, k, ctx, testValidator1, 2, 1, requesterPubKey, label, ciphertext)
 	key3 := writePrimaryEntry(t, k, ctx, testValidator1, 3, 1, requesterPubKey, label, ciphertext)
 
-	// Previous active round = 3 (Ended), current active round = 4.
-	// findPrevActiveRound(ctx, 4) = 3 → cutoff = 2 → rounds 1,2 pruned, round 3 survives.
-	require.NoError(t, k.setDKGNetwork(ctx, &types.DKGNetwork{Round: 3, Stage: types.DKGStageEnded}))
-	require.NoError(t, k.setDKGNetwork(ctx, &types.DKGNetwork{Round: 4, Stage: types.DKGStageActive}))
-	require.NoError(t, k.setLatestActiveRound(ctx, &types.DKGNetwork{Round: 4}))
-
 	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx))
 
-	// Rounds 1 and 2 should be deleted from the primary store.
-	for _, key := range []string{key1, key2} {
+	// All primary entries must survive — migration must not delete anything.
+	for round, key := range map[uint32]string{1: key1, 2: key2, 3: key3} {
 		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
 		require.NoError(t, err)
-		require.False(t, exists, "stale primary entry should be pruned during migration: %s", key)
+		require.True(t, exists, "primary entry for round %d must not be deleted by migration", round)
 	}
 
-	// Round 3 primary entry must still exist.
-	exists, err := k.DKGPartialDecrypt.Has(ctx, key3)
-	require.NoError(t, err)
-	require.True(t, exists, "surviving primary entry should remain after migration")
+	// Every primary entry must have a corresponding secondary index entry.
+	for round, key := range map[uint32]string{1: key1, 2: key2, 3: key3} {
+		indexKey := dkgPartialDecryptRoundIndexKey(round, key)
+		exists, err := k.DKGPartialDecryptRoundIndex.Has(ctx, indexKey)
+		require.NoError(t, err)
+		require.True(t, exists, "secondary index entry missing for round %d", round)
+	}
 
-	// Round 3 must have a secondary index entry.
-	indexKey3 := dkgPartialDecryptRoundIndexKey(3, key3)
-	exists, err = k.DKGPartialDecryptRoundIndex.Has(ctx, indexKey3)
-	require.NoError(t, err)
-	require.True(t, exists, "migration should backfill secondary index for surviving round")
-
-	// Rounds 1 and 2 must have no secondary index entries.
 	allIter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, nil)
 	require.NoError(t, err)
 	indexKeys, err := allIter.Keys()
 	allIter.Close()
 	require.NoError(t, err)
-	require.Len(t, indexKeys, 1, "only round 3 should appear in the secondary index")
+	require.Len(t, indexKeys, 3, "secondary index should have exactly 3 entries")
 }
 
 // TestMigratePartialDecryptRoundIndex_Idempotent verifies that running migration
@@ -569,30 +559,24 @@ func TestMigratePartialDecryptRoundIndex_Idempotent(t *testing.T) {
 	label := testLabel()
 	ciphertext := []byte("ciphertext")
 
-	writePrimaryEntry(t, k, ctx, testValidator1, 1, 1, requesterPubKey, label, ciphertext)
+	key1 := writePrimaryEntry(t, k, ctx, testValidator1, 1, 1, requesterPubKey, label, ciphertext)
 	key3 := writePrimaryEntry(t, k, ctx, testValidator1, 3, 1, requesterPubKey, label, ciphertext)
-
-	require.NoError(t, k.setDKGNetwork(ctx, &types.DKGNetwork{Round: 3, Stage: types.DKGStageEnded}))
-	require.NoError(t, k.setDKGNetwork(ctx, &types.DKGNetwork{Round: 4, Stage: types.DKGStageActive}))
-	require.NoError(t, k.setLatestActiveRound(ctx, &types.DKGNetwork{Round: 4}))
 
 	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx))
 	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx), "second migration run must be idempotent")
 
-	// State should be the same as after the first run: round 3 primary + index exist.
-	exists, err := k.DKGPartialDecrypt.Has(ctx, key3)
-	require.NoError(t, err)
-	require.True(t, exists)
+	// Both primary entries must still exist after two migration runs.
+	for round, key := range map[uint32]string{1: key1, 3: key3} {
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.True(t, exists, "primary entry for round %d must survive idempotent migration", round)
+	}
 
-	indexKey3 := dkgPartialDecryptRoundIndexKey(3, key3)
-	exists, err = k.DKGPartialDecryptRoundIndex.Has(ctx, indexKey3)
-	require.NoError(t, err)
-	require.True(t, exists)
-
+	// Secondary index should have exactly 2 entries (one per primary), not 4.
 	allIter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, nil)
 	require.NoError(t, err)
 	indexKeys, err := allIter.Keys()
 	allIter.Close()
 	require.NoError(t, err)
-	require.Len(t, indexKeys, 1, "secondary index should have exactly 1 entry after idempotent migration")
+	require.Len(t, indexKeys, 2, "idempotent migration must not duplicate secondary index entries")
 }

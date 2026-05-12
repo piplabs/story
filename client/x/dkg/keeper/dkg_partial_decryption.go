@@ -139,47 +139,29 @@ func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uin
 }
 
 // MigratePartialDecryptRoundIndex is called once by the upgrade handler to
-// backfill the secondary round index and prune entries that are already stale.
-// For each existing DKGPartialDecrypt entry:
-//   - If its round < prevActiveRound: delete primary (stale, older than retention window).
-//   - Otherwise: write the secondary index entry so future pruning can find it.
+// backfill the secondary round index for all existing DKGPartialDecrypt entries.
+// It does NOT delete any entries — pruning is handled exclusively by BeginBlocker
+// on the next FinalizeDKGRound, ensuring all nodes prune at the same height and
+// consensus is preserved.
 func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
-	activeRound, err := k.GetLatestActiveRound(ctx)
-	if err != nil {
-		return errors.Wrap(err, "migrate partial decrypt round index: get latest active round")
-	}
-
-	// Compute cutoff: prune rounds older than the previous active round.
-	// This mirrors the ongoing pruning logic in BeginBlocker.
-	var cutoffRound uint32
-	hasCutoff := false
-	if activeRound != nil {
-		prevActive, err := k.findPrevActiveRound(ctx, activeRound.Round)
-		if err != nil {
-			return errors.Wrap(err, "migrate partial decrypt round index: find previous active round")
-		}
-		if prevActive > 0 {
-			cutoffRound = prevActive - 1
-			hasCutoff = true
-		}
-	}
-
 	iter, err := k.DKGPartialDecrypt.Iterate(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "migrate partial decrypt round index: iterate primary entries")
 	}
 
-	type entry struct {
-		primaryKey string
-		round      uint32
-	}
-	var entries []entry
+	var primaryKeys []string
 	for ; iter.Valid(); iter.Next() {
 		primaryKey, err := iter.Key()
 		if err != nil {
 			iter.Close()
 			return errors.Wrap(err, "migrate partial decrypt round index: read key")
 		}
+		primaryKeys = append(primaryKeys, primaryKey)
+	}
+	iter.Close()
+
+	var indexed int
+	for _, primaryKey := range primaryKeys {
 		// Primary key format: {reqHash}_{labelHex}_{ciphertextHash}_{round}_{validator}
 		// All components are hex or decimal — no underscores within any component.
 		parts := strings.SplitN(primaryKey, "_", 5)
@@ -192,27 +174,14 @@ func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
 			log.Warn(ctx, "Skipping partial decrypt key with unparseable round during migration", nil, "key", primaryKey, "round_field", parts[3])
 			continue
 		}
-		entries = append(entries, entry{primaryKey: primaryKey, round: uint32(roundVal)})
-	}
-	iter.Close()
-
-	var pruned, indexed int
-	for _, e := range entries {
-		if hasCutoff && e.round <= cutoffRound {
-			if err := k.DKGPartialDecrypt.Remove(ctx, e.primaryKey); err != nil {
-				return errors.Wrap(err, "migrate partial decrypt round index: remove stale primary entry")
-			}
-			pruned++
-		} else {
-			indexKey := dkgPartialDecryptRoundIndexKey(e.round, e.primaryKey)
-			if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
-				return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
-			}
-			indexed++
+		indexKey := dkgPartialDecryptRoundIndexKey(uint32(roundVal), primaryKey)
+		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+			return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
 		}
+		indexed++
 	}
 
-	log.Info(ctx, "Migrated partial decrypt round index", "pruned", pruned, "indexed", indexed)
+	log.Info(ctx, "Migrated partial decrypt round index", "indexed", indexed)
 
 	return nil
 }
