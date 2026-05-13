@@ -16,6 +16,8 @@ const (
 
 	Horace = "horace"
 	V160   = "v1.6.0"
+
+	Seneca = "seneca"
 )
 
 var (
@@ -32,6 +34,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence: 50,
 		V142:    50,
 		Horace:  100,
+		Seneca:  300,
 	},
 	LocalChainID: {
 		V121:    0,
@@ -53,6 +56,7 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence:  10886688,
 		V142:     12088950,
 		Horace:   14017000,
+		Seneca:   18550000,
 	},
 	StoryChainID: {
 		Virgil:   809988,
@@ -122,4 +126,13 @@ func IsV142(chainID string, blockNumber int64) (bool, error) {
 	}
 
 	return blockNumber >= v142Block, nil
+}
+
+func IsSeneca(chainID string, blockNumber int64) (bool, error) {
+	senecaBlock, err := GetUpgradeHeight(chainID, Seneca)
+	if err != nil {
+		return false, err
+	}
+
+	return blockNumber >= senecaBlock, nil
 }
