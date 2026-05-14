@@ -1,4 +1,4 @@
-package v_1_7_0
+package v_1_9_0
 
 import (
 	storetypes "cosmossdk.io/store/types"
@@ -10,10 +10,10 @@ import (
 	"github.com/piplabs/story/lib/netconf"
 )
 
-// UpgradeName is the on-chain name for the v1.7.0 upgrade that introduces
+// UpgradeName is the on-chain name for the v1.9.0 upgrade that introduces
 // round-based pruning for DKGPartialDecrypt entries. No new module stores are
 // added; the secondary index lives within the existing DKG KV store prefix.
-const UpgradeName = netconf.V170
+const UpgradeName = netconf.V190
 
 var Upgrade = upgrades.Upgrade{
 	UpgradeName:          UpgradeName,

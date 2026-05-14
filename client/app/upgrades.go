@@ -17,7 +17,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
 	"github.com/piplabs/story/client/app/upgrades/v_1_6_0"
-	"github.com/piplabs/story/client/app/upgrades/v_1_7_0"
+	"github.com/piplabs/story/client/app/upgrades/v_1_9_0"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
 )
@@ -32,7 +32,7 @@ var (
 		terence.Upgrade,
 		horace.Upgrade,
 		v_1_6_0.Upgrade,
-		v_1_7_0.Upgrade,
+		v_1_9_0.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -42,7 +42,7 @@ var (
 		terence.Fork,
 		horace.Fork,
 		v_1_6_0.Fork,
-		v_1_7_0.Fork,
+		v_1_9_0.Fork,
 	}
 )
 

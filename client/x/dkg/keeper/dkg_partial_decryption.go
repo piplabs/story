@@ -90,14 +90,25 @@ func (k *Keeper) setPartialDecryptionSubmission(
 		return errors.Wrap(err, "set partial decryption submission")
 	}
 
-	// Write secondary round index entry alongside the primary. Value is empty;
-	// presence is sufficient for range-delete pruning.
-	indexKey := dkgPartialDecryptRoundIndexKey(round, key)
-	if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
-		return errors.Wrap(err, "set partial decrypt round index")
+	// Write secondary round index only after the v1.9.0 upgrade has activated it.
+	// Before the upgrade, the index does not exist; writing it on nodes replaying
+	// from genesis would cause an app hash mismatch between old and new binaries.
+	if k.isPartialDecryptIndexActive(ctx) {
+		indexKey := dkgPartialDecryptRoundIndexKey(round, key)
+		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+			return errors.Wrap(err, "set partial decrypt round index")
+		}
 	}
 
 	return nil
+}
+
+// isPartialDecryptIndexActive reports whether the v1.9.0 upgrade migration has
+// been applied. Before migration the secondary round index does not exist, so
+// writes and pruning must be skipped to avoid app hash divergence on genesis replay.
+func (k *Keeper) isPartialDecryptIndexActive(ctx context.Context) bool {
+	exists, err := k.DKGPartialDecryptIndexActive.Has(ctx)
+	return err == nil && exists
 }
 
 // pruneOldPartialDecryptions removes all DKGPartialDecrypt entries (primary +
@@ -179,6 +190,12 @@ func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
 			return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
 		}
 		indexed++
+	}
+
+	// Activate the index: from this point on, setPartialDecryptionSubmission writes
+	// the secondary index and BeginBlocker uses it for pruning.
+	if err := k.DKGPartialDecryptIndexActive.Set(ctx, "1"); err != nil {
+		return errors.Wrap(err, "migrate partial decrypt round index: set index active flag")
 	}
 
 	log.Info(ctx, "Migrated partial decrypt round index", "indexed", indexed)

@@ -336,6 +336,7 @@ func TestPruneOldPartialDecryptions_Basic(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()
@@ -370,6 +371,7 @@ func TestPruneOldPartialDecryptions_NothingToDelete(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()
@@ -395,6 +397,7 @@ func TestPruneOldPartialDecryptions_MultipleRoundsOnCutoff(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()
@@ -430,6 +433,7 @@ func TestPruneOldPartialDecryptions_ZeroCutoff(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()
@@ -455,6 +459,7 @@ func TestSetPartialDecryptionSubmission_WritesSecondaryIndex(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()
@@ -479,6 +484,7 @@ func TestSetPartialDecryptionSubmission_DuplicateDoesNotDoubleWriteIndex(t *test
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
 
 	requesterPubKey := []byte("requester-pub-key")
 	label := testLabel()

@@ -33,4 +33,5 @@ var (
 	CDRPartialSubmitCountKey           = collections.NewPrefix(10)
 	CDRFeePoolBalanceKey               = collections.NewPrefix(11)
 	DKGPartialDecryptRoundIndexKey     = collections.NewPrefix(12)
+	DKGPartialDecryptIndexActiveKey    = collections.NewPrefix(13) // set to true after v1.9.0 migration
 )

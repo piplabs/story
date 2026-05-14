@@ -78,8 +78,9 @@ type Keeper struct {
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt           collections.Map[string, []byte]               // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
-	DKGPartialDecryptRoundIndex collections.Map[string, []byte]               // secondary index key: {round:010d}_{primary_key}; value: empty (presence only)
+	DKGPartialDecrypt             collections.Map[string, []byte]  // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
+	DKGPartialDecryptRoundIndex   collections.Map[string, []byte]  // secondary index key: {round:010d}_{primary_key}; value: empty (presence only)
+	DKGPartialDecryptIndexActive  collections.Item[string]         // present after v1.9.0 migration; guards secondary index writes and pruning
 	DecryptRequestRegistry      collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
 
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
@@ -126,8 +127,9 @@ func NewKeeper(
 		GlobalPubKeyVotes:           collections.NewMap(sb, types.GlobalPubKeyVotesKey, "dkg_global_pub_key_votes", collections.StringKey, collections.Uint32Value),
 		SettlementBalance:           collections.NewItem(sb, types.SettlementBalanceKey, "settlement_balance", collections.StringValue),
 		KernelUpgradeInfos:          collections.NewMap(sb, types.KernelUpgradeInfoKey, "kernel_upgrade_infos", collections.StringKey, codec.CollValue[types.KernelUpgradeInfo](cdc)),
-		DKGPartialDecrypt:           collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
-		DKGPartialDecryptRoundIndex: collections.NewMap(sb, types.DKGPartialDecryptRoundIndexKey, "dkg_partial_decrypt_round_index", collections.StringKey, collections.BytesValue),
+		DKGPartialDecrypt:            collections.NewMap(sb, types.DKGPartialDecryptKey, "dkg_partial_decrypt_submissions", collections.StringKey, collections.BytesValue),
+		DKGPartialDecryptRoundIndex:  collections.NewMap(sb, types.DKGPartialDecryptRoundIndexKey, "dkg_partial_decrypt_round_index", collections.StringKey, collections.BytesValue),
+		DKGPartialDecryptIndexActive: collections.NewItem(sb, types.DKGPartialDecryptIndexActiveKey, "dkg_partial_decrypt_index_active", collections.StringValue),
 		DecryptRequestRegistry:      collections.NewMap(sb, types.DecryptRequestRegistryKey, "decrypt_request_registry", collections.StringKey, codec.CollValue[types.DecryptRequest](cdc)),
 		CDRPartialSubmitCount:       collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
 		CDRFeePoolBalance:           collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),

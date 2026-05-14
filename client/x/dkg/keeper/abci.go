@@ -99,9 +99,15 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			return k.BeginFinalization(ctx, latestRound)
 		case types.DKGStageActive:
 			// Capture the previous active round before FinalizeDKGRound updates LatestActiveRound.
-			prevActiveRound, err := k.GetLatestActiveRound(ctx)
-			if err != nil {
-				return errors.Wrap(err, "get previous active round for pruning")
+			// Only do this after the v1.9.0 upgrade has activated the secondary index; on nodes
+			// replaying from genesis the index does not exist yet and must not be consulted.
+			var prevActiveRound *types.DKGNetwork
+			if k.isPartialDecryptIndexActive(ctx) {
+				var err error
+				prevActiveRound, err = k.GetLatestActiveRound(ctx)
+				if err != nil {
+					return errors.Wrap(err, "get previous active round for pruning")
+				}
 			}
 
 			if err := k.FinalizeDKGRound(ctx, latestRound); err != nil {

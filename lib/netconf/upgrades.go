@@ -18,7 +18,7 @@ const (
 	V160   = "v1.6.0"
 
 	Seneca = "seneca"
-	V170 = "v1.7.0"
+	V190   = "v1.9.0"
 )
 
 var (
@@ -36,21 +36,21 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V142:    50,
 		Horace:  100,
 		Seneca:  300,
-		V170:    400,
+		V190:    400,
 	},
 	LocalChainID: {
 		V121:    0,
 		Terence: 50,
 		V142:    50,
 		Horace:  100,
-		V170:    200,
+		V190:    200,
 	},
 	StoryLocalnetID: {
 		V121:    0,
 		Terence: 0,
 		V142:    0,
 		Horace:  100,
-		V170:    200,
+		V190:    200,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
