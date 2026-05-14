@@ -157,14 +157,14 @@ contract CDRTest is Test {
         cdr.allocate(true, address(0), address(0), "", "");
     }
 
-    function testCDR_Allocate_OneConditionZeroAllowed() public {
-        // Only write condition
-        uint32 uuid1 = cdr.allocate(true, address(writeCondition), address(0), "", "");
-        assertEq(cdr.vaults(uuid1).writeConditionAddr, address(writeCondition));
+    function testCDR_Allocate_RevertIfConditionZero() public {
+        // writeConditionAddr zero rejected
+        vm.expectRevert("Invalid condition address");
+        cdr.allocate(true, address(0), address(readCondition), "", "");
 
-        // Only read condition
-        uint32 uuid2 = cdr.allocate(true, address(0), address(readCondition), "", "");
-        assertEq(cdr.vaults(uuid2).readConditionAddr, address(readCondition));
+        // readConditionAddr zero rejected
+        vm.expectRevert("Invalid condition address");
+        cdr.allocate(true, address(writeCondition), address(0), "", "");
     }
 
     function testCDR_Allocate_WithFee() public {
@@ -293,15 +293,6 @@ contract CDRTest is Test {
         cdr.write(vaultUuid, "", hex"deadbeef");
 
         assertEq(cdr.vaults(vaultUuid).encryptedData, hex"deadbeef");
-    }
-
-    function testCDR_Write_RevertIfWriteConditionAddrNotSet() public {
-        // Allocate with only read condition
-        uint32 vaultUuid = cdr.allocate(true, address(0), address(readCondition), "", "");
-
-        vm.prank(alice);
-        vm.expectRevert("CDR: Write condition address not set");
-        cdr.write(vaultUuid, "", hex"deadbeef");
     }
 
     function testCDR_Write_WithFee() public {
@@ -558,19 +549,6 @@ contract CDRTest is Test {
     /*//////////////////////////////////////////////////////////////////////////
     //                    Read Condition Boundary Tests                        //
     //////////////////////////////////////////////////////////////////////////*/
-
-    function testCDR_Read_RevertIfReadConditionAddrNotSet() public {
-        // Allocate with only write condition (readConditionAddr = address(0))
-        uint32 vaultUuid = cdr.allocate(true, address(writeCondition), address(0), "", "");
-        vm.prank(alice);
-        cdr.write(vaultUuid, "", hex"deadbeef");
-
-        // Read reverts because readConditionAddr is address(0) — unlike write(),
-        // read() lacks an explicit zero-address check, causing a low-level revert
-        vm.prank(alice);
-        vm.expectRevert();
-        cdr.read(vaultUuid, "", hex"04aabbccdd");
-    }
 
     /*//////////////////////////////////////////////////////////////////////////
     //                        WhenNotPaused Tests                             //
