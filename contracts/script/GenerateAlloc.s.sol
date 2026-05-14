@@ -399,6 +399,7 @@ contract GenerateAlloc is Script {
         uint256 allocateFee = 0;
         uint256 maxEncryptedDataSize = 1024; // 1 KB
         uint256 maxEncryptedPartialSize = 1024; // 1 KB
+        uint256 maxBatchSize = 20;
         CDR(Predeploys.CDR).initialize(
             timelock,
             baseFee,
@@ -406,7 +407,8 @@ contract GenerateAlloc is Script {
             readFee,
             allocateFee,
             maxEncryptedDataSize,
-            maxEncryptedPartialSize
+            maxEncryptedPartialSize,
+            maxBatchSize
         );
 
         console2.log("CDR proxy deployed at:", Predeploys.CDR);

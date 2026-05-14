@@ -19,6 +19,8 @@ import (
 	types0 "github.com/cosmos/cosmos-sdk/x/staking/types"
 	types1 "github.com/ethereum/go-ethereum/core/types"
 	gomock "go.uber.org/mock/gomock"
+
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 // MockAccountKeeper is a mock of AccountKeeper interface.
@@ -314,4 +316,19 @@ func (m *MockDKGContractClient) SubmitEncryptedPartialDecryption(ctx context.Con
 func (mr *MockDKGContractClientMockRecorder) SubmitEncryptedPartialDecryption(ctx, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitEncryptedPartialDecryption", reflect.TypeOf((*MockDKGContractClient)(nil).SubmitEncryptedPartialDecryption), ctx, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
+}
+
+// SubmitEncryptedPartialDecryptionBatch mocks base method.
+func (m *MockDKGContractClient) SubmitEncryptedPartialDecryptionBatch(ctx context.Context, requests []bindings.ICDRPartialDecryptionRequest) (*types1.Receipt, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubmitEncryptedPartialDecryptionBatch", ctx, requests)
+	ret0, _ := ret[0].(*types1.Receipt)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubmitEncryptedPartialDecryptionBatch indicates an expected call of SubmitEncryptedPartialDecryptionBatch.
+func (mr *MockDKGContractClientMockRecorder) SubmitEncryptedPartialDecryptionBatch(ctx, requests any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitEncryptedPartialDecryptionBatch", reflect.TypeOf((*MockDKGContractClient)(nil).SubmitEncryptedPartialDecryptionBatch), ctx, requests)
 }

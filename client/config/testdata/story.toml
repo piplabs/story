@@ -135,3 +135,7 @@ engine-rpc-endpoint = "http://127.0.0.1:8545"
 
 # TEE enclave type identifier (e.g. 1 for SGX)
 enc-type = 1
+
+# Number of partial decryptions submitted in a single CDR contract call.
+# Must be ≤ the CDR contract's maxBatchSize (default 20).
+decrypt-batch-size = 20

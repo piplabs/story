@@ -49,14 +49,8 @@ contract UpgradeDKG is Script {
         Create3 create3 = Create3(Predeploys.Create3);
 
         // Derive new implementation addresses from Create3
-        address newDKGImpl = create3.getDeployed(
-            deployer,
-            keccak256(abi.encodePacked("DKG_Implementation_v1_0_0"))
-        );
-        address newCDRImpl = create3.getDeployed(
-            deployer,
-            keccak256(abi.encodePacked("CDR_Implementation_v1_0_0"))
-        );
+        address newDKGImpl = create3.getDeployed(deployer, keccak256(abi.encodePacked("DKG_Implementation_v1_0_0")));
+        address newCDRImpl = create3.getDeployed(deployer, keccak256(abi.encodePacked("CDR_Implementation_v1_0_0")));
 
         console2.log("New DKG implementation:", newDKGImpl);
         console2.log("New CDR implementation:", newCDRImpl);
@@ -81,29 +75,24 @@ contract UpgradeDKG is Script {
         payloads[1] = _buildCDRUpgradePayload(newCDRImpl);
         payloads[2] = _buildWhitelistPayload();
 
-        bytes4 selector;
         string memory modeString;
         bytes memory data;
 
         if (mode == MODE.CANCEL) {
             revert("TODO");
+        } else if (mode == MODE.SCHEDULE) {
+            modeString = "Schedule";
+            // scheduleBatch(address[], uint256[], bytes[], bytes32 predecessor, bytes32 salt, uint256 delay)
+            data = abi.encodeCall(
+                TimelockController.scheduleBatch,
+                (targets, values, payloads, bytes32(0), bytes32(0), minDelay)
+            );
         } else {
-            if (mode == MODE.SCHEDULE) {
-                selector = TimelockController.scheduleBatch.selector;
-                modeString = "Schedule";
-            } else {
-                selector = TimelockController.executeBatch.selector;
-                modeString = "Execute";
-            }
-            // Encode the full scheduleBatch call
-            data = abi.encodeWithSelector(
-                selector,
-                targets,
-                values,
-                payloads,
-                bytes32(0), // predecessor
-                bytes32(0), // salt
-                minDelay
+            modeString = "Execute";
+            // executeBatch(address[], uint256[], bytes[], bytes32 predecessor, bytes32 salt) — no delay
+            data = abi.encodeCall(
+                TimelockController.executeBatch,
+                (targets, values, payloads, bytes32(0), bytes32(0))
             );
         }
 
@@ -128,12 +117,13 @@ contract UpgradeDKG is Script {
             )
         );
 
-        return abi.encodeWithSelector(
-            ProxyAdmin.upgradeAndCall.selector,
-            ITransparentUpgradeableProxy(Predeploys.DKG),
-            newImpl,
-            initData
-        );
+        return
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.DKG),
+                newImpl,
+                initData
+            );
     }
 
     function _buildCDRUpgradePayload(address newImpl) internal view returns (bytes memory) {
@@ -146,27 +136,30 @@ contract UpgradeDKG is Script {
                 vm.envUint("CDR_READ_FEE"),
                 vm.envUint("CDR_ALLOCATE_FEE"),
                 vm.envUint("CDR_MAX_ENCRYPTED_DATA_SIZE"),
-                vm.envUint("CDR_MAX_ENCRYPTED_PARTIAL_SIZE")
+                vm.envUint("CDR_MAX_ENCRYPTED_PARTIAL_SIZE"),
+                vm.envUint("CDR_MAX_BATCH_SIZE")
             )
         );
 
-        return abi.encodeWithSelector(
-            ProxyAdmin.upgradeAndCall.selector,
-            ITransparentUpgradeableProxy(Predeploys.CDR),
-            newImpl,
-            initData
-        );
+        return
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector,
+                ITransparentUpgradeableProxy(Predeploys.CDR),
+                newImpl,
+                initData
+            );
     }
 
     function _buildWhitelistPayload() internal view returns (bytes memory) {
-        return abi.encodeWithSelector(
-            DKG.whitelistEnclaveType.selector,
-            ENCLAVE_TYPE,
-            IDKG.EnclaveTypeData({
-                codeCommitment: COMMITMENT,
-                validationHookAddr: vm.envAddress("SGX_HOOK_PROXY")
-            }),
-            WHITELISTED_VALUE //true
-        );
+        return
+            abi.encodeWithSelector(
+                DKG.whitelistEnclaveType.selector,
+                ENCLAVE_TYPE,
+                IDKG.EnclaveTypeData({
+                    codeCommitment: COMMITMENT,
+                    validationHookAddr: vm.envAddress("SGX_HOOK_PROXY")
+                }),
+                WHITELISTED_VALUE //true
+            );
     }
 }

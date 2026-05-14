@@ -11,9 +11,11 @@ import (
 
 func (s *Server) initDKGRoute() {
 	s.httpMux.HandleFunc("/dkg/dkg_network", utils.AutoWrap(s.aminoCodec, s.GetDKGNetwork))
+	s.httpMux.HandleFunc("/dkg/registrations", utils.AutoWrap(s.aminoCodec, s.GetAllDKGRegistrations))
 	s.httpMux.HandleFunc("/dkg/registrations/verified", utils.AutoWrap(s.aminoCodec, s.GetVerifiedDKGRegistrations))
 	s.httpMux.HandleFunc("/dkg/latest_active", utils.SimpleWrap(s.aminoCodec, s.GetLatestActiveDKGNetwork))
 	s.httpMux.HandleFunc("/dkg/global_public_key", utils.SimpleWrap(s.aminoCodec, s.GetDKGGlobalPubKey))
+	s.httpMux.HandleFunc("/dkg/cdr_partials", utils.AutoWrap(s.aminoCodec, s.GetCDRPartials))
 }
 
 func (s *Server) GetDKGNetwork(req *getDKGNetworkRequest, r *http.Request) (resp any, err error) {
@@ -23,8 +25,28 @@ func (s *Server) GetDKGNetwork(req *getDKGNetworkRequest, r *http.Request) (resp
 	}
 
 	queryResp, err := s.store.GetDKGKeeper().GetDKGNetwork(queryContext, &dkgtypes.QueryGetDKGNetworkRequest{
-		Round:             req.Round,
-		CodeCommitmentHex: req.CodeCommitmentHex,
+		Round: req.Round,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetAllDKGRegistrations returns every DKG registration stored for the given
+// round regardless of status (Verified, Finalized, or Invalidated). Unlike
+// GetVerifiedDKGRegistrations, this works for already-finalized rounds, so
+// clients can verify partial decryption signatures using the commPubKey that
+// was active when the partial was signed.
+func (s *Server) GetAllDKGRegistrations(req *getAllDKGRegistrationsRequest, r *http.Request) (resp any, err error) {
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := s.store.GetDKGKeeper().GetAllDKGRegistrations(queryContext, &dkgtypes.QueryGetAllDKGRegistrationsRequest{
+		Round: req.Round,
 	})
 	if err != nil {
 		return nil, err
@@ -40,8 +62,7 @@ func (s *Server) GetVerifiedDKGRegistrations(req *getVerifiedDKGRegistrationsReq
 	}
 
 	queryResp, err := s.store.GetDKGKeeper().GetAllVerifiedDKGRegistrations(queryContext, &dkgtypes.QueryGetAllVerifiedDKGRegistrationsRequest{
-		Round:             req.Round,
-		CodeCommitmentHex: req.CodeCommitmentHex,
+		Round: req.Round,
 	})
 	if err != nil {
 		return nil, err
@@ -57,6 +78,29 @@ func (s *Server) GetLatestActiveDKGNetwork(r *http.Request) (resp any, err error
 	}
 
 	queryResp, err := s.store.GetDKGKeeper().GetLatestActiveDKGNetwork(queryContext, &dkgtypes.QueryGetLatestActiveDKGNetworkRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return queryResp, nil
+}
+
+// GetCDRPartials returns partial decryption submissions for the given
+// (uuid, requesterPubKey) pair, grouped by DKG round and ciphertext.
+func (s *Server) GetCDRPartials(req *getCDRPartialsRequest, r *http.Request) (resp any, err error) {
+	if err := req.validate(); err != nil {
+		return nil, err
+	}
+
+	queryContext, err := s.createQueryContextByHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	queryResp, err := s.store.GetDKGKeeper().GetCDRPartials(queryContext, &dkgtypes.QueryGetCDRPartialsRequest{
+		Uuid:               req.Uuid,
+		RequesterPubKeyHex: req.RequesterPubKeyHex,
+	})
 	if err != nil {
 		return nil, err
 	}

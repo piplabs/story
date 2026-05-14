@@ -67,6 +67,7 @@ type Keeper struct {
 	isDKGSvcEnabled  bool
 	validatorEVMAddr string   // EVM address of the validator
 	enclaveType      [32]byte // TEE enclave type identifier
+	decryptBatchSize int      // number of partial decryptions per batch CDR call
 
 	Schema             collections.Schema
 	DKGNetworks        collections.Map[string, types.DKGNetwork]        // key: round
@@ -116,6 +117,7 @@ func NewKeeper(
 		kernelRouter:           kernelRouter,
 		contractClient:         contractClient,
 		authority:              authority,
+		decryptBatchSize:       defaultDecryptBatchSize,
 		DKGNetworks:            collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks", collections.StringKey, codec.CollValue[types.DKGNetwork](cdc)),
 		LatestDKGNetwork:       collections.NewItem(sb, types.LatestDKGNetworkKey, "latest_dkg_network", collections.StringValue),
 		LatestActiveRound:      collections.NewItem(sb, types.LatestActiveRoundKey, "latest_active_round", collections.StringValue),
@@ -164,6 +166,13 @@ func (k *Keeper) setIsDKGSvcEnabled() {
 
 func (k *Keeper) setValidatorAddress(addr common.Address) {
 	k.validatorEVMAddr = strings.ToLower(addr.Hex())
+}
+
+// SetDecryptBatchSize overrides the default batch size used when submitting
+// partial decryptions to the CDR contract. Must be called before the DKG
+// service processes any decrypt requests.
+func (k *Keeper) SetDecryptBatchSize(n int) {
+	k.decryptBatchSize = n
 }
 
 // GetAuthority returns the module's authority address.

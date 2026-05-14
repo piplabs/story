@@ -8,9 +8,28 @@ import (
 	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/contracts/bindings"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
 )
+
+// decryptComputeResult holds the outcome of a single parallel kernel partial-decrypt call.
+type decryptComputeResult struct {
+	req  types.DecryptRequest
+	resp *types.PartialDecryptTDH2Response
+	err  error
+}
+
+// decryptChanBuf limits the number of goroutines running kernel calls concurrently.
+const decryptChanBuf = 10
+
+// defaultDecryptBatchSize is the default number of partial decryptions to submit
+// in a single batch contract call when no explicit batch size is configured.
+// The CDR contract enforces its own maxBatchSize; this client-side value should be ≤ that limit.
+// One single submission tx consumes nearly 72k gas, including fixed overhead and per-decryption cost.
+// Batching reduces total gas by amortizing the fixed overhead across multiple decryptions.
+// With 20 decryptions, we get ~35% gas savings compared to single submissions, while keeping batch size manageable.
+const defaultDecryptBatchSize = 20
 
 // dkgSvcRound tracks which DKG round is currently being processed by async
 // goroutines. Zero means no round is running. A higher round number always
@@ -62,7 +81,13 @@ func releaseDKGSvc(round uint32) {
 // communicate with the story-kernel. These goroutines must NOT use the CometBFT
 // consensus context because it gets canceled when block processing completes,
 // which can abort in-flight gRPC calls to the story-kernel.
-const dkgAsyncTimeout = 1 * time.Minute
+//
+// The budget must cover a TEE kernel call plus one waitForTransaction call
+// (which has its own 60s inner timeout). 2 minutes gives ~60s for the kernel
+// operation and ~60s for the on-chain transaction to be mined. If the async
+// context expires before waitForTransaction's inner timeout fires, the tx wait
+// is cut short — so this value must stay above 60s to be meaningful.
+const dkgAsyncTimeout = 2 * time.Minute
 
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
 // This replaces the consensus context that would otherwise be canceled after block processing.
@@ -146,6 +171,7 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 // resumeFailedSession dispatches a PhaseFailed session to the appropriate handler
 // based on the current DKG network stage.
 func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSession, dkgNetwork *types.DKGNetwork) {
+	sessionRecoveryTotal.Inc()
 	switch dkgNetwork.Stage {
 	case types.DKGStageRegistration:
 		// Pre-compute registration check while SDK context is available.
@@ -285,6 +311,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		return
 	}
 
+	if k.kernelRouter == nil {
+		log.Error(ctx, "Kernel client not configured", nil)
+		return
+	}
+
 	currentHeight, err := k.contractClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to get current block height for decrypt queue processing", err)
@@ -292,7 +323,54 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	}
 
 	sessions := k.stateManager.ListSessions()
+
+	var maxRound uint32
+	for _, s := range sessions {
+		if s.Round > maxRound {
+			maxRound = s.Round
+		}
+	}
+
 	for _, session := range sessions {
+		// Drop queued requests from sessions that are at least 2 rounds behind the
+		// current round — their keys are no longer relevant and the requests would
+		// never be processed successfully.
+		if maxRound >= 2 && session.Round <= maxRound-2 {
+			dropped := session.DrainDecryptRequests()
+			if len(dropped) > 0 {
+				log.Warn(ctx, "Dropping decrypt requests from stale session", nil,
+					"session", session.GetSessionKey(),
+					"dropped_requests", len(dropped),
+				)
+				incDecryptRequest(labelDecryptStaleDropped, len(dropped))
+				if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+					log.Error(ctx, "Failed to persist stale session after clearing requests", err,
+						"session", session.GetSessionKey(),
+					)
+				}
+			}
+
+			continue
+		}
+
+		// Check session-level preconditions before draining so that requests are
+		// not removed from the queue only to be re-added immediately.
+		if session.Index == 0 {
+			log.Warn(ctx, "Session index not set, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
+		if len(session.GlobalPubKey) == 0 {
+			log.Warn(ctx, "Missing global public key for session, deferring decrypt requests to next tick", nil,
+				"session", session.GetSessionKey(),
+			)
+
+			continue
+		}
+
 		// Atomically drain the queue so that requests added by the ABCI thread
 		// during processing are not overwritten when we persist the remaining failures.
 		requests := session.DrainDecryptRequests()
@@ -337,6 +415,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 				"stale_requests", staleCount,
 				"current_height", currentHeight,
 			)
+			incDecryptRequest(labelDecryptStaleDropped, staleCount)
 		}
 
 		if len(validRequests) == 0 {
@@ -355,27 +434,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			"pending_requests", len(requests),
 		)
 
-		for _, req := range requests {
-			if err := k.handleDecryptRequest(ctx, session, req); err != nil {
-				log.Error(ctx, "Failed to process decrypt request", err,
-					"session", session.GetSessionKey(),
-					"round", req.Round,
-					"ciphertext_len", len(req.Ciphertext),
-					"label_len", len(req.Label),
-					"requester_pub_key_len", len(req.RequesterPubKey),
-				)
-				// Re-add failed request; this appends to the live queue, preserving
-				// any new requests the ABCI thread added while we were processing.
-				session.AddDecryptRequest(req)
-
-				continue
-			}
-
-			log.Info(ctx, "Successfully processed decrypt request",
-				"session", session.GetSessionKey(),
-				"round", req.Round,
-			)
-		}
+		k.processDecryptRequests(ctx, session, requests)
 
 		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 			log.Error(ctx, "Failed to update session after processing decrypt queue", err,
@@ -385,26 +444,139 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	}
 }
 
-// handleDecryptRequest attempts TDH2 partial decrypt for a single request.
-func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) error {
-	if k.kernelRouter == nil {
-		return errors.New("kernel client not configured")
+// processDecryptRequests fans out kernel PartialDecryptTDH2 calls in parallel and
+// submits the results to the CDR contract in batches of decryptBatchSize.
+//
+// Phase 1 and Phase 2 run concurrently:
+//
+//   - Phase 1 launches kernel goroutines (up to decryptChanBuf in-flight).
+//     resultCh is buffered to len(requests) so goroutines never block on send.
+//
+//   - Phase 2 (batchSubmitConsumer) starts immediately, draining resultCh and
+//     submitting batches while Phase 1 is still launching kernel calls. This
+//     means the first batch tx can go out before all kernel calls have returned.
+//
+// The function blocks until Phase 2 completes so the caller can safely persist
+// the session (UpdateSession must see all re-queued requests).
+func (k *Keeper) processDecryptRequests(ctx context.Context, session *types.DKGSession, requests []types.DecryptRequest) {
+	sem := make(chan struct{}, decryptChanBuf)
+	// Buffer len(requests) so kernel goroutines never block on send regardless of
+	// how fast Phase 2 consumes — this is what enables true Phase 1/2 overlap.
+	resultCh := make(chan decryptComputeResult, len(requests))
+
+	// Phase 2: start the batch-submission consumer before launching any kernel
+	// goroutines so it is already draining resultCh while Phase 1 is still running.
+	done := make(chan struct{})
+	go k.batchSubmitConsumer(ctx, session, resultCh, len(requests), done)
+
+	// Phase 1: launch kernel goroutines. May block on sem when decryptChanBuf slots
+	// are exhausted, but Phase 2 runs concurrently and submits batches in parallel.
+	for _, req := range requests {
+		sem <- struct{}{}
+		go func(req types.DecryptRequest) {
+			defer func() { <-sem }()
+			// Pre-initialize so deferred send fires even on runtime.Goexit (t.Fatal).
+			result := decryptComputeResult{req: req, err: errors.New("goroutine exited without result")}
+			defer func() { resultCh <- result }()
+			result = k.computePartialDecrypt(ctx, session, req)
+		}(req)
 	}
 
-	pid := session.Index
-	if pid == 0 {
-		return errors.New("session index not set")
+	// Wait for Phase 2 to finish before returning so the caller can safely
+	// persist the session (UpdateSession must see all re-queued requests).
+	<-done
+}
+
+// batchSubmitConsumer drains n results from resultCh, accumulates them into
+// batches of decryptBatchSize, and submits each full batch (plus any remainder)
+// to the CDR contract. Failed kernel results are re-queued; failed batch
+// submissions are re-queued so the worker retries on the next tick.
+//
+// The done channel is closed when all n results have been consumed and submitted,
+// signalling processDecryptRequests that it is safe to return.
+func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSession, resultCh <-chan decryptComputeResult, n int, done chan struct{}) {
+	defer close(done)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(ctx, "Panic in batch submission goroutine", errors.New("panic in batchSubmitConsumer", "value", r),
+				"session", session.GetSessionKey(),
+			)
+			// Re-queuing drained-but-unsent requests is not possible after a
+			// panic since we don't know which were already sent. The worker will
+			// retry on the next tick via the normal re-queue path.
+		}
+	}()
+
+	batchSize := k.decryptBatchSize
+	if batchSize <= 0 {
+		batchSize = defaultDecryptBatchSize
+	}
+	batch := make([]decryptComputeResult, 0, batchSize)
+
+	flushBatch := func() {
+		if len(batch) == 0 {
+			return
+		}
+		if err := k.submitPartialDecryptionBatch(ctx, session, batch); err != nil {
+			log.Error(ctx, "Failed to submit partial decryption batch", err,
+				"session", session.GetSessionKey(),
+				"batch_size", len(batch),
+			)
+			incDecryptBatch(labelBatchError, len(batch))
+			for _, r := range batch {
+				session.AddDecryptRequest(r.req)
+			}
+			incDecryptRequest(labelDecryptRequeued, len(batch))
+		} else {
+			log.Info(ctx, "Successfully submitted partial decryption batch",
+				"session", session.GetSessionKey(),
+				"batch_size", len(batch),
+			)
+			incDecryptBatch(labelBatchSuccess, len(batch))
+			incDecryptRequest(labelDecryptSubmitted, len(batch))
+		}
+		batch = batch[:0]
 	}
 
-	if len(session.GlobalPubKey) == 0 {
-		return errors.New("missing global public key for session")
+	for range n {
+		r := <-resultCh
+		if r.err != nil {
+			log.Error(ctx, "Kernel partial decrypt failed", r.err,
+				"session", session.GetSessionKey(),
+				"round", r.req.Round,
+			)
+			session.AddDecryptRequest(r.req)
+			incDecryptRequest(labelDecryptKernelFailed, 1)
+			continue
+		}
+		batch = append(batch, r)
+		if len(batch) >= batchSize {
+			flushBatch()
+		}
 	}
+	flushBatch()
+}
+
+// computePartialDecrypt calls the kernel for a single TDH2 partial decrypt.
+// Any panic is recovered and returned as an error so the parent processDecryptRequests
+// goroutine always sends exactly one result to the channel.
+func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSession, req types.DecryptRequest) (result decryptComputeResult) {
+	result.req = req
+	start := time.Now()
+
+	defer func() {
+		if r := recover(); r != nil {
+			result.err = errors.New("panic in computePartialDecrypt", "value", r)
+		}
+	}()
 
 	client, err := k.getClientWithReconnect(session.CodeCommitment)
 	if err != nil {
-		return errors.Wrap(err, "no kernel client for session")
+		result.err = errors.Wrap(err, "no kernel client for session")
+		return
 	}
 
+	kernelStart := time.Now()
 	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
 		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
@@ -413,10 +585,32 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		GlobalPubKey:    session.GlobalPubKey,
 		RequesterPubKey: req.RequesterPubKey,
 	})
+	kernelDuration := time.Since(kernelStart)
+	observeKernelCall(labelOpPartialDecryptTDH2, kernelStart, err)
+
 	if err != nil {
-		return errors.Wrap(err, "generating partial decrypt failed")
+		result.err = errors.Wrap(err, "generating partial decrypt failed")
+		log.Error(ctx, "Kernel PartialDecryptTDH2 failed", err,
+			"session", session.GetSessionKey(),
+			"kernel_duration_ms", kernelDuration.Milliseconds(),
+		)
+		return
 	}
 
+	log.Info(ctx, "Kernel PartialDecryptTDH2 completed",
+		"session", session.GetSessionKey(),
+		"kernel_duration_ms", kernelDuration.Milliseconds(),
+		"total_duration_ms", time.Since(start).Milliseconds(),
+	)
+
+	result.resp = resp
+
+	return
+}
+
+// submitPartialDecryption submits a single partial-decrypt response to the CDR contract.
+// Used by tests and as a single-item fallback.
+func (k *Keeper) submitPartialDecryption(ctx context.Context, session *types.DKGSession, req types.DecryptRequest, resp *types.PartialDecryptTDH2Response) error {
 	uuid, err := labelToUUID(req.Label)
 	if err != nil {
 		return errors.Wrap(err, "invalid decrypt request label")
@@ -425,7 +619,7 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
 		session.Round,
-		pid,
+		session.Index,
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,
 		resp.PubShare,
@@ -435,6 +629,37 @@ func (k *Keeper) handleDecryptRequest(ctx context.Context, session *types.DKGSes
 		resp.Signature,
 	); err != nil {
 		return errors.Wrap(err, "failed to submit partial decryption")
+	}
+
+	return nil
+}
+
+// submitPartialDecryptionBatch submits a batch of kernel partial-decrypt results in a
+// single contract call, reducing gas overhead and tx count.
+func (k *Keeper) submitPartialDecryptionBatch(ctx context.Context, session *types.DKGSession, results []decryptComputeResult) error {
+	batchReqs := make([]bindings.ICDRPartialDecryptionRequest, 0, len(results))
+
+	for _, r := range results {
+		uuid, err := labelToUUID(r.req.Label)
+		if err != nil {
+			return errors.Wrap(err, "invalid decrypt request label in batch")
+		}
+
+		batchReqs = append(batchReqs, bindings.ICDRPartialDecryptionRequest{
+			Round:            session.Round,
+			Pid:              session.Index,
+			EncryptedPartial: r.resp.EncryptedPartialDecryption,
+			EphemeralPubKey:  r.resp.EphemeralPubKey,
+			PubShare:         r.resp.PubShare,
+			RequesterPubKey:  r.req.RequesterPubKey,
+			Ciphertext:       r.req.Ciphertext,
+			Uuid:             uuid,
+			Signature:        r.resp.Signature,
+		})
+	}
+
+	if _, err := k.contractClient.SubmitEncryptedPartialDecryptionBatch(ctx, batchReqs); err != nil {
+		return errors.Wrap(err, "failed to submit partial decryption batch")
 	}
 
 	return nil
@@ -451,12 +676,24 @@ func labelToUUID(label []byte) (uint32, error) {
 // If the initial lookup fails, it attempts to reconnect any disconnected endpoints
 // and retries the lookup once. This handles the case where story started before kernel.
 func (k *Keeper) getClientWithReconnect(codeCommitment []byte) (types.KernelServiceClient, error) {
+	start := time.Now()
+
 	client, err := k.kernelRouter.GetClient(codeCommitment)
 	if err == nil {
+		kernelClientLookupDuration.WithLabelValues(labelLookupHit).Observe(time.Since(start).Seconds())
 		return client, nil
 	}
 
 	k.kernelRouter.TryReconnect()
+	log.Info(context.Background(), "Retrying kernel client lookup after reconnect", "code_commitment", hex.EncodeToString(codeCommitment))
 
-	return k.kernelRouter.GetClient(codeCommitment)
+	client, err = k.kernelRouter.GetClient(codeCommitment)
+	if err != nil {
+		kernelClientLookupDuration.WithLabelValues(labelLookupError).Observe(time.Since(start).Seconds())
+		return nil, err
+	}
+
+	kernelClientLookupDuration.WithLabelValues(labelLookupReconnect).Observe(time.Since(start).Seconds())
+
+	return client, nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -48,6 +49,7 @@ type DKGContractBinding interface {
 type CDRContractBinding interface {
 	BaseFee(opts *bind.CallOpts) (*big.Int, error)
 	SubmitEncryptedPartialDecryption(opts *bind.TransactOpts, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*types.Transaction, error)
+	SubmitEncryptedPartialDecryptionBatch(opts *bind.TransactOpts, requests []bindings.ICDRPartialDecryptionRequest) (*types.Transaction, error)
 }
 
 // Compile-time assertions.
@@ -74,6 +76,13 @@ type ContractClient struct {
 	privateKey      *ecdsa.PrivateKey
 	fromAddress     common.Address
 	chainID         *big.Int
+
+	// pendingTxs tracks the last-sent tx for each operation key (e.g. "register_1").
+	// If waitForTransaction times out, the tx may still be in the mempool.
+	// The next invocation of the same operation checks this map first to avoid
+	// sending a new tx with a higher nonce while the previous one is still pending.
+	pendingTxMu sync.Mutex
+	pendingTxs  map[string]*types.Transaction
 }
 
 // ContractConfig holds configuration for contract interaction.
@@ -142,6 +151,7 @@ func NewContractClient(ctx context.Context, engineEndpoint string, engineChainID
 		privateKey:      privateKey,
 		fromAddress:     fromAddress,
 		chainID:         chainID,
+		pendingTxs:      make(map[string]*types.Transaction),
 	}
 
 	log.Info(ctx, "Created contract client",
@@ -199,9 +209,22 @@ func (c *ContractClient) Register(ctx context.Context, round uint32, enclaveType
 
 	log.Info(ctx, "DKG registration fee queried", "fee_wei", fee.String())
 
-	return c.sendWithRetry(ctx, "Register", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.Register(auth, enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
+	pendingKey := fmt.Sprintf("register_%d", round)
+	if receipt, err := c.checkAndResumePendingTx(ctx, pendingKey); receipt != nil || err != nil {
+		return receipt, err
+	}
+
+	receipt, err := c.sendWithRetry(ctx, "Register", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		tx, txErr := c.dkgContract.Register(auth, enclaveReport, enclaveInstanceData, startBlockHeightBig, startBlockHash32, []byte{})
+		if txErr == nil {
+			c.storePendingTx(pendingKey, tx)
+		}
+		return tx, txErr
 	})
+	if err == nil {
+		c.clearPendingTx(pendingKey)
+	}
+	return receipt, err
 }
 
 // Finalize calls the finalize contract method.
@@ -241,9 +264,22 @@ func (c *ContractClient) Finalize(
 
 	log.Info(ctx, "DKG finalization fee queried", "fee_wei", fee.String())
 
-	return c.sendWithRetry(ctx, "Finalize", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
-		return c.dkgContract.Finalize(auth, round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
+	pendingKey := fmt.Sprintf("finalize_%d", round)
+	if receipt, err := c.checkAndResumePendingTx(ctx, pendingKey); receipt != nil || err != nil {
+		return receipt, err
+	}
+
+	receipt, err := c.sendWithRetry(ctx, "Finalize", c.dkgContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		tx, txErr := c.dkgContract.Finalize(auth, round, c.fromAddress, enclaveType, participantsRoot32, globalPubKey, publicCoeffs, pubKeyShare, signature)
+		if txErr == nil {
+			c.storePendingTx(pendingKey, tx)
+		}
+		return tx, txErr
 	})
+	if err == nil {
+		c.clearPendingTx(pendingKey)
+	}
+	return receipt, err
 }
 
 // SubmitEncryptedPartialDecryption calls the submitEncryptedPartialDecryption contract method.
@@ -285,6 +321,35 @@ func (c *ContractClient) SubmitEncryptedPartialDecryption(
 
 	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryption", c.cdrContractAddr, callData, fee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
 		return c.cdrContract.SubmitEncryptedPartialDecryption(auth, round, pid, encryptedPartial, ephemeralPubKey, pubShare, requesterPubKey, ciphertext, uuid, signature)
+	})
+}
+
+// SubmitEncryptedPartialDecryptionBatch calls the batch submitEncryptedPartialDecryptionBatch
+// contract method, submitting multiple partial decryptions in a single transaction.
+func (c *ContractClient) SubmitEncryptedPartialDecryptionBatch(
+	ctx context.Context,
+	requests []bindings.ICDRPartialDecryptionRequest,
+) (*types.Receipt, error) {
+	log.Info(ctx, "Calling submitEncryptedPartialDecryptionBatch contract method",
+		"batch_size", len(requests),
+	)
+
+	callData, err := c.cdrContractAbi.Pack("submitEncryptedPartialDecryptionBatch", requests)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pack submitEncryptedPartialDecryptionBatch call data")
+	}
+
+	baseFee, err := c.cdrContract.BaseFee(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query CDR base fee for batch partial decryption")
+	}
+
+	totalFee := new(big.Int).Mul(baseFee, big.NewInt(int64(len(requests))))
+
+	log.Info(ctx, "CDR batch fee computed", "base_fee_wei", baseFee.String(), "total_fee_wei", totalFee.String(), "batch_size", len(requests))
+
+	return c.sendWithRetry(ctx, "SubmitEncryptedPartialDecryptionBatch", c.cdrContractAddr, callData, totalFee, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		return c.cdrContract.SubmitEncryptedPartialDecryptionBatch(auth, requests)
 	})
 }
 
@@ -422,4 +487,50 @@ func (c *ContractClient) sendWithRetry(
 	}
 
 	return nil, errors.New(fmt.Sprintf("[%s] transaction failed after %d attempts", methodName, maxRetries))
+}
+
+func (c *ContractClient) storePendingTx(key string, tx *types.Transaction) {
+	c.pendingTxMu.Lock()
+	c.pendingTxs[key] = tx
+	c.pendingTxMu.Unlock()
+}
+
+func (c *ContractClient) clearPendingTx(key string) {
+	c.pendingTxMu.Lock()
+	delete(c.pendingTxs, key)
+	c.pendingTxMu.Unlock()
+}
+
+// checkAndResumePendingTx looks up a previously sent tx that may still be in the
+// mempool after a waitForTransaction timeout. It returns:
+//   - (receipt, nil)  if the tx was mined successfully — caller should return immediately
+//   - (nil, err)      if the tx is still pending — caller should abort to avoid a nonce gap
+//   - (nil, nil)      if no pending tx exists or it was mined but failed — caller should proceed normally
+func (c *ContractClient) checkAndResumePendingTx(ctx context.Context, key string) (*types.Receipt, error) {
+	c.pendingTxMu.Lock()
+	tx, ok := c.pendingTxs[key]
+	c.pendingTxMu.Unlock()
+	if !ok {
+		return nil, nil
+	}
+
+	receipt, err := c.ethClient.TransactionReceipt(ctx, tx.Hash())
+	if receipt == nil {
+		if errors.Is(err, ethereum.NotFound) {
+			return nil, errors.New("previous tx still pending, skipping to avoid nonce gap",
+				"key", key, "tx_hash", tx.Hash().Hex())
+		}
+		return nil, errors.Wrap(err, "failed to check pending transaction receipt",
+			"key", key, "tx_hash", tx.Hash().Hex())
+	}
+
+	c.clearPendingTx(key)
+	if receipt.Status == types.ReceiptStatusSuccessful {
+		log.Info(ctx, key+" succeeded",
+			"tx_hash", tx.Hash().Hex(),
+			"gas_used", receipt.GasUsed)
+
+		return receipt, nil
+	}
+	return nil, nil
 }

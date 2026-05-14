@@ -18,6 +18,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param maxEncryptedDataSize Maximum allowed size for encrypted vault data (bytes)
     /// @param maxEncryptedPartialSize Maximum allowed size for encrypted partial decryptions (bytes)
     /// @param vaults The mapping of the vaults
+    /// @param maxBatchSize Maximum number of items allowed in a single batch submission
     /// @custom:storage-location erc7201:story.CDR
     struct CDRStorage {
         uint32 uuid;
@@ -28,6 +29,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         uint256 maxEncryptedDataSize;
         uint256 maxEncryptedPartialSize;
         mapping(uint32 uuid => Vault vault) vaults;
+        uint256 maxBatchSize;
     }
 
     // keccak256(abi.encode(uint256(keccak256("story.CDR")) - 1)) & ~bytes32(uint256(0xff));
@@ -45,6 +47,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param allocateFee The fee for allocating a new vault
     /// @param maxEncryptedDataSize Maximum allowed size for encrypted vault data (bytes)
     /// @param maxEncryptedPartialSize Maximum allowed size for encrypted partial decryptions (bytes)
+    /// @param maxBatchSize Maximum number of items allowed in a single batch submission
     function initialize(
         address owner,
         uint256 baseFee,
@@ -52,7 +55,8 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         uint256 readFee,
         uint256 allocateFee,
         uint256 maxEncryptedDataSize,
-        uint256 maxEncryptedPartialSize
+        uint256 maxEncryptedPartialSize,
+        uint256 maxBatchSize
     ) external initializer {
         __Ownable_init(owner);
         __ReentrancyGuard_init();
@@ -64,6 +68,7 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         _setAllocateFee(allocateFee);
         _setMaxEncryptedDataSize(maxEncryptedDataSize);
         _setMaxEncryptedPartialSize(maxEncryptedPartialSize);
+        _setMaxBatchSize(maxBatchSize);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -106,6 +111,12 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @param newMaxEncryptedPartialSize The maximum size in bytes
     function setMaxEncryptedPartialSize(uint256 newMaxEncryptedPartialSize) external onlyOwner {
         _setMaxEncryptedPartialSize(newMaxEncryptedPartialSize);
+    }
+
+    /// @notice Sets the maximum allowed batch size for submitEncryptedPartialDecryptionBatch
+    /// @param newMaxBatchSize The new maximum batch size (must be > 0)
+    function setMaxBatchSize(uint256 newMaxBatchSize) external onlyOwner {
+        _setMaxBatchSize(newMaxBatchSize);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -284,6 +295,67 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         );
     }
 
+    /// @notice Submits a batch of encrypted partial decryptions in a single transaction.
+    /// @dev msg.value must equal baseFee * requests.length. Items with invalid
+    ///      encryptedPartial length are skipped and emit InvalidPartialDecryption;
+    ///      their fee is still collected. CL is responsible for pre-validation.
+    /// @param requests Array of partial decryption submissions; length must be <= maxBatchSize
+    function submitEncryptedPartialDecryptionBatch(
+        ICDR.PartialDecryptionRequest[] calldata requests
+    ) external payable nonReentrant whenNotPaused {
+        CDRStorage storage $ = _getCDRStorage();
+        require(requests.length > 0, "CDR: Empty batch");
+        require(requests.length <= $.maxBatchSize, "CDR: Batch exceeds max size");
+
+        _collectFee($.baseFee * requests.length, ICDR.FeeType.SubmitPartial);
+
+        uint256 baseFee = $.baseFee;
+        uint256 maxPartialSize = $.maxEncryptedPartialSize;
+        for (uint256 i = 0; i < requests.length; i++) {
+            _processPartialDecryptionRequest(requests[i], baseFee, maxPartialSize, i);
+        }
+    }
+
+    /// @dev Validates and emits a single item from a batch submission.
+    ///      Extracted to keep the batch function's stack depth within the Yul limit.
+    ///
+    ///      Each `bytes calldata` field occupies 2 stack slots (offset + length) in the
+    ///      Yul IR. With 6 such fields in EncryptedPartialDecryptionSubmitted the ABI
+    ///      encoder would need 16 value slots — exactly the EVM limit. Copying to memory
+    ///      first reduces each field to 1 slot (a memory pointer), keeping the total
+    ///      well under the limit at the cost of one memory copy per item.
+    function _processPartialDecryptionRequest(
+        ICDR.PartialDecryptionRequest calldata req,
+        uint256 baseFee,
+        uint256 maxPartialSize,
+        uint256 index
+    ) internal {
+        if (req.encryptedPartial.length == 0 || req.encryptedPartial.length > maxPartialSize) {
+            emit InvalidPartialDecryption(msg.sender, req.round, req.pid, req.uuid, index);
+            return;
+        }
+        // Copy dynamic fields to memory to halve their stack footprint (2 slots → 1 each).
+        bytes memory encryptedPartial = req.encryptedPartial;
+        bytes memory ephemeralPubKey = req.ephemeralPubKey;
+        bytes memory pubShare = req.pubShare;
+        bytes memory requesterPubKey = req.requesterPubKey;
+        bytes memory ciphertext = req.ciphertext;
+        bytes memory signature = req.signature;
+        emit EncryptedPartialDecryptionSubmitted(
+            msg.sender,
+            req.round,
+            req.pid,
+            encryptedPartial,
+            ephemeralPubKey,
+            pubShare,
+            requesterPubKey,
+            ciphertext,
+            req.uuid,
+            signature,
+            baseFee
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                              Get Functions                             //
     //////////////////////////////////////////////////////////////////////////*/
@@ -328,6 +400,12 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
     /// @return maxEncryptedPartialSize The maximum size in bytes
     function maxEncryptedPartialSize() external view returns (uint256) {
         return _getCDRStorage().maxEncryptedPartialSize;
+    }
+
+    /// @notice Gets the maximum allowed batch size for submitEncryptedPartialDecryptionBatch
+    /// @return maxBatchSize The maximum batch size
+    function maxBatchSize() external view returns (uint256) {
+        return _getCDRStorage().maxBatchSize;
     }
 
     /// @notice Gets the vault
@@ -375,6 +453,11 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         _getCDRStorage().maxEncryptedPartialSize = newMaxEncryptedPartialSize;
     }
 
+    function _setMaxBatchSize(uint256 newMaxBatchSize) internal {
+        require(newMaxBatchSize > 0, "CDR: Max batch size must be > 0");
+        _getCDRStorage().maxBatchSize = newMaxBatchSize;
+    }
+
     /// @notice Collects a fee and emits a FeeCollected event
     /// @param feeAmountToCollect The fee amount to collect
     /// @param feeType The type of operation generating the fee
@@ -383,7 +466,6 @@ contract CDR is ICDR, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         payable(address(0x0)).transfer(feeAmountToCollect);
         emit FeeCollected(msg.sender, feeAmountToCollect, feeType);
     }
-
 
     /// @dev Returns the storage struct of CDR.
     function _getCDRStorage() private pure returns (CDRStorage storage $) {

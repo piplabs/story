@@ -118,3 +118,12 @@ endpoint = ""
 
 # Open Telemetry OTLP headers. See https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/setup/quickstart/go/.
 headers = ""
+
+#######################################################################
+###                           DKG Options                           ###
+#######################################################################
+
+[dkg]
+# Number of partial decryptions submitted in a single CDR contract call.
+# Must be ≤ the CDR contract's maxBatchSize (default 20).
+decrypt-batch-size = 20

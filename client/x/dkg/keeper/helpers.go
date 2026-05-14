@@ -10,7 +10,7 @@ import (
 
 const (
 	retryAttempts = 3
-	retryDelay   = 2 * time.Second
+	retryDelay    = 2 * time.Second
 )
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {

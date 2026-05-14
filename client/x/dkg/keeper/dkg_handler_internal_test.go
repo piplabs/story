@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	storetypes "cosmossdk.io/store/types"
 
@@ -1497,7 +1498,8 @@ func TestThresholdDecryptRequested_ValidatorNotInCommittee(t *testing.T) {
 
 // TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound verifies that when
 // the validator is in the active committee and DKG service is enabled but no session
-// exists for the round, ThresholdDecryptRequested returns an error.
+// exists for the round, ThresholdDecryptRequested returns nil (session error is handled
+// asynchronously in the goroutine and logged, not returned to the caller).
 func TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound(t *testing.T) {
 	t.Parallel()
 
@@ -1516,15 +1518,15 @@ func TestThresholdDecryptRequested_ValidatorInCommitteeSessionNotFound(t *testin
 	}
 	require.NoError(t, k.setDKGNetwork(ctx, network))
 
-	// No session created for round 7 → GetSession returns "not found" error
+	// No session created for round 7 → handleThresholdDecryptRequest logs error asynchronously.
+	// ThresholdDecryptRequested itself returns nil because the async goroutine handles the error.
 	err := k.ThresholdDecryptRequested(ctx, 7, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
-	require.Error(t, err, "missing session should return an error")
-	require.Contains(t, err.Error(), "failed to get DKG session for decrypt request")
+	require.NoError(t, err, "async dispatch should not return error to caller")
 }
 
 // TestThresholdDecryptRequested_ValidatorInCommitteeWithSession verifies the happy
 // path: when DKG service is enabled, validator is in committee, and a session exists,
-// the request is added to the session.
+// the request is added to the session asynchronously.
 func TestThresholdDecryptRequested_ValidatorInCommitteeWithSession(t *testing.T) {
 	t.Parallel()
 
@@ -1549,10 +1551,15 @@ func TestThresholdDecryptRequested_ValidatorInCommitteeWithSession(t *testing.T)
 	err := k.ThresholdDecryptRequested(ctx, 8, []byte("req-key"), []byte("cipher"), []byte("label"), 100)
 	require.NoError(t, err)
 
-	// Verify the session has the queued decrypt request
-	session, err := k.stateManager.GetSession(8)
-	require.NoError(t, err)
-	require.Len(t, session.GetDecryptRequests(), 1, "session should have one pending decrypt request")
+	// Wait for the async goroutine to complete
+	require.Eventually(t, func() bool {
+		session, err := k.stateManager.GetSession(8)
+		if err != nil {
+			return false
+		}
+
+		return len(session.GetDecryptRequests()) == 1
+	}, 5*time.Second, 50*time.Millisecond, "session should have one pending decrypt request after async processing")
 }
 
 // TestPartialDecryptionSubmitted_RequestNotFound verifies that when the

@@ -9,6 +9,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/piplabs/story/contracts/bindings"
 )
 
 type AccountKeeper interface {
@@ -36,5 +38,6 @@ type DKGContractClient interface {
 	Register(ctx context.Context, round uint32, enclaveType [32]byte, startBlockHeight uint64, startBlockHash []byte, dkgPubKey []byte, commPubKey []byte, enclaveReport []byte) (*ethtypes.Receipt, error)
 	Finalize(ctx context.Context, round uint32, enclaveType [32]byte, participantsRoot []byte, globalPubKey []byte, publicCoeffs [][]byte, pubKeyShare []byte, signature []byte) (*ethtypes.Receipt, error)
 	SubmitEncryptedPartialDecryption(ctx context.Context, round uint32, pid uint32, encryptedPartial []byte, ephemeralPubKey []byte, pubShare []byte, requesterPubKey []byte, ciphertext []byte, uuid uint32, signature []byte) (*ethtypes.Receipt, error)
+	SubmitEncryptedPartialDecryptionBatch(ctx context.Context, requests []bindings.ICDRPartialDecryptionRequest) (*ethtypes.Receipt, error)
 	BlockNumber(ctx context.Context) (uint64, error)
 }

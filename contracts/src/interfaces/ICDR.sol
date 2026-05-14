@@ -8,6 +8,29 @@ interface ICDR {
         Read,
         SubmitPartial
     }
+
+    /// @notice Struct for a single partial decryption submission in a batch
+    /// @param round The DKG round number
+    /// @param pid The participant index of the validator
+    /// @param encryptedPartial The encrypted partial decryption
+    /// @param ephemeralPubKey The ephemeral public key used for encryption
+    /// @param pubShare The validator's public key share
+    /// @param requesterPubKey The public key of the requester
+    /// @param ciphertext The ciphertext associated with the request
+    /// @param uuid The UUID of the vault
+    /// @param signature The signature over the partial decryption payload
+    struct PartialDecryptionRequest {
+        uint32 round;
+        uint32 pid;
+        bytes encryptedPartial;
+        bytes ephemeralPubKey;
+        bytes pubShare;
+        bytes requesterPubKey;
+        bytes ciphertext;
+        uint32 uuid;
+        bytes signature;
+    }
+
     /// @notice Struct for the vault
     /// @param updatable Whether the vault is updatable
     /// @param writeConditionAddr The address of the write condition
@@ -77,6 +100,20 @@ interface ICDR {
         uint32 uuid,
         bytes signature,
         uint256 fee
+    );
+
+    /// @notice Emitted when a batch item is skipped due to invalid encryptedPartial length
+    /// @param validator The address of the submitting validator (msg.sender)
+    /// @param round The DKG round number
+    /// @param pid The participant index of the validator
+    /// @param uuid The UUID of the vault
+    /// @param index The index of the item within the batch
+    event InvalidPartialDecryption(
+        address indexed validator,
+        uint32 round,
+        uint32 pid,
+        uint32 uuid,
+        uint256 index
     );
 
     /// @notice Emitted when a CDR fee is collected
@@ -150,6 +187,15 @@ interface ICDR {
         bytes calldata signature
     ) external payable;
 
+    /// @notice Submits a batch of encrypted partial decryptions in a single transaction
+    /// @dev msg.value must equal baseFee * requests.length
+    /// @param requests Array of partial decryption submissions; length must be <= maxBatchSize
+    function submitEncryptedPartialDecryptionBatch(PartialDecryptionRequest[] calldata requests) external payable;
+
+    /// @notice Sets the maximum allowed batch size for submitEncryptedPartialDecryptionBatch
+    /// @param newMaxBatchSize The new maximum batch size (must be > 0)
+    function setMaxBatchSize(uint256 newMaxBatchSize) external;
+
     /// @notice Gets the UUID of the vault
     /// @return uuid The UUID of the vault
     function uuid() external view returns (uint32 uuid);
@@ -169,6 +215,10 @@ interface ICDR {
     /// @notice Gets the allocate fee
     /// @return allocateFee The allocate fee
     function allocateFee() external view returns (uint256);
+
+    /// @notice Gets the maximum allowed batch size for submitEncryptedPartialDecryptionBatch
+    /// @return maxBatchSize The maximum batch size
+    function maxBatchSize() external view returns (uint256);
 
     /// @notice Gets the vault
     /// @param uuid The UUID of the vault

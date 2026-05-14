@@ -23,6 +23,10 @@ type DKGConfig struct {
 	// EnclaveType is the TEE enclave type identifier (e.g. 1 for SGX), stored as bytes32 on-chain
 	EnclaveType uint64
 
+	// DecryptBatchSize is the number of partial decryptions submitted in a single
+	// CDR contract call. Must be ≤ the CDR contract's maxBatchSize. Defaults to 20.
+	DecryptBatchSize int
+
 	// TLS configuration for gRPC client connections to story-kernel.
 	// KernelTLSCAFile is the CA certificate to verify the server.
 	// When set, TLS is used for all kernel connections.
@@ -40,6 +44,7 @@ func DefaultDKGConfig() DKGConfig {
 		KernelEndpoints:   []string{"127.0.0.1:50051"},
 		EngineRPCEndpoint: "http://127.0.0.1:8545",
 		EnclaveType:       DefaultEnclaveType,
+		DecryptBatchSize:  20,
 	}
 }
 
@@ -48,6 +53,7 @@ func BindDKGFlags(flags *pflag.FlagSet, cfg *DKGConfig) {
 	flags.StringSliceVar(&cfg.KernelEndpoints, "dkg-kernel-endpoints", cfg.KernelEndpoints, "Comma-separated list of story-kernel (TEE) endpoints for DKG")
 	flags.StringVar(&cfg.EngineRPCEndpoint, "dkg-engine-rpc-endpoint", cfg.EngineRPCEndpoint, "The RPC endpoint of execution layer")
 	flags.Uint64Var(&cfg.EnclaveType, "dkg-enc-type", cfg.EnclaveType, "TEE enclave type identifier (e.g. 1 for SGX)")
+	flags.IntVar(&cfg.DecryptBatchSize, "dkg-decrypt-batch-size", cfg.DecryptBatchSize, "Number of partial decryptions per CDR batch call (must be ≤ contract maxBatchSize)")
 	flags.StringVar(&cfg.KernelTLSCAFile, "dkg-kernel-tls-ca-file", cfg.KernelTLSCAFile, "CA certificate file to verify story-kernel server TLS")
 	flags.StringVar(&cfg.KernelTLSCertFile, "dkg-kernel-tls-cert-file", cfg.KernelTLSCertFile, "Client certificate file for mTLS to story-kernel")
 	flags.StringVar(&cfg.KernelTLSKeyFile, "dkg-kernel-tls-key-file", cfg.KernelTLSKeyFile, "Client private key file for mTLS to story-kernel")
@@ -72,6 +78,10 @@ func (c *DKGConfig) Validate() error {
 
 	if c.EnclaveType == 0 {
 		return errors.New("enc-type must not be zero")
+	}
+
+	if c.DecryptBatchSize <= 0 {
+		return errors.New("dkg-decrypt-batch-size must be > 0")
 	}
 
 	// Validate TLS configuration consistency.
