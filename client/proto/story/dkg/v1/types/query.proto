@@ -50,6 +50,10 @@ service Query {
   rpc HasDecryptRequest(QueryHasDecryptRequestRequest) returns (QueryHasDecryptRequestResponse) {
     option (google.api.http).get = "/story/dkg/v1/decrypt_request/{round}/{requester_pub_key_hex}/{label_hex}/{ciphertext_hex}";
   }
+
+  rpc GetCDRPartialsHistory(QueryGetCDRPartialsRequest) returns (QueryGetCDRPartialsResponse) {
+    option (google.api.http).get = "/story/dkg/v1/partial_decrypt_history/{uuid}/{requester_pub_key_hex}";
+  }
 }
 
 message QueryParamsRequest {}

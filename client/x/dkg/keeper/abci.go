@@ -119,7 +119,7 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 			// active rounds are not counted — only successful (active) rounds define the window.
 			if prevActiveRound != nil {
 				cutoff := prevActiveRound.Round - 1
-				if err := k.pruneOldPartialDecryptions(ctx, cutoff); err != nil {
+				if err := k.pruneOldPartialDecryptions(ctx, cutoff, latestRound.Round); err != nil {
 					log.Error(ctx, "Failed to prune old partial decryptions", err,
 						"new_active_round", latestRound.Round,
 						"prev_active_round", prevActiveRound.Round,

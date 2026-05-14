@@ -143,3 +143,8 @@ enc-type = {{ .DKG.EnclaveType }}
 # Number of partial decryptions submitted in a single CDR contract call.
 # Must be ≤ the CDR contract's maxBatchSize (default 20).
 decrypt-batch-size = {{ .DKG.DecryptBatchSize }}
+
+# Number of DKG rounds for which partial decryption submissions are retained in
+# the local off-chain DB (dkg-partials). 0 (default) disables off-chain storage.
+# Suggested values: 4 (~1 month), 48 (~1 year).
+partial-decrypt-retention-rounds = {{ .DKG.PartialDecryptRetentionRounds }}

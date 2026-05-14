@@ -167,6 +167,10 @@ func Start(ctx context.Context, cfg Config) (func(context.Context) error, error)
 			return errors.Wrap(err, "stop tracer")
 		}
 
+		if err := app.Keepers.DKGKeeper.CloseOffChainPartialDecryptStore(); err != nil {
+			return errors.Wrap(err, "close dkg off-chain partial decrypt store")
+		}
+
 		return nil
 	}, nil
 }
@@ -249,6 +253,14 @@ func CreateApp(ctx context.Context, cfg Config) (*App, *privval.FilePV, error) {
 			return nil, nil, errors.Wrap(err, "dkg service is enabled, but failed to init dkg service")
 		}
 		app.Keepers.DKGKeeper.SetDecryptBatchSize(cfg.DKG.DecryptBatchSize)
+	}
+
+	if cfg.DKG.PartialDecryptRetentionRounds > 0 {
+		partialsDB, err := dbm.NewDB("dkg-partials", cfg.BackendType(), cfg.DataDir())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "create dkg-partials off-chain db")
+		}
+		app.Keepers.DKGKeeper.InitOffChainPartialDecryptStore(partialsDB, cfg.DKG.PartialDecryptRetentionRounds)
 	}
 
 	return app, privVal, nil

@@ -51,6 +51,21 @@ func dkgPartialDecryptRoundIndexUpperBound(cutoffRound uint32) string {
 	return fmt.Sprintf("%010d_", cutoffRound+1)
 }
 
+// parseRoundFromPartialDecryptKey extracts the round number from a primary key.
+// Key format: {reqHash}_{labelHex}_{ciphertextHash}_{round}_{validator}
+// All components are hex or decimal with no internal underscores, so SplitN gives exactly 5 parts.
+func parseRoundFromPartialDecryptKey(primaryKey string) (uint32, bool) {
+	parts := strings.SplitN(primaryKey, "_", 5)
+	if len(parts) < 5 {
+		return 0, false
+	}
+	v, err := strconv.ParseUint(parts[3], 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return uint32(v), true
+}
+
 func (k *Keeper) setPartialDecryptionSubmission(
 	ctx context.Context,
 	validator common.Address,
@@ -114,8 +129,10 @@ func (k *Keeper) isPartialDecryptIndexActive(ctx context.Context) bool {
 // pruneOldPartialDecryptions removes all DKGPartialDecrypt entries (primary +
 // secondary index) for rounds <= cutoffRound. It uses the secondary round index
 // to avoid a full table scan: only entries in the range [0, cutoffRound] are visited.
+// completedRound is the newly active round; it is used to compute the off-chain
+// retention cutoff independently of the on-chain 2-round window.
 // Called from BeginBlocker after a DKG round successfully becomes Active.
-func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uint32) error {
+func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uint32, completedRound uint32) error {
 	upperBound := dkgPartialDecryptRoundIndexUpperBound(cutoffRound)
 	rng := (&collections.Range[string]{}).EndExclusive(upperBound)
 
@@ -138,11 +155,35 @@ func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uin
 		}
 		primaryKey := indexKey[11:] // strip "{round:010d}_" prefix
 
+		// Archive to off-chain store before deleting from on-chain.
+		// Off-chain only ever holds data that has been pruned from on-chain,
+		// so there is no overlap between the two stores.
+		if k.offChainPartialDecryptStore != nil {
+			if bz, err := k.DKGPartialDecrypt.Get(ctx, primaryKey); err == nil {
+				// Parse round from key: {reqHash}_{labelHex}_{ciphertextHash}_{round}_{validator}
+				if round, ok := parseRoundFromPartialDecryptKey(primaryKey); ok {
+					if err := k.offChainPartialDecryptStore.Set(primaryKey, round, bz); err != nil {
+						log.Warn(ctx, "Failed to archive partial decrypt to off-chain store", err, "key", primaryKey)
+					}
+				}
+			}
+		}
+
 		if err := k.DKGPartialDecrypt.Remove(ctx, primaryKey); err != nil {
 			return errors.Wrap(err, "remove partial decryption primary entry during pruning")
 		}
 		if err := k.DKGPartialDecryptRoundIndex.Remove(ctx, indexKey); err != nil {
 			return errors.Wrap(err, "remove partial decryption round index entry during pruning")
+		}
+	}
+
+	// Prune off-chain archive with the operator-configured retention window.
+	if k.offChainPartialDecryptStore != nil && k.partialDecryptRetentionRounds > 0 {
+		if completedRound >= k.partialDecryptRetentionRounds {
+			offChainCutoff := completedRound - k.partialDecryptRetentionRounds
+			if err := k.offChainPartialDecryptStore.PruneBeforeRound(ctx, offChainCutoff); err != nil {
+				log.Error(ctx, "Failed to prune off-chain partial decrypt archive", err, "off_chain_cutoff", offChainCutoff)
+			}
 		}
 	}
 

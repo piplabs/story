@@ -27,6 +27,11 @@ type DKGConfig struct {
 	// CDR contract call. Must be ≤ the CDR contract's maxBatchSize. Defaults to 20.
 	DecryptBatchSize int
 
+	// PartialDecryptRetentionRounds is the number of DKG rounds for which partial
+	// decryption submissions are retained in the off-chain local DB (dkg-partials).
+	// 0 (default) disables off-chain storage. Suggested values: 4 (~1 month), 48 (~1 year).
+	PartialDecryptRetentionRounds uint32
+
 	// TLS configuration for gRPC client connections to story-kernel.
 	// KernelTLSCAFile is the CA certificate to verify the server.
 	// When set, TLS is used for all kernel connections.
@@ -40,11 +45,12 @@ type DKGConfig struct {
 
 func DefaultDKGConfig() DKGConfig {
 	return DKGConfig{
-		Enable:            false,
-		KernelEndpoints:   []string{"127.0.0.1:50051"},
-		EngineRPCEndpoint: "http://127.0.0.1:8545",
-		EnclaveType:       DefaultEnclaveType,
-		DecryptBatchSize:  20,
+		Enable:                        false,
+		KernelEndpoints:               []string{"127.0.0.1:50051"},
+		EngineRPCEndpoint:             "http://127.0.0.1:8545",
+		EnclaveType:                   DefaultEnclaveType,
+		DecryptBatchSize:              20,
+		PartialDecryptRetentionRounds: 0,
 	}
 }
 
@@ -54,6 +60,7 @@ func BindDKGFlags(flags *pflag.FlagSet, cfg *DKGConfig) {
 	flags.StringVar(&cfg.EngineRPCEndpoint, "dkg-engine-rpc-endpoint", cfg.EngineRPCEndpoint, "The RPC endpoint of execution layer")
 	flags.Uint64Var(&cfg.EnclaveType, "dkg-enc-type", cfg.EnclaveType, "TEE enclave type identifier (e.g. 1 for SGX)")
 	flags.IntVar(&cfg.DecryptBatchSize, "dkg-decrypt-batch-size", cfg.DecryptBatchSize, "Number of partial decryptions per CDR batch call (must be ≤ contract maxBatchSize)")
+	flags.Uint32Var(&cfg.PartialDecryptRetentionRounds, "dkg-partial-decrypt-retention-rounds", cfg.PartialDecryptRetentionRounds, "Number of DKG rounds to retain in the off-chain partial decrypt store (0 disables off-chain storage)")
 	flags.StringVar(&cfg.KernelTLSCAFile, "dkg-kernel-tls-ca-file", cfg.KernelTLSCAFile, "CA certificate file to verify story-kernel server TLS")
 	flags.StringVar(&cfg.KernelTLSCertFile, "dkg-kernel-tls-cert-file", cfg.KernelTLSCertFile, "Client certificate file for mTLS to story-kernel")
 	flags.StringVar(&cfg.KernelTLSKeyFile, "dkg-kernel-tls-key-file", cfg.KernelTLSKeyFile, "Client private key file for mTLS to story-kernel")

@@ -1133,6 +1133,7 @@ type QueryClient interface {
 	GetLatestActiveDKGNetwork(ctx context.Context, in *QueryGetLatestActiveDKGNetworkRequest, opts ...grpc.CallOption) (*QueryGetLatestActiveDKGNetworkResponse, error)
 	GetCDRPartials(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error)
 	HasDecryptRequest(ctx context.Context, in *QueryHasDecryptRequestRequest, opts ...grpc.CallOption) (*QueryHasDecryptRequestResponse, error)
+	GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error)
 }
 
 type queryClient struct {
@@ -1233,6 +1234,15 @@ func (c *queryClient) HasDecryptRequest(ctx context.Context, in *QueryHasDecrypt
 	return out, nil
 }
 
+func (c *queryClient) GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error) {
+	out := new(QueryGetCDRPartialsResponse)
+	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.Query/GetCDRPartialsHistory", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
@@ -1245,6 +1255,7 @@ type QueryServer interface {
 	GetLatestActiveDKGNetwork(context.Context, *QueryGetLatestActiveDKGNetworkRequest) (*QueryGetLatestActiveDKGNetworkResponse, error)
 	GetCDRPartials(context.Context, *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error)
 	HasDecryptRequest(context.Context, *QueryHasDecryptRequestRequest) (*QueryHasDecryptRequestResponse, error)
+	GetCDRPartialsHistory(context.Context, *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -1280,6 +1291,9 @@ func (*UnimplementedQueryServer) GetCDRPartials(ctx context.Context, req *QueryG
 }
 func (*UnimplementedQueryServer) HasDecryptRequest(ctx context.Context, req *QueryHasDecryptRequestRequest) (*QueryHasDecryptRequestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HasDecryptRequest not implemented")
+}
+func (*UnimplementedQueryServer) GetCDRPartialsHistory(ctx context.Context, req *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCDRPartialsHistory not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -1466,6 +1480,24 @@ func _Query_HasDecryptRequest_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_GetCDRPartialsHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetCDRPartialsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetCDRPartialsHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/story.dkg.v1.types.Query/GetCDRPartialsHistory",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetCDRPartialsHistory(ctx, req.(*QueryGetCDRPartialsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var Query_serviceDesc = _Query_serviceDesc
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "story.dkg.v1.types.Query",
@@ -1510,6 +1542,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HasDecryptRequest",
 			Handler:    _Query_HasDecryptRequest_Handler,
+		},
+		{
+			MethodName: "GetCDRPartialsHistory",
+			Handler:    _Query_GetCDRPartialsHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -350,7 +350,7 @@ func TestPruneOldPartialDecryptions_Basic(t *testing.T) {
 		))
 	}
 
-	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 1))
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 1, 3))
 
 	key1 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 1, testValidator1)
 	exists, err := k.DKGPartialDecrypt.Has(ctx, key1)
@@ -383,7 +383,7 @@ func TestPruneOldPartialDecryptions_NothingToDelete(t *testing.T) {
 		requesterPubKey, label, ciphertext,
 	))
 
-	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 3))
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 3, 5))
 
 	key5 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 5, testValidator1)
 	exists, err := k.DKGPartialDecrypt.Has(ctx, key5)
@@ -411,7 +411,7 @@ func TestPruneOldPartialDecryptions_MultipleRoundsOnCutoff(t *testing.T) {
 		))
 	}
 
-	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 2))
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 2, 4))
 
 	for _, round := range []uint32{1, 2} {
 		key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, testValidator1)
@@ -445,7 +445,7 @@ func TestPruneOldPartialDecryptions_ZeroCutoff(t *testing.T) {
 		requesterPubKey, label, ciphertext,
 	))
 
-	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 0))
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 0, 2))
 
 	key1 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 1, testValidator1)
 	exists, err := k.DKGPartialDecrypt.Has(ctx, key1)

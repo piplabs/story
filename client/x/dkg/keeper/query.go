@@ -10,10 +10,15 @@ import (
 	"cosmossdk.io/collections"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// ErrOffChainStoreDisabled is returned by GetCDRPartialsHistory when the node
+// has not configured off-chain partial decrypt storage (PartialDecryptRetentionRounds == 0).
+var ErrOffChainStoreDisabled = errors.New("off-chain partial decrypt store is not enabled on this node")
 
 var _ types.QueryServer = (*Keeper)(nil)
 
@@ -196,6 +201,75 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 			Ciphertext:   entry.ciphertext,
 			Threshold:    threshold,
 			ThresholdMet: thresholdMet,
+		})
+	}
+
+	sort.Slice(groupedResp, func(i, j int) bool {
+		if groupedResp[i].Round != groupedResp[j].Round {
+			return groupedResp[i].Round < groupedResp[j].Round
+		}
+		return hex.EncodeToString(groupedResp[i].Ciphertext) < hex.EncodeToString(groupedResp[j].Ciphertext)
+	})
+
+	return &types.QueryGetCDRPartialsResponse{Submissions: groupedResp}, nil
+}
+
+// GetCDRPartialsHistory queries the off-chain archive for partial decryption submissions
+// for rounds that have already been pruned from on-chain. Returns ErrOffChainStoreDisabled
+// when the node has not enabled off-chain storage (PartialDecryptRetentionRounds == 0).
+func (k *Keeper) GetCDRPartialsHistory(ctx context.Context, req *types.QueryGetCDRPartialsRequest) (*types.QueryGetCDRPartialsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	if k.offChainPartialDecryptStore == nil {
+		return nil, status.Error(codes.Unavailable, ErrOffChainStoreDisabled.Error())
+	}
+
+	var label [32]byte
+	binary.BigEndian.PutUint32(label[28:], req.Uuid)
+	requesterPubKey, err := hex.DecodeString(req.RequesterPubKeyHex)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid requester pubkey hex")
+	}
+
+	prefix := dkgPartialDecryptPrefix(requesterPubKey, label[:])
+	iter, err := k.offChainPartialDecryptStore.PrefixIterator(prefix)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	defer iter.Close()
+
+	grouped := make(map[string]struct {
+		round      uint32
+		ciphertext []byte
+		items      []types.DKGPartialDecryptionSubmission
+	})
+	for ; iter.Valid(); iter.Next() {
+		submissionTmp, err := decodePartialDecryptionSubmission(iter.Value())
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		groupKey := fmt.Sprintf("%d:%s", submissionTmp.Round, hex.EncodeToString(submissionTmp.Ciphertext))
+		entry := grouped[groupKey]
+		if entry.items == nil {
+			entry.round = submissionTmp.Round
+			entry.ciphertext = submissionTmp.Ciphertext
+		}
+		entry.items = append(entry.items, *submissionTmp)
+		grouped[groupKey] = entry
+	}
+
+	if len(grouped) == 0 {
+		return nil, status.Error(codes.NotFound, "no historical partial decryption submissions found")
+	}
+
+	groupedResp := make([]types.DKGPartialDecryptionSubmissionsByRound, 0, len(grouped))
+	for _, entry := range grouped {
+		groupedResp = append(groupedResp, types.DKGPartialDecryptionSubmissionsByRound{
+			Round:       entry.round,
+			Submissions: entry.items,
+			Ciphertext:  entry.ciphertext,
 		})
 	}
 

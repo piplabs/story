@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/collections"
 	storetypes "cosmossdk.io/core/store"
 
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/grpc"
@@ -83,6 +84,13 @@ type Keeper struct {
 	DKGPartialDecryptIndexActive  collections.Item[string]         // present after v1.9.0 migration; guards secondary index writes and pruning
 	DecryptRequestRegistry      collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
 
+	// offChainPartialDecryptStore is an optional off-chain KV store that archives pruned partial
+	// decrypt submissions. Nil until InitOffChainPartialDecryptStore is called.
+	// Data is written here at prune time (archive-on-prune) and is never duplicated with on-chain.
+	// On-chain holds the most recent rounds; off-chain holds older archived rounds.
+	offChainPartialDecryptStore    *PartialDecryptOffChainStore
+	partialDecryptRetentionRounds  uint32 // operator-configurable; 0 means off-chain disabled
+
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
 }
@@ -147,6 +155,28 @@ func NewKeeper(
 
 func (k *Keeper) RegisterProposalService(server grpc.Server) {
 	types.RegisterMsgServiceServer(server, NewProposalServer(k))
+}
+
+// InitOffChainPartialDecryptStore enables off-chain storage for partial decrypt
+// submissions using db. retentionRounds controls how many completed DKG rounds
+// worth of archived data are retained; 0 disables off-chain storage.
+// Callers must call CloseOffChainPartialDecryptStore on shutdown to release the DB.
+func (k *Keeper) InitOffChainPartialDecryptStore(db dbm.DB, retentionRounds uint32) {
+	if retentionRounds == 0 {
+		return
+	}
+	k.offChainPartialDecryptStore = NewPartialDecryptOffChainStore(db)
+	k.partialDecryptRetentionRounds = retentionRounds
+}
+
+// CloseOffChainPartialDecryptStore closes the underlying off-chain DB, flushing
+// any pending writes and releasing file locks. No-op when off-chain storage is
+// disabled.
+func (k *Keeper) CloseOffChainPartialDecryptStore() error {
+	if k.offChainPartialDecryptStore == nil {
+		return nil
+	}
+	return k.offChainPartialDecryptStore.db.Close()
 }
 
 func (k *Keeper) InitDKGService(stateDir string, addr common.Address, enclaveType [32]byte) error {
