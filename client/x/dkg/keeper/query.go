@@ -217,7 +217,7 @@ func (k *Keeper) GetCDRPartials(ctx context.Context, req *types.QueryGetCDRParti
 // GetCDRPartialsHistory queries the off-chain archive for partial decryption submissions
 // for rounds that have already been pruned from on-chain. Returns ErrOffChainStoreDisabled
 // when the node has not enabled off-chain storage (PartialDecryptRetentionRounds == 0).
-func (k *Keeper) GetCDRPartialsHistory(ctx context.Context, req *types.QueryGetCDRPartialsRequest) (*types.QueryGetCDRPartialsResponse, error) {
+func (k *Keeper) GetCDRPartialsHistory(ctx context.Context, req *types.QueryGetCDRPartialsHistoryRequest) (*types.QueryGetCDRPartialsHistoryResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
@@ -280,7 +280,7 @@ func (k *Keeper) GetCDRPartialsHistory(ctx context.Context, req *types.QueryGetC
 		return hex.EncodeToString(groupedResp[i].Ciphertext) < hex.EncodeToString(groupedResp[j].Ciphertext)
 	})
 
-	return &types.QueryGetCDRPartialsResponse{Submissions: groupedResp}, nil
+	return &types.QueryGetCDRPartialsHistoryResponse{Submissions: groupedResp}, nil
 }
 
 // HasDecryptRequest queries whether a decrypt request exists for the provided key parameters.

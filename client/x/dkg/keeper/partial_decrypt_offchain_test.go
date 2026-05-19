@@ -220,7 +220,7 @@ func TestGetCDRPartialsHistory_StoreDisabled(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 	// offChainPartialDecryptStore is nil by default.
 
-	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsRequest{
+	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsHistoryRequest{
 		RequesterPubKeyHex: "aabbccdd",
 		Uuid:               1,
 	})
@@ -238,7 +238,7 @@ func TestGetCDRPartialsHistory_InvalidHex(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 	k.offChainPartialDecryptStore = newTestOffChainStore(t)
 
-	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsRequest{
+	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsHistoryRequest{
 		RequesterPubKeyHex: "not-hex",
 		Uuid:               1,
 	})
@@ -256,7 +256,7 @@ func TestGetCDRPartialsHistory_NotFound(t *testing.T) {
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 	k.offChainPartialDecryptStore = newTestOffChainStore(t)
 
-	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsRequest{
+	_, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsHistoryRequest{
 		RequesterPubKeyHex: "aabbccdd",
 		Uuid:               42,
 	})
@@ -299,7 +299,7 @@ func TestGetCDRPartialsHistory_Found(t *testing.T) {
 	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 1, 3))
 
 	// Query the off-chain history.
-	resp, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsRequest{
+	resp, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsHistoryRequest{
 		RequesterPubKeyHex: common.Bytes2Hex(requesterPubKey),
 		Uuid:               7,
 	})
@@ -448,7 +448,7 @@ func TestGetCDRPartialsHistory_MultipleGroups(t *testing.T) {
 	// Archive both rounds.
 	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 2, 4))
 
-	resp, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsRequest{
+	resp, err := k.GetCDRPartialsHistory(ctx, &types.QueryGetCDRPartialsHistoryRequest{
 		RequesterPubKeyHex: common.Bytes2Hex(requesterPubKey),
 		Uuid:               3,
 	})

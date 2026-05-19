@@ -1000,6 +1000,386 @@ func (m *QueryHasDecryptRequestResponse) GetExists() bool {
 	return false
 }
 
+type QueryGetCDRPartialsHistoryRequest struct {
+	Uuid               uint32 `protobuf:"varint,1,opt,name=uuid,proto3" json:"uuid,omitempty" yaml:"uuid"`
+	RequesterPubKeyHex string `protobuf:"bytes,2,opt,name=requester_pub_key_hex,json=requesterPubKeyHex,proto3" json:"requester_pub_key_hex,omitempty" yaml:"requester_pub_key_hex"`
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) Reset()         { *m = QueryGetCDRPartialsHistoryRequest{} }
+func (m *QueryGetCDRPartialsHistoryRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetCDRPartialsHistoryRequest) ProtoMessage()    {}
+func (m *QueryGetCDRPartialsHistoryRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetCDRPartialsHistoryRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetCDRPartialsHistoryRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetCDRPartialsHistoryRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetCDRPartialsHistoryRequest.Merge(m, src)
+}
+func (m *QueryGetCDRPartialsHistoryRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetCDRPartialsHistoryRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetCDRPartialsHistoryRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetCDRPartialsHistoryRequest proto.InternalMessageInfo
+
+func (m *QueryGetCDRPartialsHistoryRequest) GetUuid() uint32 {
+	if m != nil {
+		return m.Uuid
+	}
+	return 0
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) GetRequesterPubKeyHex() string {
+	if m != nil {
+		return m.RequesterPubKeyHex
+	}
+	return ""
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RequesterPubKeyHex) > 0 {
+		i -= len(m.RequesterPubKeyHex)
+		copy(dAtA[i:], m.RequesterPubKeyHex)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.RequesterPubKeyHex)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Uuid != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Uuid))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Uuid != 0 {
+		n += 1 + sovQuery(uint64(m.Uuid))
+	}
+	l = len(m.RequesterPubKeyHex)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetCDRPartialsHistoryRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetCDRPartialsHistoryRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetCDRPartialsHistoryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Uuid", wireType)
+			}
+			m.Uuid = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Uuid |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequesterPubKeyHex", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequesterPubKeyHex = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+type QueryGetCDRPartialsHistoryResponse struct {
+	Submissions []DKGPartialDecryptionSubmissionsByRound `protobuf:"bytes,1,rep,name=submissions,proto3" json:"submissions" yaml:"submissions"`
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) Reset()         { *m = QueryGetCDRPartialsHistoryResponse{} }
+func (m *QueryGetCDRPartialsHistoryResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetCDRPartialsHistoryResponse) ProtoMessage()    {}
+func (m *QueryGetCDRPartialsHistoryResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetCDRPartialsHistoryResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetCDRPartialsHistoryResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetCDRPartialsHistoryResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetCDRPartialsHistoryResponse.Merge(m, src)
+}
+func (m *QueryGetCDRPartialsHistoryResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetCDRPartialsHistoryResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetCDRPartialsHistoryResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetCDRPartialsHistoryResponse proto.InternalMessageInfo
+
+func (m *QueryGetCDRPartialsHistoryResponse) GetSubmissions() []DKGPartialDecryptionSubmissionsByRound {
+	if m != nil {
+		return m.Submissions
+	}
+	return nil
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Submissions) > 0 {
+		for iNdEx := len(m.Submissions) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Submissions[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Submissions) > 0 {
+		for _, e := range m.Submissions {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *QueryGetCDRPartialsHistoryResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetCDRPartialsHistoryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetCDRPartialsHistoryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Submissions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Submissions = append(m.Submissions, DKGPartialDecryptionSubmissionsByRound{})
+			if err := m.Submissions[len(m.Submissions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*QueryParamsRequest)(nil), "story.dkg.v1.types.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "story.dkg.v1.types.QueryParamsResponse")
@@ -1021,6 +1401,8 @@ func init() {
 	proto.RegisterType((*QueryGetCDRPartialsResponse)(nil), "story.dkg.v1.types.QueryGetCDRPartialsResponse")
 	proto.RegisterType((*QueryHasDecryptRequestRequest)(nil), "story.dkg.v1.types.QueryHasDecryptRequestRequest")
 	proto.RegisterType((*QueryHasDecryptRequestResponse)(nil), "story.dkg.v1.types.QueryHasDecryptRequestResponse")
+	proto.RegisterType((*QueryGetCDRPartialsHistoryRequest)(nil), "story.dkg.v1.types.QueryGetCDRPartialsHistoryRequest")
+	proto.RegisterType((*QueryGetCDRPartialsHistoryResponse)(nil), "story.dkg.v1.types.QueryGetCDRPartialsHistoryResponse")
 }
 
 func init() { proto.RegisterFile("story/dkg/v1/types/query.proto", fileDescriptor_a6fee99aab80cff3) }
@@ -1135,7 +1517,7 @@ type QueryClient interface {
 	GetLatestActiveDKGNetwork(ctx context.Context, in *QueryGetLatestActiveDKGNetworkRequest, opts ...grpc.CallOption) (*QueryGetLatestActiveDKGNetworkResponse, error)
 	GetCDRPartials(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error)
 	HasDecryptRequest(ctx context.Context, in *QueryHasDecryptRequestRequest, opts ...grpc.CallOption) (*QueryHasDecryptRequestResponse, error)
-	GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error)
+	GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsHistoryRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsHistoryResponse, error)
 }
 
 type queryClient struct {
@@ -1236,8 +1618,8 @@ func (c *queryClient) HasDecryptRequest(ctx context.Context, in *QueryHasDecrypt
 	return out, nil
 }
 
-func (c *queryClient) GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsResponse, error) {
-	out := new(QueryGetCDRPartialsResponse)
+func (c *queryClient) GetCDRPartialsHistory(ctx context.Context, in *QueryGetCDRPartialsHistoryRequest, opts ...grpc.CallOption) (*QueryGetCDRPartialsHistoryResponse, error) {
+	out := new(QueryGetCDRPartialsHistoryResponse)
 	err := c.cc.Invoke(ctx, "/story.dkg.v1.types.Query/GetCDRPartialsHistory", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1257,7 +1639,7 @@ type QueryServer interface {
 	GetLatestActiveDKGNetwork(context.Context, *QueryGetLatestActiveDKGNetworkRequest) (*QueryGetLatestActiveDKGNetworkResponse, error)
 	GetCDRPartials(context.Context, *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error)
 	HasDecryptRequest(context.Context, *QueryHasDecryptRequestRequest) (*QueryHasDecryptRequestResponse, error)
-	GetCDRPartialsHistory(context.Context, *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error)
+	GetCDRPartialsHistory(context.Context, *QueryGetCDRPartialsHistoryRequest) (*QueryGetCDRPartialsHistoryResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -1294,7 +1676,7 @@ func (*UnimplementedQueryServer) GetCDRPartials(ctx context.Context, req *QueryG
 func (*UnimplementedQueryServer) HasDecryptRequest(ctx context.Context, req *QueryHasDecryptRequestRequest) (*QueryHasDecryptRequestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HasDecryptRequest not implemented")
 }
-func (*UnimplementedQueryServer) GetCDRPartialsHistory(ctx context.Context, req *QueryGetCDRPartialsRequest) (*QueryGetCDRPartialsResponse, error) {
+func (*UnimplementedQueryServer) GetCDRPartialsHistory(ctx context.Context, req *QueryGetCDRPartialsHistoryRequest) (*QueryGetCDRPartialsHistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCDRPartialsHistory not implemented")
 }
 
@@ -1483,7 +1865,7 @@ func _Query_HasDecryptRequest_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _Query_GetCDRPartialsHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGetCDRPartialsRequest)
+	in := new(QueryGetCDRPartialsHistoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1495,7 +1877,7 @@ func _Query_GetCDRPartialsHistory_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: "/story.dkg.v1.types.Query/GetCDRPartialsHistory",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetCDRPartialsHistory(ctx, req.(*QueryGetCDRPartialsRequest))
+		return srv.(QueryServer).GetCDRPartialsHistory(ctx, req.(*QueryGetCDRPartialsHistoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
