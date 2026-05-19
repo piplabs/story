@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	dbm "github.com/cosmos/cosmos-db"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 // newTestOffChainStore returns a PartialDecryptOffChainStore backed by an in-memory DB.
@@ -153,7 +155,7 @@ func TestPruneOldPartialDecryptions_ArchivesToOffChain(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
-	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
 
 	// Attach an in-memory off-chain store.
 	k.offChainPartialDecryptStore = newTestOffChainStore(t)
@@ -270,7 +272,7 @@ func TestGetCDRPartialsHistory_Found(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
-	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
 
 	k.offChainPartialDecryptStore = newTestOffChainStore(t)
 	k.partialDecryptRetentionRounds = 10
@@ -424,7 +426,7 @@ func TestGetCDRPartialsHistory_MultipleGroups(t *testing.T) {
 	t.Parallel()
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
-	require.NoError(t, k.DKGPartialDecryptIndexActive.Set(ctx, "1"))
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
 
 	k.offChainPartialDecryptStore = newTestOffChainStore(t)
 	k.partialDecryptRetentionRounds = 10

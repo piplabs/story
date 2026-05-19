@@ -140,3 +140,12 @@ func IsSeneca(chainID string, blockNumber int64) (bool, error) {
 
 	return blockNumber >= senecaBlock, nil
 }
+
+func IsV190(chainID string, blockNumber int64) (bool, error) {
+	v190Block, err := GetUpgradeHeight(chainID, V190)
+	if err != nil {
+		return false, err
+	}
+
+	return blockNumber >= v190Block, nil
+}

@@ -12,9 +12,12 @@ import (
 	"cosmossdk.io/collections"
 	"github.com/ethereum/go-ethereum/common"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 var ErrDuplicatePartialDecryptionSubmission = errors.New("partial decryption submission already exists")
@@ -118,12 +121,16 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	return nil
 }
 
-// isPartialDecryptIndexActive reports whether the v1.9.0 upgrade migration has
-// been applied. Before migration the secondary round index does not exist, so
-// writes and pruning must be skipped to avoid app hash divergence on genesis replay.
+// isPartialDecryptIndexActive reports whether the v1.9.0 upgrade has activated
+// the secondary round index. Before v1.9.0 the index does not exist, so writes
+// and pruning must be skipped to avoid app hash divergence on genesis replay.
 func (k *Keeper) isPartialDecryptIndexActive(ctx context.Context) bool {
-	exists, err := k.DKGPartialDecryptIndexActive.Has(ctx)
-	return err == nil && exists
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	active, err := netconf.IsV190(sdkCtx.ChainID(), sdkCtx.BlockHeight())
+	if err != nil {
+		return false
+	}
+	return active
 }
 
 // pruneOldPartialDecryptions removes all DKGPartialDecrypt entries (primary +
@@ -231,12 +238,6 @@ func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
 			return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
 		}
 		indexed++
-	}
-
-	// Activate the index: from this point on, setPartialDecryptionSubmission writes
-	// the secondary index and BeginBlocker uses it for pruning.
-	if err := k.DKGPartialDecryptIndexActive.Set(ctx, "1"); err != nil {
-		return errors.Wrap(err, "migrate partial decrypt round index: set index active flag")
 	}
 
 	log.Info(ctx, "Migrated partial decrypt round index", "indexed", indexed)
