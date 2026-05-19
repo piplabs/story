@@ -79,16 +79,16 @@ type Keeper struct {
 	SettlementBalance  collections.Item[string]                         // remaining UBI after committee distribution during FinalizeDKGRound
 	KernelUpgradeInfos collections.Map[string, types.KernelUpgradeInfo] // key: upgradeVersion
 
-	DKGPartialDecrypt           collections.Map[string, []byte]              // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
-	DKGPartialDecryptRoundIndex collections.Map[string, []byte]              // secondary index key: {round:010d}_{primary_key}; value: empty (presence only)
+	DKGPartialDecrypt           collections.Map[string, []byte]               // key: requesterPubKeyHash_label_ciphertextHash_round_validator; value: partial submission
+	DKGPartialDecryptRoundIndex collections.Map[string, []byte]               // secondary index key: {round:010d}_{primary_key}; value: empty (presence only)
 	DecryptRequestRegistry      collections.Map[string, types.DecryptRequest] // key: requesterPubKeyHash_label_round_ciphertextHash; value: decrypt request
 
 	// offChainPartialDecryptStore is an optional off-chain KV store that archives pruned partial
 	// decrypt submissions. Nil until InitOffChainPartialDecryptStore is called.
 	// Data is written here at prune time (archive-on-prune) and is never duplicated with on-chain.
 	// On-chain holds the most recent rounds; off-chain holds older archived rounds.
-	offChainPartialDecryptStore    *PartialDecryptOffChainStore
-	partialDecryptRetentionRounds  uint32 // operator-configurable; 0 means off-chain disabled
+	offChainPartialDecryptStore   *PartialDecryptOffChainStore
+	partialDecryptRetentionRounds uint32 // operator-configurable; 0 means off-chain disabled
 
 	CDRPartialSubmitCount collections.Map[string, uint64] // key: validatorAddr; value: valid partial submission count
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
