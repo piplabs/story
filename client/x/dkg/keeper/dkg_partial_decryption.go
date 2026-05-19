@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"cosmossdk.io/collections"
-	"github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"

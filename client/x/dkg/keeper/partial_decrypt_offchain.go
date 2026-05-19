@@ -35,7 +35,7 @@ func (s *PartialDecryptOffChainStore) primaryKey(key string) []byte {
 }
 
 func (s *PartialDecryptOffChainStore) roundIndexKey(round uint32, primaryKey string) []byte {
-	return []byte(fmt.Sprintf("%s%010d|%s", offChainRoundPfx, round, primaryKey))
+	return fmt.Appendf(nil, "%s%010d|%s", offChainRoundPfx, round, primaryKey)
 }
 
 // Set writes the primary entry and its round index entry atomically.
@@ -78,7 +78,7 @@ func (s *PartialDecryptOffChainStore) PrefixIterator(prefix string) (dbm.Iterato
 // secondary round index for an O(deleted entries) scan.
 func (s *PartialDecryptOffChainStore) PruneBeforeRound(ctx context.Context, cutoffRound uint32) error {
 	start := []byte(offChainRoundPfx)
-	end := []byte(fmt.Sprintf("%s%010d|", offChainRoundPfx, cutoffRound+1))
+	end := fmt.Appendf(nil, "%s%010d|", offChainRoundPfx, cutoffRound+1)
 
 	iter, err := s.db.Iterator(start, end)
 	if err != nil {
