@@ -18,9 +18,9 @@ const (
 )
 
 // PartialDecryptOffChainStore is an off-chain KV store (backed by dbm.DB) that
-// mirrors DKGPartialDecrypt submissions with operator-configurable round retention.
-// It is write-through alongside the on-chain IAVL store and serves GetCDRPartials
-// queries when available, enabling longer history without bloating the app hash.
+// archives DKGPartialDecrypt submissions pruned from the on-chain IAVL store.
+// Data is written here at prune time (archive-on-prune), never duplicated with on-chain.
+// On-chain holds the 2 most recent active rounds; this store retains older archived rounds.
 type PartialDecryptOffChainStore struct {
 	db dbm.DB
 }

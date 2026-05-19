@@ -170,7 +170,7 @@ func (k *Keeper) pruneOldPartialDecryptions(ctx context.Context, cutoffRound uin
 				// Parse round from key: {reqHash}_{labelHex}_{ciphertextHash}_{round}_{validator}
 				if round, ok := parseRoundFromPartialDecryptKey(primaryKey); ok {
 					if err := k.offChainPartialDecryptStore.Set(primaryKey, round, bz); err != nil {
-						log.Warn(ctx, "Failed to archive partial decrypt to off-chain store", err, "key", primaryKey)
+						log.Error(ctx, "Failed to archive partial decrypt to off-chain store", err, "key", primaryKey)
 					}
 				}
 			}
