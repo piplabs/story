@@ -143,22 +143,26 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         require(enclaveReport.length >= QUOTE_HEADER_SIZE, "TDXValidationHook: Quote too short for header");
         require(enclaveReport.length >= MIN_QUOTE_SIZE, "TDXValidationHook: Quote too short for body");
         require(
-            uint8(enclaveReport[4]) == TEE_TYPE_TDX_BYTE0 && uint8(enclaveReport[5]) == 0
-                && uint8(enclaveReport[6]) == 0 && uint8(enclaveReport[7]) == 0,
+            uint8(enclaveReport[4]) == TEE_TYPE_TDX_BYTE0 &&
+                uint8(enclaveReport[5]) == 0 &&
+                uint8(enclaveReport[6]) == 0 &&
+                uint8(enclaveReport[7]) == 0,
             "TDXValidationHook: Not a TDX quote"
         );
 
         // No-arg overload: Automata resolves the standard TCB Evaluation Data Number from the
         // PCCS Router per Intel's TCB Recovery policy (mirrors PR #816 for the SGX hook).
         TDXValidationHookStorage storage $ = _getTDXValidationHookStorage();
-        (bool success,) = IAutomataDcapAttestationFee($.automataValidationAddr).verifyAndAttestOnChain(enclaveReport);
+        (bool success, ) = IAutomataDcapAttestationFee($.automataValidationAddr).verifyAndAttestOnChain(enclaveReport);
         require(success, "TDXValidationHook: Attestation failed");
 
         require(
-            _computeBinaryCommitment(enclaveReport) == expectedCodeCommitment, "TDXValidationHook: unapproved binary"
+            _computeBinaryCommitment(enclaveReport) == expectedCodeCommitment,
+            "TDXValidationHook: unapproved binary"
         );
         require(
-            $.approvedPlatforms[_computePlatformCommitment(enclaveReport)], "TDXValidationHook: unapproved platform"
+            $.approvedPlatforms[_computePlatformCommitment(enclaveReport)],
+            "TDXValidationHook: unapproved platform"
         );
         require(
             _extractReportInstanceDataCommitment(enclaveReport) == expectedDataCommitment,

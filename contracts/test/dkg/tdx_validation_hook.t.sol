@@ -24,12 +24,9 @@ contract MockAutomataDcap is IAutomataDcapAttestationFee {
         shouldSucceed = s;
     }
 
-    function verifyAndAttestOnChain(bytes calldata rawQuote)
-        external
-        payable
-        override
-        returns (bool success, bytes memory output)
-    {
+    function verifyAndAttestOnChain(
+        bytes calldata rawQuote
+    ) external payable override returns (bool success, bytes memory output) {
         lastQuote = rawQuote;
         callCount++;
         noArgCalled = true;
@@ -40,12 +37,7 @@ contract MockAutomataDcap is IAutomataDcapAttestationFee {
     function verifyAndAttestOnChain(
         bytes calldata rawQuote,
         uint32 /* tcbEvaluationDataNumber */
-    )
-        external
-        payable
-        override
-        returns (bool success, bytes memory output)
-    {
+    ) external payable override returns (bool success, bytes memory output) {
         lastQuote = rawQuote;
         callCount++;
         return (shouldSucceed, bytes(""));
@@ -314,7 +306,7 @@ contract TDXValidationHookTest is ForgeTest {
         automata.setShouldSucceed(false);
         bytes memory quote = _buildV4QuoteDefault();
         _approvePlatformForQuote(quote);
-        (bytes32 binary,) = _commitments(quote);
+        (bytes32 binary, ) = _commitments(quote);
         bytes32 data = _dataCommitment(quote);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Attestation failed"));
@@ -334,7 +326,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_UnapprovedPlatform() public {
         // No approvePlatform call — platform check must fail after binary check passes.
         bytes memory quote = _buildV4QuoteDefault();
-        (bytes32 binary,) = _commitments(quote);
+        (bytes32 binary, ) = _commitments(quote);
         bytes32 data = _dataCommitment(quote);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: unapproved platform"));
@@ -344,7 +336,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_DataCommitmentMismatch() public {
         bytes memory quote = _buildV4QuoteDefault();
         _approvePlatformForQuote(quote);
-        (bytes32 binary,) = _commitments(quote);
+        (bytes32 binary, ) = _commitments(quote);
         bytes32 wrongData = keccak256("wrong-data");
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Data commitment does not match"));
@@ -354,7 +346,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_HappyPathV4() public {
         bytes memory quote = _buildV4QuoteDefault();
         _approvePlatformForQuote(quote);
-        (bytes32 binary,) = _commitments(quote);
+        (bytes32 binary, ) = _commitments(quote);
         bytes32 data = _dataCommitment(quote);
         vm.prank(dkg);
         bool ok = hook.validateReport(binary, data, quote, "");
@@ -367,7 +359,7 @@ contract TDXValidationHookTest is ForgeTest {
     function test_ValidateReport_HappyPathV5() public {
         bytes memory quote = _buildV5QuoteDefault();
         _approvePlatformForQuote(quote);
-        (bytes32 binary,) = _commitments(quote);
+        (bytes32 binary, ) = _commitments(quote);
         bytes32 data = _dataCommitment(quote);
         vm.prank(dkg);
         bool ok = hook.validateReport(binary, data, quote, "");
@@ -415,11 +407,13 @@ contract TDXValidationHookTest is ForgeTest {
     /// @dev Synthesizes a TDX quote with deterministic field bytes. Seeds let decomposition
     ///      tests vary individual measurement fields while holding others fixed. All non-seeded
     ///      bytes remain zero — the hook ignores them once Automata returns success.
-    function _buildQuoteStatic(uint16 version, uint256 totalLen, uint8 mrtdSeed, uint8 rtmrPrefix, uint8 rtmr2Seed)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _buildQuoteStatic(
+        uint16 version,
+        uint256 totalLen,
+        uint8 mrtdSeed,
+        uint8 rtmrPrefix,
+        uint8 rtmr2Seed
+    ) internal pure returns (bytes memory) {
         bytes memory quote = new bytes(totalLen);
 
         // version: little-endian uint16 at offset 0..1.

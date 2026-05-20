@@ -54,14 +54,17 @@ contract DeployTDXValidationHook is Script {
         Create3 create3 = Create3(Predeploys.Create3);
 
         // Implementation.
-        bytes memory implCreationCode =
-            abi.encodePacked(type(TDXValidationHook).creationCode, abi.encode(Predeploys.DKG));
+        bytes memory implCreationCode = abi.encodePacked(
+            type(TDXValidationHook).creationCode,
+            abi.encode(Predeploys.DKG)
+        );
         address tdxHookImpl = create3.deploy(TDX_IMPL_SALT, implCreationCode);
 
         // TransparentUpgradeableProxy.
         bytes memory initData = abi.encodeCall(TDXValidationHook.initialize, (owner, automataValidationAddr));
         bytes memory proxyCreationCode = abi.encodePacked(
-            type(TransparentUpgradeableProxy).creationCode, abi.encode(tdxHookImpl, owner, initData)
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(tdxHookImpl, owner, initData)
         );
         address tdxHookProxy = create3.deploy(TDX_PROXY_SALT, proxyCreationCode);
 

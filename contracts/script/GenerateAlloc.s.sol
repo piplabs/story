@@ -68,31 +68,29 @@ contract GenerateAlloc is Script {
 
     // TDXValidationHook configuration — edit before running the script.
     //
-    // Devnet measurements captured 2026-05-13 from GCP c3-standard-4 confidential VMs.
-    // Same SKU, same kernel binary → same RTMR2 → single binary commitment.
-    // Different firmware vintages (provisioning dates) → different RTMR1 → two distinct
-    // platform commitments. The hook is happy to whitelist both via approvePlatform.
+    // Devnet measurements captured 2026-05-20 from GCP c3-standard-4 confidential VMs
+    // (europe-west4-a) with story-kernel commit df91b97 (feat/impl-tdx-backend).
+    // Same SKU + same kernel binary → same RTMR2 → single binary commitment.
+    // Different firmware vintages (provisioning 2026-05-11 vs 2026-05-12) → different
+    // RTMR1 → two distinct platform commitments. The hook is happy to whitelist both
+    // via approvePlatform (matrix-sum effect: 1 binary × N platforms → N validators).
     //
-    // story-gcp  RTMR1 = c041916ac1f5592fff0ce4cdf1c94b96870ae5786d857f605179f73ce6e9114892f29f8463c8ff2d27af6174f98acba4
+    // Common: MRTD = feb74866...c162, RTMR0 = 70e9cd9b...fb6c, RTMR2 = 261eb562...ab34
+    // story-gcp   RTMR1 = c041916ac1f5592fff0ce4cdf1c94b96870ae5786d857f605179f73ce6e9114892f29f8463c8ff2d27af6174f98acba4
     // story-gcp-2 RTMR1 = 176bab53534ff9e5b1a9a4476ed377ef041ed44b3a3225359456f3746e3051774b00f5a6cd710b876fdf91f506a57d4f
-    // both RTMR0    = 70e9cd9b...fb6c, MRTD = feb74866...c162, RTMR2 = 261eb562...ab34
-    //
-    // Replace these constants with values captured from running quotes on the target
-    // devnet nodes before running the script; the values below are placeholders for the
-    // 2026-05-13 capture and may need re-measuring if the kernel binary changes.
     bytes32 private constant TDX_BINARY_COMMITMENT_PLACEHOLDER =
-        hex"0000000000000000000000000000000000000000000000000000000000000002";
+        hex"f6825d2c7e0f84e2e2805a8827c53cf0194993432eb9f907d1b151d23cf137a7";
     // keccak256(MRTD || RTMR0 || RTMR1) per platform; computed off-chain.
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER =
-        hex"0000000000000000000000000000000000000000000000000000000000000003";
+        hex"824e5e0e26cdf2e186d438bd8d3aef7bbe686e28372b26c22165f539fc570faf";
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER =
-        hex"0000000000000000000000000000000000000000000000000000000000000004";
+        hex"9acca7cf05de9a7440bc00a3b7ff32c6ae44c016701019ce2a1aca0b92d3c785";
 
     // When DKG_INCLUDE_TDX is true the script deploys TDXValidationHook and whitelists
     // enclaveType=2 with the binary commitment above, then calls approvePlatform for each
     // configured platform commitment. Operators flip this to true on TDX-capable devnets;
     // it is false by default so mainnet/SGX-only deployments are unaffected.
-    bool private constant DKG_INCLUDE_TDX = false;
+    bool private constant DKG_INCLUDE_TDX = true;
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {

@@ -108,13 +108,7 @@ interface ICDR {
     /// @param pid The participant index of the validator
     /// @param uuid The UUID of the vault
     /// @param index The index of the item within the batch
-    event InvalidPartialDecryption(
-        address indexed validator,
-        uint32 round,
-        uint32 pid,
-        uint32 uuid,
-        uint256 index
-    );
+    event InvalidPartialDecryption(address indexed validator, uint32 round, uint32 pid, uint32 uuid, uint256 index);
 
     /// @notice Emitted when a CDR fee is collected
     /// @param payer The address that paid the fee (msg.sender)
