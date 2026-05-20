@@ -14,6 +14,7 @@ import { UBIPool } from "../src/protocol/UBIPool.sol";
 import { DKG } from "../src/protocol/DKG.sol";
 import { CDR } from "../src/protocol/CDR.sol";
 import { SGXValidationHook } from "../src/protocol/SGXValidationHook.sol";
+import { TDXValidationHook } from "../src/protocol/TDXValidationHook.sol";
 import { IDKG } from "../src/interfaces/IDKG.sol";
 
 import { ChainIds } from "./utils/ChainIds.sol";
@@ -64,6 +65,34 @@ contract GenerateAlloc is Script {
         hex"0000000000000000000000000000000000000000000000000000000000000001";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
+
+    // TDXValidationHook configuration — edit before running the script.
+    //
+    // Devnet measurements captured 2026-05-13 from GCP c3-standard-4 confidential VMs.
+    // Same SKU, same kernel binary → same RTMR2 → single binary commitment.
+    // Different firmware vintages (provisioning dates) → different RTMR1 → two distinct
+    // platform commitments. The hook is happy to whitelist both via approvePlatform.
+    //
+    // story-gcp  RTMR1 = c041916ac1f5592fff0ce4cdf1c94b96870ae5786d857f605179f73ce6e9114892f29f8463c8ff2d27af6174f98acba4
+    // story-gcp-2 RTMR1 = 176bab53534ff9e5b1a9a4476ed377ef041ed44b3a3225359456f3746e3051774b00f5a6cd710b876fdf91f506a57d4f
+    // both RTMR0    = 70e9cd9b...fb6c, MRTD = feb74866...c162, RTMR2 = 261eb562...ab34
+    //
+    // Replace these constants with values captured from running quotes on the target
+    // devnet nodes before running the script; the values below are placeholders for the
+    // 2026-05-13 capture and may need re-measuring if the kernel binary changes.
+    bytes32 private constant TDX_BINARY_COMMITMENT_PLACEHOLDER =
+        hex"0000000000000000000000000000000000000000000000000000000000000002";
+    // keccak256(MRTD || RTMR0 || RTMR1) per platform; computed off-chain.
+    bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER =
+        hex"0000000000000000000000000000000000000000000000000000000000000003";
+    bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER =
+        hex"0000000000000000000000000000000000000000000000000000000000000004";
+
+    // When DKG_INCLUDE_TDX is true the script deploys TDXValidationHook and whitelists
+    // enclaveType=2 with the binary commitment above, then calls approvePlatform for each
+    // configured platform commitment. Operators flip this to true on TDX-capable devnets;
+    // it is false by default so mainnet/SGX-only deployments are unaffected.
+    bool private constant DKG_INCLUDE_TDX = false;
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
@@ -196,6 +225,9 @@ contract GenerateAlloc is Script {
         setDKG();
         setCDR();
         setSGXValidationHook();
+        if (DKG_INCLUDE_TDX) {
+            setTDXValidationHook();
+        }
     }
 
     /// @dev Populates the upgradeable predeploys namespace with proxies, to reserve the addresses
@@ -458,6 +490,64 @@ contract GenerateAlloc is Script {
         console2.log("SGXValidationHook impl deployed at:", sgxHookImpl);
         console2.log("SGXValidationHook proxy deployed at:", sgxHookProxy);
         console2.log("SGXValidationHook owner:", SGXValidationHook(sgxHookProxy).owner());
+    }
+
+    /// @notice Deploys TDXValidationHook (impl + proxy) via Create3, whitelists it on DKG,
+    ///         and approves the configured platform commitments. Only invoked when
+    ///         DKG_INCLUDE_TDX is true.
+    /// @dev Edit TDX_BINARY_COMMITMENT_PLACEHOLDER and TDX_PLATFORM_COMMITMENT_*_PLACEHOLDER
+    ///      with values captured from running quotes on the target devnet nodes before
+    ///      running the script.
+    function setTDXValidationHook() internal {
+        // Deploy TDXValidationHook implementation via Create3
+        bytes memory implCreationCode = abi.encodePacked(
+            type(TDXValidationHook).creationCode,
+            abi.encode(Predeploys.DKG)
+        );
+        address tdxHookImpl = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_TDX_VALIDATION_HOOK_IMPL"),
+            implCreationCode
+        );
+
+        // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
+        bytes memory initData = abi.encodeCall(TDXValidationHook.initialize, (timelock, AUTOMATA_VALIDATION_ADDR));
+        bytes memory proxyCreationCode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(tdxHookImpl, timelock, initData)
+        );
+        address tdxHookProxy = Create3(Predeploys.Create3).deploy(
+            keccak256("STORY_TDX_VALIDATION_HOOK_PROXY"),
+            proxyCreationCode
+        );
+
+        // Whitelist TDX enclave type on DKG (owner=timelock)
+        bytes32 enclaveType = bytes32(uint256(2));
+        IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
+            codeCommitment: TDX_BINARY_COMMITMENT_PLACEHOLDER,
+            validationHookAddr: tdxHookProxy
+        });
+        vm.stopPrank();
+        vm.prank(timelock);
+        DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
+
+        // Approve platform commitments. The hook is happy to whitelist multiple platforms
+        // under the same binary commitment — this is how same-SKU horizontal scaling under
+        // firmware-vintage drift works (Test 3a/3b lessons applied).
+        vm.startPrank(timelock);
+        TDXValidationHook(tdxHookProxy).approvePlatform(
+            TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER,
+            "GCP c3-standard-4 / TDVF vintage v1"
+        );
+        TDXValidationHook(tdxHookProxy).approvePlatform(
+            TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER,
+            "GCP c3-standard-4 / TDVF vintage v2"
+        );
+        vm.stopPrank();
+        vm.startPrank(deployer);
+
+        console2.log("TDXValidationHook impl deployed at:", tdxHookImpl);
+        console2.log("TDXValidationHook proxy deployed at:", tdxHookProxy);
+        console2.log("TDXValidationHook owner:", TDXValidationHook(tdxHookProxy).owner());
     }
 
     /// @notice Sets the bytecode for Create3 factory as a predeploy
