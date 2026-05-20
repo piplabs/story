@@ -161,6 +161,7 @@ func newTestContractClient(t *testing.T, mock *mockEthClient) *ContractClient {
 		privateKey:  pk,
 		fromAddress: addr,
 		chainID:     big.NewInt(1),
+		pendingTxs:  make(map[string]*types.Transaction),
 	}
 }
 
@@ -188,6 +189,7 @@ func newFullTestContractClient(t *testing.T, ethMock *mockEthClient, dkgMock *mo
 		privateKey:      pk,
 		fromAddress:     addr,
 		chainID:         big.NewInt(1),
+		pendingTxs:      make(map[string]*types.Transaction),
 	}
 }
 
@@ -837,6 +839,279 @@ func TestMaxRetriesConstant(t *testing.T) {
 	t.Parallel()
 
 	require.Equal(t, 3, maxRetries)
+}
+
+// ---------- checkAndResumePendingTx ----------
+
+func TestCheckAndResumePendingTx_NoPendingTx(t *testing.T) {
+	t.Parallel()
+
+	client := newTestContractClient(t, &mockEthClient{})
+	receipt, err := client.checkAndResumePendingTx(context.Background(), "register_1")
+	require.NoError(t, err)
+	require.Nil(t, receipt)
+}
+
+func TestCheckAndResumePendingTx_StillPending(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	mock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
+			return nil, ethereum.NotFound // not yet mined
+		},
+	}
+	client := newTestContractClient(t, mock)
+	client.storePendingTx("register_1", pendingTx)
+
+	receipt, err := client.checkAndResumePendingTx(context.Background(), "register_1")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "still pending")
+	require.Nil(t, receipt)
+
+	// tx must remain in the map so the next call can try again
+	client.pendingTxMu.Lock()
+	_, ok := client.pendingTxs["register_1"]
+	client.pendingTxMu.Unlock()
+	require.True(t, ok)
+}
+
+func TestCheckAndResumePendingTx_MinedSuccess(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	expectedReceipt := &types.Receipt{Status: types.ReceiptStatusSuccessful, GasUsed: 50000}
+	mock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, hash common.Hash) (*types.Receipt, error) {
+			require.Equal(t, pendingTx.Hash(), hash)
+			return expectedReceipt, nil
+		},
+	}
+	client := newTestContractClient(t, mock)
+	client.storePendingTx("register_1", pendingTx)
+
+	receipt, err := client.checkAndResumePendingTx(context.Background(), "register_1")
+	require.NoError(t, err)
+	require.Equal(t, expectedReceipt, receipt)
+
+	client.pendingTxMu.Lock()
+	_, ok := client.pendingTxs["register_1"]
+	client.pendingTxMu.Unlock()
+	require.False(t, ok, "key must be cleared after mined success")
+}
+
+func TestCheckAndResumePendingTx_MinedFailed(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	mock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
+			return &types.Receipt{Status: types.ReceiptStatusFailed, GasUsed: 50000}, nil
+		},
+	}
+	client := newTestContractClient(t, mock)
+	client.storePendingTx("register_1", pendingTx)
+
+	receipt, err := client.checkAndResumePendingTx(context.Background(), "register_1")
+	require.NoError(t, err)
+	require.Nil(t, receipt, "failed tx returns nil to signal caller should retry fresh")
+
+	client.pendingTxMu.Lock()
+	_, ok := client.pendingTxs["register_1"]
+	client.pendingTxMu.Unlock()
+	require.False(t, ok, "key must be cleared after mined failure")
+}
+
+// ---------- Register (pending tx) ----------
+
+func TestRegister_PendingTxStillPending(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	ethMock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
+			return nil, ethereum.NotFound // all txs still pending
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+	client.storePendingTx("register_1", pendingTx)
+
+	sendCalls := 0
+	dkgMock.registerFn = func(opts *bind.TransactOpts, _ []byte, _ bindings.IDKGEnclaveInstanceData, _ *big.Int, _ [32]byte, _ []byte) (*types.Transaction, error) {
+		sendCalls++
+		return makeTx(opts.Nonce.Uint64()), nil
+	}
+
+	_, err := client.Register(context.Background(), 1, [32]byte{0x01}, 100, make([]byte, 32),
+		[]byte("dkg"), []byte("comm"), []byte("report"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "still pending")
+	require.Equal(t, 0, sendCalls, "must not send a new tx while previous is still pending")
+}
+
+func TestRegister_PendingTxSucceeded(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	expectedReceipt := &types.Receipt{Status: types.ReceiptStatusSuccessful, GasUsed: 60000}
+	ethMock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, hash common.Hash) (*types.Receipt, error) {
+			if hash == pendingTx.Hash() {
+				return expectedReceipt, nil
+			}
+			return nil, nil
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+	client.storePendingTx("register_1", pendingTx)
+
+	sendCalls := 0
+	dkgMock.registerFn = func(opts *bind.TransactOpts, _ []byte, _ bindings.IDKGEnclaveInstanceData, _ *big.Int, _ [32]byte, _ []byte) (*types.Transaction, error) {
+		sendCalls++
+		return makeTx(opts.Nonce.Uint64()), nil
+	}
+
+	receipt, err := client.Register(context.Background(), 1, [32]byte{0x01}, 100, make([]byte, 32),
+		[]byte("dkg"), []byte("comm"), []byte("report"))
+	require.NoError(t, err)
+	require.Equal(t, expectedReceipt, receipt)
+	require.Equal(t, 0, sendCalls, "must reuse the pending tx receipt without sending a new tx")
+}
+
+func TestRegister_PendingTxFailed_SendsNewTx(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	freshReceipt := &types.Receipt{Status: types.ReceiptStatusSuccessful, GasUsed: 50000}
+	ethMock := &mockEthClient{
+		estimateGasFn: func(_ context.Context, _ ethereum.CallMsg) (uint64, error) { return 100000, nil },
+		transactionReceiptFn: func(_ context.Context, hash common.Hash) (*types.Receipt, error) {
+			if hash == pendingTx.Hash() {
+				return &types.Receipt{Status: types.ReceiptStatusFailed}, nil
+			}
+			return freshReceipt, nil
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+	client.storePendingTx("register_1", pendingTx)
+
+	sendCalls := 0
+	dkgMock.registerFn = func(opts *bind.TransactOpts, _ []byte, _ bindings.IDKGEnclaveInstanceData, _ *big.Int, _ [32]byte, _ []byte) (*types.Transaction, error) {
+		sendCalls++
+		return makeTx(opts.Nonce.Uint64()), nil
+	}
+
+	receipt, err := client.Register(context.Background(), 1, [32]byte{0x01}, 100, make([]byte, 32),
+		[]byte("dkg"), []byte("comm"), []byte("report"))
+	require.NoError(t, err)
+	require.Equal(t, freshReceipt, receipt)
+	require.Equal(t, 1, sendCalls, "must send a new tx after the pending tx failed on-chain")
+}
+
+func TestRegister_StoresPendingTxOnWaitTimeout(t *testing.T) {
+	t.Parallel()
+
+	var sentTxHash common.Hash
+	ethMock := &mockEthClient{
+		estimateGasFn: func(_ context.Context, _ ethereum.CallMsg) (uint64, error) { return 100000, nil },
+		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
+			return nil, ethereum.NotFound // never mines
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+		registerFn: func(opts *bind.TransactOpts, _ []byte, _ bindings.IDKGEnclaveInstanceData, _ *big.Int, _ [32]byte, _ []byte) (*types.Transaction, error) {
+			tx := makeTx(opts.Nonce.Uint64())
+			sentTxHash = tx.Hash()
+			return tx, nil
+		},
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // immediately cancelled → waitForTransaction times out right away
+
+	_, err := client.Register(ctx, 1, [32]byte{0x01}, 100, make([]byte, 32),
+		[]byte("dkg"), []byte("comm"), []byte("report"))
+	require.Error(t, err)
+
+	// The tx must be preserved so the next Register call can check it instead of sending again.
+	client.pendingTxMu.Lock()
+	storedTx, ok := client.pendingTxs["register_1"]
+	client.pendingTxMu.Unlock()
+	require.True(t, ok, "pending tx must be stored after waitForTransaction timeout")
+	require.Equal(t, sentTxHash, storedTx.Hash())
+}
+
+// ---------- Finalize (pending tx) ----------
+
+func TestFinalize_PendingTxStillPending(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	ethMock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, _ common.Hash) (*types.Receipt, error) {
+			return nil, ethereum.NotFound
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+	client.storePendingTx("finalize_1", pendingTx)
+
+	sendCalls := 0
+	dkgMock.finalizeFn = func(opts *bind.TransactOpts, _ uint32, _ common.Address, _ [32]byte, _ [32]byte, _ []byte, _ [][]byte, _ []byte, _ []byte) (*types.Transaction, error) {
+		sendCalls++
+		return makeTx(opts.Nonce.Uint64()), nil
+	}
+
+	_, err := client.Finalize(context.Background(), 1, [32]byte{0x01}, make([]byte, 32),
+		[]byte("gpk"), [][]byte{}, []byte("share"), []byte("sig"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "still pending")
+	require.Equal(t, 0, sendCalls)
+}
+
+func TestFinalize_PendingTxSucceeded(t *testing.T) {
+	t.Parallel()
+
+	pendingTx := makeTx(99)
+	expectedReceipt := &types.Receipt{Status: types.ReceiptStatusSuccessful, GasUsed: 70000}
+	ethMock := &mockEthClient{
+		transactionReceiptFn: func(_ context.Context, hash common.Hash) (*types.Receipt, error) {
+			if hash == pendingTx.Hash() {
+				return expectedReceipt, nil
+			}
+			return nil, nil
+		},
+	}
+	dkgMock := &mockDKGContract{
+		feeFn: func(_ *bind.CallOpts) (*big.Int, error) { return big.NewInt(0), nil },
+	}
+	client := newFullTestContractClient(t, ethMock, dkgMock, &mockCDRContract{})
+	client.storePendingTx("finalize_1", pendingTx)
+
+	sendCalls := 0
+	dkgMock.finalizeFn = func(opts *bind.TransactOpts, _ uint32, _ common.Address, _ [32]byte, _ [32]byte, _ []byte, _ [][]byte, _ []byte, _ []byte) (*types.Transaction, error) {
+		sendCalls++
+		return makeTx(opts.Nonce.Uint64()), nil
+	}
+
+	receipt, err := client.Finalize(context.Background(), 1, [32]byte{0x01}, make([]byte, 32),
+		[]byte("gpk"), [][]byte{}, []byte("share"), []byte("sig"))
+	require.NoError(t, err)
+	require.Equal(t, expectedReceipt, receipt)
+	require.Equal(t, 0, sendCalls, "must reuse the pending tx receipt without sending a new tx")
 }
 
 // errSentinel is a test sentinel error.

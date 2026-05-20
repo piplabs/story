@@ -75,30 +75,22 @@ contract UpgradeDKG is Script {
         payloads[1] = _buildCDRUpgradePayload(newCDRImpl);
         payloads[2] = _buildWhitelistPayload();
 
-        bytes4 selector;
         string memory modeString;
         bytes memory data;
 
         if (mode == MODE.CANCEL) {
             revert("TODO");
-        } else {
-            if (mode == MODE.SCHEDULE) {
-                selector = TimelockController.scheduleBatch.selector;
-                modeString = "Schedule";
-            } else {
-                selector = TimelockController.executeBatch.selector;
-                modeString = "Execute";
-            }
-            // Encode the full scheduleBatch call
-            data = abi.encodeWithSelector(
-                selector,
-                targets,
-                values,
-                payloads,
-                bytes32(0), // predecessor
-                bytes32(0), // salt
-                minDelay
+        } else if (mode == MODE.SCHEDULE) {
+            modeString = "Schedule";
+            // scheduleBatch(address[], uint256[], bytes[], bytes32 predecessor, bytes32 salt, uint256 delay)
+            data = abi.encodeCall(
+                TimelockController.scheduleBatch,
+                (targets, values, payloads, bytes32(0), bytes32(0), minDelay)
             );
+        } else {
+            modeString = "Execute";
+            // executeBatch(address[], uint256[], bytes[], bytes32 predecessor, bytes32 salt) — no delay
+            data = abi.encodeCall(TimelockController.executeBatch, (targets, values, payloads, bytes32(0), bytes32(0)));
         }
 
         // Output Safe transaction parameters

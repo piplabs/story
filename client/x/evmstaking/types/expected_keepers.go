@@ -78,6 +78,9 @@ type StakingKeeper interface {
 	GetTokenTypeInfo(ctx context.Context, tokenType int32) (stakingtypes.TokenTypeInfo, error)
 
 	GetSingularityHeight(ctx context.Context) (uint64, error)
+
+	GetParams(ctx context.Context) (stakingtypes.Params, error)
+	SetParams(ctx context.Context, params stakingtypes.Params) error
 }
 
 // SlashingKeeper defines the expected interface for the slashing module.
