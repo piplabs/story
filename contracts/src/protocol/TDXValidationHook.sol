@@ -71,6 +71,14 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @dev REPORT_DATA is 64 bytes; we consume only the first 32.
     uint256 private constant OFFSET_REPORT_DATA = 568;
 
+    /// @dev Minimum quote length defense-in-depth: the highest field we read is the first 32
+    ///      bytes of REPORT_DATA. A real V4 TD10 quote is ≥ 632 bytes and a V5 TD15 quote is
+    ///      ≥ 696 bytes (header + body), so this floor is well below either. Automata is the
+    ///      authoritative shape validator (it parses header + body + signature/cert chain) but
+    ///      hardening this floor lets the assembly extractors below treat their calldata
+    ///      offsets as in-bounds without trusting the Automata side-effect order.
+    uint256 private constant MIN_QUOTE_SIZE = OFFSET_REPORT_DATA + 32; // 600
+
     constructor(address dkg) {
         require(dkg != address(0), "TDXValidationHook: DKG cannot be empty");
         DKG = dkg;
@@ -106,6 +114,7 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
 
     /// @notice Revokes a previously approved platform identity tuple.
     function revokePlatform(bytes32 platformCommitment) external override onlyOwner {
+        require(platformCommitment != bytes32(0), "TDXValidationHook: platform commitment cannot be empty");
         delete _getTDXValidationHookStorage().approvedPlatforms[platformCommitment];
         emit PlatformRevoked(platformCommitment);
     }
@@ -129,7 +138,10 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
 
         // Reject anything obviously not a TDX quote before reading at TDX-specific offsets.
         // Automata is the authoritative shape validator; this is defense-in-depth only.
+        // The length floor below ensures every assembly extractor reads in-bounds calldata
+        // without trusting Automata to have done so first.
         require(enclaveReport.length >= QUOTE_HEADER_SIZE, "TDXValidationHook: Quote too short for header");
+        require(enclaveReport.length >= MIN_QUOTE_SIZE, "TDXValidationHook: Quote too short for body");
         require(
             uint8(enclaveReport[4]) == TEE_TYPE_TDX_BYTE0 && uint8(enclaveReport[5]) == 0
                 && uint8(enclaveReport[6]) == 0 && uint8(enclaveReport[7]) == 0,

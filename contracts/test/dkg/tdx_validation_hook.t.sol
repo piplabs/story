@@ -229,6 +229,12 @@ contract TDXValidationHookTest is ForgeTest {
         assertFalse(hook.isPlatformApproved(key));
     }
 
+    function test_RevokePlatform_RejectsZero() public {
+        vm.prank(owner);
+        vm.expectRevert(bytes("TDXValidationHook: platform commitment cannot be empty"));
+        hook.revokePlatform(bytes32(0));
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
     //                          validateReport guards                         //
     //////////////////////////////////////////////////////////////////////////*/
@@ -264,6 +270,21 @@ contract TDXValidationHookTest is ForgeTest {
         bytes memory quote = new bytes(QUOTE_HEADER_SIZE - 1);
         vm.prank(dkg);
         vm.expectRevert(bytes("TDXValidationHook: Quote too short for header"));
+        hook.validateReport(bytes32(uint256(1)), bytes32(uint256(2)), quote, "");
+    }
+
+    /// @dev Defense-in-depth length floor: a quote that passes the header check but is shorter
+    ///      than the highest field we read (REPORT_DATA[0:32], at absolute offset 600) must
+    ///      revert before any assembly extractor runs.
+    function test_ValidateReport_QuoteTooShortForBody() public {
+        // A quote that satisfies the header floor but is shorter than MIN_QUOTE_SIZE (600).
+        // We can't use _buildV4QuoteDefault here because it builds a full V4 minimum quote.
+        bytes memory quote = new bytes(QUOTE_HEADER_SIZE + 10);
+        // Make the tee_type bytes match TDX so the tee_type guard does not short-circuit us
+        // out before the length floor is exercised.
+        quote[OFFSET_TEE_TYPE] = bytes1(TEE_TYPE_TDX_BYTE0);
+        vm.prank(dkg);
+        vm.expectRevert(bytes("TDXValidationHook: Quote too short for body"));
         hook.validateReport(bytes32(uint256(1)), bytes32(uint256(2)), quote, "");
     }
 
