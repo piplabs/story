@@ -664,6 +664,113 @@ func TestProcessDecryptQueue_PartialStaleRequests(t *testing.T) {
 	require.Empty(t, got.GetDecryptRequests(), "only fresh request processed, nothing re-queued")
 }
 
+// ---------- stale session clearing (round <= maxRound-2) ----------
+
+// TestProcessDecryptQueue_StaleSessionRequestsDropped verifies that requests in a session
+// that is at least 2 rounds behind the latest session are drained and discarded, while
+// requests in sessions within the 2-round window are left untouched.
+func TestProcessDecryptQueue_StaleSessionRequestsDropped(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	// Round 1 is stale (maxRound=3, 3-2=1, round 1 <= 1).
+	stale := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	// Round 3 is current — Index=0 so it will be deferred, not cleared.
+	current := &types.DKGSession{
+		Round: 3, Index: 0, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	require.NoError(t, sm.CreateSession(ctx, stale))
+	require.NoError(t, sm.CreateSession(ctx, current))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	gotStale, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Empty(t, gotStale.GetDecryptRequests(), "stale session requests must be dropped")
+
+	gotCurrent, err := sm.GetSession(3)
+	require.NoError(t, err)
+	require.Len(t, gotCurrent.GetDecryptRequests(), 1, "current session requests must be preserved")
+}
+
+// TestProcessDecryptQueue_StaleSessionBoundaryPreserved verifies that a session exactly
+// 1 round behind the latest (maxRound-1) is NOT cleared — only sessions >= 2 rounds
+// behind are eligible for stale clearing.
+func TestProcessDecryptQueue_StaleSessionBoundaryPreserved(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	// maxRound=3; maxRound-2=1. Round 2 > 1, so it must NOT be cleared.
+	boundary := &types.DKGSession{
+		Round: 2, Index: 0, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	latest := &types.DKGSession{
+		Round: 3, Index: 0, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	require.NoError(t, sm.CreateSession(ctx, boundary))
+	require.NoError(t, sm.CreateSession(ctx, latest))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	gotBoundary, err := sm.GetSession(2)
+	require.NoError(t, err)
+	require.Len(t, gotBoundary.GetDecryptRequests(), 1, "boundary session (maxRound-1) must not be cleared")
+}
+
+// TestProcessDecryptQueue_SingleSessionNotCleared verifies that when there is only one
+// session the maxRound<2 guard prevents any stale clearing (no uint32 underflow).
+func TestProcessDecryptQueue_SingleSessionNotCleared(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: []byte("pub"),
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "single session must not be cleared")
+}
+
 // TestComputePartialDecrypt_PanicRecovery verifies that a panic inside the kernel call
 // is caught by the deferred recover and returned as an error (not a crash).
 func TestComputePartialDecrypt_PanicRecovery(t *testing.T) {
