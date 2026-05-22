@@ -50,6 +50,7 @@ const (
 const (
 	labelPendingCached   = "cached"
 	labelPendingReplayed = "replayed"
+	labelPendingDropped  = "dropped"
 )
 
 // Label values for kernelClientLookupDuration "result" label.

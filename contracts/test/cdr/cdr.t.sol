@@ -635,17 +635,18 @@ contract CDRTest is Test {
 
     /// @dev Builds a valid PartialDecryptionRequest for use in batch tests.
     function _makeRequest(uint32 uuid) internal pure returns (ICDR.PartialDecryptionRequest memory) {
-        return ICDR.PartialDecryptionRequest({
-            round: 1,
-            pid: 2,
-            encryptedPartial: bytes("encrypted-partial"),
-            ephemeralPubKey: bytes("eph-pub"),
-            pubShare: bytes("pub-share"),
-            requesterPubKey: bytes("requester-pub"),
-            ciphertext: bytes("ciphertext"),
-            uuid: uuid,
-            signature: bytes("sig")
-        });
+        return
+            ICDR.PartialDecryptionRequest({
+                round: 1,
+                pid: 2,
+                encryptedPartial: bytes("encrypted-partial"),
+                ephemeralPubKey: bytes("eph-pub"),
+                pubShare: bytes("pub-share"),
+                requesterPubKey: bytes("requester-pub"),
+                ciphertext: bytes("ciphertext"),
+                uuid: uuid,
+                signature: bytes("sig")
+            });
     }
 
     function testCDR_SubmitBatch_EmptyBatch() public {
@@ -686,8 +687,17 @@ contract CDRTest is Test {
 
         vm.expectEmit(true, false, false, false);
         emit ICDR.EncryptedPartialDecryptionSubmitted(
-            address(this), 1, 2, bytes("encrypted-partial"), bytes("eph-pub"),
-            bytes("pub-share"), bytes("requester-pub"), bytes("ciphertext"), 0, bytes("sig"), 0
+            address(this),
+            1,
+            2,
+            bytes("encrypted-partial"),
+            bytes("eph-pub"),
+            bytes("pub-share"),
+            bytes("requester-pub"),
+            bytes("ciphertext"),
+            0,
+            bytes("sig"),
+            0
         );
 
         cdr.submitEncryptedPartialDecryptionBatch(requests);

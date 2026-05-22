@@ -84,7 +84,13 @@ type DKGSession struct {
 	OldCodeCommitment []byte `json:"old_code_commitment,omitempty"`
 
 	// Pending threshold decrypt requests (from contract events).
-	DecryptRequests []DecryptRequest `json:"decrypt_requests,omitempty"`
+	DecryptRequests []PendingDecryptRequest `json:"decrypt_requests,omitempty"`
+}
+
+// PendingDecryptRequest wraps a DecryptRequest with a retry counter for the decrypt queue.
+type PendingDecryptRequest struct {
+	DecryptRequest
+	RetryCount int `json:"retry_count"`
 }
 
 // NewDKGSession creates a new DKG session from blockchain event data.
@@ -105,7 +111,7 @@ func NewDKGSession(round uint32, activeValidators []string, isResharing bool, en
 		IsResharing:      isResharing,
 		EnclaveType:      enclaveType,
 
-		DecryptRequests: make([]DecryptRequest, 0),
+		DecryptRequests: make([]PendingDecryptRequest, 0),
 	}
 }
 
@@ -135,7 +141,7 @@ func (s *DKGSession) UpdatePhase(phase DKGPhase) {
 }
 
 // AddDecryptRequest appends a threshold decrypt request to this session.
-func (s *DKGSession) AddDecryptRequest(req DecryptRequest) {
+func (s *DKGSession) AddDecryptRequest(req PendingDecryptRequest) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -144,18 +150,18 @@ func (s *DKGSession) AddDecryptRequest(req DecryptRequest) {
 }
 
 // GetDecryptRequests returns a copy of the pending decrypt requests.
-func (s *DKGSession) GetDecryptRequests() []DecryptRequest {
+func (s *DKGSession) GetDecryptRequests() []PendingDecryptRequest {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	cp := make([]DecryptRequest, len(s.DecryptRequests))
+	cp := make([]PendingDecryptRequest, len(s.DecryptRequests))
 	copy(cp, s.DecryptRequests)
 
 	return cp
 }
 
 // SetDecryptRequests replaces the decrypt requests slice (used after processing to retain only failed requests).
-func (s *DKGSession) SetDecryptRequests(remaining []DecryptRequest) {
+func (s *DKGSession) SetDecryptRequests(remaining []PendingDecryptRequest) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -166,12 +172,12 @@ func (s *DKGSession) SetDecryptRequests(remaining []DecryptRequest) {
 // DrainDecryptRequests atomically returns all pending decrypt requests and clears the queue.
 // This prevents the TOCTOU race where GetDecryptRequests + SetDecryptRequests could
 // overwrite requests added between the two calls by the ABCI thread.
-func (s *DKGSession) DrainDecryptRequests() []DecryptRequest {
+func (s *DKGSession) DrainDecryptRequests() []PendingDecryptRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	reqs := s.DecryptRequests
-	s.DecryptRequests = make([]DecryptRequest, 0)
+	s.DecryptRequests = make([]PendingDecryptRequest, 0)
 	s.LastUpdate = time.Now()
 
 	return reqs
