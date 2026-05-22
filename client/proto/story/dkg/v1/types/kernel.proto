@@ -138,6 +138,11 @@ message ProcessDealsResponse {
     (gogoproto.nullable) = false,
     (gogoproto.moretags) = "yaml:\"responses\""
   ];
+
+  repeated types.Deal rejected_deals = 4 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"rejected_deals\""
+  ];
 }
 
 message ProcessResponsesRequest {
@@ -162,6 +167,11 @@ message ProcessResponsesRequest {
 message ProcessResponsesResponse {
   repeated Justification justifications = 1 [
     (gogoproto.moretags) = "yaml:\"justifications\""
+  ];
+
+  repeated types.Response rejected_responses = 2 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"rejected_responses\""
   ];
 }
 
@@ -281,7 +291,12 @@ message ProcessJustificationRequest {
 }
 
 // ProcessJustificationResponse is returned from story-kernel client after processing justifications.
-message ProcessJustificationResponse {}
+message ProcessJustificationResponse {
+  repeated Justification rejected_justifications = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"rejected_justifications\""
+  ];
+}
 
 message Justification {
   uint32 index = 1 [
