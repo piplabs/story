@@ -8,6 +8,7 @@ package keeper
 // produced correctly.
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -232,4 +233,89 @@ func TestDeferredMaxValidatorsChange_AlreadyBelow(t *testing.T) {
 
 	p, _ := sk.GetParams(ctx)
 	require.Equal(t, uint32(10), p.MaxValidators, "should not increase")
+}
+
+// Chain that has not registered Seneca in UpgradeHistories must no-op without
+// touching staking params.
+func TestDeferredMaxValidatorsChange_SenecaNotRegistered(t *testing.T) {
+	key := storetypes.NewKVStoreKey("test")
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient"))
+	// "unknown-chain" is not in netconf.UpgradeHistories.
+	ctx := testCtx.Ctx.WithBlockHeader(cmtproto.Header{Time: cmttime.Now()}).WithChainID("unknown-chain")
+
+	ctrl := gomock.NewController(t)
+	mockSK := estestutil.NewMockStakingKeeper(ctrl)
+	// No EXPECT() calls — Get/SetParams must not be invoked when Seneca is
+	// not registered (the function should short-circuit).
+
+	esk := &Keeper{stakingKeeper: mockSK}
+
+	ctx = sdk.UnwrapSDKContext(ctx).WithBlockHeight(300)
+	require.NoError(t, esk.applyDeferredMaxValidatorsChange(ctx))
+}
+
+// GetParams failure must surface as a wrapped error.
+func TestDeferredMaxValidatorsChange_GetParamsError(t *testing.T) {
+	key := storetypes.NewKVStoreKey("test")
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient"))
+	ctx := testCtx.Ctx.WithBlockHeader(cmtproto.Header{Time: cmttime.Now()}).WithChainID(netconf.TestChainID)
+
+	ctrl := gomock.NewController(t)
+	mockSK := estestutil.NewMockStakingKeeper(ctrl)
+	sentinel := errors.New("boom-get")
+	mockSK.EXPECT().GetParams(gomock.Any()).Return(stypes.Params{}, sentinel)
+
+	esk := &Keeper{stakingKeeper: mockSK}
+
+	ctx = sdk.UnwrapSDKContext(ctx).WithBlockHeight(300) // TestChainID Seneca = 300
+	err := esk.applyDeferredMaxValidatorsChange(ctx)
+	require.Error(t, err)
+	require.ErrorIs(t, err, sentinel)
+}
+
+// EndBlock must propagate (wrapped) errors from applyDeferredMaxValidatorsChange
+// and short-circuit before invoking the singularity / staking EndBlocker path.
+func TestEndBlock_DeferredMaxValidatorsErrorWrapped(t *testing.T) {
+	key := storetypes.NewKVStoreKey("test")
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient"))
+	ctx := testCtx.Ctx.WithBlockHeader(cmtproto.Header{Time: cmttime.Now()}).WithChainID(netconf.TestChainID)
+
+	ctrl := gomock.NewController(t)
+	mockSK := estestutil.NewMockStakingKeeper(ctrl)
+	sentinel := errors.New("boom-endblock")
+	// At Seneca height, applyDeferredMaxValidatorsChange reaches GetParams.
+	// Returning an error here forces EndBlock's error-wrap path; no other
+	// staking calls should be invoked because EndBlock short-circuits.
+	mockSK.EXPECT().GetParams(gomock.Any()).Return(stypes.Params{}, sentinel)
+
+	esk := &Keeper{stakingKeeper: mockSK}
+
+	ctx = sdk.UnwrapSDKContext(ctx).WithBlockHeight(300) // TestChainID Seneca = 300
+	updates, err := esk.EndBlock(ctx)
+	require.Nil(t, updates)
+	require.Error(t, err)
+	require.ErrorIs(t, err, sentinel)
+	require.Contains(t, err.Error(), "apply deferred max validators change")
+}
+
+// SetParams failure must surface as a wrapped error.
+func TestDeferredMaxValidatorsChange_SetParamsError(t *testing.T) {
+	key := storetypes.NewKVStoreKey("test")
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient"))
+	ctx := testCtx.Ctx.WithBlockHeader(cmtproto.Header{Time: cmttime.Now()}).WithChainID(netconf.TestChainID)
+
+	ctrl := gomock.NewController(t)
+	mockSK := estestutil.NewMockStakingKeeper(ctrl)
+	params := stypes.DefaultParams()
+	params.MaxValidators = 80 // must exceed seneca.NewMaxValidators (21) so SetParams is reached
+	sentinel := errors.New("boom-set")
+	mockSK.EXPECT().GetParams(gomock.Any()).Return(params, nil)
+	mockSK.EXPECT().SetParams(gomock.Any(), gomock.Any()).Return(sentinel)
+
+	esk := &Keeper{stakingKeeper: mockSK}
+
+	ctx = sdk.UnwrapSDKContext(ctx).WithBlockHeight(300)
+	err := esk.applyDeferredMaxValidatorsChange(ctx)
+	require.Error(t, err)
+	require.ErrorIs(t, err, sentinel)
 }
