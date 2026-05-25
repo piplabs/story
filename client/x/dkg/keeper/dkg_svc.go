@@ -325,10 +325,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 
 	sessions := k.stateManager.ListSessions()
 
-	var maxRound uint32
+	// Anchor drain on the latest IsFinalized round (issue piplabs/story#826).
+	var latestActivated uint32
 	for _, s := range sessions {
-		if s.Round > maxRound {
-			maxRound = s.Round
+		if s.IsFinalized && s.Round > latestActivated {
+			latestActivated = s.Round
 		}
 	}
 
@@ -336,12 +337,13 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		// Drop queued requests from sessions that are at least 2 rounds behind the
 		// current round — their keys are no longer relevant and the requests would
 		// never be processed successfully.
-		if maxRound >= 2 && session.Round <= maxRound-2 {
+		if latestActivated >= 2 && session.Round <= latestActivated-2 {
 			dropped := session.DrainDecryptRequests()
 			if len(dropped) > 0 {
 				log.Warn(ctx, "Dropping decrypt requests from stale session", nil,
 					"session", session.GetSessionKey(),
 					"dropped_requests", len(dropped),
+					"latest_activated_round", latestActivated,
 				)
 				incDecryptRequest(labelDecryptStaleDropped, len(dropped))
 				if err := k.stateManager.UpdateSession(ctx, session); err != nil {
