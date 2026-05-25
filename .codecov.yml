@@ -33,3 +33,5 @@ ignore:
   - "**/*.pulsar.go"
   - "**/module.go"
   - "**/depinject.go"
+  - "**/*_mocks.go"
+  - "**/testutil/"

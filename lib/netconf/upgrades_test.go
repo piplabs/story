@@ -49,3 +49,51 @@ func TestGetUpgradeHeight(t *testing.T) {
 		})
 	}
 }
+
+func TestIsSeneca(t *testing.T) {
+	// TestChainID has Seneca registered at height 300.
+	tcs := []struct {
+		name        string
+		chainID     string
+		blockNumber int64
+		expected    bool
+		expectErr   bool
+	}{
+		{
+			name:        "before seneca",
+			chainID:     netconf.TestChainID,
+			blockNumber: 299,
+			expected:    false,
+		},
+		{
+			name:        "at seneca",
+			chainID:     netconf.TestChainID,
+			blockNumber: 300,
+			expected:    true,
+		},
+		{
+			name:        "after seneca",
+			chainID:     netconf.TestChainID,
+			blockNumber: 1_000_000,
+			expected:    true,
+		},
+		{
+			name:        "unknown chain id",
+			chainID:     "unknown-chain-id",
+			blockNumber: 1,
+			expectErr:   true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := netconf.IsSeneca(tc.chainID, tc.blockNumber)
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
