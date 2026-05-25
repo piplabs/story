@@ -59,10 +59,23 @@ contract GenerateAlloc is Script {
     bool private constant ALLOCATE_1K_TEST_ACCOUNTS = false;
     // Optionally keep the timelock admin role for testnets
     bool private constant KEEP_TIMELOCK_ADMIN_ROLE = false;
+    // Use deployer address as contract owner instead of TimelockController (devnet only).
+    // When true, DKG / CDR / UBIPool / SGX & TDX validation hooks are owned by the
+    // anvil deployer key (0xf39F...92266) so that whitelistEnclaveType, approvePlatform,
+    // revokePlatform, scheduleUpgrade etc. can be called directly without scheduling
+    // through the TimelockController. forge tests fail with this flag on because they
+    // assume TimelockController as owner — this is expected for devnet-only configuration.
+    bool private constant USE_DEPLOYER_AS_OWNER = true;
 
-    // SGXValidationHook configuration — edit before running the script
+    // Devnet deployer (anvil default), used as owner when USE_DEPLOYER_AS_OWNER is true.
+    address private constant DEVNET_DEPLOYER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
+    // SGXValidationHook configuration — edit before running the script.
+    // SGX MRENCLAVE captured from story-kernel commit 090dcc4 (feat/impl-tdx-backend)
+    // signed under Gramine 1.9 on Ubuntu 24.04 / Go 1.24.0; re-measure when the
+    // kernel binary, Gramine version, or manifest content changes.
     bytes32 private constant SGX_CODE_COMMITMENT =
-        hex"0000000000000000000000000000000000000000000000000000000000000001";
+        hex"dda270ed3d2295f601eba2b596dac82aff876feaa4ad199fdef808c4c7f2535a";
     address private constant AUTOMATA_VALIDATION_ADDR = address(uint160(1000));
     uint32 private constant TCB_EVALUATION_DATA_NUMBER = 0;
 
@@ -125,6 +138,18 @@ contract GenerateAlloc is Script {
         } else {
             revert("Unsupported chain id");
         }
+    }
+
+    /// @notice Returns the owner address used for predeploy contracts.
+    /// When USE_DEPLOYER_AS_OWNER is true (devnet), returns DEVNET_DEPLOYER directly so
+    /// governance calls (whitelistEnclaveType, approvePlatform, scheduleUpgrade, ...)
+    /// can be invoked from the deployer key without scheduling through TimelockController.
+    /// Otherwise returns the TimelockController address.
+    function getContractOwner() internal view returns (address) {
+        if (USE_DEPLOYER_AS_OWNER) {
+            return DEVNET_DEPLOYER;
+        }
+        return timelock;
     }
 
     /// @notice Get the minimum delay for the timelock
@@ -284,7 +309,7 @@ contract GenerateAlloc is Script {
         vm.etch(impl, "00");
 
         // use new, so that the immutable variable the holds the ProxyAdmin proxyAddr is set in properly in bytecode
-        address tmp = address(new TransparentUpgradeableProxy(impl, timelock, ""));
+        address tmp = address(new TransparentUpgradeableProxy(impl, getContractOwner(), ""));
         vm.etch(proxyAddr, tmp.code);
 
         // set implempentation storage manually
@@ -322,7 +347,7 @@ contract GenerateAlloc is Script {
 
         InitializableHelper.disableInitializers(impl);
         IIPTokenStaking.InitializerArgs memory args = IIPTokenStaking.InitializerArgs({
-            owner: timelock,
+            owner: getContractOwner(),
             minStakeAmount: 1024 ether,
             minUnstakeAmount: 1024 ether,
             minCommissionRate: 5_00, // 5% in basis points
@@ -351,7 +376,7 @@ contract GenerateAlloc is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        UpgradeEntrypoint(Predeploys.Upgrades).initialize(timelock);
+        UpgradeEntrypoint(Predeploys.Upgrades).initialize(getContractOwner());
 
         console2.log("UpgradeEntrypoint proxy deployed at:", Predeploys.Upgrades);
         console2.log("UpgradeEntrypoint ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.Upgrades));
@@ -371,7 +396,7 @@ contract GenerateAlloc is Script {
         vm.resetNonce(tmp);
 
         InitializableHelper.disableInitializers(impl);
-        UBIPool(Predeploys.UBIPool).initialize(timelock);
+        UBIPool(Predeploys.UBIPool).initialize(getContractOwner());
 
         console2.log("UBIPool proxy deployed at:", Predeploys.UBIPool);
         console2.log("UBIPool ProxyAdmin deployed at:", EIP1967Helper.getAdmin(Predeploys.UBIPool));
@@ -397,7 +422,7 @@ contract GenerateAlloc is Script {
         uint256 operationalThreshold = 670; // 67%
         uint256 fee = 1 ether; // 1 IP
         DKG(Predeploys.DKG).initialize(
-            timelock,
+            getContractOwner(),
             minReqRegisteredParticipants,
             minReqFinalizedParticipants,
             operationalThreshold,
@@ -431,7 +456,7 @@ contract GenerateAlloc is Script {
         uint256 maxEncryptedPartialSize = 1024; // 1 KB
         uint256 maxBatchSize = 20;
         CDR(Predeploys.CDR).initialize(
-            timelock,
+            getContractOwner(),
             baseFee,
             writeFee,
             readFee,
@@ -463,25 +488,25 @@ contract GenerateAlloc is Script {
         // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
         bytes memory initData = abi.encodeCall(
             SGXValidationHook.initialize,
-            (timelock, AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
+            (getContractOwner(), AUTOMATA_VALIDATION_ADDR, TCB_EVALUATION_DATA_NUMBER)
         );
         bytes memory proxyCreationCode = abi.encodePacked(
             type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(sgxHookImpl, timelock, initData)
+            abi.encode(sgxHookImpl, getContractOwner(), initData)
         );
         address sgxHookProxy = Create3(Predeploys.Create3).deploy(
             keccak256("STORY_SGX_VALIDATION_HOOK_PROXY"),
             proxyCreationCode
         );
 
-        // Whitelist SGX enclave type on DKG (owner=timelock)
+        // Whitelist SGX enclave type on DKG (owner=getContractOwner())
         bytes32 enclaveType = bytes32(uint256(1));
         IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
             codeCommitment: SGX_CODE_COMMITMENT,
             validationHookAddr: sgxHookProxy
         });
         vm.stopPrank();
-        vm.prank(timelock);
+        vm.prank(getContractOwner());
         DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
         vm.startPrank(deployer);
 
@@ -508,30 +533,33 @@ contract GenerateAlloc is Script {
         );
 
         // Deploy TransparentUpgradeableProxy wrapping the implementation via Create3
-        bytes memory initData = abi.encodeCall(TDXValidationHook.initialize, (timelock, AUTOMATA_VALIDATION_ADDR));
+        bytes memory initData = abi.encodeCall(
+            TDXValidationHook.initialize,
+            (getContractOwner(), AUTOMATA_VALIDATION_ADDR)
+        );
         bytes memory proxyCreationCode = abi.encodePacked(
             type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(tdxHookImpl, timelock, initData)
+            abi.encode(tdxHookImpl, getContractOwner(), initData)
         );
         address tdxHookProxy = Create3(Predeploys.Create3).deploy(
             keccak256("STORY_TDX_VALIDATION_HOOK_PROXY"),
             proxyCreationCode
         );
 
-        // Whitelist TDX enclave type on DKG (owner=timelock)
+        // Whitelist TDX enclave type on DKG (owner=getContractOwner())
         bytes32 enclaveType = bytes32(uint256(2));
         IDKG.EnclaveTypeData memory enclaveTypeData = IDKG.EnclaveTypeData({
             codeCommitment: TDX_BINARY_COMMITMENT_PLACEHOLDER,
             validationHookAddr: tdxHookProxy
         });
         vm.stopPrank();
-        vm.prank(timelock);
+        vm.prank(getContractOwner());
         DKG(Predeploys.DKG).whitelistEnclaveType(enclaveType, enclaveTypeData, true);
 
         // Approve platform commitments. The hook is happy to whitelist multiple platforms
         // under the same binary commitment — this is how same-SKU horizontal scaling under
         // firmware-vintage drift works (Test 3a/3b lessons applied).
-        vm.startPrank(timelock);
+        vm.startPrank(getContractOwner());
         TDXValidationHook(tdxHookProxy).approvePlatform(
             TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER,
             "GCP c3-standard-4 / TDVF vintage v1"

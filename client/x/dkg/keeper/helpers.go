@@ -14,8 +14,10 @@ const (
 )
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
+	var lastErr error
 	for i := range retryAttempts {
 		if err := fn(ctx); err != nil {
+			lastErr = err
 			log.Warn(context.Background(), "retry failed", err, "attempt", i+1)
 
 			// Use context-aware sleep so that cancellation can interrupt the delay.
@@ -31,5 +33,8 @@ func retry(ctx context.Context, fn func(ctx context.Context) error) error {
 		return nil
 	}
 
+	if lastErr != nil {
+		return lastErr
+	}
 	return errors.New("all retries failed")
 }
