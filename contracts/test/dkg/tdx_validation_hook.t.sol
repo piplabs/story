@@ -67,6 +67,7 @@ contract TDXValidationHookTest is ForgeTest {
     uint256 internal constant OFFSET_RTMR0 = 376;
     uint256 internal constant OFFSET_RTMR1 = 424;
     uint256 internal constant OFFSET_RTMR2 = 472;
+    uint256 internal constant OFFSET_RTMR3 = 520;
     uint256 internal constant OFFSET_REPORT_DATA = 568;
     uint256 internal constant MEASUREMENT_SIZE = 48;
     uint8 internal constant TEE_TYPE_TDX_BYTE0 = 0x81;
@@ -90,19 +91,20 @@ contract TDXValidationHookTest is ForgeTest {
     //                                Helpers                                 //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Returns (keccak256(RTMR2), keccak256(MRTD || RTMR0 || RTMR1)) for a quote.
+    /// @dev Returns (keccak256(RTMR3), keccak256(MRTD || RTMR0 || RTMR1 || RTMR2)) for a quote.
     function _commitments(bytes memory quote) internal pure returns (bytes32 binary, bytes32 platform) {
-        bytes memory rtmr2 = new bytes(MEASUREMENT_SIZE);
+        bytes memory rtmr3 = new bytes(MEASUREMENT_SIZE);
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
-            rtmr2[i] = quote[OFFSET_RTMR2 + i];
+            rtmr3[i] = quote[OFFSET_RTMR3 + i];
         }
-        binary = keccak256(rtmr2);
+        binary = keccak256(rtmr3);
 
-        bytes memory plat = new bytes(MEASUREMENT_SIZE * 3);
+        bytes memory plat = new bytes(MEASUREMENT_SIZE * 4);
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
             plat[i] = quote[OFFSET_MRTD + i];
             plat[MEASUREMENT_SIZE + i] = quote[OFFSET_RTMR0 + i];
             plat[MEASUREMENT_SIZE * 2 + i] = quote[OFFSET_RTMR1 + i];
+            plat[MEASUREMENT_SIZE * 3 + i] = quote[OFFSET_RTMR2 + i];
         }
         platform = keccak256(plat);
     }
@@ -370,10 +372,11 @@ contract TDXValidationHookTest is ForgeTest {
     //                       Decomposition invariants                         //
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Same RTMR2, different MRTD/RTMR0/RTMR1 → binary matches, platform differs.
+    /// @dev Same RTMR3 (binary), different MRTD/RTMR0/RTMR1/RTMR2 (platform) → binary matches,
+    ///      platform differs.
     function test_Decomposition_SameBinaryDifferentPlatform() public pure {
-        bytes memory q1 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0);
-        bytes memory q2 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xB0, 0x50, 0xC0);
+        bytes memory q1 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0, 0xE0);
+        bytes memory q2 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xB0, 0x50, 0xD0, 0xE0);
 
         (bytes32 binary1, bytes32 platform1) = _commitmentsStatic(q1);
         (bytes32 binary2, bytes32 platform2) = _commitmentsStatic(q2);
@@ -381,10 +384,11 @@ contract TDXValidationHookTest is ForgeTest {
         require(platform1 != platform2, "platform should differ");
     }
 
-    /// @dev Same MRTD/RTMR0/RTMR1, different RTMR2 → platform matches, binary differs.
+    /// @dev Same MRTD/RTMR0/RTMR1/RTMR2 (platform), different RTMR3 (binary) → platform matches,
+    ///      binary differs.
     function test_Decomposition_DifferentBinarySamePlatform() public pure {
-        bytes memory q1 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0);
-        bytes memory q2 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xD0);
+        bytes memory q1 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0, 0xE0);
+        bytes memory q2 = _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0, 0xF0);
 
         (bytes32 binary1, bytes32 platform1) = _commitmentsStatic(q1);
         (bytes32 binary2, bytes32 platform2) = _commitmentsStatic(q2);
@@ -397,11 +401,11 @@ contract TDXValidationHookTest is ForgeTest {
     //////////////////////////////////////////////////////////////////////////*/
 
     function _buildV4QuoteDefault() internal pure returns (bytes memory) {
-        return _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0);
+        return _buildQuoteStatic(4, MIN_V4_QUOTE_SIZE, 0xA0, 0x10, 0xC0, 0xE0);
     }
 
     function _buildV5QuoteDefault() internal pure returns (bytes memory) {
-        return _buildQuoteStatic(5, MIN_V5_QUOTE_SIZE, 0xA0, 0x10, 0xC0);
+        return _buildQuoteStatic(5, MIN_V5_QUOTE_SIZE, 0xA0, 0x10, 0xC0, 0xE0);
     }
 
     /// @dev Synthesizes a TDX quote with deterministic field bytes. Seeds let decomposition
@@ -412,7 +416,8 @@ contract TDXValidationHookTest is ForgeTest {
         uint256 totalLen,
         uint8 mrtdSeed,
         uint8 rtmrPrefix,
-        uint8 rtmr2Seed
+        uint8 rtmr2Seed,
+        uint8 rtmr3Seed
     ) internal pure returns (bytes memory) {
         bytes memory quote = new bytes(totalLen);
 
@@ -435,6 +440,9 @@ contract TDXValidationHookTest is ForgeTest {
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
             quote[OFFSET_RTMR2 + i] = bytes1(uint8(rtmr2Seed + (i & 0x0F)));
         }
+        for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
+            quote[OFFSET_RTMR3 + i] = bytes1(uint8(rtmr3Seed + (i & 0x0F)));
+        }
 
         bytes32 rd = keccak256("tdx-validation-hook-test-reportdata");
         for (uint256 i = 0; i < 32; i++) {
@@ -446,17 +454,18 @@ contract TDXValidationHookTest is ForgeTest {
 
     /// @dev `pure` variant of `_commitments` for use inside `pure` tests.
     function _commitmentsStatic(bytes memory quote) internal pure returns (bytes32 binary, bytes32 platform) {
-        bytes memory rtmr2 = new bytes(MEASUREMENT_SIZE);
+        bytes memory rtmr3 = new bytes(MEASUREMENT_SIZE);
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
-            rtmr2[i] = quote[OFFSET_RTMR2 + i];
+            rtmr3[i] = quote[OFFSET_RTMR3 + i];
         }
-        binary = keccak256(rtmr2);
+        binary = keccak256(rtmr3);
 
-        bytes memory plat = new bytes(MEASUREMENT_SIZE * 3);
+        bytes memory plat = new bytes(MEASUREMENT_SIZE * 4);
         for (uint256 i = 0; i < MEASUREMENT_SIZE; i++) {
             plat[i] = quote[OFFSET_MRTD + i];
             plat[MEASUREMENT_SIZE + i] = quote[OFFSET_RTMR0 + i];
             plat[MEASUREMENT_SIZE * 2 + i] = quote[OFFSET_RTMR1 + i];
+            plat[MEASUREMENT_SIZE * 3 + i] = quote[OFFSET_RTMR2 + i];
         }
         platform = keccak256(plat);
     }

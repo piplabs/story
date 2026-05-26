@@ -9,14 +9,22 @@ import { IAutomataDcapAttestationFee } from "../interfaces/external/IAutomataDca
 
 /// @title TDXValidationHook
 /// @notice On-chain validator for Intel TDX V4/V5 attestation quotes used by the DKG flow.
-/// @dev Hybrid identity model:
-///      - Binary identity: keccak256(RTMR2), matched against DKG.codeCommitment. RTMR2 is the
-///        TDVF-measured digest of initrd + cmdline; since story-kernel runs as PID 1 from initrd
-///        and TDVF measures it before any user-space code executes, this hardware-binds the
-///        binary at the same DKG storage slot SGX uses for MRENCLAVE.
-///      - Platform identity: keccak256(MRTD || RTMR0 || RTMR1), enforced via `approvedPlatforms`
-///        whitelist. MRTD + RTMR0 pin cloud SKU/TDVF; RTMR1 pins kernel image. Decouples
-///        cloud-vendor lifecycle from binary-release lifecycle without changing DKG storage.
+/// @dev Hybrid identity model (schema v3, RTMR3-bound):
+///      - Binary identity: keccak256(RTMR3), matched against DKG.codeCommitment. RTMR3 is
+///        extended exactly once during TD bootstrap by the kernel with SHA-384 of its own ELF
+///        (`enclave/tdx/backend.go::extendBinaryMeasurementOnce`). Its post-extend value is
+///        therefore SHA-384(0x00…00 || SHA-384(elf)) and reflects *this* Go binary across every
+///        subsequent quote — the slot SGX uses for MRENCLAVE.
+///      - Platform identity: keccak256(MRTD || RTMR0 || RTMR1 || RTMR2), enforced via
+///        `approvedPlatforms` whitelist. MRTD + RTMR0 pin cloud SKU/TDVF; RTMR1 pins the boot
+///        chain (OVMF + bootloader); RTMR2 pins TD initrd + kernel cmdline (the userspace Go
+///        binary is loaded *after* boot from disk, so RTMR2 is a boot-image property and lives
+///        in the platform half — not the binary half).
+///      Why not RTMR2 for binary identity: RTMR2 is sealed at TD boot and never re-extended
+///      once Linux is up; it cannot reflect the userspace Go binary that loads from disk.
+///      RTMR3 is the first software-defined register available to the TD payload, so the
+///      kernel claims it at startup. RTMR3 self-extend is irreversible until TD reboot, so
+///      a malicious second extend can only *invalidate* the commitment, not forge it.
 ///
 ///      V4 and V5 share header layout and the absolute byte offsets for every field this
 ///      contract reads (Automata routes per-version internally). The TEE-type guard below is
@@ -36,7 +44,7 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     /// @notice Emitted when a platform identity tuple is revoked.
     event PlatformRevoked(bytes32 indexed platformCommitment);
 
-    /// @dev Maps keccak256(MRTD || RTMR0 || RTMR1) to approval status.
+    /// @dev Maps keccak256(MRTD || RTMR0 || RTMR1 || RTMR2) to approval status.
     /// @custom:storage-location erc7201:story.TDXValidationHook
     struct TDXValidationHookStorage {
         address automataValidationAddr;
@@ -66,8 +74,13 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
     uint256 private constant OFFSET_MRTD = 184;
     uint256 private constant OFFSET_RTMR0 = 376;
     uint256 private constant OFFSET_RTMR1 = 424;
-    /// @dev RTMR2 carries the binary identity (initrd + cmdline measurement).
+    /// @dev RTMR2 carries the boot-image identity (initrd + cmdline measurement); it lives in
+    ///      the platform commitment, not the binary commitment.
     uint256 private constant OFFSET_RTMR2 = 472;
+    /// @dev RTMR3 carries the binary identity. The kernel self-extends RTMR3 once during TD
+    ///      bootstrap with SHA-384 of its own ELF; this register cannot be reset before TD
+    ///      reboot, so its value is bound to the running Go binary.
+    uint256 private constant OFFSET_RTMR3 = 520;
     /// @dev REPORT_DATA is 64 bytes; we consume only the first 32.
     uint256 private constant OFFSET_REPORT_DATA = 568;
 
@@ -103,9 +116,13 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         _setAutomataValidationAddr(newAutomataValidationAddr);
     }
 
-    /// @notice Approves a platform identity tuple keyed by keccak256(MRTD || RTMR0 || RTMR1).
+    /// @notice Approves a platform identity tuple keyed by
+    ///         keccak256(MRTD || RTMR0 || RTMR1 || RTMR2).
     /// @dev The key is computed from the raw 48-byte SHA-384 measurements concatenated in
-    ///      MRTD || RTMR0 || RTMR1 order, matching what the hook derives from incoming quotes.
+    ///      MRTD || RTMR0 || RTMR1 || RTMR2 order, matching what the hook derives from
+    ///      incoming quotes. RTMR2 (TD initrd + cmdline) belongs in the platform commitment
+    ///      because it is a boot-image property; the binary commitment is keccak256(RTMR3),
+    ///      where the kernel self-extends its ELF measurement at startup.
     function approvePlatform(bytes32 platformCommitment, string calldata label) external override onlyOwner {
         require(platformCommitment != bytes32(0), "TDXValidationHook: platform commitment cannot be empty");
         _getTDXValidationHookStorage().approvedPlatforms[platformCommitment] = true;
@@ -196,24 +213,26 @@ contract TDXValidationHook is ITDXValidationHook, Ownable2StepUpgradeable, Pausa
         emit AutomataValidationAddrSet(newAutomataValidationAddr);
     }
 
-    /// @dev keccak256(RTMR2). Matched against DKG.codeCommitment as the binary identity.
+    /// @dev keccak256(RTMR3). Matched against DKG.codeCommitment as the binary identity.
+    ///      RTMR3 is self-extended exactly once at TD bootstrap by the kernel with
+    ///      SHA-384(/proc/self/exe); see TDXValidationHook contract doc for the rationale.
     function _computeBinaryCommitment(bytes calldata enclaveReport) internal pure returns (bytes32 result) {
         assembly {
             let ptr := mload(0x40)
-            calldatacopy(ptr, add(enclaveReport.offset, OFFSET_RTMR2), MEASUREMENT_SIZE)
+            calldatacopy(ptr, add(enclaveReport.offset, OFFSET_RTMR3), MEASUREMENT_SIZE)
             result := keccak256(ptr, MEASUREMENT_SIZE)
         }
     }
 
-    /// @dev keccak256(MRTD || RTMR0 || RTMR1). MRTD (offset 184) and RTMR0/RTMR1 (offset 376,
-    ///      contiguous) are not adjacent in the quote, so we assemble the 144-byte preimage
-    ///      in scratch memory via two calldatacopy calls.
+    /// @dev keccak256(MRTD || RTMR0 || RTMR1 || RTMR2). MRTD (offset 184) is non-adjacent to
+    ///      the RTMR block (offsets 376/424/472 — RTMR0/1/2 contiguous), so we assemble the
+    ///      192-byte preimage in scratch memory via two calldatacopy calls.
     function _computePlatformCommitment(bytes calldata enclaveReport) internal pure returns (bytes32 result) {
         assembly {
             let ptr := mload(0x40)
             calldatacopy(ptr, add(enclaveReport.offset, OFFSET_MRTD), MEASUREMENT_SIZE)
-            calldatacopy(add(ptr, MEASUREMENT_SIZE), add(enclaveReport.offset, OFFSET_RTMR0), mul(MEASUREMENT_SIZE, 2))
-            result := keccak256(ptr, mul(MEASUREMENT_SIZE, 3))
+            calldatacopy(add(ptr, MEASUREMENT_SIZE), add(enclaveReport.offset, OFFSET_RTMR0), mul(MEASUREMENT_SIZE, 3))
+            result := keccak256(ptr, mul(MEASUREMENT_SIZE, 4))
         }
     }
 

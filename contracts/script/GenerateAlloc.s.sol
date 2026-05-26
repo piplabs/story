@@ -68,23 +68,32 @@ contract GenerateAlloc is Script {
 
     // TDXValidationHook configuration — edit before running the script.
     //
-    // Devnet measurements captured 2026-05-20 from GCP c3-standard-4 confidential VMs
-    // (europe-west4-a) with story-kernel commit df91b97 (feat/impl-tdx-backend).
-    // Same SKU + same kernel binary → same RTMR2 → single binary commitment.
-    // Different firmware vintages (provisioning 2026-05-11 vs 2026-05-12) → different
-    // RTMR1 → two distinct platform commitments. The hook is happy to whitelist both
-    // via approvePlatform (matrix-sum effect: 1 binary × N platforms → N validators).
+    // Schema v3 (RTMR3-bound binary identity):
+    //   - Binary commitment    = keccak256(RTMR3), where RTMR3 is bound to *this* Go binary
+    //                            by the kernel's one-shot self-extend with SHA-384(/proc/self/exe)
+    //                            during TD bootstrap (cf. enclave/tdx/backend.go
+    //                            extendBinaryMeasurementOnce). The value is reboot-stable for
+    //                            an unchanged binary and changes with any kernel-ELF byte.
+    //   - Platform commitment  = keccak256(MRTD || RTMR0 || RTMR1 || RTMR2). MRTD + RTMR0
+    //                            pin SKU/TDVF, RTMR1 captures OVMF + bootloader vintage,
+    //                            RTMR2 pins TD initrd + cmdline.
+    //   - Matrix-sum effect: 1 binary × N platforms → N validators. Same kernel binary
+    //                            running across different cloud vintages keeps the binary
+    //                            commitment constant; each vintage gets its own
+    //                            approvePlatform call.
     //
-    // Common: MRTD = feb74866...c162, RTMR0 = 70e9cd9b...fb6c, RTMR2 = 261eb562...ab34
-    // story-gcp   RTMR1 = c041916ac1f5592fff0ce4cdf1c94b96870ae5786d857f605179f73ce6e9114892f29f8463c8ff2d27af6174f98acba4
-    // story-gcp-2 RTMR1 = 176bab53534ff9e5b1a9a4476ed377ef041ed44b3a3225359456f3746e3051774b00f5a6cd710b876fdf91f506a57d4f
+    // The placeholders below are deliberate non-zero sentinels (keccak256 of human-readable
+    // labels) so the genesis script clears its non-zero checks during unit tests. Operators
+    // MUST overwrite them with the per-devnet captured values before running on a real
+    // network — RTMR3 reflects the exact kernel binary and the platform tuple reflects the
+    // boot image vintage, so devnet-specific values cannot be hard-coded here.
     bytes32 private constant TDX_BINARY_COMMITMENT_PLACEHOLDER =
-        hex"f6825d2c7e0f84e2e2805a8827c53cf0194993432eb9f907d1b151d23cf137a7";
-    // keccak256(MRTD || RTMR0 || RTMR1) per platform; computed off-chain.
+        keccak256("TDX_BINARY_COMMITMENT_PLACEHOLDER_v3_RTMR3_self_extend");
+    // keccak256(MRTD || RTMR0 || RTMR1 || RTMR2) per platform; capture per vintage.
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER =
-        hex"824e5e0e26cdf2e186d438bd8d3aef7bbe686e28372b26c22165f539fc570faf";
+        keccak256("TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER_v3");
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER =
-        hex"9acca7cf05de9a7440bc00a3b7ff32c6ae44c016701019ce2a1aca0b92d3c785";
+        keccak256("TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER_v3");
 
     // When DKG_INCLUDE_TDX is true the script deploys TDXValidationHook and whitelists
     // enclaveType=2 with the binary commitment above, then calls approvePlatform for each
