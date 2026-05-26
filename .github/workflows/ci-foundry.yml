@@ -20,7 +20,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           package_json_file: contracts/package.json
 
