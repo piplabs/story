@@ -15,10 +15,12 @@ import { Create3 } from "../../src/deploy/Create3.sol";
  * @notice Deploys TDXValidationHook (implementation + TransparentUpgradeableProxy) and logs the
  *         data required to whitelist it on DKG.
  * @dev After running, call DKG.whitelistEnclaveType through governance using the logged
- *      arguments, then approvePlatform for each (MRTD, RTMR0, RTMR1) tuple.
+ *      arguments, then approvePlatform for each (MRTD, RTMR0, RTMR1, RTMR2) tuple.
  *
- *      TDX_CODE_COMMITMENT must equal keccak256(RTMR2) for the running TDX kernel
- *      (RTMR2 measures initrd + cmdline); compute off-chain and paste before deployment.
+ *      TDX_CODE_COMMITMENT must equal keccak256(RTMR3) for the running TDX kernel
+ *      (RTMR3 is self-extended at TD bootstrap with SHA-384 of the kernel ELF; see
+ *      story-kernel `enclave/tdx/backend.go::extendBinaryMeasurementOnce`). Compute
+ *      off-chain after deploying the binary and paste before deployment.
  *
  *      Required env vars:
  *        DEPLOYER_PRIVATE_KEY      — deployer's private key
@@ -30,7 +32,8 @@ contract DeployTDXValidationHook is Script {
     //                    Edit before running the script                      //
     //////////////////////////////////////////////////////////////////////////*/
 
-    // keccak256(RTMR2) for the target TDX kernel. Update before deployment.
+    // keccak256(RTMR3) for the target TDX kernel — RTMR3 = SHA-384(0x00..00 ||
+    // SHA-384(elf)) after the kernel's one-shot self-extend. Update before deployment.
     bytes32 internal constant TDX_CODE_COMMITMENT =
         hex"0000000000000000000000000000000000000000000000000000000000000002";
 
@@ -78,13 +81,13 @@ contract DeployTDXValidationHook is Script {
         console2.log("  target:", Predeploys.DKG);
         console2.log("  enclaveType:");
         console2.logBytes32(TDX_ENCLAVE_TYPE);
-        console2.log("  enclaveTypeData.codeCommitment (= keccak256(RTMR2)):");
+        console2.log("  enclaveTypeData.codeCommitment (= keccak256(RTMR3)):");
         console2.logBytes32(TDX_CODE_COMMITMENT);
         console2.log("  enclaveTypeData.validationHookAddr:", tdxHookProxy);
         console2.log("  isWhitelisted: true");
         console2.log("---");
         console2.log("After whitelisting, call TDXValidationHook.approvePlatform(platformCommitment, label)");
-        console2.log("for each approved (MRTD, RTMR0, RTMR1) tuple, where:");
-        console2.log("  platformCommitment = keccak256(MRTD || RTMR0 || RTMR1)");
+        console2.log("for each approved (MRTD, RTMR0, RTMR1, RTMR2) tuple, where:");
+        console2.log("  platformCommitment = keccak256(MRTD || RTMR0 || RTMR1 || RTMR2)");
     }
 }
