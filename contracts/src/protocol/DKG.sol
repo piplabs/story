@@ -187,8 +187,13 @@ contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         require(enclaveInstanceData.validatorAddr != address(0), "DKG: Validator address cannot be empty");
         require(enclaveInstanceData.validatorAddr == msg.sender, "DKG: Validator must be msg.sender");
         require(enclaveInstanceData.enclaveType != bytes32(0), "DKG: Enclave type cannot be empty");
-        require(enclaveInstanceData.enclaveCommKey.length != 0, "DKG: Enclave communication key cannot be empty");
-        require(enclaveInstanceData.dkgPubKey.length != 0, "DKG: DKG public key cannot be empty");
+        // Pin the exact lengths of the two trailing dynamic fields. They are the last
+        // members of the abi.encodePacked preimage below, where adjacent dynamic byte
+        // arrays would otherwise be ambiguous: (dkgPubKey=X‖Y, commKey=Z) and
+        // (dkgPubKey=X, commKey=Y‖Z) hash to the same value. Fixing both lengths makes
+        // the packing injective, which the kernel's calculateReportData mirrors.
+        require(enclaveInstanceData.dkgPubKey.length == 64, "DKG: DKG public key must be 64 bytes");
+        require(enclaveInstanceData.enclaveCommKey.length == 65, "DKG: Enclave communication key must be 65 bytes");
 
         // Compute expectedDataCommitment matching kernel's calculateReportData:
         // keccak256(validatorAddr(20) || round(4) || startBlockHeight(8) || startBlockHash(32) ||
