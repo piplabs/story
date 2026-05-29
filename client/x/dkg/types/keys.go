@@ -34,4 +34,5 @@ var (
 	CDRFeePoolBalanceKey           = collections.NewPrefix(11)
 	DKGPartialDecryptRoundIndexKey = collections.NewPrefix(12)
 	FinalizeVotesKey               = collections.NewPrefix(13)
+	DealtDealersKey                = collections.NewPrefix(14)
 )

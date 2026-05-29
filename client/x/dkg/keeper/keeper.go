@@ -116,6 +116,7 @@ type Keeper struct {
 	CDRFeePoolBalance     collections.Item[string]        // total coins currently held in cdr-fee-pool
 
 	FinalizeVotes collections.Map[string, string] // key: round_validator; value: finalize vote key (round_gpk_coeffsHash) (v1.9.0+)
+	DealtDealers  collections.KeySet[string]      // key: round_dealerIndex; marks dealers that submitted a deal (v1.9.0+)
 }
 
 // NewKeeper creates a new dkg Keeper instance.
@@ -164,6 +165,7 @@ func NewKeeper(
 		CDRPartialSubmitCount:       collections.NewMap(sb, types.CDRPartialSubmitCountKey, "cdr_partial_submit_count", collections.StringKey, collections.Uint64Value),
 		CDRFeePoolBalance:           collections.NewItem(sb, types.CDRFeePoolBalanceKey, "cdr_fee_pool_balance", collections.StringValue),
 		FinalizeVotes:               collections.NewMap(sb, types.FinalizeVotesKey, "dkg_finalize_votes", collections.StringKey, collections.StringValue),
+		DealtDealers:                collections.NewKeySet(sb, types.DealtDealersKey, "dealt_dealers", collections.StringKey),
 	}
 
 	schema, err := sb.Build()

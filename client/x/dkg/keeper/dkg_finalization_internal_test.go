@@ -589,3 +589,412 @@ func TestFinalizeDKGRound_V190Gate(t *testing.T) {
 		require.Equal(t, types.DKGRegStatusFinalized, good.Status)
 	})
 }
+
+// TestMarkDealersDealt verifies that 0-based dealer indices [0, Total-1] are resolved to
+// the dealer's validator address via the committee's registrations, and out-of-range
+// indices are skipped. Non-resharing: the dealer committee is the current round.
+func TestMarkDealersDealt(t *testing.T) {
+	const (
+		round = uint32(12)
+		n     = 3
+	)
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx)
+
+	validators := make([]common.Address, n)
+	latestRound := &types.DKGNetwork{Round: round, Total: n} // valid 0-based indices {0,1,2}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+	for i := range n {
+		validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+		require.NoError(t, k.setDKGRegistration(ctx, validators[i], &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validators[i].Hex(),
+			Index:         uint32(i + 1), // 1-based
+			Status:        types.DKGRegStatusVerified,
+		}))
+	}
+
+	deals := []types.Deal{
+		{Index: 0}, {Index: 0}, // dealer 0 (duplicate) -> validators[0]
+		{Index: 2}, // dealer 2 -> validators[2]
+		{Index: 3}, // out of range (>= Total=3) -> skipped
+	}
+	require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
+
+	for i, want := range map[int]bool{0: true, 1: false, 2: true} {
+		has, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[i].Hex()))
+		require.NoError(t, err)
+		require.Equal(t, want, has, "validator %d", i)
+	}
+}
+
+// TestMarkDealersDealt_AllDealersRecorded is a regression test for the 0-based/1-based
+// off-by-one: when all n dealers deal (0-based indices {0..n-1}), every registration
+// index {1..n} — including the highest, n — must be recorded, so invalidateMissingDealers
+// keeps them all. A test built with 1-based deal indices would hide this.
+func TestMarkDealersDealt_AllDealersRecorded(t *testing.T) {
+	const (
+		round = uint32(15)
+		n     = 4
+	)
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx)
+
+	validators := make([]common.Address, n)
+	latestRound := &types.DKGNetwork{Round: round, Total: n, Threshold: 2, Stage: types.DKGStageFinalization}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	deals := make([]types.Deal, n)
+	for i := range n {
+		validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+		require.NoError(t, k.setDKGRegistration(ctx, validators[i], &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validators[i].Hex(),
+			Index:         uint32(i + 1), // 1-based
+			Status:        types.DKGRegStatusVerified,
+		}))
+		deals[i] = types.Deal{Index: uint32(i)} // 0-based dealer index
+	}
+
+	require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
+
+	// Every dealer (incl. the highest index n) must be recorded.
+	for i := range n {
+		has, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[i].Hex()))
+		require.NoError(t, err)
+		require.True(t, has, "validator %d (highest reg.Index=%d) must be recorded as dealt", i+1, n)
+	}
+
+	require.NoError(t, k.invalidateMissingDealers(ctx, latestRound))
+
+	for i := range n {
+		reg, err := k.getDKGRegistration(ctx, round, validators[i])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg.Status,
+			"reg.Index %d must remain verified (all dealers dealt)", i+1)
+	}
+}
+
+// TestInvalidateMissingDealers verifies that verified dealers without a recorded deal
+// are invalidated, dealers that dealt are kept and their marks pruned, and already
+// invalidated dealers are left untouched.
+func TestInvalidateMissingDealers(t *testing.T) {
+	const (
+		round = uint32(11)
+		n     = 5
+	)
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx)
+
+	validators := make([]common.Address, n)
+	for i := range n {
+		validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+	}
+
+	latestRound := &types.DKGNetwork{Round: round, Total: n, Threshold: 3, Stage: types.DKGStageFinalization}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	// reg index 5 (i=4) is already invalidated and never dealt; others are verified.
+	for i := range n {
+		status := types.DKGRegStatusVerified
+		if i == 4 {
+			status = types.DKGRegStatusInvalidated
+		}
+		reg := &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validators[i].Hex(),
+			Index:         uint32(i + 1),
+			Status:        status,
+		}
+		require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
+	}
+
+	// 0-based dealer indices 0 and 2 submitted deals -> reg.Index 1 and 3 dealt; 2,4,5 did not.
+	require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{{Index: 0}, {Index: 2}}))
+
+	require.NoError(t, k.invalidateMissingDealers(ctx, latestRound))
+
+	wantStatus := map[int]types.DKGRegStatus{
+		0: types.DKGRegStatusVerified,    // dealt
+		1: types.DKGRegStatusInvalidated, // missing deal
+		2: types.DKGRegStatusVerified,    // dealt
+		3: types.DKGRegStatusInvalidated, // missing deal
+		4: types.DKGRegStatusInvalidated, // already invalidated, untouched
+	}
+	for i := range n {
+		reg, err := k.getDKGRegistration(ctx, round, validators[i])
+		require.NoError(t, err)
+		require.Equal(t, wantStatus[i], reg.Status, "reg index %d", i+1)
+	}
+
+	// Marks for dealt dealers are pruned (validators[0] and validators[2]).
+	for _, i := range []int{0, 2} {
+		has, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[i].Hex()))
+		require.NoError(t, err)
+		require.False(t, has, "dealt mark for validator %d should be pruned", i)
+	}
+}
+
+// TestBeginFinalization_MissingDealerGate verifies the missing-dealer sweep only runs
+// for rounds started at/after the v1.9.0 height.
+func TestBeginFinalization_MissingDealerGate(t *testing.T) {
+	const (
+		round = uint32(13)
+		n     = 3
+	)
+
+	// nonDealerIdx (0-based) is verified but never submits a deal.
+	const nonDealerIdx = 1
+
+	setup := func(t *testing.T, roundStartHeight int64) (*Keeper, sdk.Context, []common.Address) {
+		t.Helper()
+
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+		validators := make([]common.Address, n)
+		for i := range n {
+			validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+		}
+
+		latestRound := &types.DKGNetwork{
+			Round:            round,
+			Total:            n,
+			Threshold:        2,
+			Stage:            types.DKGStageFinalization,
+			StartBlockHeight: roundStartHeight,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+		for i := range n {
+			reg := &types.DKGRegistration{
+				Round:         round,
+				ValidatorAddr: validators[i].Hex(),
+				Index:         uint32(i + 1),
+				Status:        types.DKGRegStatusVerified,
+			}
+			require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
+		}
+
+		// Every dealer except nonDealerIdx submitted a deal (0-based dealer index = i).
+		var deals []types.Deal
+		for i := range n {
+			if i != nonDealerIdx {
+				deals = append(deals, types.Deal{Index: uint32(i)})
+			}
+		}
+		require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
+
+		return k, ctx, validators
+	}
+
+	t.Run("gated off: round started below v1.9.0 height, missing dealer stays verified", func(t *testing.T) {
+		k, ctx, validators := setup(t, 399)
+
+		latestRound, err := k.getLatestDKGNetwork(ctx)
+		require.NoError(t, err)
+		require.NoError(t, k.BeginFinalization(ctx, latestRound))
+
+		reg, err := k.getDKGRegistration(ctx, round, validators[nonDealerIdx])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg.Status)
+	})
+
+	t.Run("gated on: round started at v1.9.0 height, missing dealer invalidated", func(t *testing.T) {
+		k, ctx, validators := setup(t, 400)
+
+		latestRound, err := k.getLatestDKGNetwork(ctx)
+		require.NoError(t, err)
+		require.NoError(t, k.BeginFinalization(ctx, latestRound))
+
+		missing, err := k.getDKGRegistration(ctx, round, validators[nonDealerIdx])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusInvalidated, missing.Status)
+
+		dealt, err := k.getDKGRegistration(ctx, round, validators[0])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, dealt.Status)
+	})
+}
+
+// TestInvalidateMissingDealers_Resharing covers the resharing index-space defect: in a
+// resharing round the dealers are the PREVIOUS active committee, whose index space is
+// permuted differently from the current round. Deals must be attributed by validator
+// address, never by raw index. Reproduces the devnet 4->3 node-removal scenario.
+func TestInvalidateMissingDealers_Resharing(t *testing.T) {
+	const (
+		oldRound = uint32(40)
+		newRound = uint32(42)
+	)
+
+	// Old committee (the dealers), by old reg.Index: val1=1(kyber0), val3=2(kyber1),
+	// val4=3(kyber2), val2=4(kyber3). val3 is stopped and submits no deal.
+	val1 := common.BytesToAddress([]byte{0x01})
+	val2 := common.BytesToAddress([]byte{0x02})
+	val3 := common.BytesToAddress([]byte{0x03})
+	val4 := common.BytesToAddress([]byte{0x04})
+	oldByIndex := []common.Address{val1, val3, val4, val2} // index i -> kyber i
+
+	// Deals from the dealers that are up (old kyber indices 0,2,3); val3 (kyber 1) is down.
+	dealtDeals := []types.Deal{{Index: 0}, {Index: 2}, {Index: 3}}
+
+	setupOld := func(t *testing.T, k *Keeper, ctx sdk.Context) {
+		t.Helper()
+		old := &types.DKGNetwork{
+			Round:        oldRound,
+			Total:        4,
+			ActiveValSet: []string{val1.Hex(), val3.Hex(), val4.Hex(), val2.Hex()},
+			Stage:        types.DKGStageActive,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, old))
+		require.NoError(t, k.setLatestActiveRound(ctx, old))
+		for i, addr := range oldByIndex {
+			require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+				Round:         oldRound,
+				ValidatorAddr: addr.Hex(),
+				Index:         uint32(i + 1),
+				Status:        types.DKGRegStatusFinalized,
+			}))
+		}
+	}
+
+	t.Run("leaving dealer not invalidated; healthy members kept despite index permutation", func(t *testing.T) {
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+		setupOld(t, k, ctx)
+
+		// New committee (val3 left): val2=1, val1=2, val4=3. Note val1 sits at the index
+		// (2) the stopped val3 held in the old committee — the bug invalidated val1 here.
+		newRegs := []common.Address{val2, val1, val4}
+		newDKG := &types.DKGNetwork{
+			Round: newRound, Total: 3, Threshold: 2,
+			Stage: types.DKGStageFinalization, IsResharing: true, StartBlockHeight: 400,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+		for i, addr := range newRegs {
+			require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+				Round:         newRound,
+				ValidatorAddr: addr.Hex(),
+				Index:         uint32(i + 1),
+				Status:        types.DKGRegStatusVerified,
+			}))
+		}
+
+		require.NoError(t, k.markDealersDealt(ctx, newDKG, dealtDeals))
+		require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
+
+		// All three new members dealt (val1/val4/val2) and stay verified; val3 left and
+		// has no new registration to invalidate.
+		for _, addr := range newRegs {
+			reg, err := k.getDKGRegistration(ctx, newRound, addr)
+			require.NoError(t, err)
+			require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
+		}
+	})
+
+	t.Run("continuing dealer that skips dealing is invalidated", func(t *testing.T) {
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+		setupOld(t, k, ctx)
+
+		// val3 does NOT leave: it registers for the new round but still submits no deal.
+		newRegs := []common.Address{val2, val1, val4, val3}
+		newDKG := &types.DKGNetwork{
+			Round: newRound, Total: 4, Threshold: 2,
+			Stage: types.DKGStageFinalization, IsResharing: true, StartBlockHeight: 400,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+		for i, addr := range newRegs {
+			require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+				Round:         newRound,
+				ValidatorAddr: addr.Hex(),
+				Index:         uint32(i + 1),
+				Status:        types.DKGRegStatusVerified,
+			}))
+		}
+
+		require.NoError(t, k.markDealersDealt(ctx, newDKG, dealtDeals))
+		require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
+
+		// val3 was an old-committee dealer that skipped dealing and is still a member -> invalidated.
+		reg3, err := k.getDKGRegistration(ctx, newRound, val3)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusInvalidated, reg3.Status)
+
+		for _, addr := range []common.Address{val1, val2, val4} {
+			reg, err := k.getDKGRegistration(ctx, newRound, addr)
+			require.NoError(t, err)
+			require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
+		}
+	})
+}
+
+// TestInvalidateMissingDealers_ReshardingExpansion covers the predicted (in the PR review)
+// node-addition failure: in a 3->4 expansion the joining node holds no old share and
+// correctly submits no deal. The expected dealer set is the OLD committee, so the joiner is
+// never a candidate for invalidation — regardless of which registration index it lands on.
+// A raw-index implementation would invalidate whoever sits at index newTotal (here val4).
+func TestInvalidateMissingDealers_ReshardingExpansion(t *testing.T) {
+	const (
+		oldRound = uint32(50)
+		newRound = uint32(52)
+	)
+
+	// Old committee of 3: val1=1(kyber0), val2=2(kyber1), val3=3(kyber2). All deal.
+	val1 := common.BytesToAddress([]byte{0x01})
+	val2 := common.BytesToAddress([]byte{0x02})
+	val3 := common.BytesToAddress([]byte{0x03})
+	val4 := common.BytesToAddress([]byte{0x04}) // joining node, no old share
+	oldByIndex := []common.Address{val1, val2, val3}
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+	old := &types.DKGNetwork{
+		Round:        oldRound,
+		Total:        3,
+		ActiveValSet: []string{val1.Hex(), val2.Hex(), val3.Hex()},
+		Stage:        types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, old))
+	require.NoError(t, k.setLatestActiveRound(ctx, old))
+	for i, addr := range oldByIndex {
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         oldRound,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusFinalized,
+		}))
+	}
+
+	// New committee of 4, joiner val4 registered LAST (index 4 == newTotal): the index the
+	// buggy implementation would have killed.
+	newRegs := []common.Address{val1, val2, val3, val4}
+	newDKG := &types.DKGNetwork{
+		Round: newRound, Total: 4, Threshold: 2,
+		Stage: types.DKGStageFinalization, IsResharing: true, StartBlockHeight: 400,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+	for i, addr := range newRegs {
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         newRound,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusVerified,
+		}))
+	}
+
+	// Only the old committee deals (kyber 0,1,2); the joiner submits nothing.
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}, {Index: 2}}))
+	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
+
+	// All four members — including the joiner that dealt nothing — stay verified.
+	for _, addr := range newRegs {
+		reg, err := k.getDKGRegistration(ctx, newRound, addr)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
+	}
+}

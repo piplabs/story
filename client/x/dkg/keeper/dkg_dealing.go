@@ -184,6 +184,14 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 }
 
 func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
+	// Record which dealers submitted a deal so missing dealers can be invalidated at
+	// BeginFinalization.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.markDealersDealt(ctx, latestRound, deals); err != nil {
+			return errors.Wrap(err, "failed to mark dealers dealt")
+		}
+	}
+
 	if err := k.emitBeginProcessDeals(ctx, latestRound, deals); err != nil {
 		return errors.Wrap(err, "failed to emit begin process deals event")
 	}
@@ -199,6 +207,72 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 	}
 
 	return nil
+}
+
+// markDealersDealt records the address of each dealer that submitted a deal, so missing
+// dealers can be invalidated at BeginFinalization. deal.Index is the dealer's 0-based kyber
+// index within the DEALER committee: the current round for the initial DKG, but the previous
+// active committee for resharing rounds (they hold the existing shares). The index is resolved
+// to a validator address through that committee's registrations, because the dealer and current
+// index spaces are permuted differently across rounds.
+func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
+	dealerRound, dealerTotal, err := k.dealerCommitteeRound(ctx, latestRound)
+	if err != nil {
+		return err
+	}
+	if dealerRound == nil {
+		return nil
+	}
+
+	dealerRegs, err := k.getDKGRegistrationsByRound(ctx, *dealerRound)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch dealer registrations", "round", *dealerRound)
+	}
+
+	// Map the dealer committee's 1-based registration index to validator address.
+	addrByIndex := make(map[uint32]string, len(dealerRegs))
+	for i := range dealerRegs {
+		addrByIndex[dealerRegs[i].Index] = dealerRegs[i].ValidatorAddr
+	}
+
+	for _, deal := range deals {
+		// Bound the 0-based kyber index by the dealer committee's total, then convert to
+		// the 1-based registration index.
+		if deal.Index >= dealerTotal {
+			continue
+		}
+
+		addr, ok := addrByIndex[deal.Index+1]
+		if !ok {
+			continue
+		}
+
+		if err := k.DealtDealers.Set(ctx, dealtDealerKey(latestRound.Round, addr)); err != nil {
+			return errors.Wrap(err, "failed to record dealt dealer", "round", latestRound.Round, "dealer", addr)
+		}
+	}
+
+	return nil
+}
+
+// dealerCommitteeRound returns the round and total of the committee expected to deal in
+// latestRound. For resharing rounds this is the previous active committee (which holds the
+// existing shares); otherwise it is the current round. A nil round means there is no dealer
+// committee to attribute deals to (e.g. resharing with no prior active round).
+func (k *Keeper) dealerCommitteeRound(ctx context.Context, latestRound *types.DKGNetwork) (*uint32, uint32, error) {
+	if !latestRound.IsResharing {
+		return &latestRound.Round, latestRound.Total, nil
+	}
+
+	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "failed to get previous active round")
+	}
+	if prevActive == nil {
+		return nil, 0, nil
+	}
+
+	return &prevActive.Round, prevActive.Total, nil
 }
 
 func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNetwork, responses []types.Response) error {
