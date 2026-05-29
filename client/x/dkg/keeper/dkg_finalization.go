@@ -3,6 +3,10 @@ package keeper
 import (
 	"context"
 
+	"cosmossdk.io/collections"
+
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
@@ -27,14 +31,22 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
-	// Guard: global public key must be set before finalizing. If it's empty,
-	// the round did not complete key generation and should not be activated.
-	if len(latestRound.GlobalPublicKey) == 0 {
-		log.Info(ctx, "Global public key not set, skipping to next round",
+	// Guard: consensus key material must be set before finalizing. If it's empty, the
+	// round did not complete key generation and should not be activated.
+	if len(latestRound.GlobalPublicKey) == 0 || len(latestRound.PublicCoeffs) == 0 {
+		log.Info(ctx, "Consensus key material not set, skipping to next round",
 			"round", latestRound.Round,
 		)
 
 		return k.SkipToNextRound(ctx, latestRound)
+	}
+
+	// Drop finalized validators whose finalize vote diverged from the consensus
+	// polynomial before counting.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.invalidateNonConsensusFinalizations(ctx, latestRound); err != nil {
+			return errors.Wrap(err, "failed to invalidate non-consensus finalizations")
+		}
 	}
 
 	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
@@ -114,6 +126,74 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 
 	roundsTotal.WithLabelValues(labelRoundCompleted).Inc()
 	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round)
+
+	return nil
+}
+
+// pruneRoundFinalizeVotes removes all recorded finalize votes for a round, used when the
+// round is abandoned via SkipToNextRound (the success path prunes them in
+// invalidateNonConsensusFinalizations).
+func (k *Keeper) pruneRoundFinalizeVotes(ctx context.Context, round uint32) error {
+	regs, err := k.getDKGRegistrationsByRound(ctx, round)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch DKG registrations")
+	}
+
+	for i := range regs {
+		key := finalizeVoteStoreKey(round, common.HexToAddress(regs[i].ValidatorAddr))
+		if err := k.FinalizeVotes.Remove(ctx, key); err != nil {
+			return errors.Wrap(err, "failed to prune finalize vote", "validator", regs[i].ValidatorAddr)
+		}
+	}
+
+	return nil
+}
+
+// invalidateNonConsensusFinalizations invalidates finalized validators whose finalize
+// vote (globalPubKey + publicCoeffs) does not match the consensus polynomial. Because
+// the kernel derives globalPubKey, publicCoeffs and pubKeyShare from the same key share,
+// matching the consensus vote implies the validator's share lies on the consensus
+// polynomial. The recorded votes are pruned here.
+func (k *Keeper) invalidateNonConsensusFinalizations(ctx context.Context, latestRound *types.DKGNetwork) error {
+	consensusKey := globalPubKeyVoteKey(latestRound.Round, latestRound.GlobalPublicKey, latestRound.PublicCoeffs)
+
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch finalized DKG registrations")
+	}
+
+	for i := range finalizedRegs {
+		reg := finalizedRegs[i]
+		voteStoreKey := finalizeVoteStoreKey(latestRound.Round, common.HexToAddress(reg.ValidatorAddr))
+
+		submitted, err := k.FinalizeVotes.Get(ctx, voteStoreKey)
+		if err != nil && !errors.Is(err, collections.ErrNotFound) {
+			return errors.Wrap(err, "failed to get finalize vote", "validator", reg.ValidatorAddr)
+		}
+
+		if err := k.FinalizeVotes.Remove(ctx, voteStoreKey); err != nil {
+			return errors.Wrap(err, "failed to prune finalize vote", "validator", reg.ValidatorAddr)
+		}
+
+		if submitted == consensusKey {
+			continue
+		}
+
+		reg.Status = types.DKGRegStatusInvalidated
+		if err := k.setDKGRegistration(ctx, common.HexToAddress(reg.ValidatorAddr), &reg); err != nil {
+			return errors.Wrap(err, "failed to invalidate non-consensus finalization",
+				"validator", reg.ValidatorAddr,
+				"index", reg.Index,
+			)
+		}
+
+		log.Warn(ctx, "Invalidated finalized validator: finalize vote does not match consensus",
+			nil,
+			"round", latestRound.Round,
+			"validator", reg.ValidatorAddr,
+			"index", reg.Index,
+		)
+	}
 
 	return nil
 }
