@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"net/url"
@@ -16,6 +17,13 @@ import (
 // QueryMapToVal implements an all-in-one decoder to decode requests' query parameters to
 // structured value.
 func QueryMapToVal(query url.Values, val any) error {
+	// Reject query keys nested deeper than maxQueryDepth instead of silently dropping them.
+	for k := range query {
+		if depth := strings.Count(k, "."); depth > maxQueryDepth {
+			return fmt.Errorf("query key %q exceeds max nesting depth %d", k, maxQueryDepth)
+		}
+	}
+
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata:         nil,
 		Result:           val,
@@ -106,10 +114,6 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 const maxQueryDepth = 5
 
 func buildMap(query url.Values, prefix ...string) (ret map[string]any) {
-	if len(prefix) > maxQueryDepth {
-		return nil
-	}
-
 	fullPrefix := strings.Join(prefix, ".")
 	if len(fullPrefix) > 0 {
 		fullPrefix += "."

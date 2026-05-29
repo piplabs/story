@@ -34,24 +34,6 @@ func TestBuildMap_NestedDot(t *testing.T) {
 	require.Equal(t, []string{"0"}, sub["offset"])
 }
 
-func TestBuildMap_DepthLimit(t *testing.T) {
-	t.Parallel()
-
-	// Build a key with depth > maxQueryDepth
-	segments := make([]string, maxQueryDepth+5)
-	for i := range segments {
-		segments[i] = "a"
-	}
-	deepKey := strings.Join(segments, ".")
-
-	q := url.Values{
-		deepKey: {"val"},
-	}
-	m := buildMap(q)
-	// Should not panic and should return a map (nested levels beyond limit are nil)
-	require.NotNil(t, m)
-}
-
 func TestBuildMap_ExactlyAtLimit(t *testing.T) {
 	t.Parallel()
 
@@ -77,34 +59,53 @@ func TestBuildMap_ExactlyAtLimit(t *testing.T) {
 	}
 }
 
-func TestBuildMap_MaliciousDepth_NoOOM(t *testing.T) {
+func TestQueryMapToVal_DepthExceeded_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	// Simulate the attack: 6000 dot-separated segments
+	// Key with depth > maxQueryDepth must be rejected up front instead of silently dropped.
+	deepKey := strings.Repeat("a.", maxQueryDepth+1) + "a"
+	q := url.Values{
+		deepKey: {"val"},
+	}
+
+	var val map[string]any
+	err := QueryMapToVal(q, &val)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "exceeds max nesting depth")
+}
+
+func TestQueryMapToVal_MaliciousDepth_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	// A maliciously deep key is rejected up front, before buildMap recurses on it.
 	key := strings.Repeat("a.", 6000) + "a"
 	q := url.Values{
 		key: {"x"},
 	}
 
-	// This should complete quickly without OOM
-	m := buildMap(q)
-	require.NotNil(t, m)
+	var val map[string]any
+	err := QueryMapToVal(q, &val)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "exceeds max nesting depth")
+}
+
+func TestQueryMapToVal_AtLimit_NoError(t *testing.T) {
+	t.Parallel()
+
+	// Key with depth == maxQueryDepth is still accepted.
+	atLimitKey := strings.Repeat("a.", maxQueryDepth) + "a"
+	q := url.Values{
+		atLimitKey: {"val"},
+	}
+
+	var val map[string]any
+	require.NoError(t, QueryMapToVal(q, &val))
 }
 
 func BenchmarkBuildMap_Normal(b *testing.B) {
 	q := url.Values{
 		"pagination.limit": {"10"},
 		"status":           {"BOND_STATUS_BONDED"},
-	}
-	for b.Loop() {
-		buildMap(q)
-	}
-}
-
-func BenchmarkBuildMap_DeepKey_6000(b *testing.B) {
-	key := strings.Repeat("a.", 6000) + "a"
-	q := url.Values{
-		key: {"x"},
 	}
 	for b.Loop() {
 		buildMap(q)
