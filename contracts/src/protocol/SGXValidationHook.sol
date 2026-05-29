@@ -13,7 +13,10 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
 
     /// @dev Storage structure for the SGXValidationHook
     /// @param automataValidationAddr The address of the automata validation contract
-    /// @param tcbEvaluationDataNumber The tcb evaluation data number
+    /// @param tcbEvaluationDataNumber The TCB evaluation data number. Retained for storage and
+    ///        interface backward compatibility; no longer consumed by `validateReport`, which now
+    ///        calls the parameterless `verifyAndAttestOnChain` overload so the verifier resolves
+    ///        the standard TCB evaluation data number on-chain per Intel's TCB Recovery policy.
     /// @custom:storage-location erc7201:story.SGXValidationHook
     struct SGXValidationHookStorage {
         address automataValidationAddr;
@@ -60,6 +63,9 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
 
     /// @notice Sets the TCB evaluation data number
     /// @param newTcbEvaluationDataNumber The TCB evaluation data number
+    /// @dev Retained for backward compatibility. The stored value is no longer read by
+    ///      `validateReport`; the standard TCB evaluation data number is resolved by the verifier
+    ///      on every call instead.
     function setTcbEvaluationDataNumber(uint32 newTcbEvaluationDataNumber) external onlyOwner {
         _setTcbEvaluationDataNumber(newTcbEvaluationDataNumber);
     }
@@ -85,10 +91,14 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         require(expectedCodeCommitment != bytes32(0), "SGXValidationHook: Zero code commitment");
         require(expectedDataCommitment != bytes32(0), "SGXValidationHook: Zero data commitment");
         SGXValidationHookStorage storage $ = _getSGXValidationHookStorage();
-        // see verifyAndAttestOnChain in automata-dcap-attestation:
-        // AutomataDcapAttestationFee.sol#L23
-        (bool success, bytes memory output) = IAutomataDcapAttestationFee($.automataValidationAddr)
-            .verifyAndAttestOnChain(enclaveReport, $.tcbEvaluationDataNumber);
+
+        // Use the parameterless verifyAndAttestOnChain overload. The Automata verifier resolves
+        // the standard TCB Evaluation Data Number on-chain per Intel's TCB Recovery policy
+        // (highest evaluation data number whose recovery event date is ≥ 12 months before
+        // block.timestamp), so version transitions take effect automatically without any owner
+        // action. See AutomataDcapAttestationFee.sol#L23 (1-arg overload delegates to
+        // `_verifyAndAttestOnChain(rawQuote, 0)`, and the `0` triggers the standard lookup).
+        (bool success, ) = IAutomataDcapAttestationFee($.automataValidationAddr).verifyAndAttestOnChain(enclaveReport);
         require(success, "SGXAttestationReportValidator: Attestation failed");
 
         // check report code commitment against expectedCodeCommitment
@@ -116,7 +126,8 @@ contract SGXValidationHook is ISGXValidationHook, Ownable2StepUpgradeable, Pausa
         return _getSGXValidationHookStorage().automataValidationAddr;
     }
 
-    /// @notice Gets the TCB evaluation data number
+    /// @notice Gets the TCB evaluation data number stored at initialization time.
+    /// @dev Retained for backward compatibility. This value is no longer used by `validateReport`.
     /// @return The TCB evaluation data number
     function tcbEvaluationDataNumber() external view returns (uint32) {
         return _getSGXValidationHookStorage().tcbEvaluationDataNumber;
