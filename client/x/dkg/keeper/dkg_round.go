@@ -53,6 +53,14 @@ func (k *Keeper) SkipToNextRound(ctx context.Context, currentRound *types.DKGNet
 	// from being broadcast in the new round's vote extensions.
 	k.FlushAllQueues()
 
+	// Prune transient finalize votes recorded for the abandoned round (the success path
+	// prunes them in FinalizeDKGRound).
+	if k.isV190Round(ctx, currentRound) {
+		if err := k.pruneRoundFinalizeVotes(ctx, currentRound.Round); err != nil {
+			return errors.Wrap(err, "failed to prune finalize votes")
+		}
+	}
+
 	// Preserve the upgrade flag so the next round retries with isUpgrade=true
 	// if the failed round was an upgrade resharing round.
 	isUpgrade := currentRound.IsUpgrade
