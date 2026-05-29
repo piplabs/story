@@ -99,10 +99,7 @@ contract UpgradeCDR is Script {
         } else {
             modeString = "Execute";
             // executeBatch(address[], uint256[], bytes[], bytes32 predecessor, bytes32 salt) — no delay
-            data = abi.encodeCall(
-                TimelockController.executeBatch,
-                (targets, values, payloads, bytes32(0), bytes32(0))
-            );
+            data = abi.encodeCall(TimelockController.executeBatch, (targets, values, payloads, bytes32(0), bytes32(0)));
         }
 
         console2.log("=== Safe Transaction Parameters ===");
