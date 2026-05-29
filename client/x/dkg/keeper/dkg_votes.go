@@ -8,19 +8,30 @@ import (
 
 	"cosmossdk.io/collections"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/piplabs/story/lib/errors"
 )
 
-// AddGlobalPubKeyVote Increase vote for global public key by 1.
-func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, round uint32, globalPubKey []byte, publicCoeffs [][]byte) (uint32, error) {
-	coeffHash := hex.EncodeToString(hashPublicCoeffs(publicCoeffs))
-
-	key := fmt.Sprintf(
+// globalPubKeyVoteKey identifies a (round, globalPubKey, publicCoeffs) vote bucket.
+// Validators that agree on the same consensus polynomial produce the same key.
+func globalPubKeyVoteKey(round uint32, globalPubKey []byte, publicCoeffs [][]byte) string {
+	return fmt.Sprintf(
 		"%d_%s_%s",
 		round,
 		hex.EncodeToString(globalPubKey),
-		coeffHash,
+		hex.EncodeToString(hashPublicCoeffs(publicCoeffs)),
 	)
+}
+
+// finalizeVoteStoreKey is the FinalizeVotes state key for a validator in a round.
+func finalizeVoteStoreKey(round uint32, validator common.Address) string {
+	return fmt.Sprintf("%d_%s", round, validator.Hex())
+}
+
+// AddGlobalPubKeyVote Increase vote for global public key by 1.
+func (k *Keeper) AddGlobalPubKeyVote(ctx context.Context, round uint32, globalPubKey []byte, publicCoeffs [][]byte) (uint32, error) {
+	key := globalPubKeyVoteKey(round, globalPubKey, publicCoeffs)
 
 	// Read current votes (0 if not found)
 	current, err := k.GlobalPubKeyVotes.Get(ctx, key)
