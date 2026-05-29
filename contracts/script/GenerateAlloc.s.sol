@@ -95,11 +95,8 @@ contract GenerateAlloc is Script {
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER =
         keccak256("TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER_v3");
 
-    // When DKG_INCLUDE_TDX is true the script deploys TDXValidationHook and whitelists
-    // enclaveType=2 with the binary commitment above, then calls approvePlatform for each
-    // configured platform commitment. Operators flip this to true on TDX-capable devnets;
-    // it is false by default so mainnet/SGX-only deployments are unaffected.
-    bool private constant DKG_INCLUDE_TDX = true;
+    // The script deploys TDXValidationHook and whitelists enclaveType=2 with the binary
+    // commitment above, then calls approvePlatform for each configured platform commitment.
 
     /// @notice this call should only be available from Test.sol, for speed
     function disableStateDump() external {
@@ -232,9 +229,7 @@ contract GenerateAlloc is Script {
         setDKG();
         setCDR();
         setSGXValidationHook();
-        if (DKG_INCLUDE_TDX) {
-            setTDXValidationHook();
-        }
+        setTDXValidationHook();
     }
 
     /// @dev Populates the upgradeable predeploys namespace with proxies, to reserve the addresses
@@ -500,8 +495,7 @@ contract GenerateAlloc is Script {
     }
 
     /// @notice Deploys TDXValidationHook (impl + proxy) via Create3, whitelists it on DKG,
-    ///         and approves the configured platform commitments. Only invoked when
-    ///         DKG_INCLUDE_TDX is true.
+    ///         and approves the configured platform commitments.
     /// @dev Edit TDX_BINARY_COMMITMENT_PLACEHOLDER and TDX_PLATFORM_COMMITMENT_*_PLACEHOLDER
     ///      with values captured from running quotes on the target devnet nodes before
     ///      running the script.
