@@ -600,6 +600,16 @@ func (k *Keeper) PartialDecryptionSubmitted(
 		return false, errors.Wrap(err, "failed to get DKG registration for signature verification")
 	}
 
+	// Reject partials from validators invalidated for this round; their partials are
+	// inconsistent with the committee.
+	if network, err := k.getDKGNetwork(ctx, req.Round); err == nil &&
+		k.isV190Round(ctx, network) && reg.Status == types.DKGRegStatusInvalidated {
+		return false, errors.New("validator is invalidated and cannot submit partial decryptions",
+			"validator", validator.Hex(),
+			"round", req.Round,
+		)
+	}
+
 	if !bytes.Equal(pubShare, reg.PubKeyShare) {
 		return false, errors.New("pubShare mismatch: submitted pubShare does not match stored pubKeyShare",
 			"validator", validator.Hex(),
