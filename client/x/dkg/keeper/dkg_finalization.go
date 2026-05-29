@@ -14,6 +14,13 @@ import (
 )
 
 func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNetwork) error {
+	// Invalidate dealers that never submitted a deal during the dealing phase.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.invalidateMissingDealers(ctx, latestRound); err != nil {
+			return errors.Wrap(err, "failed to invalidate missing dealers")
+		}
+	}
+
 	if err := k.emitBeginDKGFinalization(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit begin DKG finalization event")
 	}
@@ -159,6 +166,55 @@ func (k *Keeper) invalidateDivergentShares(ctx context.Context, latestRound *typ
 
 		log.Warn(ctx, "Invalidated finalized validator: share not on consensus polynomial",
 			verifyErr,
+			"round", latestRound.Round,
+			"validator", reg.ValidatorAddr,
+			"index", reg.Index,
+		)
+	}
+
+	return nil
+}
+
+// invalidateMissingDealers invalidates verified dealers that never submitted a deal
+// during the dealing phase. The dealt set recorded in ProcessDeals is pruned here.
+func (k *Keeper) invalidateMissingDealers(ctx context.Context, latestRound *types.DKGNetwork) error {
+	regs, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch DKG registrations")
+	}
+
+	for i := range regs {
+		reg := regs[i]
+		key := dealtDealerKey(latestRound.Round, reg.Index)
+
+		dealt, err := k.DealtDealers.Has(ctx, key)
+		if err != nil {
+			return errors.Wrap(err, "failed to check dealt dealer", "index", reg.Index)
+		}
+
+		if dealt {
+			if err := k.DealtDealers.Remove(ctx, key); err != nil {
+				return errors.Wrap(err, "failed to prune dealt dealer", "index", reg.Index)
+			}
+
+			continue
+		}
+
+		// Only verified dealers can be missing a deal; others (already invalidated) are left as-is.
+		if reg.Status != types.DKGRegStatusVerified {
+			continue
+		}
+
+		reg.Status = types.DKGRegStatusInvalidated
+		if err := k.setDKGRegistration(ctx, common.HexToAddress(reg.ValidatorAddr), &reg); err != nil {
+			return errors.Wrap(err, "failed to invalidate missing dealer",
+				"validator", reg.ValidatorAddr,
+				"index", reg.Index,
+			)
+		}
+
+		log.Warn(ctx, "Invalidated dealer: no deal submitted during dealing phase",
+			nil,
 			"round", latestRound.Round,
 			"validator", reg.ValidatorAddr,
 			"index", reg.Index,

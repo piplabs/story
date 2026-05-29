@@ -32,4 +32,5 @@ var (
 	DecryptRequestRegistryKey = collections.NewPrefix(9)
 	CDRPartialSubmitCountKey  = collections.NewPrefix(10)
 	CDRFeePoolBalanceKey      = collections.NewPrefix(11)
+	DealtDealersKey           = collections.NewPrefix(12)
 )

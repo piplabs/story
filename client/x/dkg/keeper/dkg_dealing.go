@@ -184,6 +184,14 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 }
 
 func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
+	// Record which dealers submitted a deal so missing dealers can be invalidated at
+	// BeginFinalization.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.markDealersDealt(ctx, latestRound, deals); err != nil {
+			return errors.Wrap(err, "failed to mark dealers dealt")
+		}
+	}
+
 	if err := k.emitBeginProcessDeals(ctx, latestRound, deals); err != nil {
 		return errors.Wrap(err, "failed to emit begin process deals event")
 	}
@@ -196,6 +204,23 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 
 			k.handleDKGProcessDeals(asyncCtx, latestRound, wrapDeals(deals))
 		}()
+	}
+
+	return nil
+}
+
+// markDealersDealt records each dealer that submitted a deal in this round. Only
+// in-range indices (1..Total) are recorded to bound state growth; marks are pruned in
+// invalidateMissingDealers. deal.Index is the dealer's 1-based registration index.
+func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
+	for _, deal := range deals {
+		if deal.Index < 1 || deal.Index > latestRound.Total {
+			continue
+		}
+
+		if err := k.DealtDealers.Set(ctx, dealtDealerKey(latestRound.Round, deal.Index)); err != nil {
+			return errors.Wrap(err, "failed to record dealt dealer", "round", latestRound.Round, "index", deal.Index)
+		}
 	}
 
 	return nil
