@@ -2,9 +2,12 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -26,6 +29,13 @@ func (k *Keeper) isV190Round(ctx context.Context, round *types.DKGNetwork) bool 
 	active, err := netconf.IsV190(sdkCtx.ChainID(), round.StartBlockHeight)
 
 	return err == nil && active
+}
+
+// dealtDealerKey is the DealtDealers state key for a dealer in a round, keyed by the
+// dealer's validator address. Addresses (not indices) are used because in resharing
+// rounds the dealer committee's index space differs from the current round's.
+func dealtDealerKey(round uint32, dealerAddr string) string {
+	return fmt.Sprintf("%d_%s", round, common.HexToAddress(dealerAddr).Hex())
 }
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
