@@ -4,14 +4,29 @@ import (
 	"context"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 const (
 	retryAttempts = 3
 	retryDelay    = 2 * time.Second
 )
+
+// isV190Round reports whether a round is governed by the v1.9.0 DKG validation rules.
+// It checks netconf.IsV190 against the round's start height (not the current height)
+// so a round spanning the upgrade boundary keeps a single rule set, and treats an
+// unregistered chain as not active.
+func (k *Keeper) isV190Round(ctx context.Context, round *types.DKGNetwork) bool {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	active, err := netconf.IsV190(sdkCtx.ChainID(), round.StartBlockHeight)
+
+	return err == nil && active
+}
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
 	for i := range retryAttempts {

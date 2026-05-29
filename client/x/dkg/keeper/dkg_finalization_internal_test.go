@@ -12,9 +12,43 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/netconf"
 
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/share"
 	"go.uber.org/mock/gomock"
 )
+
+// generateConsensusPolyShares returns the serialized public coefficients and the
+// public key share for each of n participants (pubKeyShares[i] = F(i+1), 0-indexed slice).
+func generateConsensusPolyShares(t *testing.T, n, threshold int) (publicCoeffs [][]byte, pubKeyShares [][]byte) {
+	t.Helper()
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	secret := suite.Scalar().Pick(suite.RandomStream())
+	priPoly := share.NewPriPoly(suite, threshold, secret, suite.RandomStream())
+	pubPoly := priPoly.Commit(suite.Point().Base())
+
+	_, commits := pubPoly.Info()
+	publicCoeffs = make([][]byte, len(commits))
+	for i, c := range commits {
+		bz, err := c.MarshalBinary()
+		require.NoError(t, err)
+
+		publicCoeffs[i] = bz
+	}
+
+	pubKeyShares = make([][]byte, n)
+	for i := range n {
+		// PubPoly.Eval(i) evaluates at x = i+1, matching the participant's 1-based index.
+		bz, err := pubPoly.Eval(i).V.MarshalBinary()
+		require.NoError(t, err)
+
+		pubKeyShares[i] = bz
+	}
+
+	return publicCoeffs, pubKeyShares
+}
 
 func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 	testRound := uint32(1)
@@ -119,10 +153,14 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 			params.MinReqFinalizedParticipants = tc.minReqFinalized
 			require.NoError(t, k.SetParams(ctx, params))
 
-			// Set up DKG network (GlobalPublicKey must be non-empty for finalization to proceed)
-			var globalPubKey []byte
+			// Set up DKG network (consensus key material must be non-empty to proceed)
+			var (
+				globalPubKey []byte
+				publicCoeffs [][]byte
+			)
 			if !tc.emptyGlobalKey {
 				globalPubKey = []byte("global-pub-key")
+				publicCoeffs = [][]byte{[]byte("coeff")}
 			}
 			latestRound := &types.DKGNetwork{
 				Round:           testRound,
@@ -131,6 +169,7 @@ func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 				Threshold:       tc.threshold,
 				Stage:           types.DKGStageFinalization,
 				GlobalPublicKey: globalPubKey,
+				PublicCoeffs:    publicCoeffs,
 			}
 			require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -183,6 +222,7 @@ func TestFinalizeDKGRound_UpgradeRound(t *testing.T) {
 		Stage:           types.DKGStageFinalization,
 		IsUpgrade:       true, // upgrade resharing round
 		GlobalPublicKey: []byte("global-pub-key"),
+		PublicCoeffs:    [][]byte{[]byte("coeff")},
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -236,6 +276,7 @@ func TestFinalizeDKGRound_DKGSvcEnabled(t *testing.T) {
 		Stage:           types.DKGStageFinalization,
 		IsUpgrade:       false,
 		GlobalPublicKey: []byte("global-pub-key"),
+		PublicCoeffs:    [][]byte{[]byte("coeff")},
 	}
 	require.NoError(t, k.setDKGNetwork(sdkCtx, latestRound))
 
@@ -329,4 +370,204 @@ func TestBeginFinalization_DKGSvcEnabled(t *testing.T) {
 
 	err := k.BeginFinalization(ctx, network)
 	require.NoError(t, err)
+}
+
+// TestInvalidateDivergentShares verifies the core sweep logic: finalized validators
+// whose public key share lies on the consensus polynomial are kept, while those whose
+// share diverges (or is undecodable) are invalidated.
+func TestInvalidateDivergentShares(t *testing.T) {
+	const (
+		round     = uint32(7)
+		n         = 5
+		threshold = 3
+	)
+
+	// Consensus polynomial and the valid public key share for each participant.
+	publicCoeffs, validShares := generateConsensusPolyShares(t, n, threshold)
+	// An independent polynomial: a diverged validator's share lies on this instead.
+	_, divergentShares := generateConsensusPolyShares(t, n, threshold)
+
+	validators := make([]common.Address, n)
+	for i := range n {
+		validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+	}
+
+	// Per-participant share to store; indices 2 (divergent) and 3 (malformed) are bad.
+	const divergentIdx, malformedIdx = 2, 3
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx)
+
+	latestRound := &types.DKGNetwork{
+		Round:           round,
+		Total:           n,
+		Threshold:       threshold,
+		Stage:           types.DKGStageFinalization,
+		GlobalPublicKey: publicCoeffs[0], // GPK = F(0) = C_0
+		PublicCoeffs:    publicCoeffs,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	for i := range n {
+		pubKeyShare := validShares[i]
+		switch i {
+		case divergentIdx:
+			pubKeyShare = divergentShares[i]
+		case malformedIdx:
+			pubKeyShare = []byte{0x01, 0x02, 0x03} // undecodable point
+		}
+
+		reg := &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validators[i].Hex(),
+			Index:         uint32(i + 1), // 1-based
+			PubKeyShare:   pubKeyShare,
+			Status:        types.DKGRegStatusFinalized,
+		}
+		require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
+	}
+
+	require.NoError(t, k.invalidateDivergentShares(ctx, latestRound))
+
+	for i := range n {
+		reg, err := k.getDKGRegistration(ctx, round, validators[i])
+		require.NoError(t, err)
+
+		if i == divergentIdx || i == malformedIdx {
+			require.Equal(t, types.DKGRegStatusInvalidated, reg.Status,
+				"participant %d (off-consensus-polynomial) should be invalidated", i+1)
+		} else {
+			require.Equal(t, types.DKGRegStatusFinalized, reg.Status,
+				"participant %d (on consensus polynomial) should remain finalized", i+1)
+		}
+	}
+}
+
+// TestFinalizeDKGRound_NoPublicCoeffs verifies that a round with no consensus public
+// coefficients skips to the next round rather than activating.
+func TestFinalizeDKGRound_NoPublicCoeffs(t *testing.T) {
+	const round = uint32(8)
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx)
+
+	latestRound := &types.DKGNetwork{
+		Round:           round,
+		Total:           1,
+		Threshold:       1,
+		Stage:           types.DKGStageFinalization,
+		GlobalPublicKey: []byte("global-pub-key"),
+		PublicCoeffs:    nil, // consensus polynomial missing
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+	// SkipToNextRound -> InitiateDKGRound needs stakingKeeper.GetAllValidators.
+	sk := k.stakingKeeper.(*dkgtestutil.MockStakingKeeper)
+	sk.EXPECT().GetAllValidators(ctx).Return(nil, nil).Times(1)
+
+	require.NoError(t, k.FinalizeDKGRound(ctx, latestRound))
+
+	net, err := k.getLatestDKGNetwork(ctx)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGStageRegistration, net.Stage, "a new round should have been initiated")
+	require.Equal(t, round+1, net.Round)
+}
+
+// TestFinalizeDKGRound_V190Gate verifies that the divergent-share sweep only runs once
+// the v1.9.0 upgrade height is reached, so pre-upgrade blocks replay deterministically.
+func TestFinalizeDKGRound_V190Gate(t *testing.T) {
+	const (
+		round     = uint32(9)
+		n         = 4
+		threshold = 5 // intentionally > n so FinalizeDKGRound always takes the skip path
+	)
+
+	publicCoeffs, validShares := generateConsensusPolyShares(t, n, threshold)
+	_, divergentShares := generateConsensusPolyShares(t, n, threshold)
+
+	const divergentIdx = 1
+
+	// setup builds a keeper with one divergent finalized reg in a round that started at
+	// roundStartHeight (the gate is on the round's start height, not the current height).
+	setup := func(t *testing.T, roundStartHeight int64) (*Keeper, sdk.Context, []common.Address) {
+		t.Helper()
+
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+		params := types.DefaultParams()
+		params.MinReqFinalizedParticipants = 1
+		require.NoError(t, k.SetParams(ctx, params))
+
+		validators := make([]common.Address, n)
+		activeValSet := make([]string, n)
+		for i := range n {
+			validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+			activeValSet[i] = validators[i].Hex()
+		}
+
+		latestRound := &types.DKGNetwork{
+			Round:            round,
+			ActiveValSet:     activeValSet,
+			Total:            n,
+			Threshold:        threshold,
+			Stage:            types.DKGStageFinalization,
+			StartBlockHeight: roundStartHeight, // gate is on the round's start height
+			GlobalPublicKey:  publicCoeffs[0],
+			PublicCoeffs:     publicCoeffs,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+
+		for i := range n {
+			pubKeyShare := validShares[i]
+			if i == divergentIdx {
+				pubKeyShare = divergentShares[i]
+			}
+			reg := &types.DKGRegistration{
+				Round:         round,
+				ValidatorAddr: validators[i].Hex(),
+				Index:         uint32(i + 1),
+				PubKeyShare:   pubKeyShare,
+				Status:        types.DKGRegStatusFinalized,
+			}
+			require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
+		}
+
+		// threshold (5) > finalized count, so FinalizeDKGRound skips -> InitiateDKGRound.
+		sk := k.stakingKeeper.(*dkgtestutil.MockStakingKeeper)
+		sk.EXPECT().GetAllValidators(gomock.Any()).Return(nil, nil).Times(1)
+
+		return k, ctx, validators
+	}
+
+	t.Run("gated off: round started below v1.9.0 height, divergent reg stays finalized", func(t *testing.T) {
+		k, ctx, validators := setup(t, 399) // TestChainID V190 height is 400
+
+		latestRound, err := k.getLatestDKGNetwork(ctx)
+		require.NoError(t, err)
+		require.NoError(t, k.FinalizeDKGRound(ctx, latestRound))
+
+		reg, err := k.getDKGRegistration(ctx, round, validators[divergentIdx])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusFinalized, reg.Status,
+			"below v1.9.0 height the sweep must not run")
+	})
+
+	t.Run("gated on: round started at v1.9.0 height, divergent reg invalidated", func(t *testing.T) {
+		k, ctx, validators := setup(t, 400)
+
+		latestRound, err := k.getLatestDKGNetwork(ctx)
+		require.NoError(t, err)
+		require.NoError(t, k.FinalizeDKGRound(ctx, latestRound))
+
+		divergent, err := k.getDKGRegistration(ctx, round, validators[divergentIdx])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusInvalidated, divergent.Status,
+			"at v1.9.0 height the divergent share must be invalidated")
+
+		// A validator on the consensus polynomial is untouched.
+		good, err := k.getDKGRegistration(ctx, round, validators[0])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusFinalized, good.Status)
+	})
 }

@@ -80,3 +80,51 @@ func VerifyPedersenVSS(suite kyber.Group, shareBytes []byte, recipientIndex int,
 
 	return pubPoly.Check(priShare), nil
 }
+
+// VerifyPublicKeyShare verifies that a public key share point lies on the public
+// polynomial defined by commitmentBytes (the consensus public coefficients):
+// pubKeyShare == C_0 + i*C_1 + ... + i^(t-1)*C_{t-1} at x = recipientIndex.
+//
+// It is the public-point analogue of VerifyPedersenVSS. Index convention is the same:
+// recipientIndex is 1-based (callers pass reg.Index directly).
+func VerifyPublicKeyShare(suite kyber.Group, pubKeyShareBytes []byte, recipientIndex int, commitmentBytes [][]byte, expectedThreshold uint32) (bool, error) {
+	if len(commitmentBytes) == 0 {
+		return false, errors.New("empty commitments")
+	}
+
+	if recipientIndex <= 0 {
+		return false, fmt.Errorf("recipient index must be >= 1, got %d", recipientIndex)
+	}
+
+	if len(commitmentBytes) > MaxCommitments {
+		return false, fmt.Errorf("commitment count %d exceeds max %d", len(commitmentBytes), MaxCommitments)
+	}
+
+	// If expectedThreshold is specified, commitment count must match
+	if expectedThreshold > 0 && uint32(len(commitmentBytes)) != expectedThreshold {
+		return false, fmt.Errorf("commitment count %d does not match expected threshold %d", len(commitmentBytes), expectedThreshold)
+	}
+
+	// Unmarshal the public key share point
+	pubKeyShare := suite.Point()
+	if err := pubKeyShare.UnmarshalBinary(pubKeyShareBytes); err != nil {
+		return false, errors.Wrap(err, "unmarshal public key share")
+	}
+
+	// Unmarshal commitment points
+	commits := make([]kyber.Point, len(commitmentBytes))
+	for i, cb := range commitmentBytes {
+		p := suite.Point()
+		if err := p.UnmarshalBinary(cb); err != nil {
+			return false, errors.Wrap(err, "unmarshal commitment", "index", i)
+		}
+
+		commits[i] = p
+	}
+
+	// PubPoly.Eval(i) evaluates at x = i+1, so convert the 1-based recipientIndex.
+	pubPoly := share.NewPubPoly(suite, suite.Point().Base(), commits)
+	expected := pubPoly.Eval(recipientIndex - 1)
+
+	return expected.V.Equal(pubKeyShare), nil
+}

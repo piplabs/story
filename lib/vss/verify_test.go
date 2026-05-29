@@ -599,3 +599,173 @@ func TestVerifyPedersenVSS_TableDriven(t *testing.T) {
 		})
 	}
 }
+
+// generatePublicKeyShares creates a private polynomial and returns the serialized
+// commitment bytes (public coefficients) along with the serialized public key
+// share points for n participants. The public key share for participant i equals
+// the public polynomial evaluated at x = i (1-based), i.e. pubPoly.Eval(i-1).V.
+// pubKeyShareBytes is a 0-indexed slice keyed by (recipientIndex - 1).
+func generatePublicKeyShares(t *testing.T, n, threshold int) (commitmentBytes [][]byte, pubKeyShareBytes [][]byte) {
+	t.Helper()
+
+	suite := newSuite()
+	secret := suite.Scalar().Pick(suite.RandomStream())
+	priPoly := share.NewPriPoly(suite, threshold, secret, suite.RandomStream())
+	pubPoly := priPoly.Commit(suite.Point().Base())
+
+	_, commits := pubPoly.Info()
+	commitmentBytes = make([][]byte, len(commits))
+	for i, c := range commits {
+		bz, err := c.MarshalBinary()
+		require.NoError(t, err)
+
+		commitmentBytes[i] = bz
+	}
+
+	pubKeyShareBytes = make([][]byte, n)
+	for i := range n {
+		// PubPoly.Eval(i) evaluates at x = i+1, matching the participant's 1-based index.
+		pubShare := pubPoly.Eval(i)
+		bz, err := pubShare.V.MarshalBinary()
+		require.NoError(t, err)
+
+		pubKeyShareBytes[i] = bz
+	}
+
+	return commitmentBytes, pubKeyShareBytes
+}
+
+// TestVerifyPublicKeyShare_ValidShares verifies that every participant's public key
+// share lies on the polynomial defined by the commitments.
+func TestVerifyPublicKeyShare_ValidShares(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	n := 7
+	threshold := 4
+
+	commitmentBytes, pubKeyShareBytes := generatePublicKeyShares(t, n, threshold)
+
+	for i := range n {
+		recipientIndex := i + 1 // 1-based, matches DKGRegistration.Index
+		ok, err := vss.VerifyPublicKeyShare(suite, pubKeyShareBytes[i], recipientIndex, commitmentBytes, uint32(threshold))
+		require.NoError(t, err, "recipient index %d should not error", recipientIndex)
+		require.True(t, ok, "valid public key share for recipient %d should verify", recipientIndex)
+	}
+}
+
+// TestVerifyPublicKeyShare_DivergentShare verifies that a public key share lying on a
+// different polynomial (a diverged validator) is rejected against the consensus
+// commitments — this is the core invariant protecting the active committee.
+func TestVerifyPublicKeyShare_DivergentShare(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	n := 7
+	threshold := 4
+
+	// Consensus polynomial.
+	commitmentBytes, _ := generatePublicKeyShares(t, n, threshold)
+
+	// A diverged validator computed its share on a *different* polynomial.
+	_, divergentPubKeyShares := generatePublicKeyShares(t, n, threshold)
+
+	for i := range n {
+		recipientIndex := i + 1
+		ok, err := vss.VerifyPublicKeyShare(suite, divergentPubKeyShares[i], recipientIndex, commitmentBytes, uint32(threshold))
+		require.NoError(t, err, "recipient index %d should not error", recipientIndex)
+		require.False(t, ok, "divergent public key share for recipient %d must not verify against consensus commitments", recipientIndex)
+	}
+}
+
+// TestVerifyPublicKeyShare_WrongIndex verifies that a valid share checked against the
+// wrong recipient index fails (the share for participant i does not lie on the poly
+// at any other point).
+func TestVerifyPublicKeyShare_WrongIndex(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	n := 5
+	threshold := 3
+
+	commitmentBytes, pubKeyShareBytes := generatePublicKeyShares(t, n, threshold)
+
+	// Participant 1's share verified against index 2 must fail.
+	ok, err := vss.VerifyPublicKeyShare(suite, pubKeyShareBytes[0], 2, commitmentBytes, uint32(threshold))
+	require.NoError(t, err)
+	require.False(t, ok, "share for index 1 must not verify at index 2")
+}
+
+// TestVerifyPublicKeyShare_GlobalPublicKeyIsConstantTerm verifies the relationship
+// between the global public key and the public coefficients: GPK = F(0) = C_0.
+func TestVerifyPublicKeyShare_GlobalPublicKeyIsConstantTerm(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	commitmentBytes, _ := generatePublicKeyShares(t, 5, 3)
+
+	// C_0 (the first commitment) is the global public key, i.e. the polynomial
+	// evaluated at x = 0.
+	c0 := suite.Point()
+	require.NoError(t, c0.UnmarshalBinary(commitmentBytes[0]))
+
+	commits := make([]kyber.Point, len(commitmentBytes))
+	for i, cb := range commitmentBytes {
+		p := suite.Point()
+		require.NoError(t, p.UnmarshalBinary(cb))
+
+		commits[i] = p
+	}
+
+	pubPoly := share.NewPubPoly(suite, suite.Point().Base(), commits)
+	require.True(t, pubPoly.Commit().Equal(c0), "PubPoly.Commit() (GPK) must equal C_0")
+}
+
+// TestVerifyPublicKeyShare_EmptyCommitments verifies that empty commitments error.
+func TestVerifyPublicKeyShare_EmptyCommitments(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	_, pubKeyShareBytes := generatePublicKeyShares(t, 3, 2)
+
+	ok, err := vss.VerifyPublicKeyShare(suite, pubKeyShareBytes[0], 1, [][]byte{}, 0)
+	require.Error(t, err)
+	require.False(t, ok)
+}
+
+// TestVerifyPublicKeyShare_ZeroRecipientIndex verifies that a non-positive index errors.
+func TestVerifyPublicKeyShare_ZeroRecipientIndex(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	commitmentBytes, pubKeyShareBytes := generatePublicKeyShares(t, 3, 2)
+
+	ok, err := vss.VerifyPublicKeyShare(suite, pubKeyShareBytes[0], 0, commitmentBytes, 0)
+	require.Error(t, err)
+	require.False(t, ok)
+}
+
+// TestVerifyPublicKeyShare_MalformedPubKeyShare verifies that undecodable share bytes error.
+func TestVerifyPublicKeyShare_MalformedPubKeyShare(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	commitmentBytes, _ := generatePublicKeyShares(t, 3, 2)
+
+	ok, err := vss.VerifyPublicKeyShare(suite, []byte{0x01, 0x02, 0x03}, 1, commitmentBytes, 0)
+	require.Error(t, err)
+	require.False(t, ok)
+}
+
+// TestVerifyPublicKeyShare_ThresholdMismatch verifies the commitment-count guard.
+func TestVerifyPublicKeyShare_ThresholdMismatch(t *testing.T) {
+	t.Parallel()
+
+	suite := newSuite()
+	commitmentBytes, pubKeyShareBytes := generatePublicKeyShares(t, 5, 3)
+
+	// Pass a threshold that does not match the commitment count (3).
+	ok, err := vss.VerifyPublicKeyShare(suite, pubKeyShareBytes[0], 1, commitmentBytes, 4)
+	require.Error(t, err)
+	require.False(t, ok)
+}

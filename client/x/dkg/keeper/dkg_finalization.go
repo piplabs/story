@@ -3,9 +3,14 @@ package keeper
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
+
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/log"
+	"github.com/piplabs/story/lib/vss"
 )
 
 func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNetwork) error {
@@ -27,14 +32,21 @@ func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNe
 }
 
 func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNetwork) error {
-	// Guard: global public key must be set before finalizing. If it's empty,
-	// the round did not complete key generation and should not be activated.
-	if len(latestRound.GlobalPublicKey) == 0 {
-		log.Info(ctx, "Global public key not set, skipping to next round",
+	// Guard: consensus key material must be set before finalizing. If it's empty, the
+	// round did not complete key generation and should not be activated.
+	if len(latestRound.GlobalPublicKey) == 0 || len(latestRound.PublicCoeffs) == 0 {
+		log.Info(ctx, "Consensus key material not set, skipping to next round",
 			"round", latestRound.Round,
 		)
 
 		return k.SkipToNextRound(ctx, latestRound)
+	}
+
+	// Drop finalized validators whose share is off the consensus polynomial before counting.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.invalidateDivergentShares(ctx, latestRound); err != nil {
+			return errors.Wrap(err, "failed to invalidate divergent shares")
+		}
 	}
 
 	finalizedCount, err := k.countDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
@@ -114,6 +126,44 @@ func (k *Keeper) FinalizeDKGRound(ctx context.Context, latestRound *types.DKGNet
 
 	roundsTotal.WithLabelValues(labelRoundCompleted).Inc()
 	log.Info(ctx, "DKG network setup completed", "round", latestRound.Round)
+
+	return nil
+}
+
+// invalidateDivergentShares invalidates finalized validators whose public key share
+// does not lie on the consensus polynomial.
+func (k *Keeper) invalidateDivergentShares(ctx context.Context, latestRound *types.DKGNetwork) error {
+	finalizedRegs, err := k.getDKGRegistrationsByStatus(ctx, latestRound.Round, types.DKGRegStatusFinalized)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch finalized DKG registrations")
+	}
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	for i := range finalizedRegs {
+		reg := finalizedRegs[i]
+
+		// reg.Index is 1-based; the commitment count must equal the threshold.
+		onPoly, verifyErr := vss.VerifyPublicKeyShare(suite, reg.PubKeyShare, int(reg.Index), latestRound.PublicCoeffs, latestRound.Threshold)
+		if verifyErr == nil && onPoly {
+			continue
+		}
+
+		reg.Status = types.DKGRegStatusInvalidated
+		if err := k.setDKGRegistration(ctx, common.HexToAddress(reg.ValidatorAddr), &reg); err != nil {
+			return errors.Wrap(err, "failed to invalidate divergent share",
+				"validator", reg.ValidatorAddr,
+				"index", reg.Index,
+			)
+		}
+
+		log.Warn(ctx, "Invalidated finalized validator: share not on consensus polynomial",
+			verifyErr,
+			"round", latestRound.Round,
+			"validator", reg.ValidatorAddr,
+			"index", reg.Index,
+		)
+	}
 
 	return nil
 }
