@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,6 +27,11 @@ func (k *Keeper) isV190Round(ctx context.Context, round *types.DKGNetwork) bool 
 	active, err := netconf.IsV190(sdkCtx.ChainID(), round.StartBlockHeight)
 
 	return err == nil && active
+}
+
+// dealtDealerKey is the DealtDealers state key for a dealer in a round.
+func dealtDealerKey(round, dealerIndex uint32) string {
+	return fmt.Sprintf("%d_%d", round, dealerIndex)
 }
 
 func retry(ctx context.Context, fn func(ctx context.Context) error) error {
