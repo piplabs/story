@@ -4,14 +4,19 @@ import (
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
+
+	"github.com/piplabs/story/client/server/utils"
 )
 
 type pagination struct {
-	Key        string `mapstructure:"key"`
-	Offset     uint64 `mapstructure:"offset"`
-	Limit      uint64 `mapstructure:"limit"`
-	CountTotal bool   `mapstructure:"count_total"`
-	Reverse    bool   `mapstructure:"reverse"`
+	// Key is base64-decoded from the query string by utils.QueryMapToVal so
+	// callers can pass back PageResponse.NextKey (amino-encoded as base64) as
+	// pagination.key without manual decoding.
+	Key        utils.Base64Bytes `mapstructure:"key"`
+	Offset     uint64            `mapstructure:"offset"`
+	Limit      uint64            `mapstructure:"limit"`
+	CountTotal bool              `mapstructure:"count_total"`
+	Reverse    bool              `mapstructure:"reverse"`
 }
 
 type getSupplyByDenomRequest struct {
