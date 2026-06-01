@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"encoding/base64"
 	"math"
 	"math/big"
 	"net/url"
@@ -11,7 +12,11 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/piplabs/story/lib/errors"
 )
+
+var base64BytesType = reflect.TypeOf(Base64Bytes(nil))
 
 // QueryMapToVal implements an all-in-one decoder to decode requests' query parameters to
 // structured value.
@@ -21,6 +26,7 @@ func QueryMapToVal(query url.Values, val any) error {
 		Result:           val,
 		WeaklyTypedInput: true,
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			stringArrayToBase64Bytes(),
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			stringArrayToNative(),
@@ -32,6 +38,30 @@ func QueryMapToVal(query url.Values, val any) error {
 	}
 
 	return decoder.Decode(buildMap(query))
+}
+
+// stringArrayToBase64Bytes decodes a single query-string value into Base64Bytes
+// using standard base64 (matching how amino MarshalJSON serializes []byte in
+// responses, e.g. pagination next_key). This lets callers round-trip the
+// next_key field without manual decoding.
+func stringArrayToBase64Bytes() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data any) (any, error) {
+		if t != base64BytesType {
+			return data, nil
+		}
+
+		as, ok := data.([]string)
+		if !ok || len(as) == 0 || as[0] == "" {
+			return Base64Bytes(nil), nil
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(as[0])
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid base64 value", "target_type", t.String())
+		}
+
+		return Base64Bytes(decoded), nil
+	}
 }
 
 func stringArrayToNativePtr() mapstructure.DecodeHookFunc {
