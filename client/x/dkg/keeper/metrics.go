@@ -29,6 +29,7 @@ const (
 const (
 	labelDecryptStaleDropped = "stale_dropped"
 	labelDecryptKernelFailed = "kernel_failed"
+	labelDecryptRetryDropped = "retry_dropped"
 	labelDecryptRequeued     = "requeued"
 	labelDecryptSubmitted    = "submitted"
 )
