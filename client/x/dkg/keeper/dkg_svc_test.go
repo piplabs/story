@@ -1160,6 +1160,47 @@ func TestProcessDecryptRequests_PartialKernelFailure(t *testing.T) {
 	require.Equal(t, []byte("ct2"), requeued[0].Ciphertext)
 }
 
+// TestProcessDecryptRequests_DropsAfterMaxRetries: a failure past the retry cap drops
+// the request instead of re-queuing it.
+func TestProcessDecryptRequests_DropsAfterMaxRetries(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-drop")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router, contractClient: mockContract}
+
+	session := &types.DKGSession{
+		Round:          1,
+		Index:          2,
+		GlobalPubKey:   []byte("global-pub"),
+		CodeCommitment: cc,
+	}
+
+	// Single request already at the retry cap; the next failure must drop it.
+	requests := []types.PendingDecryptRequest{
+		{
+			DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct"), Label: makeLabel(1), RequesterPubKey: []byte("rpk")},
+			RetryCount:     maxReprocessAttempts,
+		},
+	}
+
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("kernel error")).
+		Times(1)
+
+	k.processDecryptRequests(ctx, session, requests)
+
+	require.Empty(t, session.GetDecryptRequests(), "request past the retry cap must be dropped, not re-queued")
+}
+
 // TestProcessDecryptRequests_ConcurrentABCIWrite verifies that new requests added by the
 // ABCI thread via AddDecryptRequest while processDecryptRequests is running are not lost.
 // This is the key race scenario: DrainDecryptRequests atomically clears the queue before
