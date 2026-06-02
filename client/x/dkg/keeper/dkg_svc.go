@@ -523,26 +523,31 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 			return
 		}
 		if err := k.submitPartialDecryptionBatch(ctx, session, batch); err != nil {
-			log.Error(ctx, "Failed to submit partial decryption batch", err,
+			// WARN: retried below unless a request has exhausted its retries.
+			log.Warn(ctx, "Failed to submit partial decryption batch; will retry", err,
 				"session", session.GetSessionKey(),
 				"batch_size", len(batch),
 			)
 			incDecryptBatch(labelBatchError, len(batch))
+			requeued := 0
 			for _, r := range batch {
 				preq := requests[r.idx]
 				preq.RetryCount++
 				if preq.RetryCount > maxReprocessAttempts {
-					log.Warn(ctx, "Dropping decrypt request after max retry attempts", nil,
+					// Exhausted retries: real failure, alert here.
+					log.Error(ctx, "Decrypt request dropped after max retry attempts", err,
 						"session", session.GetSessionKey(),
 						"round", r.req.Round,
 						"retry_count", preq.RetryCount,
 						"max_reprocess_attempts", maxReprocessAttempts,
 					)
+					incDecryptRequest(labelDecryptRetryDropped, 1)
 					continue
 				}
 				session.AddDecryptRequest(preq)
+				requeued++
 			}
-			incDecryptRequest(labelDecryptRequeued, len(batch))
+			incDecryptRequest(labelDecryptRequeued, requeued)
 		} else {
 			log.Info(ctx, "Successfully submitted partial decryption batch",
 				"session", session.GetSessionKey(),
@@ -558,22 +563,27 @@ func (k *Keeper) batchSubmitConsumer(ctx context.Context, session *types.DKGSess
 		r := <-resultCh
 
 		if r.err != nil {
-			log.Error(ctx, "Kernel partial decrypt failed", r.err,
-				"session", session.GetSessionKey(),
-				"round", r.req.Round,
-			)
 			incDecryptRequest(labelDecryptKernelFailed, 1)
 			preq := requests[r.idx]
 			preq.RetryCount++
 			if preq.RetryCount > maxReprocessAttempts {
-				log.Warn(ctx, "Dropping decrypt request after max retry attempts", nil,
+				// Exhausted retries: real failure, alert here.
+				log.Error(ctx, "Decrypt request dropped after max retry attempts", r.err,
 					"session", session.GetSessionKey(),
 					"round", r.req.Round,
 					"retry_count", preq.RetryCount,
 					"max_reprocess_attempts", maxReprocessAttempts,
 				)
+				incDecryptRequest(labelDecryptRetryDropped, 1)
 				continue
 			}
+			// Transient (usually light-client lag); self-heals on retry, so WARN only.
+			log.Warn(ctx, "Kernel partial decrypt failed; will retry", r.err,
+				"session", session.GetSessionKey(),
+				"round", r.req.Round,
+				"retry_count", preq.RetryCount,
+				"max_reprocess_attempts", maxReprocessAttempts,
+			)
 			session.AddDecryptRequest(preq)
 			continue
 		}
@@ -618,9 +628,11 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 
 	if err != nil {
 		result.err = errors.Wrap(err, "generating partial decrypt failed")
-		log.Error(ctx, "Kernel PartialDecryptTDH2 failed", err,
+		// DEBUG only; batchSubmitConsumer owns the retry/drop decision and WARN/ERROR.
+		log.Debug(ctx, "Kernel PartialDecryptTDH2 call failed; retry decision deferred to batch consumer",
 			"session", session.GetSessionKey(),
 			"kernel_duration_ms", kernelDuration.Milliseconds(),
+			"err", err,
 		)
 		return
 	}
