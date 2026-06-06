@@ -258,6 +258,174 @@ contract IPTokenStakingTest is Test {
         );
     }
 
+    // -------------------------------------------------------------------------
+    // whenNotPaused coverage — every gated entry point must revert while paused.
+    // Before this, only stake / stakeOnBehalf were covered. whenNotPaused is the
+    // first modifier on each, so it reverts before any param validation; dummy
+    // args + zero value are sufficient.
+    // -------------------------------------------------------------------------
+
+    function _pauseAsGov() internal {
+        vm.prank(safeGovernanceMultisig);
+        ipTokenStakingProxy.pause();
+        assertEq(ipTokenStakingProxy.paused(), true);
+    }
+
+    function _expectEnforcedPause() internal {
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
+    }
+
+    function testSetOperatorRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.setOperator(address(1));
+    }
+
+    function testUnsetOperatorRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.unsetOperator();
+    }
+
+    function testSetWithdrawalAddressRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.setWithdrawalAddress(address(1));
+    }
+
+    function testSetRewardsAddressRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.setRewardsAddress(address(1));
+    }
+
+    function testCreateValidatorRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.createValidator(bytes(""), "", 0, 0, 0, false, bytes(""));
+    }
+
+    function testUpdateValidatorCommissionRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.updateValidatorCommission(bytes(""), 0);
+    }
+
+    function testRedelegateRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.redelegate(bytes(""), bytes(""), 0, 0);
+    }
+
+    function testRedelegateOnBehalfRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.redelegateOnBehalf(address(1), bytes(""), bytes(""), 0, 0);
+    }
+
+    function testUnstakeRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.unstake(bytes(""), 0, 0, bytes(""));
+    }
+
+    function testUnstakeOnBehalfRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.unstakeOnBehalf(address(1), bytes(""), 0, 0, bytes(""));
+    }
+
+    function testUnjailRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.unjail(bytes(""), bytes(""));
+    }
+
+    function testUnjailOnBehalfRevertWhenPaused() public {
+        _pauseAsGov();
+        _expectEnforcedPause();
+        ipTokenStakingProxy.unjailOnBehalf(bytes(""), bytes(""));
+    }
+
+    // -------------------------------------------------------------------------
+    // pause / unpause access control — only PAUSER_ROLE holders.
+    // -------------------------------------------------------------------------
+
+    function testPauseRevertWhenNotPauser() public {
+        vm.startPrank(address(1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.PAUSER_ROLE()
+            )
+        );
+        ipTokenStakingProxy.pause();
+    }
+
+    function testUnpauseRevertWhenNotPauser() public {
+        _pauseAsGov();
+        vm.startPrank(address(1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(1),
+                ipTokenStakingProxy.PAUSER_ROLE()
+            )
+        );
+        ipTokenStakingProxy.unpause();
+    }
+
+    // -------------------------------------------------------------------------
+    // pause state machine edges.
+    // -------------------------------------------------------------------------
+
+    function testPauseRevertWhenAlreadyPaused() public {
+        _pauseAsGov();
+        vm.prank(securityCouncilMultisig);
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
+        ipTokenStakingProxy.pause();
+    }
+
+    function testUnpauseRevertWhenNotPaused() public {
+        vm.prank(safeGovernanceMultisig);
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.ExpectedPause.selector));
+        ipTokenStakingProxy.unpause();
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin config setters are intentionally NOT gated by pause: they stay
+    // callable by DEFAULT_ADMIN_ROLE (timelock) while the contract is paused.
+    // -------------------------------------------------------------------------
+
+    function testAdminSettersWorkWhilePaused() public {
+        _pauseAsGov();
+        vm.startPrank(address(timelock));
+        ipTokenStakingProxy.setMinStakeAmount(2 ether);
+        ipTokenStakingProxy.setFee(1000000000000000002);
+        vm.stopPrank();
+        assertEq(ipTokenStakingProxy.minStakeAmount(), 2 ether);
+        assertEq(ipTokenStakingProxy.fee(), 1000000000000000002);
+    }
+
+    // -------------------------------------------------------------------------
+    // Gated entry points work again after unpause (resume). setWithdrawalAddress
+    // is fee-charged but has no pubkey validation, so a correct call succeeds.
+    // -------------------------------------------------------------------------
+
+    function testGatedFunctionWorksAfterUnpause() public {
+        vm.startPrank(safeGovernanceMultisig);
+        ipTokenStakingProxy.pause();
+        ipTokenStakingProxy.unpause();
+        vm.stopPrank();
+        assertEq(ipTokenStakingProxy.paused(), false);
+
+        uint256 currentFee = ipTokenStakingProxy.fee();
+        vm.deal(address(2), currentFee);
+        vm.prank(address(2));
+        ipTokenStakingProxy.setWithdrawalAddress{ value: currentFee }(address(3));
+    }
+
     function testStorage() public {
         assertEq(ipTokenStakingProxy.MAX_MONIKER_LENGTH(), monikerLengthBefore);
         assertEq(ipTokenStakingProxy.STAKE_ROUNDING(), stakeRoundingBefore);
