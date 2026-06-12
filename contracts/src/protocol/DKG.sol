@@ -192,12 +192,12 @@ contract DKG is IDKG, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Pausa
         // arrays would otherwise be ambiguous: (dkgPubKey=X‖Y, commKey=Z) and
         // (dkgPubKey=X, commKey=Y‖Z) hash to the same value. Fixing both lengths makes
         // the packing injective, which the kernel's calculateReportData mirrors.
-        require(enclaveInstanceData.dkgPubKey.length == 64, "DKG: DKG public key must be 64 bytes");
-        require(enclaveInstanceData.enclaveCommKey.length == 65, "DKG: Enclave communication key must be 65 bytes");
+        require(enclaveInstanceData.dkgPubKey.length == 32, "DKG: DKG public key must be 32 bytes");
+        require(enclaveInstanceData.enclaveCommKey.length == 64, "DKG: Enclave communication key must be 64 bytes");
 
         // Compute expectedDataCommitment matching kernel's calculateReportData:
         // keccak256(validatorAddr(20) || round(4) || startBlockHeight(8) || startBlockHash(32) ||
-        //           dkgPubKey(64) || enclaveCommKey(65))
+        //           dkgPubKey(32) || enclaveCommKey(64))
         bytes32 expectedDataCommitment = keccak256(
             abi.encodePacked(
                 enclaveInstanceData.validatorAddr,
