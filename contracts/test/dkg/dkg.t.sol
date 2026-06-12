@@ -356,7 +356,7 @@ contract DKGTest is Test {
         uint256 fee = dkg.fee();
         vm.deal(alice, fee);
         vm.prank(alice);
-        vm.expectRevert("DKG: Enclave communication key must be 65 bytes");
+        vm.expectRevert("DKG: Enclave communication key must be 64 bytes");
         dkg.register{ value: fee }(hex"aa", instanceData, 100, bytes32(uint256(1)), "");
     }
 
@@ -366,27 +366,27 @@ contract DKGTest is Test {
         uint256 fee = dkg.fee();
         vm.deal(alice, fee);
         vm.prank(alice);
-        vm.expectRevert("DKG: DKG public key must be 64 bytes");
+        vm.expectRevert("DKG: DKG public key must be 32 bytes");
         dkg.register{ value: fee }(hex"aa", instanceData, 100, bytes32(uint256(1)), "");
     }
 
     function testDKG_Register_RevertIfWrongDkgPubKeyLength() public {
         IDKG.EnclaveInstanceData memory instanceData = _defaultInstanceData();
-        instanceData.dkgPubKey = new bytes(63); // one short of 64
+        instanceData.dkgPubKey = new bytes(31); // one short of 32
         uint256 fee = dkg.fee();
         vm.deal(alice, fee);
         vm.prank(alice);
-        vm.expectRevert("DKG: DKG public key must be 64 bytes");
+        vm.expectRevert("DKG: DKG public key must be 32 bytes");
         dkg.register{ value: fee }(hex"aa", instanceData, 100, bytes32(uint256(1)), "");
     }
 
     function testDKG_Register_RevertIfWrongCommKeyLength() public {
         IDKG.EnclaveInstanceData memory instanceData = _defaultInstanceData();
-        instanceData.enclaveCommKey = new bytes(64); // one short of 65
+        instanceData.enclaveCommKey = new bytes(63); // one short of 64
         uint256 fee = dkg.fee();
         vm.deal(alice, fee);
         vm.prank(alice);
-        vm.expectRevert("DKG: Enclave communication key must be 65 bytes");
+        vm.expectRevert("DKG: Enclave communication key must be 64 bytes");
         dkg.register{ value: fee }(hex"aa", instanceData, 100, bytes32(uint256(1)), "");
     }
 
@@ -651,8 +651,8 @@ contract DKGTest is Test {
             1,
             alice,
             MOCK_ENCLAVE_TYPE,
-            instanceData.enclaveCommKey, // 65-byte fixture
-            instanceData.dkgPubKey, // 64-byte fixture
+            instanceData.enclaveCommKey, // 64-byte fixture
+            instanceData.dkgPubKey, // 32-byte fixture
             bytes32(uint256(42)), // mock codeCommitment
             100,
             bytes32(uint256(1)),
@@ -846,7 +846,7 @@ contract DKGTest is Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     function _defaultInstanceData() internal view returns (IDKG.EnclaveInstanceData memory) {
-        // register() pins dkgPubKey to 64 bytes and enclaveCommKey to 65 bytes so the
+        // register() pins dkgPubKey to 32 bytes and enclaveCommKey to 64 bytes so the
         // abi.encodePacked report-data preimage stays injective; default fixtures must
         // therefore use real-length keys.
         return
@@ -854,8 +854,8 @@ contract DKGTest is Test {
                 round: 1,
                 validatorAddr: alice,
                 enclaveType: GENESIS_ENCLAVE_TYPE,
-                enclaveCommKey: new bytes(65),
-                dkgPubKey: new bytes(64)
+                enclaveCommKey: new bytes(64),
+                dkgPubKey: new bytes(32)
             });
     }
 
