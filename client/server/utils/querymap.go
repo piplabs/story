@@ -3,6 +3,7 @@ package utils
 
 import (
 	"encoding/base64"
+	"fmt"
 	"math"
 	"math/big"
 	"net/url"
@@ -21,6 +22,13 @@ var base64BytesType = reflect.TypeOf(Base64Bytes(nil))
 // QueryMapToVal implements an all-in-one decoder to decode requests' query parameters to
 // structured value.
 func QueryMapToVal(query url.Values, val any) error {
+	// Reject query keys nested deeper than maxQueryDepth instead of silently dropping them.
+	for k := range query {
+		if depth := strings.Count(k, "."); depth > maxQueryDepth {
+			return fmt.Errorf("query key %q exceeds max nesting depth %d", k, maxQueryDepth)
+		}
+	}
+
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata:         nil,
 		Result:           val,
@@ -129,6 +137,11 @@ func stringArrayToNative() mapstructure.DecodeHookFunc {
 		}
 	}
 }
+
+// maxQueryDepth limits the nesting depth of dot-separated query parameter keys
+// to prevent O(D^2) CPU and memory consumption from deeply nested keys.
+// Current max actual usage is depth 2 (e.g. "pagination.limit").
+const maxQueryDepth = 5
 
 func buildMap(query url.Values, prefix ...string) (ret map[string]any) {
 	fullPrefix := strings.Join(prefix, ".")
