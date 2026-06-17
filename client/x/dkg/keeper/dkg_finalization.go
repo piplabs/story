@@ -13,6 +13,13 @@ import (
 )
 
 func (k *Keeper) BeginFinalization(ctx context.Context, latestRound *types.DKGNetwork) error {
+	// Invalidate dealers that never submitted a deal during the dealing phase.
+	if k.isV190Round(ctx, latestRound) {
+		if err := k.invalidateMissingDealers(ctx, latestRound); err != nil {
+			return errors.Wrap(err, "failed to invalidate missing dealers")
+		}
+	}
+
 	if err := k.emitBeginDKGFinalization(ctx, latestRound); err != nil {
 		return errors.Wrap(err, "failed to emit begin DKG finalization event")
 	}
@@ -196,4 +203,99 @@ func (k *Keeper) invalidateNonConsensusFinalizations(ctx context.Context, latest
 	}
 
 	return nil
+}
+
+// invalidateMissingDealers invalidates dealers that never submitted a deal during the
+// dealing phase. The expected dealer set is the committee that should have produced deals:
+// the previous active committee for resharing rounds, the current round otherwise. A missing
+// dealer is penalized only if it also holds a verified registration in the current round; a
+// dealer leaving the committee has no current registration and nothing to invalidate. The
+// dealt set recorded in ProcessDeals is pruned here.
+func (k *Keeper) invalidateMissingDealers(ctx context.Context, latestRound *types.DKGNetwork) error {
+	expectedDealers, err := k.expectedDealers(ctx, latestRound)
+	if err != nil {
+		return err
+	}
+
+	for _, dealer := range expectedDealers {
+		dealerAddr := common.HexToAddress(dealer)
+		key := dealtDealerKey(latestRound.Round, dealer)
+
+		dealt, err := k.DealtDealers.Has(ctx, key)
+		if err != nil {
+			return errors.Wrap(err, "failed to check dealt dealer", "dealer", dealer)
+		}
+
+		if dealt {
+			if err := k.DealtDealers.Remove(ctx, key); err != nil {
+				return errors.Wrap(err, "failed to prune dealt dealer", "dealer", dealer)
+			}
+
+			continue
+		}
+
+		// No deal from this dealer. Only penalize if it is also a verified member of the
+		// current round; a leaving member has no current registration to invalidate.
+		has, err := k.hasDKGRegistration(ctx, latestRound.Round, dealerAddr)
+		if err != nil {
+			return errors.Wrap(err, "failed to check current registration", "dealer", dealer)
+		}
+		if !has {
+			continue
+		}
+
+		reg, err := k.getDKGRegistration(ctx, latestRound.Round, dealerAddr)
+		if err != nil {
+			return errors.Wrap(err, "failed to get current registration", "dealer", dealer)
+		}
+		if reg.Status != types.DKGRegStatusVerified {
+			continue
+		}
+
+		reg.Status = types.DKGRegStatusInvalidated
+		if err := k.setDKGRegistration(ctx, dealerAddr, reg); err != nil {
+			return errors.Wrap(err, "failed to invalidate missing dealer",
+				"validator", dealer,
+				"index", reg.Index,
+			)
+		}
+
+		log.Warn(ctx, "Invalidated dealer: no deal submitted during dealing phase",
+			nil,
+			"round", latestRound.Round,
+			"validator", dealer,
+			"index", reg.Index,
+		)
+	}
+
+	return nil
+}
+
+// expectedDealers returns the validator addresses of the committee that should produce deals
+// in latestRound: the previous active committee for resharing rounds, the current round's
+// registrations otherwise.
+func (k *Keeper) expectedDealers(ctx context.Context, latestRound *types.DKGNetwork) ([]string, error) {
+	if latestRound.IsResharing {
+		prevActive, err := k.getLatestActiveDKGNetwork(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get previous active round")
+		}
+		if prevActive == nil {
+			return nil, nil
+		}
+
+		return prevActive.ActiveValSet, nil
+	}
+
+	regs, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch DKG registrations")
+	}
+
+	dealers := make([]string, len(regs))
+	for i := range regs {
+		dealers[i] = regs[i].ValidatorAddr
+	}
+
+	return dealers, nil
 }
