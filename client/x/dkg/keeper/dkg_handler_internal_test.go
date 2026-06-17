@@ -24,6 +24,7 @@ import (
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/netconf"
 
 	"go.uber.org/mock/gomock"
 )
@@ -2118,4 +2119,79 @@ func TestPartialDecryptionSubmitted_DifferentCiphertext_NotFound(t *testing.T) {
 	)
 	require.NoError(t, err, "different ciphertext triggers not-found path, silently ignored")
 	require.False(t, accepted)
+}
+
+// TestPartialDecryptionSubmitted_InvalidatedRejected verifies that, from v1.9.0, a
+// partial decryption from an invalidated validator is rejected, while pre-v1.9.0 rounds
+// preserve the old behaviour (accepted).
+func TestPartialDecryptionSubmitted_InvalidatedRejected(t *testing.T) {
+	const round = uint32(6)
+
+	requesterPubKey := []byte("req-pub-key-inv")
+	ciphertext := []byte("cipher-inv")
+	label := []byte("label-inv")
+	encryptedPartial := []byte("enc-partial-inv")
+	ephemeralPubKey := []byte("eph-pub-key-inv")
+	pubShare := []byte("pub-share-inv")
+
+	commPubKey, sig := buildValidPartialDecryptSignature(t, round, ciphertext, encryptedPartial, ephemeralPubKey, pubShare)
+	validator := common.HexToAddress("0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+
+	// submit runs a partial submission for a round that started at roundStartHeight,
+	// with the validator in the given status.
+	submit := func(t *testing.T, roundStartHeight int64, status types.DKGRegStatus) (bool, error) {
+		t.Helper()
+
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		sdkCtx := sdk.UnwrapSDKContext(baseCtx).
+			WithChainID(netconf.TestChainID).
+			WithBlockHeight(1)
+
+		require.NoError(t, k.setDKGNetwork(sdkCtx, &types.DKGNetwork{
+			Round:            round,
+			StartBlockHeight: roundStartHeight,
+			Stage:            types.DKGStageActive,
+		}))
+
+		require.NoError(t, k.setDecryptRequest(sdkCtx, requesterPubKey, label, types.DecryptRequest{
+			Round:           round,
+			Ciphertext:      ciphertext,
+			Label:           label,
+			RequesterPubKey: requesterPubKey,
+			Height:          0,
+		}))
+
+		require.NoError(t, k.setDKGRegistration(sdkCtx, validator, &types.DKGRegistration{
+			Round:         round,
+			ValidatorAddr: validator.Hex(),
+			Index:         2,
+			CommPubKey:    commPubKey,
+			PubKeyShare:   pubShare,
+			Status:        status,
+		}))
+
+		return k.PartialDecryptionSubmitted(
+			sdkCtx, validator, round, 2,
+			encryptedPartial, ephemeralPubKey, pubShare,
+			requesterPubKey, ciphertext, label, sig,
+		)
+	}
+
+	t.Run("v1.9.0 round: invalidated validator rejected", func(t *testing.T) {
+		accepted, err := submit(t, 400, types.DKGRegStatusInvalidated)
+		require.Error(t, err)
+		require.False(t, accepted)
+	})
+
+	t.Run("v1.9.0 round: finalized validator accepted", func(t *testing.T) {
+		accepted, err := submit(t, 400, types.DKGRegStatusFinalized)
+		require.NoError(t, err)
+		require.True(t, accepted)
+	})
+
+	t.Run("pre-v1.9.0 round: invalidated validator still accepted", func(t *testing.T) {
+		accepted, err := submit(t, 399, types.DKGRegStatusInvalidated)
+		require.NoError(t, err)
+		require.True(t, accepted)
+	})
 }
