@@ -1,12 +1,18 @@
 package keeper
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 
 	"cosmossdk.io/collections"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piplabs/story/client/x/dkg/types"
+	"github.com/piplabs/story/lib/netconf"
 )
 
 var (
@@ -304,4 +310,281 @@ func TestDecodePartialDecryptionSubmission_InvalidJSON(t *testing.T) {
 	_, err := decodePartialDecryptionSubmission([]byte("not-json"))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unmarshal partial decryption submission")
+}
+
+// writePrimaryEntry writes a raw primary DKGPartialDecrypt entry without touching
+// the secondary round index. This reproduces the pre-upgrade state for migration tests.
+func writePrimaryEntry(t *testing.T, k *Keeper, ctx context.Context, validator common.Address, round, pid uint32, requesterPubKey, label, ciphertext []byte) string {
+	t.Helper()
+	key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, validator)
+	bz, err := json.Marshal(types.DKGPartialDecryptionSubmission{
+		Validator:        validator.Hex(),
+		Round:            round,
+		Pid:              pid,
+		EncryptedPartial: []byte("enc-partial"),
+		EphemeralPubKey:  []byte("eph-key"),
+		PubShare:         []byte("pub-share"),
+		Label:            label,
+		Ciphertext:       ciphertext,
+	})
+	require.NoError(t, err)
+	require.NoError(t, k.DKGPartialDecrypt.Set(ctx, key, bz))
+	return key
+}
+
+// TestPruneOldPartialDecryptions_Basic stores entries for rounds 1, 2, 3 then
+// prunes with cutoff=1 and asserts only round 1 is deleted.
+func TestPruneOldPartialDecryptions_Basic(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	for _, round := range []uint32{1, 2, 3} {
+		require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+			testValidator1, round, 1,
+			[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+			requesterPubKey, label, ciphertext,
+		))
+	}
+
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 1, 3))
+
+	key1 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 1, testValidator1)
+	exists, err := k.DKGPartialDecrypt.Has(ctx, key1)
+	require.NoError(t, err)
+	require.False(t, exists, "round 1 should be pruned")
+
+	for _, round := range []uint32{2, 3} {
+		key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, testValidator1)
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.True(t, exists, "round %d should survive", round)
+	}
+}
+
+// TestPruneOldPartialDecryptions_NothingToDelete stores only round 5 and prunes
+// with cutoff=3, expecting no deletions.
+func TestPruneOldPartialDecryptions_NothingToDelete(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+		testValidator1, 5, 1,
+		[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+		requesterPubKey, label, ciphertext,
+	))
+
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 3, 5))
+
+	key5 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 5, testValidator1)
+	exists, err := k.DKGPartialDecrypt.Has(ctx, key5)
+	require.NoError(t, err)
+	require.True(t, exists, "round 5 should not be deleted when cutoff is 3")
+}
+
+// TestPruneOldPartialDecryptions_MultipleRoundsOnCutoff stores rounds 1–4 and
+// prunes with cutoff=2, expecting rounds 1 and 2 deleted, 3 and 4 remaining.
+func TestPruneOldPartialDecryptions_MultipleRoundsOnCutoff(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	for _, round := range []uint32{1, 2, 3, 4} {
+		require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+			testValidator1, round, 1,
+			[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+			requesterPubKey, label, ciphertext,
+		))
+	}
+
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 2, 4))
+
+	for _, round := range []uint32{1, 2} {
+		key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, testValidator1)
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.False(t, exists, "round %d should be pruned", round)
+	}
+	for _, round := range []uint32{3, 4} {
+		key := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, round, testValidator1)
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.True(t, exists, "round %d should survive", round)
+	}
+}
+
+// TestPruneOldPartialDecryptions_ZeroCutoff stores round 1 and prunes with
+// cutoff=0, expecting no deletions (round 0 doesn't exist in practice).
+func TestPruneOldPartialDecryptions_ZeroCutoff(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+		testValidator1, 1, 1,
+		[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+		requesterPubKey, label, ciphertext,
+	))
+
+	require.NoError(t, k.pruneOldPartialDecryptions(ctx, 0, 2))
+
+	key1 := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 1, testValidator1)
+	exists, err := k.DKGPartialDecrypt.Has(ctx, key1)
+	require.NoError(t, err)
+	require.True(t, exists, "round 1 should not be deleted when cutoff is 0")
+}
+
+// TestSetPartialDecryptionSubmission_WritesSecondaryIndex verifies that a
+// successful submission also writes an entry in the round secondary index.
+func TestSetPartialDecryptionSubmission_WritesSecondaryIndex(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+		testValidator1, 3, 1,
+		[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+		requesterPubKey, label, ciphertext,
+	))
+
+	primaryKey := dkgPartialDecryptKey(requesterPubKey, label, ciphertext, 3, testValidator1)
+	indexKey := dkgPartialDecryptRoundIndexKey(3, primaryKey)
+	exists, err := k.DKGPartialDecryptRoundIndex.Has(ctx, indexKey)
+	require.NoError(t, err)
+	require.True(t, exists, "secondary round index entry should be written alongside primary")
+}
+
+// TestSetPartialDecryptionSubmission_DuplicateDoesNotDoubleWriteIndex verifies
+// that a rejected duplicate submission does not produce a second secondary index entry.
+func TestSetPartialDecryptionSubmission_DuplicateDoesNotDoubleWriteIndex(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+	ctx = sdk.UnwrapSDKContext(ctx).WithChainID(netconf.TestChainID).WithBlockHeight(400)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	require.NoError(t, k.setPartialDecryptionSubmission(ctx,
+		testValidator1, 3, 1,
+		[]byte("enc-partial"), []byte("eph-key"), []byte("pub-share"),
+		requesterPubKey, label, ciphertext,
+	))
+
+	err := k.setPartialDecryptionSubmission(ctx,
+		testValidator1, 3, 1,
+		[]byte("enc-partial-2"), []byte("eph-key-2"), []byte("pub-share-2"),
+		requesterPubKey, label, ciphertext,
+	)
+	require.ErrorIs(t, err, ErrDuplicatePartialDecryptionSubmission)
+
+	// There should be exactly 1 secondary index entry across the entire index.
+	allIter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, nil)
+	require.NoError(t, err)
+	keys, err := allIter.Keys()
+	allIter.Close()
+	require.NoError(t, err)
+	require.Len(t, keys, 1, "duplicate rejection must not write a second secondary index entry")
+}
+
+// TestMigratePartialDecryptRoundIndex_BackfillsAllEntries writes raw primary
+// entries for rounds 1, 2, 3 (no secondary index) and verifies that migration
+// backfills the secondary index for every entry without deleting any primary data.
+// Pruning is left to BeginBlocker on the next FinalizeDKGRound.
+func TestMigratePartialDecryptRoundIndex_BackfillsAllEntries(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	key1 := writePrimaryEntry(t, k, ctx, testValidator1, 1, 1, requesterPubKey, label, ciphertext)
+	key2 := writePrimaryEntry(t, k, ctx, testValidator1, 2, 1, requesterPubKey, label, ciphertext)
+	key3 := writePrimaryEntry(t, k, ctx, testValidator1, 3, 1, requesterPubKey, label, ciphertext)
+
+	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx))
+
+	// All primary entries must survive — migration must not delete anything.
+	for round, key := range map[uint32]string{1: key1, 2: key2, 3: key3} {
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.True(t, exists, "primary entry for round %d must not be deleted by migration", round)
+	}
+
+	// Every primary entry must have a corresponding secondary index entry.
+	for round, key := range map[uint32]string{1: key1, 2: key2, 3: key3} {
+		indexKey := dkgPartialDecryptRoundIndexKey(round, key)
+		exists, err := k.DKGPartialDecryptRoundIndex.Has(ctx, indexKey)
+		require.NoError(t, err)
+		require.True(t, exists, "secondary index entry missing for round %d", round)
+	}
+
+	allIter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, nil)
+	require.NoError(t, err)
+	indexKeys, err := allIter.Keys()
+	allIter.Close()
+	require.NoError(t, err)
+	require.Len(t, indexKeys, 3, "secondary index should have exactly 3 entries")
+}
+
+// TestMigratePartialDecryptRoundIndex_Idempotent verifies that running migration
+// twice produces no error and leaves state identical after the second run.
+func TestMigratePartialDecryptRoundIndex_Idempotent(t *testing.T) {
+	t.Parallel()
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	requesterPubKey := []byte("requester-pub-key")
+	label := testLabel()
+	ciphertext := []byte("ciphertext")
+
+	key1 := writePrimaryEntry(t, k, ctx, testValidator1, 1, 1, requesterPubKey, label, ciphertext)
+	key3 := writePrimaryEntry(t, k, ctx, testValidator1, 3, 1, requesterPubKey, label, ciphertext)
+
+	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx))
+	require.NoError(t, k.MigratePartialDecryptRoundIndex(ctx), "second migration run must be idempotent")
+
+	// Both primary entries must still exist after two migration runs.
+	for round, key := range map[uint32]string{1: key1, 3: key3} {
+		exists, err := k.DKGPartialDecrypt.Has(ctx, key)
+		require.NoError(t, err)
+		require.True(t, exists, "primary entry for round %d must survive idempotent migration", round)
+	}
+
+	// Secondary index should have exactly 2 entries (one per primary), not 4.
+	allIter, err := k.DKGPartialDecryptRoundIndex.Iterate(ctx, nil)
+	require.NoError(t, err)
+	indexKeys, err := allIter.Keys()
+	allIter.Close()
+	require.NoError(t, err)
+	require.Len(t, indexKeys, 2, "idempotent migration must not duplicate secondary index entries")
 }

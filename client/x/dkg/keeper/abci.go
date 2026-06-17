@@ -98,7 +98,37 @@ func (k *Keeper) BeginBlocker(ctx context.Context) error {
 		case types.DKGStageFinalization:
 			return k.BeginFinalization(ctx, latestRound)
 		case types.DKGStageActive:
-			return k.FinalizeDKGRound(ctx, latestRound)
+			// Capture the previous active round before FinalizeDKGRound updates LatestActiveRound.
+			// Only do this after the v1.9.0 upgrade has activated the secondary index; on nodes
+			// replaying from genesis the index does not exist yet and must not be consulted.
+			var prevActiveRound *types.DKGNetwork
+			if k.isPartialDecryptIndexActive(ctx) {
+				var err error
+				prevActiveRound, err = k.GetLatestActiveRound(ctx)
+				if err != nil {
+					return errors.Wrap(err, "get previous active round for pruning")
+				}
+			}
+
+			if err := k.FinalizeDKGRound(ctx, latestRound); err != nil {
+				return err
+			}
+
+			// Prune partial decrypt entries for rounds older than the previous active round,
+			// keeping the two most recent active rounds' data intact. Failed rounds between
+			// active rounds are not counted — only successful (active) rounds define the window.
+			if prevActiveRound != nil {
+				cutoff := prevActiveRound.Round - 1
+				if err := k.pruneOldPartialDecryptions(ctx, cutoff, latestRound.Round); err != nil {
+					log.Error(ctx, "Failed to prune old partial decryptions", err,
+						"new_active_round", latestRound.Round,
+						"prev_active_round", prevActiveRound.Round,
+						"cutoff_round", cutoff,
+					)
+					// Non-fatal: pruning failure must not halt the chain.
+				}
+			}
+			return nil
 		case types.DKGStageUnspecified:
 			// This round should not happen since we always have a valid stage (1 to 5) and unspecified is stage 0
 			return nil

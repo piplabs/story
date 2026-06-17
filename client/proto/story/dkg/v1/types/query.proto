@@ -50,6 +50,10 @@ service Query {
   rpc HasDecryptRequest(QueryHasDecryptRequestRequest) returns (QueryHasDecryptRequestResponse) {
     option (google.api.http).get = "/story/dkg/v1/decrypt_request/{round}/{requester_pub_key_hex}/{label_hex}/{ciphertext_hex}";
   }
+
+  rpc GetCDRPartialsHistory(QueryGetCDRPartialsHistoryRequest) returns (QueryGetCDRPartialsHistoryResponse) {
+    option (google.api.http).get = "/story/dkg/v1/partial_decrypt_history/{uuid}/{requester_pub_key_hex}";
+  }
 }
 
 message QueryParamsRequest {}
@@ -211,5 +215,22 @@ message QueryHasDecryptRequestRequest {
 message QueryHasDecryptRequestResponse {
   bool exists = 1 [
     (gogoproto.moretags) = "yaml:\"exists\""
+  ];
+}
+
+message QueryGetCDRPartialsHistoryRequest {
+  uint32 uuid = 1 [
+    (gogoproto.moretags) = "yaml:\"uuid\""
+  ];
+
+  string requester_pub_key_hex = 2 [
+    (gogoproto.moretags) = "yaml:\"requester_pub_key_hex\""
+  ];
+}
+
+message QueryGetCDRPartialsHistoryResponse {
+  repeated DKGPartialDecryptionSubmissionsByRound submissions = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.moretags) = "yaml:\"submissions\""
   ];
 }
