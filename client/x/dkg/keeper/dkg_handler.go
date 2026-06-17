@@ -153,6 +153,14 @@ func (k *Keeper) Finalized(ctx context.Context, round uint32, msgSender common.A
 		}
 	}
 
+	// Record this validator's finalize vote so FinalizeDKGRound can invalidate validators
+	// whose submission diverges from the consensus polynomial.
+	if k.isV190Round(ctx, latest) {
+		if err := k.FinalizeVotes.Set(ctx, finalizeVoteStoreKey(round, msgSender), globalPubKeyVoteKey(round, globalPubKey, publicCoeffs)); err != nil {
+			return errors.Wrap(err, "failed to record finalize vote")
+		}
+	}
+
 	if err := k.finalizeDKGRegistration(ctx, round, msgSender, pubKeyShare); err != nil {
 		return errors.Wrap(err, "failed to update dkg registration status")
 	}
