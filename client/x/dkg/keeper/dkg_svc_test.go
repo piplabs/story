@@ -498,6 +498,73 @@ func TestProcessDecryptQueue_SessionReadyButEmpty(t *testing.T) {
 	k.processDecryptQueue(ctx) // should be a no-op after drain
 }
 
+// TestProcessDecryptQueue_IdleSessionSkippedNoMutation verifies that a non-finalized
+// session (Index==0, empty GlobalPubKey) with an EMPTY decrypt queue is skipped at the
+// top of the loop before the precondition checks, so no state mutation occurs. This is
+// the idle-session log-noise fix: the index/GPK deferral warnings must not fire for
+// sessions that have no queued work.
+func TestProcessDecryptQueue_IdleSessionSkippedNoMutation(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	// Non-finalized idle session: Index unset, GlobalPubKey empty, no requests.
+	original := time.Now().Add(-time.Hour).UTC()
+	session := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: nil,
+		LastUpdate:      original,
+		DecryptRequests: nil,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Empty(t, got.GetDecryptRequests(), "idle session must stay empty")
+	// LastUpdate is bumped by DrainDecryptRequests/UpdateSession; an unchanged value
+	// proves the session was skipped before any draining or persistence occurred.
+	require.True(t, got.LastUpdate.Equal(original), "idle session must not be mutated when skipped")
+}
+
+// TestProcessDecryptQueue_QueuedRequestReachesPreconditions verifies that a session with
+// a non-empty queue still reaches the precondition checks (here: Index==0 deferral), i.e.
+// the idle-session guard only skips sessions whose queue is empty.
+func TestProcessDecryptQueue_QueuedRequestReachesPreconditions(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	mockContract := dkgtestutil.NewMockDKGContractClient(ctrl)
+	mockContract.EXPECT().BlockNumber(gomock.Any()).Return(uint64(100), nil)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	req := types.DecryptRequest{Ciphertext: []byte("encrypted"), Label: make([]byte, 32)}
+	session := &types.DKGSession{
+		Round: 1, Index: 0, GlobalPubKey: nil, // not yet finalized
+		DecryptRequests: []types.PendingDecryptRequest{{DecryptRequest: req}},
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	k := &Keeper{stateManager: sm, contractClient: mockContract, kernelRouter: NewKernelRouter(nil, nil)}
+	k.processDecryptQueue(ctx)
+
+	// The guard did not skip this session; it hit the Index==0 deferral and the request
+	// remains queued (deferred, not drained) for the next tick.
+	got, err := sm.GetSession(1)
+	require.NoError(t, err)
+	require.Len(t, got.GetDecryptRequests(), 1, "queued request must be deferred, not dropped")
+}
+
 func TestProcessDecryptQueue_FailedRequestsRetained(t *testing.T) {
 	t.Parallel()
 
