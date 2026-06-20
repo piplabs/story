@@ -3,7 +3,7 @@ module github.com/piplabs/story
 go 1.24.10
 
 require (
-	cosmossdk.io/api v0.7.6
+	cosmossdk.io/api v0.8.2
 	// NOTE(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
 	// should use v0.11.0. The Cosmos build fails with types/context.go:65:29: undefined: comet.BlockInfo otherwise.
 	// (Replace is done below)
@@ -14,7 +14,7 @@ require (
 	cosmossdk.io/math v1.5.3
 	cosmossdk.io/orm v1.0.0-beta.3
 	cosmossdk.io/store v1.1.1
-	cosmossdk.io/x/tx v0.13.7
+	cosmossdk.io/x/tx v1.1.0
 	github.com/bufbuild/buf v1.64.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/cometbft/cometbft v0.38.21
@@ -240,6 +240,8 @@ require (
 	buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-20250109164928-1da0de137947.1 // indirect
 	buf.build/gen/go/bufbuild/registry/connectrpc/go v1.19.1-20251202164234-62b14f0b533c.2 // indirect
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20251202164234-62b14f0b533c.1 // indirect
+	buf.build/gen/go/cometbft/cometbft/protocolbuffers/go v1.36.4-20241120201313-68e42a58b301.1 // indirect
+	buf.build/gen/go/cosmos/gogo-proto/protocolbuffers/go v1.36.4-20240130113600-88ef6483f90f.1 // indirect
 	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.11-20241007202033-cf42259fcbfc.1 // indirect
 	buf.build/go/app v0.2.0 // indirect
 	buf.build/go/bufplugin v0.9.0 // indirect
