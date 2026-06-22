@@ -278,7 +278,7 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 			"dealer", addr,
 		)
 
-		if err := k.DealtDealers.Set(ctx, dealtDealerKey(latestRound.Round, addr)); err != nil {
+		if err := k.DealtDealers.Set(ctx, dealtDealerKey(latestRound.Round, addr), true); err != nil {
 			return errors.Wrap(err, "failed to record dealt dealer", "round", latestRound.Round, "dealer", addr)
 		}
 		recorded++
