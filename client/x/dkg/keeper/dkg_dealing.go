@@ -235,22 +235,60 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 		addrByIndex[dealerRegs[i].Index] = dealerRegs[i].ValidatorAddr
 	}
 
+	// DEBUG: resolve each incoming deal's (0-based, dealer-committee) index to a
+	// validator address so the logs say WHICH validator dealt — the raw kyber
+	// index alone is unreadable. dealerRound/dealerTotal describe the committee
+	// expected to deal (prev active committee for resharing, current otherwise).
+	log.Debug(ctx, "markDealersDealt: dealer committee",
+		"round", latestRound.Round,
+		"dealer_round", *dealerRound,
+		"dealer_total", dealerTotal,
+		"num_deals", len(deals),
+		"is_resharing", latestRound.IsResharing,
+	)
+
+	recorded := 0
 	for _, deal := range deals {
 		// Bound the 0-based kyber index by the dealer committee's total, then convert to
 		// the 1-based registration index.
 		if deal.Index >= dealerTotal {
+			log.Debug(ctx, "markDealersDealt: deal index out of dealer-committee range; skipping",
+				"round", latestRound.Round,
+				"deal_index", deal.Index,
+				"dealer_total", dealerTotal,
+			)
+
 			continue
 		}
 
 		addr, ok := addrByIndex[deal.Index+1]
 		if !ok {
+			log.Debug(ctx, "markDealersDealt: no dealer address for index; skipping",
+				"round", latestRound.Round,
+				"deal_index", deal.Index,
+				"reg_index", deal.Index+1,
+			)
+
 			continue
 		}
+
+		log.Debug(ctx, "markDealersDealt: dealer submitted deal",
+			"round", latestRound.Round,
+			"deal_index", deal.Index,
+			"dealer", addr,
+		)
 
 		if err := k.DealtDealers.Set(ctx, dealtDealerKey(latestRound.Round, addr)); err != nil {
 			return errors.Wrap(err, "failed to record dealt dealer", "round", latestRound.Round, "dealer", addr)
 		}
+		recorded++
 	}
+
+	log.Info(ctx, "markDealersDealt: recorded dealers that submitted a deal",
+		"round", latestRound.Round,
+		"dealer_total", dealerTotal,
+		"recorded", recorded,
+	)
 
 	return nil
 }

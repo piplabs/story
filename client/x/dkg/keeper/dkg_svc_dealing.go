@@ -110,8 +110,14 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	k.EnqueueDeals(resp.GetDeals())
 
+	// DEBUG: session.Index is this validator's 1-based on-chain registration index
+	// (its dealer identity). Logging it next to the enqueued deal count makes clear
+	// which validator produced this batch of deals.
 	log.Info(ctx, "DKG deals are generated successfully",
 		"round", session.Round,
+		"self_index", session.Index,
+		"is_resharing", session.IsResharing,
+		"enqueued_deals", len(resp.GetDeals()),
 	)
 }
 
@@ -247,6 +253,21 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	// through with an empty `rejected` slice.
 	rejected := resp.GetRejectedDeals()
 	if len(rejected) > 0 {
+		// DEBUG: list the rejected deals' sender (dealer) indices. This handler runs
+		// in an async context without KV access, so the dealer index -> validator
+		// address mapping is NOT resolved here; cross-reference the consensus-path
+		// "markDealersDealt: dealer submitted deal" logs for the same round to turn
+		// these indices into addresses.
+		rejectedIdx := make([]uint32, 0, len(rejected))
+		for _, r := range rejected {
+			rejectedIdx = append(rejectedIdx, r.Index)
+		}
+		log.Warn(ctx, "Kernel rejected deals", nil,
+			"round", dkgNetwork.Round,
+			"self_index", session.Index,
+			"rejected_sender_index", rejectedIdx,
+		)
+
 		rejectedSet := make(map[rejectedKey]struct{}, len(rejected))
 		for _, r := range rejected {
 			rejectedSet[rejectedDealKey(r)] = struct{}{}
