@@ -334,6 +334,12 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	}
 
 	for _, session := range sessions {
+		// Skip sessions with no queued requests so the precondition checks below
+		// (index / global public key) don't log misleading deferral warnings for idle sessions.
+		if len(session.GetDecryptRequests()) == 0 {
+			continue
+		}
+
 		// Drop queued requests from sessions that are at least 2 rounds behind the
 		// current round — their keys are no longer relevant and the requests would
 		// never be processed successfully.
