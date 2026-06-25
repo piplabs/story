@@ -284,7 +284,22 @@ func (k *Keeper) expectedDealers(ctx context.Context, latestRound *types.DKGNetw
 			return nil, nil
 		}
 
-		return prevActive.ActiveValSet, nil
+		// Resharing dealers are the previous round's FINALIZED registrations, not the staking
+		// active set: only a finalized member holds a valid share and can reshare, so an absent
+		// re-joiner (or a non-finalized member) is not expected to deal.
+		prevRegs, err := k.getDKGRegistrationsByRound(ctx, prevActive.Round)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to fetch previous round registrations")
+		}
+
+		dealers := make([]string, 0, len(prevRegs))
+		for i := range prevRegs {
+			if prevRegs[i].Status == types.DKGRegStatusFinalized {
+				dealers = append(dealers, prevRegs[i].ValidatorAddr)
+			}
+		}
+
+		return dealers, nil
 	}
 
 	regs, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
