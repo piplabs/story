@@ -6,8 +6,16 @@ import (
 	"testing"
 
 	"cosmossdk.io/collections"
+	storetypes "cosmossdk.io/store/types"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/runtime"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/iavl"
+	iavldb "github.com/cosmos/iavl/db"
+	ics23 "github.com/cosmos/ics23/go"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
@@ -587,4 +595,144 @@ func TestMigratePartialDecryptRoundIndex_Idempotent(t *testing.T) {
 	allIter.Close()
 	require.NoError(t, err)
 	require.Len(t, indexKeys, 2, "idempotent migration must not duplicate secondary index entries")
+}
+
+// TestPartialDecryptRoundIndexCollection_NoHashImpact proves that declaring the
+// DKGPartialDecryptRoundIndex Map on the schema does not change the committed app hash on
+// its own: the hash only changes once something is actually written to the prefix, and
+// returns to the original once the entry is pruned. The index is unreleased, so this also
+// confirms that nodes which never write the index commit the same hash whether or not the
+// new collection is declared.
+func TestPartialDecryptRoundIndexCollection_NoHashImpact(t *testing.T) {
+	cdc := moduletestutil.MakeTestEncodingConfig().Codec
+
+	// commitHash builds a fresh store, registers the DKGNetworks map and (optionally) the
+	// round-index Map, writes a fixed DKGNetwork, optionally writes/prunes an index entry,
+	// commits, and returns the resulting multistore commit hash.
+	commitHash := func(t *testing.T, registerIndex, writeIndex, pruneIndex bool) []byte {
+		t.Helper()
+
+		key := storetypes.NewKVStoreKey(types.StoreKey)
+		tkey := storetypes.NewTransientStoreKey("transient_test")
+		testCtx := testutil.DefaultContextWithDB(t, key, tkey)
+		sb := collections.NewSchemaBuilder(runtime.NewKVStoreService(key))
+
+		networks := collections.NewMap(sb, types.DKGNetworkKey, "dkg_networks",
+			collections.StringKey, codec.CollValue[types.DKGNetwork](cdc))
+
+		var index collections.Map[string, bool]
+		if registerIndex {
+			index = collections.NewMap(sb, types.DKGPartialDecryptRoundIndexKey, "dkg_partial_decrypt_round_index",
+				collections.StringKey, collections.BoolValue)
+		}
+
+		_, err := sb.Build()
+		require.NoError(t, err)
+
+		ctx := testCtx.Ctx
+
+		// Identical "real" state written in every case.
+		require.NoError(t, networks.Set(ctx, "1", types.DKGNetwork{Round: 1, Total: 3, Threshold: 2}))
+
+		const primaryKey = "reqhash_label_cthash_1_validator"
+		if writeIndex {
+			indexKey := dkgPartialDecryptRoundIndexKey(1, primaryKey)
+			require.NoError(t, index.Set(ctx, indexKey, true))
+			if pruneIndex {
+				require.NoError(t, index.Remove(ctx, indexKey))
+			}
+		}
+
+		return testCtx.CMS.Commit().Hash
+	}
+
+	hWithout := commitHash(t, false, false, false)   // Map not declared at all
+	hRegistered := commitHash(t, true, false, false) // declared, never written
+	hWritten := commitHash(t, true, true, false)     // declared and written
+	hPruned := commitHash(t, true, true, true)       // written then pruned
+
+	require.Equal(t, hWithout, hRegistered,
+		"declaring the round-index Map without writing must not change the app hash")
+	require.NotEqual(t, hWithout, hWritten,
+		"writing an index entry must change the app hash (sanity: the test can detect a real change)")
+	require.Equal(t, hWithout, hPruned,
+		"writing then pruning an index entry must restore the original app hash")
+}
+
+// TestPartialDecryptRoundIndex_BoolICS23Provable proves that the bool value makes a
+// DKGPartialDecryptRoundIndex leaf ICS23-provable. It reproduces the original failure mode
+// at the IAVL layer: an empty-value leaf fails ics23 leaf-op verification ("leaf op needs
+// value"), which broke any non-membership proof whose absent key has a round-index right
+// neighbor. With the bool marker both the membership proof for the leaf and a non-membership
+// proof for an absent key bracketed by bool leaves verify against the tree root.
+func TestPartialDecryptRoundIndex_BoolICS23Provable(t *testing.T) {
+	// indexKey builds the full in-store key for a round-index entry: the collection prefix
+	// (0x0c) followed by the StringKey-encoded logical key. ICS23 proves against these raw
+	// store keys, so the test must match the on-disk layout.
+	indexKey := func(logical string) []byte {
+		out := append([]byte{}, types.DKGPartialDecryptRoundIndexKey.Bytes()...)
+		return append(out, []byte(logical)...)
+	}
+
+	// boolVal is the on-disk value bytes for storing true via collections.BoolValue, a
+	// single non-empty byte (0x01) and what keeps the leaf ICS23-provable.
+	boolVal, err := collections.BoolValue.Encode(true)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0x01}, boolVal, "BoolValue must encode true to a single 0x01 byte")
+
+	var (
+		loKey = dkgPartialDecryptRoundIndexKey(1, "reqhash_label_cthash_1_validatorA")
+		hiKey = dkgPartialDecryptRoundIndexKey(1, "reqhash_label_cthash_1_validatorZ")
+		// absentKey sorts strictly between loKey and hiKey so its right neighbor in a
+		// non-membership proof is the hiKey round-index leaf.
+		absentKey = dkgPartialDecryptRoundIndexKey(1, "reqhash_label_cthash_1_validatorM")
+	)
+
+	t.Run("bool leaf verifies", func(t *testing.T) {
+		tree := iavl.NewMutableTree(iavldb.NewMemDB(), 0, false, iavl.NewNopLogger())
+
+		_, err := tree.Set(indexKey(loKey), boolVal)
+		require.NoError(t, err)
+		_, err = tree.Set(indexKey(hiKey), boolVal)
+		require.NoError(t, err)
+		_, _, err = tree.SaveVersion()
+		require.NoError(t, err)
+
+		imm, err := tree.GetImmutable(tree.Version())
+		require.NoError(t, err)
+		root := imm.Hash()
+
+		// Membership proof for a bool leaf verifies (non-empty value passes LeafOp).
+		memProof, err := imm.GetMembershipProof(indexKey(hiKey))
+		require.NoError(t, err)
+		require.True(t, ics23.VerifyMembership(ics23.IavlSpec, root, memProof, indexKey(hiKey), boolVal),
+			"bool-valued round-index leaf must be ICS23-provable")
+
+		// Non-membership proof for an absent key whose right neighbor is a bool leaf
+		// verifies. This is the exact path that failed when leaves had empty values.
+		nonMemProof, err := imm.GetNonMembershipProof(indexKey(absentKey))
+		require.NoError(t, err)
+		require.True(t, ics23.VerifyNonMembership(ics23.IavlSpec, root, nonMemProof, indexKey(absentKey)),
+			"non-membership proof bracketed by bool leaves must verify")
+	})
+
+	t.Run("empty-value leaf is not ICS23-provable", func(t *testing.T) {
+		tree := iavl.NewMutableTree(iavldb.NewMemDB(), 0, false, iavl.NewNopLogger())
+
+		// Empty value reproduces the old []byte{} encoding.
+		_, err := tree.Set(indexKey(hiKey), []byte{})
+		require.NoError(t, err)
+		_, _, err = tree.SaveVersion()
+		require.NoError(t, err)
+
+		imm, err := tree.GetImmutable(tree.Version())
+		require.NoError(t, err)
+		root := imm.Hash()
+
+		memProof, err := imm.GetMembershipProof(indexKey(hiKey))
+		require.NoError(t, err)
+		// ics23 LeafOp.Apply rejects the empty value, so verification fails.
+		require.False(t, ics23.VerifyMembership(ics23.IavlSpec, root, memProof, indexKey(hiKey), []byte{}),
+			"empty-value leaf must NOT be ICS23-provable (the bug being fixed)")
+	})
 }

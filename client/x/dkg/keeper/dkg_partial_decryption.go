@@ -113,7 +113,7 @@ func (k *Keeper) setPartialDecryptionSubmission(
 	// from genesis would cause an app hash mismatch between old and new binaries.
 	if k.isPartialDecryptIndexActive(ctx) {
 		indexKey := dkgPartialDecryptRoundIndexKey(round, key)
-		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, true); err != nil {
 			return errors.Wrap(err, "set partial decrypt round index")
 		}
 	}
@@ -234,7 +234,7 @@ func (k *Keeper) MigratePartialDecryptRoundIndex(ctx context.Context) error {
 			continue
 		}
 		indexKey := dkgPartialDecryptRoundIndexKey(uint32(roundVal), primaryKey)
-		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, []byte{}); err != nil {
+		if err := k.DKGPartialDecryptRoundIndex.Set(ctx, indexKey, true); err != nil {
 			return errors.Wrap(err, "migrate partial decrypt round index: write secondary index entry")
 		}
 		indexed++
