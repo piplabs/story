@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -112,10 +114,22 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
-	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, latestRound, suite)
+	// Snapshot the dealer committee once so j.Index resolves stably even as the loop below
+	// invalidates registrations.
+	dealerRound, err := k.resolveDealerRound(ctx, latestRound)
 	if err != nil {
-		return errors.Wrap(err, "build dealer pub key map")
+		return errors.Wrap(err, "resolve dealer committee round")
 	}
+
+	var committee []types.DKGRegistration
+	if dealerRound != nil {
+		committee, err = k.dealerCommitteeRegs(ctx, *dealerRound)
+		if err != nil {
+			return errors.Wrap(err, "build dealer committee")
+		}
+	}
+
+	dealerPubKeys := dealerPubKeyMap(ctx, committee, suite)
 
 	// Step 1: Signature verification (deterministic, no kernel needed).
 	var signatureVerified []types.Justification
@@ -150,15 +164,28 @@ func (k *Keeper) ProcessJustifications(ctx context.Context, latestRound *types.D
 
 		if !valid {
 			// Deal was genuinely invalid — invalidate the dealer's on-chain registration
-			// so they cannot finalize or receive committee rewards.
+			// so they cannot finalize or receive committee rewards. Resolve the dealer index
+			// against the committee snapshot taken above.
+			if int(j.Index) >= len(committee) {
+				log.Error(ctx, "Justification dealer index out of committee range", nil,
+					"dealer_index", j.Index,
+					"committee_size", len(committee),
+				)
+
+				continue
+			}
+
+			dealerAddr := common.HexToAddress(strings.TrimSpace(committee[j.Index].ValidatorAddr))
+
 			log.Info(ctx, "Justification VSS verification failed, invalidating dealer",
 				"dealer_index", j.Index,
+				"validator_addr", dealerAddr.Hex(),
 				"round", latestRound.Round,
 			)
 
-			if err := k.invalidateDealerRegistration(ctx, latestRound, j.Index); err != nil {
+			if err := k.invalidateDealerByAddr(ctx, latestRound.Round, dealerAddr); err != nil {
 				log.Error(ctx, "Failed to invalidate dealer registration", err,
-					"dealer_index", j.Index,
+					"validator_addr", dealerAddr.Hex(),
 				)
 			}
 
@@ -209,14 +236,11 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 	return nil
 }
 
-// markDealersDealt records the address of each dealer that submitted a deal, so missing
-// dealers can be invalidated at BeginFinalization. deal.Index is the dealer's 0-based kyber
-// index within the DEALER committee: the current round for the initial DKG, but the previous
-// active committee for resharing rounds (they hold the existing shares). The index is resolved
-// to a validator address through that committee's registrations, because the dealer and current
-// index spaces are permuted differently across rounds.
+// markDealersDealt records which dealers submitted a deal so missing dealers can be invalidated
+// at BeginFinalization. deal.Index is the dealer's 0-based position in the dealer committee,
+// resolved to an address via dealerCommitteeAddrs.
 func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
-	dealerRound, dealerTotal, err := k.dealerCommitteeRound(ctx, latestRound)
+	dealerRound, err := k.resolveDealerRound(ctx, latestRound)
 	if err != nil {
 		return err
 	}
@@ -224,53 +248,33 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 		return nil
 	}
 
-	dealerRegs, err := k.getDKGRegistrationsByRound(ctx, *dealerRound)
+	// committee[i] is the validator at kyber index i; deal.Index indexes directly into it.
+	committee, err := k.dealerCommitteeAddrs(ctx, *dealerRound)
 	if err != nil {
-		return errors.Wrap(err, "failed to fetch dealer registrations", "round", *dealerRound)
+		return err
 	}
 
-	// Map the dealer committee's 1-based registration index to validator address.
-	addrByIndex := make(map[uint32]string, len(dealerRegs))
-	for i := range dealerRegs {
-		addrByIndex[dealerRegs[i].Index] = dealerRegs[i].ValidatorAddr
-	}
-
-	// DEBUG: resolve each incoming deal's (0-based, dealer-committee) index to a
-	// validator address so the logs say WHICH validator dealt — the raw kyber
-	// index alone is unreadable. dealerRound/dealerTotal describe the committee
-	// expected to deal (prev active committee for resharing, current otherwise).
 	log.Debug(ctx, "MarkDealersDealt: dealer committee",
 		"round", latestRound.Round,
 		"dealer_round", *dealerRound,
-		"dealer_total", dealerTotal,
+		"committee_size", len(committee),
 		"num_deals", len(deals),
 		"is_resharing", latestRound.IsResharing,
 	)
 
 	recorded := 0
 	for _, deal := range deals {
-		// Bound the 0-based kyber index by the dealer committee's total, then convert to
-		// the 1-based registration index.
-		if deal.Index >= dealerTotal {
+		if deal.Index >= uint32(len(committee)) {
 			log.Debug(ctx, "MarkDealersDealt: deal index out of dealer-committee range; skipping",
 				"round", latestRound.Round,
 				"deal_index", deal.Index,
-				"dealer_total", dealerTotal,
+				"committee_size", len(committee),
 			)
 
 			continue
 		}
 
-		addr, ok := addrByIndex[deal.Index+1]
-		if !ok {
-			log.Debug(ctx, "MarkDealersDealt: no dealer address for index; skipping",
-				"round", latestRound.Round,
-				"deal_index", deal.Index,
-				"reg_index", deal.Index+1,
-			)
-
-			continue
-		}
+		addr := committee[deal.Index]
 
 		log.Debug(ctx, "MarkDealersDealt: dealer submitted deal",
 			"round", latestRound.Round,
@@ -286,31 +290,64 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 
 	log.Info(ctx, "MarkDealersDealt: recorded dealers that submitted a deal",
 		"round", latestRound.Round,
-		"dealer_total", dealerTotal,
+		"committee_size", len(committee),
 		"recorded", recorded,
 	)
 
 	return nil
 }
 
-// dealerCommitteeRound returns the round and total of the committee expected to deal in
-// latestRound. For resharing rounds this is the previous active committee (which holds the
-// existing shares); otherwise it is the current round. A nil round means there is no dealer
-// committee to attribute deals to (e.g. resharing with no prior active round).
-func (k *Keeper) dealerCommitteeRound(ctx context.Context, latestRound *types.DKGNetwork) (*uint32, uint32, error) {
+// dealerCommitteeRegs returns the dealer round's committee: ALL of the round's registrations
+// (any status) sorted by registration index, matching the kernel's kyber committee where the
+// 0-based position is the kyber deal/justification Index. Invalidated members keep their slot so
+// the survivors' indices do not shift (kyber resharing requires the position to be preserved).
+func (k *Keeper) dealerCommitteeRegs(ctx context.Context, round uint32) ([]types.DKGRegistration, error) {
+	committee, err := k.getDKGRegistrationsByRound(ctx, round)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch dealer registrations", "round", round)
+	}
+
+	sort.SliceStable(committee, func(i, j int) bool {
+		return committee[i].Index < committee[j].Index
+	})
+
+	return committee, nil
+}
+
+// dealerCommitteeAddrs returns dealerCommitteeRegs as validator addresses; committee[i] is the
+// validator at kyber index i.
+func (k *Keeper) dealerCommitteeAddrs(ctx context.Context, round uint32) ([]string, error) {
+	regs, err := k.dealerCommitteeRegs(ctx, round)
+	if err != nil {
+		return nil, err
+	}
+
+	addrs := make([]string, len(regs))
+	for i := range regs {
+		addrs[i] = regs[i].ValidatorAddr
+	}
+
+	return addrs, nil
+}
+
+// resolveDealerRound returns the round of the committee expected to deal in latestRound. For
+// resharing rounds this is the previous active committee (which holds the existing shares);
+// otherwise it is the current round. A nil round means there is no dealer committee to attribute
+// deals to (e.g. resharing with no prior active round).
+func (k *Keeper) resolveDealerRound(ctx context.Context, latestRound *types.DKGNetwork) (*uint32, error) {
 	if !latestRound.IsResharing {
-		return &latestRound.Round, latestRound.Total, nil
+		return &latestRound.Round, nil
 	}
 
 	prevActive, err := k.getLatestActiveDKGNetwork(ctx)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "failed to get previous active round")
+		return nil, errors.Wrap(err, "failed to get previous active round")
 	}
 	if prevActive == nil {
-		return nil, 0, nil
+		return nil, nil
 	}
 
-	return &prevActive.Round, prevActive.Total, nil
+	return &prevActive.Round, nil
 }
 
 func (k *Keeper) ProcessResponses(ctx context.Context, latestRound *types.DKGNetwork, responses []types.Response) error {
