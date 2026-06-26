@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -162,82 +161,74 @@ func verifyJustification(latestRound *types.DKGNetwork, j types.Justification) (
 	return valid, nil
 }
 
-// buildDealerPubKeyMap builds a map from dealer index to their dkgPubKey for the round.
-// This is built once per ProcessJustifications call to avoid O(N) registration scan per justification.
-func (k *Keeper) buildDealerPubKeyMap(ctx context.Context, latestRound *types.DKGNetwork, suite kyber.Group) (map[uint32]kyber.Point, error) {
-	registrations, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
-	if err != nil {
-		return nil, errors.Wrap(err, "get registrations")
-	}
-
-	pubKeys := make(map[uint32]kyber.Point, len(registrations))
-	for _, reg := range registrations {
-		if len(reg.DkgPubKey) == 0 {
+// dealerPubKeyMap maps each dealer's 0-based committee position (the kyber justification Index)
+// to its dkgPubKey. committee must be dealerCommitteeRegs for the dealer round.
+func dealerPubKeyMap(ctx context.Context, committee []types.DKGRegistration, suite kyber.Group) map[uint32]kyber.Point {
+	pubKeys := make(map[uint32]kyber.Point, len(committee))
+	for i := range committee {
+		if len(committee[i].DkgPubKey) == 0 {
 			continue
 		}
 
 		pub := suite.Point()
-		if err := pub.UnmarshalBinary(reg.DkgPubKey); err != nil {
+		if err := pub.UnmarshalBinary(committee[i].DkgPubKey); err != nil {
 			log.Warn(ctx, "Failed to unmarshal dealer dkgPubKey, skipping", err,
-				"dealer_index", reg.Index,
+				"dealer_index", i,
 			)
 
 			continue
 		}
 
-		pubKeys[reg.Index] = pub
+		pubKeys[uint32(i)] = pub
 	}
 
-	return pubKeys, nil
+	return pubKeys
 }
 
-// invalidateDealerRegistration marks a dealer's DKG registration as Invalidated.
-// The dealer is identified by their DKG index within the current round.
-// Invalidated dealers cannot finalize. This is idempotent — re-invalidating
-// an already-invalidated dealer is a no-op.
-//
-// Called from ProcessJustifications (FinalizeBlock) when VSS verification proves
-// a dealer's deal was genuinely invalid.
-func (k *Keeper) invalidateDealerRegistration(ctx context.Context, latestRound *types.DKGNetwork, dealerIndex uint32) error {
-	// Find the registration with this index
-	registrations, err := k.getDKGRegistrationsByRound(ctx, latestRound.Round)
+// invalidateDealerByAddr marks dealerAddr's registration in round as Invalidated so it cannot
+// finalize. No-op if it has no registration in the round; idempotent.
+func (k *Keeper) invalidateDealerByAddr(ctx context.Context, round uint32, dealerAddr common.Address) error {
+	has, err := k.hasDKGRegistration(ctx, round, dealerAddr)
 	if err != nil {
-		return errors.Wrap(err, "failed to get DKG registrations")
+		return errors.Wrap(err, "failed to check registration")
+	}
+	if !has {
+		log.Debug(ctx, "Dealer has no registration in round, skipping invalidation",
+			"validator_addr", dealerAddr.Hex(),
+			"round", round,
+		)
+
+		return nil
 	}
 
-	for _, reg := range registrations {
-		if reg.Index == dealerIndex {
-			// Finalized registrations should never appear during invalidation
-			// because justifications are processed during the dealing stage,
-			// before finalization. If this occurs, it indicates a bug.
-			if reg.Status == types.DKGRegStatusFinalized {
-				return fmt.Errorf("dealer index %d is already finalized, cannot invalidate (possible bug)", dealerIndex)
-			}
-
-			if reg.Status == types.DKGRegStatusInvalidated {
-				log.Debug(ctx, "Dealer already invalidated, skipping",
-					"dealer_index", dealerIndex,
-				)
-
-				return nil
-			}
-
-			reg.Status = types.DKGRegStatusInvalidated
-
-			validatorAddr := common.HexToAddress(strings.TrimSpace(reg.ValidatorAddr))
-			if err := k.setDKGRegistration(ctx, validatorAddr, &reg); err != nil {
-				return errors.Wrap(err, "failed to update registration status to invalidated")
-			}
-
-			log.Info(ctx, "Dealer registration invalidated",
-				"dealer_index", dealerIndex,
-				"validator_addr", reg.ValidatorAddr,
-				"round", latestRound.Round,
-			)
-
-			return nil
-		}
+	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
+	if err != nil {
+		return errors.Wrap(err, "failed to get registration")
 	}
 
-	return fmt.Errorf("no registration found with dealer index %d", dealerIndex)
+	// Finalized registrations should never appear here: justifications are processed during
+	// the dealing stage, before finalization.
+	if reg.Status == types.DKGRegStatusFinalized {
+		return fmt.Errorf("dealer %s is already finalized, cannot invalidate (possible bug)", dealerAddr.Hex())
+	}
+	if reg.Status == types.DKGRegStatusInvalidated {
+		log.Debug(ctx, "Dealer already invalidated, skipping",
+			"validator_addr", dealerAddr.Hex(),
+			"round", round,
+		)
+
+		return nil
+	}
+
+	reg.Status = types.DKGRegStatusInvalidated
+	if err := k.setDKGRegistration(ctx, dealerAddr, reg); err != nil {
+		return errors.Wrap(err, "failed to update registration status to invalidated")
+	}
+
+	log.Info(ctx, "Dealer registration invalidated",
+		"validator_addr", dealerAddr.Hex(),
+		"round", round,
+	)
+
+	return nil
 }
