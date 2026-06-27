@@ -420,12 +420,10 @@ func TestBuildDealerPubKeyMap(t *testing.T) {
 	setupDealerRegistrationWithKey(t, k, ctx, round, dealer1, 0, dtc1.pubBytes)
 	setupDealerRegistrationWithKey(t, k, ctx, round, dealer2, 1, dtc2.pubBytes)
 
-	network := &types.DKGNetwork{
-		Round: round,
-	}
-
-	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	committee, err := k.dealerCommitteeRegs(ctx, round)
 	require.NoError(t, err)
+
+	pubKeys := dealerPubKeyMap(ctx, committee, suite)
 	require.Len(t, pubKeys, 2)
 	require.True(t, pubKeys[0].Equal(dtc1.pub))
 	require.True(t, pubKeys[1].Equal(dtc2.pub))
@@ -473,9 +471,10 @@ func TestJustificationPipeline_SignatureThenDedupThenVSS(t *testing.T) {
 		Threshold: dealingTestThreshold,
 	}
 
-	// Build the dealer public key map once, matching what the handler builds.
-	dealerPubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	// Build the dealer public key map once, matching what ProcessJustifications builds.
+	committee, err := k.dealerCommitteeRegs(ctx, round)
 	require.NoError(t, err)
+	dealerPubKeys := dealerPubKeyMap(ctx, committee, suite)
 	require.Len(t, dealerPubKeys, 2)
 
 	t.Run("valid signatures pass, invalid signatures are dropped", func(t *testing.T) {
@@ -671,7 +670,7 @@ func TestProcessJustifications_InvalidatesDealer(t *testing.T) {
 	})
 }
 
-// TestBuildDealerPubKeyMap_EmptyDkgPubKey verifies that buildDealerPubKeyMap skips
+// TestBuildDealerPubKeyMap_EmptyDkgPubKey verifies that dealerPubKeyMap skips
 // registrations with empty DkgPubKey (the `len(reg.DkgPubKey) == 0` branch).
 func TestBuildDealerPubKeyMap_EmptyDkgPubKey(t *testing.T) {
 	t.Parallel()
@@ -692,13 +691,13 @@ func TestBuildDealerPubKeyMap_EmptyDkgPubKey(t *testing.T) {
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, emptyKeyDealer, reg))
 
-	network := &types.DKGNetwork{Round: round}
-	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
+	committee, err := k.dealerCommitteeRegs(ctx, round)
 	require.NoError(t, err)
+	pubKeys := dealerPubKeyMap(ctx, committee, suite)
 	require.Empty(t, pubKeys, "empty DkgPubKey registrations must be skipped")
 }
 
-// TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes verifies that buildDealerPubKeyMap
+// TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes verifies that dealerPubKeyMap
 // silently skips (via log.Warn) registrations whose DkgPubKey bytes cannot be
 // unmarshaled as an Edwards25519 point. The map is still returned without error.
 func TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes(t *testing.T) {
@@ -725,11 +724,12 @@ func TestBuildDealerPubKeyMap_InvalidDkgPubKeyBytes(t *testing.T) {
 	}
 	require.NoError(t, k.setDKGRegistration(ctx, invalidDealer, badReg))
 
-	network := &types.DKGNetwork{Round: round}
-	pubKeys, err := k.buildDealerPubKeyMap(ctx, network, suite)
-	require.NoError(t, err, "invalid DkgPubKey bytes must be skipped without error")
+	committee, err := k.dealerCommitteeRegs(ctx, round)
+	require.NoError(t, err)
+	pubKeys := dealerPubKeyMap(ctx, committee, suite)
 	require.Len(t, pubKeys, 1, "only the valid dealer should appear in the map")
-	require.True(t, pubKeys[1].Equal(dtcValid.pub), "valid dealer's key must be in the map at index 1")
+	// The valid dealer has the lowest registration index, so it sits at committee position 0.
+	require.True(t, pubKeys[0].Equal(dtcValid.pub), "valid dealer's key must be at committee position 0")
 }
 
 // --- Tests merged from begin_dealing_test.go ---
@@ -1290,7 +1290,7 @@ func initTestStateManager(t *testing.T, k *Keeper) {
 
 // TestProcessJustifications_MissingDealerRegistration verifies that ProcessJustifications
 // skips a justification (via verifyJustification returning error) when the dealer
-// has no registration (buildDealerPubKeyMap returns an empty map → sig verify fails).
+// has no registration (dealerPubKeyMap returns an empty map → sig verify fails).
 func TestProcessJustifications_MissingDealerRegistration(t *testing.T) {
 	// No dealer registrations — signature verification will fail for any justification.
 	k, ctx := setupDKGKeeper(t)
@@ -1316,4 +1316,92 @@ func TestProcessJustifications_MissingDealerRegistration(t *testing.T) {
 	// ProcessJustifications should not error — invalid justifications are simply skipped.
 	err := k.ProcessJustifications(ctx, network, []types.Justification{j})
 	require.NoError(t, err, "invalid justification should be skipped, not cause an error")
+}
+
+// TestProcessJustifications_GapCommitteeInvalidatesCorrectDealer: in a non-resharing round an
+// invalidated member is NOT dropped from the committee (it was fixed at dealing start), so a
+// dealer keeps its position = reg.Index-1 even after a peer is invalidated mid-dealing. valD
+// (reg index 3 -> committee position 2) proves an invalid deal and must be the one invalidated.
+func TestProcessJustifications_GapCommitteeInvalidatesCorrectDealer(t *testing.T) {
+	const n = 3
+
+	k, ctx := setupDKGKeeper(t)
+	k.isDKGSvcEnabled = false
+
+	round := uint32(80)
+
+	dtcD := newDealerTestContext(t, n, dealingTestThreshold)
+
+	valA := common.HexToAddress("0x00000000000000000000000000000000000000A1")
+	valBad := common.HexToAddress("0x00000000000000000000000000000000000000B2")
+	valD := common.HexToAddress("0x00000000000000000000000000000000000000D4")
+
+	// Registration indices 1,2,3 with index 2 invalidated mid-dealing. The non-resharing
+	// committee keeps all members -> [valA@0, valBad@1, valD@2], so valD stays at position 2.
+	setupDealerRegistrationWithKey(t, k, ctx, round, valA, 1, []byte("a-key"))
+	require.NoError(t, k.setDKGRegistration(ctx, valBad, &types.DKGRegistration{
+		Round: round, ValidatorAddr: valBad.Hex(), Index: 2,
+		DkgPubKey: []byte("bad-key"), Status: types.DKGRegStatusInvalidated,
+	}))
+	setupDealerRegistrationWithKey(t, k, ctx, round, valD, 3, dtcD.pubBytes)
+
+	network := &types.DKGNetwork{Round: round, Total: 3, Threshold: dealingTestThreshold}
+
+	// valD proves an invalid deal at its committee position (2).
+	j := dtcD.makeInvalidDealJustification(t, 2)
+	require.NoError(t, k.ProcessJustifications(ctx, network, []types.Justification{j}))
+
+	regD, err := k.getDKGRegistration(ctx, round, valD)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGRegStatusInvalidated, regD.Status, "valD (committee position 2) must be invalidated")
+
+	regA, err := k.getDKGRegistration(ctx, round, valA)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGRegStatusVerified, regA.Status, "valA (position 0) must NOT be invalidated")
+}
+
+// TestProcessJustifications_ReshardingResolvesPrevCommittee: in a resharing round the dealers
+// are the previous active committee. A justification index must resolve against that committee,
+// and the resolved dealer's CURRENT-round registration is the one invalidated.
+func TestProcessJustifications_ReshardingResolvesPrevCommittee(t *testing.T) {
+	const n = 3
+
+	k, ctx := setupDKGKeeper(t)
+	k.isDKGSvcEnabled = false
+
+	oldRound := uint32(90)
+	newRound := uint32(92)
+
+	dtcD := newDealerTestContext(t, n, dealingTestThreshold)
+
+	valA := common.HexToAddress("0x00000000000000000000000000000000000000A1")
+	valD := common.HexToAddress("0x00000000000000000000000000000000000000D4")
+
+	// Previous active committee: [valA(idx1)@pos0, valD(idx2)@pos1].
+	old := &types.DKGNetwork{
+		Round: oldRound, Total: 2, Stage: types.DKGStageActive,
+		ActiveValSet: []string{valA.Hex(), valD.Hex()},
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, old))
+	require.NoError(t, k.setLatestActiveRound(ctx, old))
+	setupDealerRegistrationWithKey(t, k, ctx, oldRound, valA, 1, []byte("a-key"))
+	setupDealerRegistrationWithKey(t, k, ctx, oldRound, valD, 2, dtcD.pubBytes)
+
+	// Both continue into the resharing round.
+	newDKG := &types.DKGNetwork{Round: newRound, Total: 2, Threshold: dealingTestThreshold, IsResharing: true}
+	require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+	setupDealerRegistrationWithKey(t, k, ctx, newRound, valA, 1, []byte("a-key"))
+	setupDealerRegistrationWithKey(t, k, ctx, newRound, valD, 2, dtcD.pubBytes)
+
+	// valD proves an invalid deal at its prev-committee position (1).
+	j := dtcD.makeInvalidDealJustification(t, 1)
+	require.NoError(t, k.ProcessJustifications(ctx, newDKG, []types.Justification{j}))
+
+	regD, err := k.getDKGRegistration(ctx, newRound, valD)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGRegStatusInvalidated, regD.Status, "valD's current-round reg must be invalidated")
+
+	regA, err := k.getDKGRegistration(ctx, newRound, valA)
+	require.NoError(t, err)
+	require.Equal(t, types.DKGRegStatusVerified, regA.Status)
 }

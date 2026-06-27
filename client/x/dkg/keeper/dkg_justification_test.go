@@ -136,120 +136,79 @@ func TestVerifyJustificationVSS_WrongIndex(t *testing.T) {
 	require.False(t, ok, "share for index 1 should not verify at index 2")
 }
 
-// TestInvalidateDealerRegistration_Success verifies that a Verified dealer is
-// successfully transitioned to Invalidated status.
-func TestInvalidateDealerRegistration_Success(t *testing.T) {
+// TestInvalidateDealerByAddr_Success verifies a Verified dealer is transitioned to Invalidated.
+func TestInvalidateDealerByAddr_Success(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	round := uint32(5)
 	dealerAddr := common.HexToAddress("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-	dealerIndex := uint32(3)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, 3, types.DKGRegStatusVerified)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusVerified)
-
-	network := &types.DKGNetwork{
-		Round: round,
-	}
-
-	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
-	require.NoError(t, err)
+	require.NoError(t, k.invalidateDealerByAddr(ctx, round, dealerAddr))
 
 	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
 	require.Equal(t, types.DKGRegStatusInvalidated, reg.Status)
 }
 
-// TestInvalidateDealerRegistration_AlreadyFinalized verifies that a dealer that
-// has already finalized is not re-invalidated (the function returns nil without change).
-func TestInvalidateDealerRegistration_AlreadyFinalized(t *testing.T) {
+// TestInvalidateDealerByAddr_AlreadyFinalized verifies a finalized dealer is not invalidated.
+func TestInvalidateDealerByAddr_AlreadyFinalized(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	round := uint32(1)
 	dealerAddr := common.HexToAddress("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-	dealerIndex := uint32(2)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, 2, types.DKGRegStatusFinalized)
 
-	// Set up as already Finalized
-	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusFinalized)
-
-	network := &types.DKGNetwork{
-		Round: round,
-	}
-
-	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
-	require.Error(t, err, "should error when trying to invalidate a finalized dealer")
+	err := k.invalidateDealerByAddr(ctx, round, dealerAddr)
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "already finalized")
 	require.Contains(t, err.Error(), "possible bug")
 
-	// Status should remain Finalized
 	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
-	require.Equal(t, types.DKGRegStatusFinalized, reg.Status, "status should not change for finalized dealers")
+	require.Equal(t, types.DKGRegStatusFinalized, reg.Status)
 }
 
-// TestInvalidateDealerRegistration_NotFound verifies that an error is returned
-// when no registration with the given dealer index exists.
-func TestInvalidateDealerRegistration_NotFound(t *testing.T) {
+// TestInvalidateDealerByAddr_NoRegistration verifies that invalidating an address with no
+// registration in the round is a no-op (a dealer that left the committee).
+func TestInvalidateDealerByAddr_NoRegistration(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
-	network := &types.DKGNetwork{
-		Round: 1,
-	}
-
-	// No registration has been created; index 99 does not exist
-	err := k.invalidateDealerRegistration(ctx, network, 99)
-	require.Error(t, err, "should return error when dealer index is not found")
-	require.Contains(t, err.Error(), "no registration found with dealer index 99")
+	missing := common.HexToAddress("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	require.NoError(t, k.invalidateDealerByAddr(ctx, 1, missing))
 }
 
-// TestInvalidateDealerRegistration_MultipleRegistrations verifies that when
-// multiple dealers exist only the correct one gets invalidated.
-func TestInvalidateDealerRegistration_MultipleRegistrations(t *testing.T) {
+// TestInvalidateDealerByAddr_MultipleRegistrations verifies only the addressed dealer is hit.
+func TestInvalidateDealerByAddr_MultipleRegistrations(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	round := uint32(3)
-
 	dealerA := common.HexToAddress("0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
 	dealerB := common.HexToAddress("0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
-	indexA := uint32(1)
-	indexB := uint32(2)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerA, indexA, types.DKGRegStatusVerified)
-	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerB, indexB, types.DKGRegStatusVerified)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerA, 1, types.DKGRegStatusVerified)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerB, 2, types.DKGRegStatusVerified)
 
-	network := &types.DKGNetwork{
-		Round: round,
-	}
-
-	// Invalidate only dealer A
-	err := k.invalidateDealerRegistration(ctx, network, indexA)
-	require.NoError(t, err)
+	require.NoError(t, k.invalidateDealerByAddr(ctx, round, dealerA))
 
 	regA, err := k.getDKGRegistration(ctx, round, dealerA)
 	require.NoError(t, err)
-	require.Equal(t, types.DKGRegStatusInvalidated, regA.Status, "dealer A should be invalidated")
+	require.Equal(t, types.DKGRegStatusInvalidated, regA.Status)
 
 	regB, err := k.getDKGRegistration(ctx, round, dealerB)
 	require.NoError(t, err)
-	require.Equal(t, types.DKGRegStatusVerified, regB.Status, "dealer B should remain Verified")
+	require.Equal(t, types.DKGRegStatusVerified, regB.Status)
 }
 
-// TestInvalidateDealerRegistration_AlreadyInvalidated verifies idempotency:
-// re-invalidating an already-invalidated dealer is a no-op.
-func TestInvalidateDealerRegistration_AlreadyInvalidated(t *testing.T) {
+// TestInvalidateDealerByAddr_AlreadyInvalidated verifies idempotency.
+func TestInvalidateDealerByAddr_AlreadyInvalidated(t *testing.T) {
 	k, ctx := setupDKGKeeper(t)
 
 	round := uint32(2)
 	dealerAddr := common.HexToAddress("0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
-	dealerIndex := uint32(5)
+	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, 5, types.DKGRegStatusInvalidated)
 
-	setupDealerRegistrationForInvalidation(t, k, ctx, round, dealerAddr, dealerIndex, types.DKGRegStatusInvalidated)
-
-	network := &types.DKGNetwork{
-		Round: round,
-	}
-
-	err := k.invalidateDealerRegistration(ctx, network, dealerIndex)
-	require.NoError(t, err, "re-invalidating should be a no-op")
+	require.NoError(t, k.invalidateDealerByAddr(ctx, round, dealerAddr))
 
 	reg, err := k.getDKGRegistration(ctx, round, dealerAddr)
 	require.NoError(t, err)
