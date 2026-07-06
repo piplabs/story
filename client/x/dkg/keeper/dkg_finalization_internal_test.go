@@ -998,3 +998,139 @@ func TestInvalidateMissingDealers_ReshardingExpansion(t *testing.T) {
 		require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
 	}
 }
+
+// TestInvalidateMissingDealers_AbsentRejoinerNotExpected: a bonded validator absent from the
+// previous DKG round holds no share; on rejoin it cannot deal and must not be expected to
+// deal (expected dealers come from the prev round's registrations, not the staking set).
+func TestInvalidateMissingDealers_AbsentRejoinerNotExpected(t *testing.T) {
+	const (
+		oldRound = uint32(60)
+		newRound = uint32(62)
+	)
+
+	// Old committee of 3 share holders. valX was bonded last round (so it is in the staking
+	// ActiveValSet) but never participated in DKG, so it has no old registration/share.
+	val1 := common.BytesToAddress([]byte{0x01})
+	val2 := common.BytesToAddress([]byte{0x02})
+	val3 := common.BytesToAddress([]byte{0x03})
+	valX := common.BytesToAddress([]byte{0x09}) // bonded but absent last round
+	oldByIndex := []common.Address{val1, val2, val3}
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+	// Previous active round: ActiveValSet includes valX, but only val1/val2/val3 registered.
+	old := &types.DKGNetwork{
+		Round:        oldRound,
+		Total:        3,
+		ActiveValSet: []string{val1.Hex(), val2.Hex(), val3.Hex(), valX.Hex()},
+		Stage:        types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, old))
+	require.NoError(t, k.setLatestActiveRound(ctx, old))
+	for i, addr := range oldByIndex {
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         oldRound,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusFinalized,
+		}))
+	}
+
+	// New resharing round: the three share holders re-register and valX rejoins.
+	newRegs := []common.Address{val1, val2, val3, valX}
+	newDKG := &types.DKGNetwork{
+		Round: newRound, Total: 4, Threshold: 2,
+		Stage: types.DKGStageFinalization, IsResharing: true, StartBlockHeight: 400,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+	for i, addr := range newRegs {
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         newRound,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusVerified,
+		}))
+	}
+
+	// Only the old share holders can deal (kyber 0,1,2); valX holds no share and deals nothing.
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}, {Index: 2}}))
+	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
+
+	// valX was not a previous-round share holder, so it is not an expected dealer and must
+	// not be invalidated; the continuing members stay verified too.
+	for _, addr := range newRegs {
+		reg, err := k.getDKGRegistration(ctx, newRound, addr)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
+	}
+}
+
+// TestInvalidateMissingDealers_NonFinalizedPrevNotExpected: a validator that was in the previous
+// committee but only VERIFIED (never FINALIZED) holds no finalized share and cannot send a valid
+// reshare deal, so it must not be an expected dealer. Only FINALIZED members are.
+func TestInvalidateMissingDealers_NonFinalizedPrevNotExpected(t *testing.T) {
+	const (
+		oldRound = uint32(64)
+		newRound = uint32(66)
+	)
+
+	val1 := common.BytesToAddress([]byte{0x01}) // prev FINALIZED (share holder)
+	val2 := common.BytesToAddress([]byte{0x02}) // prev FINALIZED (share holder)
+	valV := common.BytesToAddress([]byte{0x03}) // prev VERIFIED, never FINALIZED -> no share
+
+	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+	old := &types.DKGNetwork{
+		Round:        oldRound,
+		Total:        3,
+		ActiveValSet: []string{val1.Hex(), val2.Hex(), valV.Hex()},
+		Stage:        types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, old))
+	require.NoError(t, k.setLatestActiveRound(ctx, old))
+	oldRegs := []struct {
+		addr   common.Address
+		status types.DKGRegStatus
+	}{
+		{val1, types.DKGRegStatusFinalized},
+		{val2, types.DKGRegStatusFinalized},
+		{valV, types.DKGRegStatusVerified},
+	}
+	for i, r := range oldRegs {
+		require.NoError(t, k.setDKGRegistration(ctx, r.addr, &types.DKGRegistration{
+			Round:         oldRound,
+			ValidatorAddr: r.addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        r.status,
+		}))
+	}
+
+	newRegs := []common.Address{val1, val2, valV}
+	newDKG := &types.DKGNetwork{
+		Round: newRound, Total: 3, Threshold: 2,
+		Stage: types.DKGStageFinalization, IsResharing: true, StartBlockHeight: 400,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, newDKG))
+	for i, addr := range newRegs {
+		require.NoError(t, k.setDKGRegistration(ctx, addr, &types.DKGRegistration{
+			Round:         newRound,
+			ValidatorAddr: addr.Hex(),
+			Index:         uint32(i + 1),
+			Status:        types.DKGRegStatusVerified,
+		}))
+	}
+
+	// The two FINALIZED share holders deal (kyber 0,1); valV holds no share and deals nothing.
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}}))
+	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
+
+	// valV was VERIFIED (not FINALIZED) last round, so it is not an expected dealer and must not
+	// be invalidated for not dealing.
+	for _, addr := range newRegs {
+		reg, err := k.getDKGRegistration(ctx, newRound, addr)
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg.Status, "validator %s must stay verified", addr.Hex())
+	}
+}
