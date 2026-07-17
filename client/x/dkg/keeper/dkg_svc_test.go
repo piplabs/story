@@ -1871,6 +1871,133 @@ func TestResumeDKGService_NoSession(t *testing.T) {
 	k.ResumeDKGService(ctx, dkgNetwork)
 }
 
+// TestResumeDKGService_ActiveRoundStartsWorker verifies that the decrypt worker is
+// restarted whenever an active DKG round exists, even if the latest round has already
+// advanced to a pre-active stage (e.g. the next round opened registration). This is
+// the restart-window hole from issue piplabs/story#854.
+func TestResumeDKGService_ActiveRoundStartsWorker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping worker test in short mode")
+	}
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Force a fresh worker spawn so the assertion exercises the new branch, and
+	// leave decryptWorkerRunning true afterwards. The worker is a process-lifetime
+	// singleton; resetting the flag to false here would let a later mock-backed test
+	// spawn a real worker that calls its gomock client after that test completes.
+	decryptWorkerRunning.Store(false)
+
+	// Detach the mock contract client so the process-lifetime worker goroutine
+	// returns early at its nil guard instead of issuing unexpected mock calls
+	// after the test completes.
+	k.contractClient = nil
+
+	// An earlier round is still the active (completed) round.
+	activeNetwork := &types.DKGNetwork{
+		Round: 5,
+		Stage: types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, activeNetwork))
+	require.NoError(t, k.setLatestActiveRound(ctx, activeNetwork))
+
+	// The latest round has opened registration for the NEXT round; its session is in a
+	// valid (non-stuck) phase, so none of the legacy branches would start the worker.
+	session := &types.DKGSession{
+		Round: 6,
+		Phase: types.PhaseInitialized,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 6,
+		Stage: types.DKGStageRegistration,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.True(t, decryptWorkerRunning.Load(), "worker should run whenever an active round exists")
+}
+
+// TestResumeDKGService_NoActiveRoundNoWorker verifies that on a fresh chain with no
+// active round, ResumeDKGService does not start the decrypt worker via the new branch.
+func TestResumeDKGService_NoActiveRoundNoWorker(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	// Restore the singleton flag to true on exit so a later mock-backed test does
+	// not spawn a real worker that outlives it (see the note above).
+	defer decryptWorkerRunning.Store(true)
+
+	// Latest round session is in a valid (non-stuck) phase and no active round exists.
+	session := &types.DKGSession{
+		Round: 1,
+		Phase: types.PhaseInitialized,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 1,
+		Stage: types.DKGStageRegistration,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.False(t, decryptWorkerRunning.Load(), "worker must not start when no active round exists")
+}
+
+// TestResumeDKGService_CompletedActiveStartsWorker verifies the pre-existing behavior:
+// when the latest round is itself active with a completed session, the worker is started.
+func TestResumeDKGService_CompletedActiveStartsWorker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping worker test in short mode")
+	}
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Force a fresh spawn for the assertion; leave the flag true on exit (see the
+	// note in TestResumeDKGService_ActiveRoundStartsWorker).
+	decryptWorkerRunning.Store(false)
+
+	// Detach the mock contract client so the process-lifetime worker goroutine
+	// returns early at its nil guard instead of issuing unexpected mock calls
+	// after the test completes.
+	k.contractClient = nil
+
+	session := &types.DKGSession{
+		Round: 7,
+		Phase: types.PhaseCompleted,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 7,
+		Stage: types.DKGStageActive,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.True(t, decryptWorkerRunning.Load(), "worker should run when latest active round session is completed")
+}
+
 // --- resumeFailedSession ---
 
 func TestResumeFailedSession_DealingStage(t *testing.T) {

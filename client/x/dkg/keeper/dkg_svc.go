@@ -100,6 +100,14 @@ var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+	// The decrypt worker serves the latest ACTIVE round, which may differ from the
+	// latest round once the next round has opened. StartDecryptWorker is idempotent.
+	if active, err := k.getLatestActiveDKGNetwork(ctx); err != nil {
+		log.Warn(ctx, "Failed to get latest active DKG round while resuming decrypt worker", err)
+	} else if active != nil {
+		k.StartDecryptWorker()
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
