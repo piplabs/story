@@ -106,6 +106,10 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		log.Warn(ctx, "Failed to get latest active DKG round while resuming decrypt worker", err)
 	} else if active != nil {
 		k.StartDecryptWorker()
+	} else {
+		// Debug (not Info): this runs every block; a missing active round is the
+		// normal steady state and Info would be too noisy.
+		log.Debug(ctx, "No active DKG round; decrypt worker not started")
 	}
 
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
@@ -287,7 +291,10 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 // goroutine exits. The decrypt worker must run for the lifetime of the process.
 func (k *Keeper) StartDecryptWorker() {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
-		// already running
+		// Debug (not Info): this runs every block; skipping because the worker is
+		// already running is the normal steady state and Info would be too noisy.
+		log.Debug(context.Background(), "Decrypt worker already running; skipping start")
+
 		return
 	}
 
