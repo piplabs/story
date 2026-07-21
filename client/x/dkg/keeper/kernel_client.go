@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/piplabs/story/client/x/dkg/types"
 	"github.com/piplabs/story/lib/errors"
@@ -13,7 +14,18 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
+
+// kernelKeepalive detects a wedged kernel connection (accepts the socket but stops
+// responding) at the transport layer so a dead connection surfaces as a call error
+// instead of hanging a caller forever. PermitWithoutStream keeps pinging even when
+// no RPC is in flight, since the decrypt worker is idle between ticks.
+var kernelKeepalive = keepalive.ClientParameters{
+	Time:                30 * time.Second,
+	Timeout:             10 * time.Second,
+	PermitWithoutStream: true,
+}
 
 // TLSConfig holds the TLS certificate paths for gRPC client connections.
 // When CAFile is set, TLS is enabled with server certificate verification.
@@ -56,7 +68,10 @@ func CreateKernelClient(endpoint string, tlsCfg *TLSConfig) (types.KernelService
 		target = "passthrough:///" + target
 	}
 
-	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(creds))
+	conn, err := grpc.NewClient(target,
+		grpc.WithTransportCredentials(creds),
+		grpc.WithKeepaliveParams(kernelKeepalive),
+	)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to connect to story-kernel client")
 	}

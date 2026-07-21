@@ -2216,3 +2216,102 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 	require.Equal(t, types.PhaseCompleted, got.Phase,
 		"active stage: handleDKGComplete should advance phase to PhaseCompleted")
 }
+
+// --- decrypt worker kernel-call deadline (issue piplabs/story#854 family) ---
+
+// TestComputePartialDecrypt_DerivesCallDeadline verifies that the kernel RPC is
+// invoked with a bounded context even when the worker passes context.Background
+// (which has no deadline). This proves decryptKernelCallTimeout is wired so a
+// wedged kernel cannot block the worker loop indefinitely.
+func TestComputePartialDecrypt_DerivesCallDeadline(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-deadline")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+	}
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	var (
+		gotDeadline bool
+		remaining   time.Duration
+	)
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(callCtx context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			deadline, ok := callCtx.Deadline()
+			gotDeadline = ok
+			if ok {
+				remaining = time.Until(deadline)
+			}
+			return &types.PartialDecryptTDH2Response{
+				EncryptedPartialDecryption: []byte("p"), EphemeralPubKey: []byte("e"),
+				PubShare: []byte("s"), Signature: []byte("sig"),
+			}, nil
+		}).Times(1)
+
+	// Parent context has NO deadline; the deadline must come from the fix.
+	result := k.computePartialDecrypt(ctx, session, req)
+	require.NoError(t, result.err)
+	require.True(t, gotDeadline, "kernel call must receive a bounded context even from a deadline-less parent")
+	require.Greater(t, remaining, time.Duration(0), "derived deadline must be in the future")
+	require.LessOrEqual(t, remaining, decryptKernelCallTimeout, "derived deadline must not exceed the configured timeout")
+}
+
+// TestComputePartialDecrypt_WedgedKernelReturns simulates a kernel that accepts the
+// call but never responds on its own. The worker call must still return (via context
+// timeout) rather than block forever, so the worker loop can complete and
+// decryptWorkerRunning can be reset. Uses a short-deadline parent context to keep the
+// test fast; the production timeout is decryptKernelCallTimeout.
+func TestComputePartialDecrypt_WedgedKernelReturns(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-wedged")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+	}
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	// Kernel never returns on its own: it blocks until the call context is done,
+	// then surfaces the context error (mirrors a real gRPC deadline cancellation).
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(callCtx context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			<-callCtx.Done()
+			return nil, callCtx.Err()
+		}).Times(1)
+
+	// Short-deadline parent stands in for decryptKernelCallTimeout to keep the test fast.
+	parentCtx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := make(chan decryptComputeResult, 1)
+	go func() {
+		done <- k.computePartialDecrypt(parentCtx, session, req)
+	}()
+
+	select {
+	case result := <-done:
+		require.Error(t, result.err, "wedged kernel call must return an error, not a response")
+		require.Contains(t, result.err.Error(), "generating partial decrypt failed")
+	case <-time.After(5 * time.Second):
+		t.Fatal("computePartialDecrypt blocked on a wedged kernel; worker would never reset decryptWorkerRunning")
+	}
+}

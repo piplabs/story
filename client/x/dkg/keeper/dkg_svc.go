@@ -90,6 +90,14 @@ func releaseDKGSvc(round uint32) {
 // is cut short — so this value must stay above 60s to be meaningful.
 const dkgAsyncTimeout = 2 * time.Minute
 
+// decryptKernelCallTimeout bounds a single kernel RPC made by the decrypt worker.
+// The worker runs on a process-lifetime context.Background with no deadline of its
+// own, so without a per-call timeout a wedged kernel (accepts the connection but
+// never responds) blocks the worker loop forever and decryptWorkerRunning is never
+// reset. 60s matches the kernel-operation budget in dkgAsyncTimeout and the
+// contract-call timeout in contract_client.go.
+const decryptKernelCallTimeout = 60 * time.Second
+
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
 // This replaces the consensus context that would otherwise be canceled after block processing.
 func dkgAsyncContext() (context.Context, context.CancelFunc) {
@@ -635,8 +643,13 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 		return
 	}
 
+	// Bound the kernel RPC so a wedged kernel cannot block the worker loop
+	// indefinitely. The worker's context has no deadline of its own.
+	callCtx, cancel := context.WithTimeout(ctx, decryptKernelCallTimeout)
+	defer cancel()
+
 	kernelStart := time.Now()
-	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
+	resp, err := client.PartialDecryptTDH2(callCtx, &types.PartialDecryptTDH2Request{
 		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,
