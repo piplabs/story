@@ -1,6 +1,9 @@
 package keeper
 
 import (
+	"bytes"
+	"encoding/binary"
+	"sync"
 	"testing"
 
 	"cosmossdk.io/collections"
@@ -15,6 +18,10 @@ import (
 	"github.com/piplabs/story/lib/netconf"
 
 	"go.uber.org/mock/gomock"
+
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 )
 
 // consensusGPK / consensusCoeffs are arbitrary fixed consensus key material used by
@@ -23,6 +30,63 @@ var (
 	consensusGPK    = []byte{0xaa, 0xbb, 0xcc}
 	consensusCoeffs = [][]byte{{0x01}, {0x02}}
 )
+
+// dealerKeyring holds deterministic per-kyber-index dealer signing keys used to build
+// validly-signed deals for markDealersDealt tests. A dealer registration at kyber index i must
+// carry DkgPubKey = pub(i), and a deal at index i must be built with signedDeal(i), so the
+// signature check in markDealersDealt passes.
+type dealerKeyring struct {
+	suite    *edwards25519.SuiteEd25519
+	longterm []kyber.Scalar
+	pubBytes [][]byte
+}
+
+var (
+	dealerKeyOnce sync.Once
+	dealerKeys    *dealerKeyring
+)
+
+// testDealerKeyring returns a process-wide keyring indexed by kyber committee position.
+func testDealerKeyring() *dealerKeyring {
+	dealerKeyOnce.Do(func() {
+		const n = 8
+		suite := edwards25519.NewBlakeSHA256Ed25519()
+		kr := &dealerKeyring{suite: suite, longterm: make([]kyber.Scalar, n), pubBytes: make([][]byte, n)}
+		for i := range n {
+			lt := suite.Scalar().Pick(suite.RandomStream())
+			pub := suite.Point().Mul(lt, nil)
+			pb, err := pub.MarshalBinary()
+			if err != nil {
+				panic(err)
+			}
+			kr.longterm[i] = lt
+			kr.pubBytes[i] = pb
+		}
+		dealerKeys = kr
+	})
+
+	return dealerKeys
+}
+
+// pub returns the marshaled dkgPubKey for the dealer at kyber index i.
+func (kr *dealerKeyring) pub(i int) []byte { return kr.pubBytes[i] }
+
+// signedDeal builds a validly signed deal for the dealer at kyber index idx. The signed message
+// is little-endian uint32 idx followed by the cipher, matching kyber dkg.Deal.MarshalBinary.
+func (kr *dealerKeyring) signedDeal(t *testing.T, idx uint32) types.Deal {
+	t.Helper()
+
+	cipher := []byte{0xC0, 0xFF, 0xEE, byte(idx)}
+
+	var b bytes.Buffer
+	require.NoError(t, binary.Write(&b, binary.LittleEndian, idx))
+	b.Write(cipher)
+
+	sig, err := schnorr.Sign(kr.suite, kr.longterm[idx], b.Bytes())
+	require.NoError(t, err)
+
+	return types.Deal{Index: idx, Deal: types.EncryptedDeal{Cipher: cipher}, Signature: sig}
+}
 
 func TestFinalizeDKGRound_ThresholdChecks(t *testing.T) {
 	testRound := uint32(1)
@@ -602,6 +666,8 @@ func TestMarkDealersDealt(t *testing.T) {
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx)
 
+	kr := testDealerKeyring()
+
 	validators := make([]common.Address, n)
 	latestRound := &types.DKGNetwork{Round: round, Total: n} // valid 0-based indices {0,1,2}
 	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
@@ -612,13 +678,14 @@ func TestMarkDealersDealt(t *testing.T) {
 			ValidatorAddr: validators[i].Hex(),
 			Index:         uint32(i + 1), // 1-based
 			Status:        types.DKGRegStatusVerified,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
 	deals := []types.Deal{
-		{Index: 0}, {Index: 0}, // dealer 0 (duplicate) -> validators[0]
-		{Index: 2}, // dealer 2 -> validators[2]
-		{Index: 3}, // out of range (>= Total=3) -> skipped
+		kr.signedDeal(t, 0), kr.signedDeal(t, 0), // dealer 0 (duplicate) -> validators[0]
+		kr.signedDeal(t, 2), // dealer 2 -> validators[2]
+		{Index: 3},          // out of range (>= Total=3) -> skipped
 	}
 	require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
 
@@ -627,6 +694,106 @@ func TestMarkDealersDealt(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, want, has, "validator %d", i)
 	}
+}
+
+// TestMarkDealersDealt_VerifiesSignature is the security regression for the deal-signature
+// bypass: deals arrive via vote extensions and are unauthenticated, so markDealersDealt must only
+// credit a dealer whose deal carries a valid Schnorr signature over LE(Index)||Cipher against the
+// dealer's registered dkgPubKey. A forged or unsigned deal must NOT mark the dealer, so a
+// genuinely-missing dealer is still invalidated by invalidateMissingDealers.
+func TestMarkDealersDealt_VerifiesSignature(t *testing.T) {
+	const (
+		round = uint32(21)
+		n     = 3
+	)
+
+	kr := testDealerKeyring()
+
+	setup := func(t *testing.T) (*Keeper, sdk.Context, []common.Address, *types.DKGNetwork) {
+		t.Helper()
+
+		k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
+		ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
+
+		validators := make([]common.Address, n)
+		latestRound := &types.DKGNetwork{
+			Round: round, Total: n, Threshold: 2,
+			Stage: types.DKGStageFinalization, StartBlockHeight: 400,
+		}
+		require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+		for i := range n {
+			validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
+			require.NoError(t, k.setDKGRegistration(ctx, validators[i], &types.DKGRegistration{
+				Round:         round,
+				ValidatorAddr: validators[i].Hex(),
+				Index:         uint32(i + 1),
+				Status:        types.DKGRegStatusVerified,
+				DkgPubKey:     kr.pub(i),
+			}))
+		}
+
+		return k, ctx, validators, latestRound
+	}
+
+	t.Run("valid signature marks the dealer dealt", func(t *testing.T) {
+		k, ctx, validators, latestRound := setup(t)
+
+		require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{kr.signedDeal(t, 0)}))
+
+		has, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[0].Hex()))
+		require.NoError(t, err)
+		require.True(t, has, "validly-signed dealer must be marked dealt")
+	})
+
+	t.Run("forged deal does not mark; missing dealer still invalidated", func(t *testing.T) {
+		k, ctx, validators, latestRound := setup(t)
+
+		// Forge dealer 1's deal: correct index/cipher, but signed by a foreign key whose pubkey
+		// is NOT dealer 1's registered dkgPubKey. Dealer 0 deals validly; dealer 2 never deals.
+		foreign := kr.suite.Scalar().Pick(kr.suite.RandomStream())
+		cipher := []byte{0xDE, 0xAD}
+
+		var b bytes.Buffer
+		require.NoError(t, binary.Write(&b, binary.LittleEndian, uint32(1)))
+		b.Write(cipher)
+		sig, err := schnorr.Sign(kr.suite, foreign, b.Bytes())
+		require.NoError(t, err)
+		forged := types.Deal{Index: 1, Deal: types.EncryptedDeal{Cipher: cipher}, Signature: sig}
+
+		require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{kr.signedDeal(t, 0), forged}))
+
+		has0, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[0].Hex()))
+		require.NoError(t, err)
+		require.True(t, has0, "validly-signed dealer 0 must be marked")
+
+		has1, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[1].Hex()))
+		require.NoError(t, err)
+		require.False(t, has1, "forged deal must NOT mark dealer 1 dealt")
+
+		// The sweep must invalidate dealers 1 and 2 (neither has a valid recorded deal).
+		require.NoError(t, k.invalidateMissingDealers(ctx, latestRound))
+
+		reg0, err := k.getDKGRegistration(ctx, round, validators[0])
+		require.NoError(t, err)
+		require.Equal(t, types.DKGRegStatusVerified, reg0.Status)
+
+		for _, i := range []int{1, 2} {
+			reg, err := k.getDKGRegistration(ctx, round, validators[i])
+			require.NoError(t, err)
+			require.Equal(t, types.DKGRegStatusInvalidated, reg.Status,
+				"dealer %d without a valid deal must be invalidated", i)
+		}
+	})
+
+	t.Run("unsigned deal does not mark the dealer", func(t *testing.T) {
+		k, ctx, validators, latestRound := setup(t)
+
+		require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{{Index: 0}}))
+
+		has, err := k.DealtDealers.Has(ctx, dealtDealerKey(round, validators[0].Hex()))
+		require.NoError(t, err)
+		require.False(t, has, "unsigned deal must NOT mark the dealer dealt")
+	})
 }
 
 // TestMarkDealersDealt_AllDealersRecorded is a regression test for the 0-based/1-based
@@ -642,6 +809,8 @@ func TestMarkDealersDealt_AllDealersRecorded(t *testing.T) {
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx)
 
+	kr := testDealerKeyring()
+
 	validators := make([]common.Address, n)
 	latestRound := &types.DKGNetwork{Round: round, Total: n, Threshold: 2, Stage: types.DKGStageFinalization}
 	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
@@ -654,8 +823,9 @@ func TestMarkDealersDealt_AllDealersRecorded(t *testing.T) {
 			ValidatorAddr: validators[i].Hex(),
 			Index:         uint32(i + 1), // 1-based
 			Status:        types.DKGRegStatusVerified,
+			DkgPubKey:     kr.pub(i),
 		}))
-		deals[i] = types.Deal{Index: uint32(i)} // 0-based dealer index
+		deals[i] = kr.signedDeal(t, uint32(i)) // 0-based dealer index
 	}
 
 	require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
@@ -694,6 +864,8 @@ func TestInvalidateMissingDealers(t *testing.T) {
 		validators[i] = common.BytesToAddress([]byte{byte(i + 1)})
 	}
 
+	kr := testDealerKeyring()
+
 	latestRound := &types.DKGNetwork{Round: round, Total: n, Threshold: 3, Stage: types.DKGStageFinalization}
 	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
 
@@ -708,12 +880,13 @@ func TestInvalidateMissingDealers(t *testing.T) {
 			ValidatorAddr: validators[i].Hex(),
 			Index:         uint32(i + 1),
 			Status:        status,
+			DkgPubKey:     kr.pub(i),
 		}
 		require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
 	}
 
 	// 0-based dealer indices 0 and 2 submitted deals -> reg.Index 1 and 3 dealt; 2,4,5 did not.
-	require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{{Index: 0}, {Index: 2}}))
+	require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 2)}))
 
 	require.NoError(t, k.invalidateMissingDealers(ctx, latestRound))
 
@@ -769,12 +942,15 @@ func TestBeginFinalization_MissingDealerGate(t *testing.T) {
 		}
 		require.NoError(t, k.setDKGNetwork(ctx, latestRound))
 
+		kr := testDealerKeyring()
+
 		for i := range n {
 			reg := &types.DKGRegistration{
 				Round:         round,
 				ValidatorAddr: validators[i].Hex(),
 				Index:         uint32(i + 1),
 				Status:        types.DKGRegStatusVerified,
+				DkgPubKey:     kr.pub(i),
 			}
 			require.NoError(t, k.setDKGRegistration(ctx, validators[i], reg))
 		}
@@ -783,7 +959,7 @@ func TestBeginFinalization_MissingDealerGate(t *testing.T) {
 		var deals []types.Deal
 		for i := range n {
 			if i != nonDealerIdx {
-				deals = append(deals, types.Deal{Index: uint32(i)})
+				deals = append(deals, kr.signedDeal(t, uint32(i)))
 			}
 		}
 		require.NoError(t, k.markDealersDealt(ctx, latestRound, deals))
@@ -838,8 +1014,10 @@ func TestInvalidateMissingDealers_Resharing(t *testing.T) {
 	val4 := common.BytesToAddress([]byte{0x04})
 	oldByIndex := []common.Address{val1, val3, val4, val2} // index i -> kyber i
 
+	kr := testDealerKeyring()
+
 	// Deals from the dealers that are up (old kyber indices 0,2,3); val3 (kyber 1) is down.
-	dealtDeals := []types.Deal{{Index: 0}, {Index: 2}, {Index: 3}}
+	dealtDeals := []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 2), kr.signedDeal(t, 3)}
 
 	setupOld := func(t *testing.T, k *Keeper, ctx sdk.Context) {
 		t.Helper()
@@ -857,6 +1035,7 @@ func TestInvalidateMissingDealers_Resharing(t *testing.T) {
 				ValidatorAddr: addr.Hex(),
 				Index:         uint32(i + 1),
 				Status:        types.DKGRegStatusFinalized,
+				DkgPubKey:     kr.pub(i),
 			}))
 		}
 	}
@@ -953,6 +1132,8 @@ func TestInvalidateMissingDealers_ReshardingExpansion(t *testing.T) {
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
 
+	kr := testDealerKeyring()
+
 	old := &types.DKGNetwork{
 		Round:        oldRound,
 		Total:        3,
@@ -967,6 +1148,7 @@ func TestInvalidateMissingDealers_ReshardingExpansion(t *testing.T) {
 			ValidatorAddr: addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        types.DKGRegStatusFinalized,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
@@ -988,7 +1170,7 @@ func TestInvalidateMissingDealers_ReshardingExpansion(t *testing.T) {
 	}
 
 	// Only the old committee deals (kyber 0,1,2); the joiner submits nothing.
-	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}, {Index: 2}}))
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 1), kr.signedDeal(t, 2)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
 
 	// All four members — including the joiner that dealt nothing — stay verified.
@@ -1019,6 +1201,8 @@ func TestInvalidateMissingDealers_AbsentRejoinerNotExpected(t *testing.T) {
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
 
+	kr := testDealerKeyring()
+
 	// Previous active round: ActiveValSet includes valX, but only val1/val2/val3 registered.
 	old := &types.DKGNetwork{
 		Round:        oldRound,
@@ -1034,6 +1218,7 @@ func TestInvalidateMissingDealers_AbsentRejoinerNotExpected(t *testing.T) {
 			ValidatorAddr: addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        types.DKGRegStatusFinalized,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
@@ -1054,7 +1239,7 @@ func TestInvalidateMissingDealers_AbsentRejoinerNotExpected(t *testing.T) {
 	}
 
 	// Only the old share holders can deal (kyber 0,1,2); valX holds no share and deals nothing.
-	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}, {Index: 2}}))
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 1), kr.signedDeal(t, 2)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
 
 	// valX was not a previous-round share holder, so it is not an expected dealer and must
@@ -1090,6 +1275,8 @@ func TestInvalidateMissingDealers_NonFinalizedPrevNotExpected(t *testing.T) {
 	}
 	require.NoError(t, k.setDKGNetwork(ctx, old))
 	require.NoError(t, k.setLatestActiveRound(ctx, old))
+	kr := testDealerKeyring()
+
 	oldRegs := []struct {
 		addr   common.Address
 		status types.DKGRegStatus
@@ -1104,6 +1291,7 @@ func TestInvalidateMissingDealers_NonFinalizedPrevNotExpected(t *testing.T) {
 			ValidatorAddr: r.addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        r.status,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
@@ -1123,7 +1311,7 @@ func TestInvalidateMissingDealers_NonFinalizedPrevNotExpected(t *testing.T) {
 	}
 
 	// The two FINALIZED share holders deal (kyber 0,1); valV holds no share and deals nothing.
-	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}}))
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 1)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
 
 	// valV was VERIFIED (not FINALIZED) last round, so it is not an expected dealer and must not
@@ -1166,6 +1354,8 @@ func TestInvalidateMissingDealers_ReshardingDealerGhostGap(t *testing.T) {
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
 
+	kr := testDealerKeyring()
+
 	// Previous active round. ActiveValSet is the set of share holders expected to deal.
 	old := &types.DKGNetwork{
 		Round:        oldRound,
@@ -1181,6 +1371,7 @@ func TestInvalidateMissingDealers_ReshardingDealerGhostGap(t *testing.T) {
 			ValidatorAddr: r.addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        r.status,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
@@ -1202,7 +1393,7 @@ func TestInvalidateMissingDealers_ReshardingDealerGhostGap(t *testing.T) {
 
 	// The healthy dealers deal at their committee positions: val1@0, val2@1, val4@3
 	// (valBad occupies slot 2 and does not deal).
-	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}, {Index: 3}}))
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 1), kr.signedDeal(t, 3)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
 
 	// val4 deals at kyber index 3 (its slot is preserved past the invalidated valBad). It must
@@ -1243,6 +1434,8 @@ func TestInvalidateMissingDealers_ReshardingGhostGapInvalidatesNonDealer(t *test
 	k, _, _, baseCtx := setupDKGKeeperWithMocks(t)
 	ctx := sdk.UnwrapSDKContext(baseCtx).WithChainID(netconf.TestChainID)
 
+	kr := testDealerKeyring()
+
 	old := &types.DKGNetwork{
 		Round:        oldRound,
 		Total:        3,
@@ -1257,6 +1450,7 @@ func TestInvalidateMissingDealers_ReshardingGhostGapInvalidatesNonDealer(t *test
 			ValidatorAddr: r.addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        r.status,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
@@ -1276,7 +1470,7 @@ func TestInvalidateMissingDealers_ReshardingGhostGapInvalidatesNonDealer(t *test
 	}
 
 	// val1 (kyber 0) and val2 (kyber 1) deal; val4 (kyber 3) submits nothing.
-	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{{Index: 0}, {Index: 1}}))
+	require.NoError(t, k.markDealersDealt(ctx, newDKG, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 1)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, newDKG))
 
 	// val4 was a real prev-round holder that skipped dealing -> invalidated; val1/val2 kept.
@@ -1323,17 +1517,20 @@ func TestMarkDealersDealt_InitialDKGMidGap(t *testing.T) {
 		Stage: types.DKGStageFinalization, StartBlockHeight: 400,
 	}
 	require.NoError(t, k.setDKGNetwork(ctx, latestRound))
+	kr := testDealerKeyring()
+
 	for i, r := range regs {
 		require.NoError(t, k.setDKGRegistration(ctx, r.addr, &types.DKGRegistration{
 			Round:         round,
 			ValidatorAddr: r.addr.Hex(),
 			Index:         uint32(i + 1),
 			Status:        r.status,
+			DkgPubKey:     kr.pub(i),
 		}))
 	}
 
 	// A (kyber 0) and D (kyber 3) deal; B (kyber 1) and BAD (kyber 2) do not.
-	require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{{Index: 0}, {Index: 3}}))
+	require.NoError(t, k.markDealersDealt(ctx, latestRound, []types.Deal{kr.signedDeal(t, 0), kr.signedDeal(t, 3)}))
 	require.NoError(t, k.invalidateMissingDealers(ctx, latestRound))
 
 	want := map[common.Address]types.DKGRegStatus{
