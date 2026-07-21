@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -243,35 +244,103 @@ func TestStateManager_MarkFailed(t *testing.T) {
 	require.Equal(t, types.PhaseFailed, got.Phase)
 }
 
-// TestStateManager_CleanupExpiredSessions verifies that CleanupExpiredSessions
-// removes sessions in PhaseCompleted or PhaseFailed.
-func TestStateManager_CleanupExpiredSessions(t *testing.T) {
+// TestStateManager_PruneOldSessions verifies that after several rounds, sessions
+// older than the retention horizon are removed from memory and disk while the active
+// round and the retained recent rounds survive.
+func TestStateManager_PruneOldSessions(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	ctx := context.Background()
+
+	sm, err := NewStateManager(dir)
+	require.NoError(t, err)
+
+	// Advance through several rounds.
+	const activeRound = 20
+	for r := uint32(1); r <= activeRound; r++ {
+		require.NoError(t, sm.CreateSession(ctx, newTestSession(r)))
+	}
+
+	sm.PruneOldSessions(ctx, activeRound)
+
+	// Retention horizon is activeRound - sessionRetentionRounds. Rounds below it are
+	// pruned; the horizon round and everything up to the active round survive.
+	horizon := uint32(activeRound - sessionRetentionRounds)
+
+	for r := uint32(1); r < horizon; r++ {
+		_, err := sm.GetSession(r)
+		require.Error(t, err, "round %d should have been pruned from memory", r)
+
+		_, statErr := os.Stat(filepath.Join(dir, "session_"+strconv.FormatUint(uint64(r), 10)+".json"))
+		require.True(t, os.IsNotExist(statErr), "round %d file should have been pruned from disk", r)
+	}
+
+	for r := horizon; r <= activeRound; r++ {
+		got, err := sm.GetSession(r)
+		require.NoError(t, err, "round %d should have survived", r)
+		require.Equal(t, r, got.Round)
+
+		_, statErr := os.Stat(filepath.Join(dir, "session_"+strconv.FormatUint(uint64(r), 10)+".json"))
+		require.NoError(t, statErr, "round %d file should have survived on disk", r)
+	}
+}
+
+// TestStateManager_PruneOldSessions_RetainedRoundStillUsable verifies that a retained
+// recent round's session remains usable by the decrypt path after pruning: its
+// GlobalPubKey is preserved both in memory and after a reload from disk.
+func TestStateManager_PruneOldSessions_RetainedRoundStillUsable(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	ctx := context.Background()
+
+	sm, err := NewStateManager(dir)
+	require.NoError(t, err)
+
+	const activeRound = 20
+	pubKey := []byte{0x01, 0x02, 0x03, 0x04}
+
+	for r := uint32(1); r <= activeRound; r++ {
+		session := newTestSession(r)
+		// The round just below the active round is still needed by the decrypt path.
+		if r == activeRound-1 {
+			session.GlobalPubKey = pubKey
+			session.Index = 1
+			session.IsFinalized = true
+		}
+		require.NoError(t, sm.CreateSession(ctx, session))
+	}
+
+	sm.PruneOldSessions(ctx, activeRound)
+
+	got, err := sm.GetSession(activeRound - 1)
+	require.NoError(t, err, "the round below active must be retained for the decrypt path")
+	require.Equal(t, pubKey, got.GlobalPubKey, "GlobalPubKey must be preserved for decryption")
+
+	// The preserved key must also survive a reload from disk.
+	sm2, err := NewStateManager(dir)
+	require.NoError(t, err)
+	reloaded, err := sm2.GetSession(activeRound - 1)
+	require.NoError(t, err)
+	require.Equal(t, pubKey, reloaded.GlobalPubKey)
+}
+
+// TestStateManager_PruneOldSessions_NoopBelowHorizon verifies that pruning is a no-op
+// while fewer rounds than the retention window have elapsed (underflow guard).
+func TestStateManager_PruneOldSessions_NoopBelowHorizon(t *testing.T) {
 	t.Parallel()
 
 	sm := newTestStateManager(t)
 	ctx := context.Background()
 
-	// Create 3 sessions: one completed, one failed, one active
-	completed := newTestSession(1)
-	require.NoError(t, sm.CreateSession(ctx, completed))
-	completed.UpdatePhase(types.PhaseCompleted)
-	require.NoError(t, sm.UpdateSession(ctx, completed))
+	for r := uint32(1); r <= sessionRetentionRounds; r++ {
+		require.NoError(t, sm.CreateSession(ctx, newTestSession(r)))
+	}
 
-	failed := newTestSession(2)
-	require.NoError(t, sm.CreateSession(ctx, failed))
-	failed.UpdatePhase(types.PhaseFailed)
-	require.NoError(t, sm.UpdateSession(ctx, failed))
+	sm.PruneOldSessions(ctx, sessionRetentionRounds)
 
-	active := newTestSession(3)
-	require.NoError(t, sm.CreateSession(ctx, active))
-	active.UpdatePhase(types.PhaseDealing)
-	require.NoError(t, sm.UpdateSession(ctx, active))
-
-	sm.CleanupExpiredSessions(ctx)
-
-	sessions := sm.ListSessions()
-	require.Len(t, sessions, 1, "only the dealing session should remain")
-	require.Equal(t, uint32(3), sessions[0].Round)
+	require.Len(t, sm.ListSessions(), sessionRetentionRounds, "nothing should be pruned below the horizon")
 }
 
 // TestStateManager_PersistenceAcrossReload verifies that sessions stored to

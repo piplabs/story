@@ -178,34 +178,37 @@ func (sm *StateManager) GetActiveSession(validatorAddr string) *types.DKGSession
 	return nil
 }
 
-// CleanupExpiredSessions removes expired sessions.
-func (sm *StateManager) CleanupExpiredSessions(ctx context.Context) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+// sessionRetentionRounds bounds how many recent rounds' sessions are kept. The decrypt path
+// only needs the latest activated round and the one before it; 10 is a generous margin (each
+// session is a small JSON file) that also covers a brief-outage resume, while bounding growth.
+const sessionRetentionRounds = 10
 
-	var expired []string
-
-	for key, session := range sm.sessions {
-		// TODO: more rigorous expiration check
-		if session.Phase == types.PhaseCompleted || session.Phase == types.PhaseFailed {
-			expired = append(expired, key)
-		}
+// PruneOldSessions deletes local sessions (in-memory + disk) for rounds older than
+// (activeRound - sessionRetentionRounds). Rounds activate sequentially, so activeRound is the
+// latest active round and is always kept. Node-local only; the round-based criterion is
+// deterministic with no consensus or wall-clock dependence.
+func (sm *StateManager) PruneOldSessions(ctx context.Context, activeRound uint32) {
+	// Guard against underflow: nothing to prune until enough rounds have elapsed.
+	if activeRound <= sessionRetentionRounds {
+		return
 	}
 
-	for _, key := range expired {
-		session := sm.sessions[key]
-		delete(sm.sessions, key)
+	horizon := activeRound - sessionRetentionRounds
 
-		// Remove from disk
-		filename := sm.getSessionFilename(key)
-		if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
-			log.Error(ctx, "Failed to delete expired session file", err, "filename", filename)
-		} else {
-			log.Info(ctx, "Cleaned up expired DKG session",
-				"code_commitment", session.GetCodeCommitmentString(),
-				"round", session.Round,
-				"phase", session.Phase.String(),
-			)
+	sm.mu.RLock()
+	stale := make([]uint32, 0)
+	for _, session := range sm.sessions {
+		if session.Round < horizon {
+			stale = append(stale, session.Round)
+		}
+	}
+	sm.mu.RUnlock()
+
+	// DeleteSession removes both the in-memory entry and the disk file, taking the
+	// lock itself; the result is independent of map-iteration order.
+	for _, round := range stale {
+		if err := sm.DeleteSession(ctx, round); err != nil {
+			log.Error(ctx, "Failed to prune old DKG session", err, "round", round)
 		}
 	}
 }
