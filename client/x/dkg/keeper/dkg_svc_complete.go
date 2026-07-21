@@ -30,6 +30,10 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		return
 	}
 
+	// A round just activated, so bound session growth by pruning rounds well below it.
+	// session.Round is the latest active round and is always retained.
+	k.stateManager.PruneOldSessions(ctx, session.Round)
+
 	if session.Phase == types.PhaseCompleted && session.IsFinalized {
 		log.Info(ctx, "DKG network already completed")
 		// Ensure the decrypt worker is running even if completion was already processed
