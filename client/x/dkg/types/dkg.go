@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -85,6 +86,11 @@ type DKGSession struct {
 
 	// Pending threshold decrypt requests (from contract events).
 	DecryptRequests []PendingDecryptRequest `json:"decrypt_requests,omitempty"`
+
+	// RecoveryAttempts counts node-local key-material recovery attempts for a keyless
+	// active-round session. It bounds the per-block finalize retries in ResumeDKGService.
+	// Node-local JSON state only (never consensus/KVStore), so it is determinism-safe.
+	RecoveryAttempts uint32 `json:"recovery_attempts,omitempty"`
 }
 
 // PendingDecryptRequest wraps a DecryptRequest with a retry counter for the decrypt queue.
@@ -138,6 +144,85 @@ func (s *DKGSession) UpdatePhase(phase DKGPhase) {
 
 	s.Phase = phase
 	s.LastUpdate = time.Now()
+}
+
+// GetRecoveryAttempts returns the node-local active-round recovery attempt counter.
+func (s *DKGSession) GetRecoveryAttempts() uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.RecoveryAttempts
+}
+
+// IncrementRecoveryAttempts increments the recovery attempt counter and returns the new value.
+func (s *DKGSession) IncrementRecoveryAttempts() uint32 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.RecoveryAttempts++
+	s.LastUpdate = time.Now()
+
+	return s.RecoveryAttempts
+}
+
+// SetRecoveryAttempts overrides the recovery attempt counter. Used to escalate past the
+// retry cap (deterministic divergent-key failures skip straight to the exhausted sentinel).
+func (s *DKGSession) SetRecoveryAttempts(n uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.RecoveryAttempts = n
+	s.LastUpdate = time.Now()
+}
+
+// HasKeyMaterial reports whether the session holds both the global public key and this
+// validator's key share. Read under RLock so it never observes a torn slice header while
+// the recovery/finalization goroutine writes the fields via SetKeyMaterial.
+func (s *DKGSession) HasKeyMaterial() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.GlobalPubKey) > 0 && len(s.PubKeyShare) > 0
+}
+
+// GetGlobalPubKey returns a copy of the session global public key under RLock.
+func (s *DKGSession) GetGlobalPubKey() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.GlobalPubKey)
+}
+
+// GetSigFinalizeNetwork returns a copy of the finalize-network signature under RLock.
+func (s *DKGSession) GetSigFinalizeNetwork() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.SigFinalizeNetwork)
+}
+
+// SetKeyMaterial atomically stores the key material returned by the kernel finalize call
+// (participants root, global public key, finalize signature, this validator's key share, and
+// the public coefficients) under a single Lock, so a concurrent reader such as HasKeyMaterial
+// on the ABCI thread never observes a partially-written set of slice headers.
+func (s *DKGSession) SetKeyMaterial(participantsRoot, globalPubKey, sigFinalizeNetwork, pubKeyShare []byte, publicCoeffs [][]byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.ParticipantsRoot = participantsRoot
+	s.GlobalPubKey = globalPubKey
+	s.SigFinalizeNetwork = sigFinalizeNetwork
+	s.PubKeyShare = pubKeyShare
+	s.PublicCoeffs = publicCoeffs
+	s.LastUpdate = time.Now()
+}
+
+// GetLastUpdate returns the timestamp of the last session mutation.
+func (s *DKGSession) GetLastUpdate() time.Time {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.LastUpdate
 }
 
 // AddDecryptRequest appends a threshold decrypt request to this session.

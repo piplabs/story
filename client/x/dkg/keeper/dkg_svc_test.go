@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc"
 
 	dkgtestutil "github.com/piplabs/story/client/x/dkg/testutil"
 	"github.com/piplabs/story/client/x/dkg/types"
@@ -2157,13 +2160,18 @@ func TestResumeFailedSession_FinalizationStage(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-// TestResumeFailedSession_ActiveStage verifies that resumeFailedSession
-// dispatches to handleDKGComplete for DKGStageActive stage.
-// The session phase is updated to PhaseFinalized before spawning the goroutine.
+// TestResumeFailedSession_ActiveStage verifies that a failed session that DOES
+// have key material (GlobalPubKey + PubKeyShare) is completed via handleDKGComplete
+// for the DKGStageActive stage. This is the unchanged happy path.
 // NOTE: not parallel — uses package-level dkgSvcRound atomic.
 func TestResumeFailedSession_ActiveStage(t *testing.T) {
 	resetDKGSvcRound()
 	defer resetDKGSvcRound()
+	// Pre-mark the worker as running so handleDKGComplete does not spawn a real
+	// background goroutine that would outlive the test and tick against a finished
+	// mock controller.
+	decryptWorkerRunning.Store(true)
+	defer decryptWorkerRunning.Store(false)
 
 	k, _, _, ctx := setupDKGKeeperWithMocks(t)
 
@@ -2178,9 +2186,12 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 	k.stateManager = sm
 	k.validatorEVMAddr = testValidatorAddr
 
+	// Session already holds key material: completion must proceed as before.
 	session := &types.DKGSession{
-		Round: 21,
-		Phase: types.PhaseFailed,
+		Round:        21,
+		Phase:        types.PhaseFailed,
+		GlobalPubKey: []byte("global-pub"),
+		PubKeyShare:  []byte("share"),
 	}
 	require.NoError(t, sm.CreateSession(ctx, session))
 
@@ -2215,6 +2226,989 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 	// handleDKGComplete advances phase from Finalized to Completed.
 	require.Equal(t, types.PhaseCompleted, got.Phase,
 		"active stage: handleDKGComplete should advance phase to PhaseCompleted")
+	require.NotEmpty(t, got.GlobalPubKey, "key material must be preserved through completion")
+}
+
+// TestResumeFailedSession_ActiveStage_MissingKeyMaterial verifies that a failed
+// session WITHOUT key material in the active stage is NOT force-completed with an
+// empty key. It routes to local finalization recovery; when the kernel call fails,
+// the session is left PhaseFailed (visibly broken) rather than PhaseCompleted.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_MissingKeyMaterial(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-nokey-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-nokey-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	// Failed session with no key material — the recovery path must be taken.
+	session := &types.DKGSession{
+		Round:          30,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Kernel finalize keeps failing → recovery cannot recover the share. The three
+	// retries run sequentially in the recovery goroutine; close done on the last one
+	// so the test can synchronize deterministically.
+	done := make(chan struct{})
+	attempts := 0
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			attempts++
+			if attempts == retryAttempts {
+				close(done)
+			}
+
+			return nil, errors.New("kernel finalize failed")
+		}).
+		Times(retryAttempts)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        30,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	// Recovery runs in a goroutine and retries the kernel with backoff. Wait for the
+	// final retry, then a short grace period for the goroutine to persist MarkFailed.
+	select {
+	case <-done:
+	case <-time.After(15 * time.Second):
+		t.Fatal("kernel finalize was not retried to exhaustion")
+	}
+	time.Sleep(200 * time.Millisecond)
+
+	got, err := sm.GetSession(30)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseFailed, got.Phase,
+		"missing key material: session must be left failed, not completed")
+	require.NotEqual(t, types.PhaseCompleted, got.Phase,
+		"missing key material: session must never reach PhaseCompleted with empty key")
+	require.Empty(t, got.GlobalPubKey, "no key material should have been produced")
+}
+
+// TestResumeFailedSession_ActiveStage_RecoversKeyMaterial verifies that a failed
+// session WITHOUT key material in the active stage recovers the share via a local
+// kernel finalization (no on-chain finalize vote) and is then completed.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_RecoversKeyMaterial(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Pre-mark the worker as running so handleDKGComplete does not spawn a real
+	// background goroutine that would outlive the test.
+	decryptWorkerRunning.Store(true)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-recover-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-ok-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          31,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Kernel recomputes and seals the share for the active round. No contract
+	// Finalize is expected — recovery must not submit a stale on-chain vote.
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).Return(
+		&types.FinalizeDKGResponse{
+			ParticipantsRoot: make([]byte, 32),
+			GlobalPubKey:     []byte("global-pub"),
+			Signature:        []byte("sig"),
+			PublicCoeffs:     [][]byte{[]byte("c1")},
+			PubKeyShare:      []byte("share"),
+		}, nil,
+	)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        31,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{testValidatorAddr},
+		// On-chain consensus key must match the kernel-recomputed GlobalPubKey so the
+		// recovery guard passes and the session completes.
+		GlobalPublicKey: []byte("global-pub"),
+	}
+
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	// Recovery runs in a goroutine (kernel finalize → handleDKGComplete) that mutates
+	// the shared session pointer. handleDKGComplete acquires the round lock and releases
+	// it on completion. Wait for the lock to drain before reading to avoid a race on the
+	// shared session object. The kernel mock returns immediately (no retries/backoff).
+	time.Sleep(100 * time.Millisecond)
+	for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	got, err := sm.GetSession(31)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseCompleted, got.Phase,
+		"recovered session should be completed")
+	require.True(t, got.IsFinalized, "completed session should be finalized")
+	require.Equal(t, []byte("global-pub"), got.GlobalPubKey,
+		"recovered session must be completed WITH the recovered key material")
+	require.Equal(t, []byte("share"), got.PubKeyShare)
+}
+
+// TestResumeFailedSession_ActiveStage_DivergentKey verifies that when the kernel
+// recomputes a GlobalPubKey that does NOT match the on-chain consensus network key,
+// the session is left PhaseFailed and never completed, so the node does not submit
+// partial decryptions under a divergent key.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_DivergentKey(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-divergent-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-divergent-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          32,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Kernel recomputes a key that diverges from the on-chain network key.
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).Return(
+		&types.FinalizeDKGResponse{
+			ParticipantsRoot: make([]byte, 32),
+			GlobalPubKey:     []byte("divergent-pub"),
+			Signature:        []byte("sig"),
+			PublicCoeffs:     [][]byte{[]byte("c1")},
+			PubKeyShare:      []byte("share"),
+		}, nil,
+	).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:           32,
+		Stage:           types.DKGStageActive,
+		ActiveValSet:    []string{testValidatorAddr},
+		GlobalPublicKey: []byte("global-pub"), // does not match the kernel-recomputed key
+	}
+
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	// Recovery runs in a goroutine (kernel finalize immediate, no retries). Wait for the
+	// round lock to drain before reading the shared session.
+	time.Sleep(100 * time.Millisecond)
+	for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	got, err := sm.GetSession(32)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseFailed, got.Phase,
+		"divergent key: session must be left failed, not completed")
+	require.NotEqual(t, types.PhaseCompleted, got.Phase,
+		"divergent key: session must never reach PhaseCompleted")
+	require.False(t, decryptWorkerRunning.Load(),
+		"divergent key: decrypt worker must not be started")
+}
+
+// TestRecoverActiveSessionKeyMaterial_ConcurrentSingleFinalize verifies that when two
+// blocks concurrently spawn active-round recovery for the same round, the per-round lock
+// serializes them so the kernel FinalizeDKG is invoked at most once and the session is
+// completed exactly once (no double-completion / phase flapping). Runs under -race.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestRecoverActiveSessionKeyMaterial_ConcurrentSingleFinalize(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Pre-mark the worker as running so handleDKGComplete does not spawn a real
+	// background goroutine that would outlive the test.
+	decryptWorkerRunning.Store(true)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-concurrent-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-concurrent-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          33,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Slow kernel finalize: the winner holds the round lock for its whole duration, so a
+	// concurrent recovery for the same round is deduplicated by tryAcquireDKGSvc. Count
+	// invocations to assert it runs at most once.
+	var finalizeCalls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			finalizeCalls.Add(1)
+			time.Sleep(200 * time.Millisecond)
+
+			return &types.FinalizeDKGResponse{
+				ParticipantsRoot: make([]byte, 32),
+				GlobalPubKey:     []byte("global-pub"),
+				Signature:        []byte("sig"),
+				PublicCoeffs:     [][]byte{[]byte("c1")},
+				PubKeyShare:      []byte("share"),
+			}, nil
+		}).
+		MaxTimes(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:           33,
+		Stage:           types.DKGStageActive,
+		ActiveValSet:    []string{testValidatorAddr},
+		GlobalPublicKey: []byte("global-pub"),
+	}
+
+	// Two blocks fire recovery for the same round concurrently.
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			k.recoverActiveSessionKeyMaterial(context.Background(), dkgNetwork)
+		}()
+	}
+	wg.Wait()
+
+	// Wait for the round lock (held across finalize + handleDKGComplete) to drain.
+	for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	require.Equal(t, int32(1), finalizeCalls.Load(),
+		"kernel FinalizeDKG must be invoked exactly once despite two concurrent recoveries")
+
+	got, err := sm.GetSession(33)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseCompleted, got.Phase,
+		"concurrent recovery must complete the session exactly once")
+	require.True(t, got.IsFinalized, "completed session should be finalized")
+	require.Equal(t, []byte("global-pub"), got.GlobalPubKey)
+}
+
+// TestRecoverActiveSessionKeyMaterial_SingleLockHoldNoStuckCheckGap is the regression test for
+// the release/re-acquire gap (MEDIUM). Recovery and completion now run under a SINGLE continuous
+// hold of the per-round service lock: the session transitions Failed -> Finalized -> Completed
+// without the lock ever being released in between. Previously recovery released the lock after
+// setting PhaseFinalized and completion re-acquired it, leaving a window where the session was
+// PhaseFinalized with the lock FREE — and ResumeDKGService's stuck-check
+// (isSessionStuckForStage(PhaseFinalized, DKGStageActive) == true) could acquire that free lock
+// and MarkFailed a recovery that had just succeeded.
+//
+// The stuck-check only force-fails a session if it can acquire the round lock (tryAcquireDKGSvc).
+// This test proves the gap is closed by asserting that from the moment a recovery is in flight
+// until it has fully completed the session, tryAcquireDKGSvc NEVER succeeds — so a concurrent
+// stuck-check can never observe the intermediate PhaseFinalized with a free lock. The probe uses
+// only the atomic lock (no unguarded session.Phase read), so it is race-free.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestRecoverActiveSessionKeyMaterial_SingleLockHoldNoStuckCheckGap(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Pre-mark the worker as running so completion does not spawn a real background goroutine.
+	decryptWorkerRunning.Store(true)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-nogap-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-nogap-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          80,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Slow kernel: the recovery holds the round lock across the whole finalize AND the subsequent
+	// Finalized->Completed transition. It signals `entered` once in-flight, then blocks on `release`
+	// so the test can probe the lock while recovery is mid-flight.
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var finalizeCalls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			finalizeCalls.Add(1)
+			close(entered)
+			<-release
+
+			return &types.FinalizeDKGResponse{
+				ParticipantsRoot: make([]byte, 32),
+				GlobalPubKey:     []byte("global-pub"),
+				Signature:        []byte("sig"),
+				PublicCoeffs:     [][]byte{[]byte("c1")},
+				PubKeyShare:      []byte("share"),
+			}, nil
+		}).
+		MaxTimes(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:           80,
+		Stage:           types.DKGStageActive,
+		ActiveValSet:    []string{testValidatorAddr},
+		GlobalPublicKey: []byte("global-pub"),
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		k.recoverActiveSessionKeyMaterial(context.Background(), dkgNetwork)
+	}()
+
+	// Recovery is now in flight and holds the round lock.
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("recovery never reached the kernel")
+	}
+
+	// While recovery is in flight, the stuck-check's tryAcquireDKGSvc must always fail: there is
+	// no free-lock window for it to force-fail the in-progress recovery.
+	require.False(t, tryAcquireDKGSvc(dkgNetwork.Round),
+		"round lock must be held while recovery is in flight; stuck-check could not acquire it")
+
+	// Release the kernel; recovery now runs Finalized->Completed WITHOUT releasing the lock. Keep
+	// probing: the lock must stay held continuously until completion, so the stuck-check can never
+	// slip into a PhaseFinalized+free-lock window.
+	close(release)
+	sawFree := false
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
+		if tryAcquireDKGSvc(dkgNetwork.Round) {
+			// Acquired: recovery has finished and released the lock. Release our probe hold.
+			releaseDKGSvc(dkgNetwork.Round)
+			sawFree = true
+
+			break
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	require.True(t, sawFree, "recovery must eventually release the lock")
+
+	<-done
+
+	got, err := sm.GetSession(80)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseCompleted, got.Phase,
+		"successful recovery must reach PhaseCompleted, never force-failed by the stuck-check")
+	require.True(t, got.IsFinalized, "completed session must be finalized")
+	require.Equal(t, []byte("global-pub"), got.GlobalPubKey)
+	require.Equal(t, int32(1), finalizeCalls.Load(), "kernel finalize must run exactly once")
+}
+
+// TestResumeFailedSession_ActiveStage_RedispatchesWhenNotInFlight verifies that active-round
+// recovery re-dispatches on the next block once the prior attempt has drained (released the
+// per-round service lock), while retry budget remains. The gate is the in-flight lock, not a
+// wall-clock timer: with no attempt in flight, a new attempt is dispatched every block until the
+// cap. This is the inverse of the removed time-based backoff.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_RedispatchesWhenNotInFlight(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-redispatch-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-redispatch-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          40,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Kernel finalize fails fast so each attempt drains immediately, releasing the round lock.
+	var calls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			calls.Add(1)
+
+			return nil, errors.New("kernel finalize failed")
+		}).
+		AnyTimes()
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        40,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	// First block: recovery runs (attempts 0 -> 1) and the kernel is called.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	time.Sleep(200 * time.Millisecond)
+
+	afterFirst := calls.Load()
+	require.Positive(t, afterFirst, "first block must run one recovery attempt")
+	require.Equal(t, uint32(1), session.GetRecoveryAttempts(),
+		"first block must record exactly one recovery attempt")
+
+	// Next block with no attempt in flight (the prior one drained): recovery re-dispatches
+	// immediately — there is no time-based backoff. A new kernel call and counter bump follow.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	time.Sleep(200 * time.Millisecond)
+
+	require.Greater(t, calls.Load(), afterFirst,
+		"recovery must re-dispatch on the next block once the prior attempt drained")
+	require.Equal(t, uint32(2), session.GetRecoveryAttempts(),
+		"a second real attempt must be recorded on the next block")
+}
+
+// TestResumeFailedSession_ActiveStage_RecoveryCapExhausted verifies that active-round recovery
+// stops after maxActiveRecoveryAttempts: further blocks make no kernel call, the session stays
+// PhaseFailed, and the escalation path (counter bumped past the cap) is reached exactly once.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_RecoveryCapExhausted(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-cap-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-cap-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          41,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	var calls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			calls.Add(1)
+
+			return nil, errors.New("kernel finalize failed")
+		}).
+		AnyTimes()
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        41,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	// Drive maxActiveRecoveryAttempts blocks. Each runs one recovery attempt to exhaustion and
+	// drains the round lock before the next block, so with budget remaining and no attempt in
+	// flight, every block dispatches a fresh attempt (no time-based backoff to bypass).
+	for range maxActiveRecoveryAttempts {
+		k.resumeFailedSession(context.Background(), session, dkgNetwork)
+		waitForRoundDrain(t)
+		time.Sleep(150 * time.Millisecond)
+	}
+
+	afterCap := calls.Load()
+	require.Positive(t, afterCap, "recovery must have called the kernel during the retry budget")
+	require.Equal(t, uint32(maxActiveRecoveryAttempts), session.GetRecoveryAttempts(),
+		"exactly maxActiveRecoveryAttempts attempts must have been recorded")
+
+	// Next block: retry budget exhausted, no attempt in flight -> escalation. No new kernel call;
+	// counter bumped past the cap so subsequent blocks skip silently; session stays failed.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	time.Sleep(150 * time.Millisecond)
+
+	require.Equal(t, afterCap, calls.Load(),
+		"no kernel call must be made once the recovery cap is exhausted")
+	require.Equal(t, uint32(maxActiveRecoveryAttempts+1), session.GetRecoveryAttempts(),
+		"escalation must bump the counter past the cap")
+
+	// A further block must remain silent: still no kernel call, counter unchanged.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	time.Sleep(150 * time.Millisecond)
+
+	require.Equal(t, afterCap, calls.Load(),
+		"exhausted recovery must not re-run on later blocks")
+	require.Equal(t, uint32(maxActiveRecoveryAttempts+1), session.GetRecoveryAttempts(),
+		"counter must stay at the exhausted sentinel")
+
+	got, err := sm.GetSession(41)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseFailed, got.Phase,
+		"exhausted recovery must leave the session failed")
+}
+
+// TestResumeFailedSession_ActiveStage_InFlightGateBlocksRedispatch verifies that while a real
+// recovery attempt holds the per-round service lock (a slow kernel call, possibly longer than
+// any prior backoff window), a subsequent block observes the in-flight gate (dkgSvcRound == round)
+// and returns BEFORE spawning a competing goroutine. No second kernel call is made, and the retry
+// budget is not burned by the deferred block — the counter reflects only the real, lock-acquired
+// attempt. This resolves both the budget-burn and the doomed-goroutine-per-block concerns.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_InFlightGateBlocksRedispatch(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Pre-mark the worker as running so handleDKGComplete does not spawn a real
+	// background goroutine that would outlive the test.
+	decryptWorkerRunning.Store(true)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-inflight-gate-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-inflight-gate-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          50,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Slow kernel: the first (real) recovery holds the round lock for the whole call. It signals
+	// `entered` once in-flight and then blocks on `release`. Any block fired during this window
+	// must be suppressed by the in-flight gate before it can spawn a goroutine or call the kernel.
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var finalizeCalls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			finalizeCalls.Add(1)
+			close(entered)
+			<-release
+
+			return &types.FinalizeDKGResponse{
+				ParticipantsRoot: make([]byte, 32),
+				GlobalPubKey:     []byte("global-pub"),
+				Signature:        []byte("sig"),
+				PublicCoeffs:     [][]byte{[]byte("c1")},
+				PubKeyShare:      []byte("share"),
+			}, nil
+		}).
+		MaxTimes(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:           50,
+		Stage:           types.DKGStageActive,
+		ActiveValSet:    []string{testValidatorAddr},
+		GlobalPublicKey: []byte("global-pub"),
+	}
+
+	// Block 1 (real): attempts == 0, no attempt in flight, budget remains → dispatch. The
+	// goroutine acquires the round lock, counts the attempt inside the lock, and parks in the
+	// slow kernel call while still holding the lock.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("real recovery attempt never reached the kernel")
+	}
+
+	require.Equal(t, uint32(1), session.GetRecoveryAttempts(),
+		"the real attempt must be counted exactly once inside the round lock")
+
+	// Block 2 while the attempt is in flight: dkgSvcRound == round, so the in-flight gate returns
+	// before dispatching. No competing goroutine is spawned and the counter is untouched.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	require.Equal(t, uint32(1), session.GetRecoveryAttempts(),
+		"a block fired while an attempt is in flight must not touch the counter")
+
+	// Give any (erroneously) spawned goroutine time to run before asserting no extra kernel call.
+	time.Sleep(300 * time.Millisecond)
+
+	require.Equal(t, uint32(1), session.GetRecoveryAttempts(),
+		"the in-flight gate must not consume the retry budget")
+	require.Equal(t, int32(1), finalizeCalls.Load(),
+		"only the real attempt may call the kernel; the in-flight block must not dispatch")
+
+	// Release the real attempt and let it finish; the round completes with the recovered key.
+	close(release)
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	require.Equal(t, uint32(1), session.GetRecoveryAttempts(),
+		"exactly one real recovery attempt must have been recorded end to end")
+	got, err := sm.GetSession(50)
+	require.NoError(t, err)
+	require.Equal(t, types.PhaseCompleted, got.Phase,
+		"the real attempt must complete the recovered session")
+	require.Equal(t, []byte("global-pub"), got.GlobalPubKey)
+}
+
+// TestResumeFailedSession_ActiveStage_NoEscalationWhileFinalAttemptInFlight verifies that the
+// exhaustion escalation is NOT declared while the final (cap-reaching) recovery attempt is still
+// in flight, and is deferred until that attempt has concluded (its goroutine released the round
+// lock after MarkFailed settled the state). Because the attempt counter is incremented at attempt
+// START under the round lock, attempts reaches the cap the moment the final attempt begins; the
+// in-flight gate (dkgSvcRound == round) must therefore be checked BEFORE the exhaustion branch so
+// no false "manual intervention required" escalation fires while the attempt may still succeed.
+// The escalation then fires exactly once, and later blocks stay silent via the cap+1 sentinel.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_NoEscalationWhileFinalAttemptInFlight(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-final-inflight-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-final-inflight-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	// Start one below the cap so the next (real) attempt is the final one that reaches the cap.
+	session := &types.DKGSession{
+		Round:            60,
+		Phase:            types.PhaseFailed,
+		CodeCommitment:   cc,
+		RecoveryAttempts: maxActiveRecoveryAttempts - 1,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Slow kernel: the final attempt holds the round lock across the whole call. It signals
+	// `entered` once in-flight, blocks on `release`, then returns NO key material so the attempt
+	// concludes as a failure (session left PhaseFailed at attempts == cap) — a single kernel call,
+	// no retries, no divergent-key sentinel.
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var finalizeCalls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			finalizeCalls.Add(1)
+			close(entered)
+			<-release
+
+			return &types.FinalizeDKGResponse{
+				ParticipantsRoot: make([]byte, 32),
+				PublicCoeffs:     [][]byte{[]byte("c1")},
+			}, nil
+		}).
+		Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:           60,
+		Stage:           types.DKGStageActive,
+		ActiveValSet:    []string{testValidatorAddr},
+		GlobalPublicKey: []byte("global-pub"),
+	}
+
+	// Dispatch the final attempt. attempts == cap-1 (< cap) and nothing is in flight, so the
+	// block dispatches. The goroutine acquires the round lock, increments the counter to the cap
+	// under the lock, and parks in the slow kernel call while still holding the lock — the final
+	// attempt is now in flight.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("final recovery attempt never reached the kernel")
+	}
+
+	require.Equal(t, uint32(maxActiveRecoveryAttempts), session.GetRecoveryAttempts(),
+		"final attempt must have counted up to the cap under the round lock")
+
+	// Next block WHILE the final attempt is still in flight: dkgSvcRound == round, so the in-flight
+	// gate returns BEFORE the exhaustion branch — no escalation despite attempts == cap. Without
+	// the in-flight gate ordered ahead of the exhaustion check, this would fire a false escalation.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	require.Equal(t, uint32(maxActiveRecoveryAttempts), session.GetRecoveryAttempts(),
+		"escalation must not fire while the final attempt is still in flight")
+
+	// Let the final attempt conclude. It returns no key material, so MarkFailed leaves the session
+	// PhaseFailed at attempts == cap; the goroutine then releases the round lock via its defer.
+	close(release)
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, int32(1), finalizeCalls.Load(),
+		"only the single final attempt may call the kernel")
+	require.Equal(t, uint32(maxActiveRecoveryAttempts), session.GetRecoveryAttempts(),
+		"a failed final attempt must leave the counter at the cap")
+
+	// Next block after the attempt concluded (lock released, attempts == cap, nothing in flight):
+	// the dispatcher spawns a recovery goroutine that, under the lock, observes attempts == cap and
+	// escalates exactly once, bumping the counter past the cap. Escalation now happens inside the
+	// locked recovery (not synchronously in the dispatcher), so wait for the goroutine to drain.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	require.Equal(t, uint32(maxActiveRecoveryAttempts+1), session.GetRecoveryAttempts(),
+		"exhaustion must escalate once the final attempt has concluded")
+
+	// Later block: the cap+1 sentinel makes the dispatcher return before spawning anything — the
+	// escalation fires exactly once.
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	require.Equal(t, uint32(maxActiveRecoveryAttempts+1), session.GetRecoveryAttempts(),
+		"exhaustion escalation must fire exactly once")
+	require.Equal(t, int32(1), finalizeCalls.Load(),
+		"no further kernel calls once the cap is reached")
+}
+
+// TestResumeFailedSession_ActiveStage_DecryptTrafficDoesNotJamRecovery is the regression test for
+// the HIGH finding: the recovery gate must not depend on session.LastUpdate. In an active round,
+// threshold-decrypt requests arrive continuously and each AddDecryptRequest bumps LastUpdate to
+// NOW. Under the removed time/LastUpdate-based recency gate, that steady traffic kept the gate
+// permanently closed, so recovery never re-dispatched and exhaustion never escalated. With the
+// in-flight-lock gate (dkgSvcRound), decrypt traffic is irrelevant: recovery still re-dispatches
+// each block and ultimately escalates. This test FAILS against the old LastUpdate gate.
+// NOTE: not parallel — uses package-level dkgSvcRound atomic.
+func TestResumeFailedSession_ActiveStage_DecryptTrafficDoesNotJamRecovery(t *testing.T) {
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	defer decryptWorkerRunning.Store(false)
+
+	ctrl := gomock.NewController(t)
+
+	tmpDir, err := os.MkdirTemp("", "dkg-resume-active-decrypt-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // best-effort cleanup
+
+	sm, err := NewStateManager(tmpDir)
+	require.NoError(t, err)
+
+	cc := []byte("recover-decrypt-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	session := &types.DKGSession{
+		Round:          70,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(context.Background(), session))
+
+	// Kernel finalize fails fast so each attempt drains immediately.
+	var calls atomic.Int32
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			calls.Add(1)
+
+			return nil, errors.New("kernel finalize failed")
+		}).
+		AnyTimes()
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        70,
+		Stage:        types.DKGStageActive,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	req := types.PendingDecryptRequest{
+		DecryptRequest: types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)},
+	}
+
+	// Drive the full retry budget. Before every block, simulate active-round decrypt traffic by
+	// bumping LastUpdate to NOW via AddDecryptRequest. The old recency gate would see LastUpdate
+	// as always-recent and suppress every attempt after the first; the in-flight gate ignores it.
+	for range maxActiveRecoveryAttempts {
+		session.AddDecryptRequest(req)
+		k.resumeFailedSession(context.Background(), session, dkgNetwork)
+		waitForRoundDrain(t)
+		time.Sleep(150 * time.Millisecond)
+	}
+
+	require.Equal(t, uint32(maxActiveRecoveryAttempts), session.GetRecoveryAttempts(),
+		"recovery must reach the cap despite continuous decrypt traffic bumping LastUpdate")
+
+	// One more block, still preceded by decrypt traffic: exhaustion must escalate regardless.
+	session.AddDecryptRequest(req)
+	k.resumeFailedSession(context.Background(), session, dkgNetwork)
+	waitForRoundDrain(t)
+	time.Sleep(150 * time.Millisecond)
+
+	require.Equal(t, uint32(maxActiveRecoveryAttempts+1), session.GetRecoveryAttempts(),
+		"exhaustion must escalate despite decrypt traffic that would have jammed the old gate")
+}
+
+// waitForRoundDrain blocks until the package-level dkgSvcRound lock is released (back to 0)
+// or a deadline elapses, so tests can safely read the shared session after a recovery goroutine.
+// The initial sleep lets a just-spawned goroutine acquire the lock before we poll for release;
+// without it the poll can observe 0 (not-yet-acquired) and return before the attempt runs.
+func waitForRoundDrain(t *testing.T) {
+	t.Helper()
+
+	time.Sleep(100 * time.Millisecond)
+
+	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); {
+		if dkgSvcRound.Load() == 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // --- decrypt worker kernel-call deadline (issue piplabs/story#854 family) ---
