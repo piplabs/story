@@ -253,20 +253,42 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 			k.handleDKGFinalization(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageActive:
-		session.UpdatePhase(types.PhaseFinalized)
+		// Only complete a session that actually obtained key material. Empty
+		// GlobalPubKey/PubKeyShare means this node never produced a share (the round
+		// advanced to active via other validators); completing it would contribute
+		// zero partial decryptions.
+		if len(session.GlobalPubKey) > 0 && len(session.PubKeyShare) > 0 {
+			session.UpdatePhase(types.PhaseFinalized)
 
-		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-			log.Error(ctx, "Failed to update session phase to finalized", err)
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to update session phase to finalized", err)
+
+				return
+			}
+
+			asyncCtx, cancel := dkgAsyncContext()
+
+			go func() {
+				defer cancel()
+
+				k.handleDKGComplete(asyncCtx, dkgNetwork)
+			}()
 
 			return
 		}
+
+		// Missing key material: recompute and seal the share locally (node-local only, no
+		// on-chain finalize vote for an already-active round).
+		log.Warn(ctx, "Active-round session is missing key material; attempting local finalization recovery", nil,
+			"round", dkgNetwork.Round,
+		)
 
 		asyncCtx, cancel := dkgAsyncContext()
 
 		go func() {
 			defer cancel()
 
-			k.handleDKGComplete(asyncCtx, dkgNetwork)
+			k.recoverActiveSessionKeyMaterial(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageUnspecified:
 	}
