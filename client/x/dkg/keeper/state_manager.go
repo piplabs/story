@@ -156,6 +156,12 @@ func (sm *StateManager) DeleteSession(ctx context.Context, round uint32) error {
 		return errors.Wrap(err, "failed to delete session file")
 	}
 
+	// Defensively remove a stray temporary file for this round if a prior write crashed
+	// before its rename. The round is being deleted, so no saveSession is writing it.
+	if err := os.Remove(filename + ".tmp"); err != nil && !os.IsNotExist(err) {
+		return errors.Wrap(err, "failed to delete temporary session file")
+	}
+
 	log.Info(ctx, "Deleted DKG session",
 		"code_commitment", session.GetCodeCommitmentString(),
 		"round", session.Round,
@@ -231,7 +237,36 @@ func (sm *StateManager) loadSessions() error {
 		sm.sessions[session.GetSessionKey()] = session
 	}
 
+	sm.sweepOrphanedTmpFiles()
+
 	return nil
+}
+
+// sweepOrphanedTmpFiles removes stale temporary session files left behind by a crash
+// between saveSession's write and rename. saveSession writes atomically (write to
+// session_<round>.json.tmp, then rename to session_<round>.json), so any .tmp present at
+// startup is a dead partial write: the valid session, if any, is always at the non-tmp
+// name. This runs only from loadSessions during construction, before the node serves
+// requests, so there is no concurrent saveSession writer to race with.
+func (sm *StateManager) sweepOrphanedTmpFiles() {
+	tmpFiles, err := filepath.Glob(filepath.Join(sm.dataDir, "session_*.json.tmp"))
+	if err != nil {
+		fmt.Printf("Warning: failed to list orphaned temporary session files: %v\n", err)
+		return
+	}
+
+	swept := 0
+	for _, file := range tmpFiles {
+		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Warning: failed to remove orphaned temporary session file %s: %v\n", file, err)
+			continue
+		}
+		swept++
+	}
+
+	if swept > 0 {
+		log.Info(context.Background(), "Swept orphaned DKG session temporary files on load", "count", swept)
+	}
 }
 
 // loadSessionFromFile loads a single session from a file.

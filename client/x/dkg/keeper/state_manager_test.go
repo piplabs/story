@@ -366,6 +366,72 @@ func TestStateManager_PersistenceAcrossReload(t *testing.T) {
 	require.Equal(t, uint32(10), got.Round)
 }
 
+// TestStateManager_LoadSessions_SweepsOrphanedTmpFiles verifies that orphaned
+// session_<round>.json.tmp files (left by a crash between saveSession's write and
+// rename) are removed on construction, while valid .json sessions still load.
+func TestStateManager_LoadSessions_SweepsOrphanedTmpFiles(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	ctx := context.Background()
+
+	// Persist a valid session to disk with a first StateManager.
+	sm1, err := NewStateManager(dir)
+	require.NoError(t, err)
+	require.NoError(t, sm1.CreateSession(ctx, newTestSession(1)))
+
+	// Simulate crashed writes: orphaned .tmp files for several rounds.
+	orphans := []string{
+		filepath.Join(dir, "session_2.json.tmp"),
+		filepath.Join(dir, "session_3.json.tmp"),
+	}
+	for _, f := range orphans {
+		require.NoError(t, os.WriteFile(f, []byte("{ partial"), 0600))
+	}
+
+	// Constructing a new StateManager triggers loadSessions, which sweeps orphans.
+	sm2, err := NewStateManager(dir)
+	require.NoError(t, err)
+
+	// Orphaned .tmp files must be gone.
+	for _, f := range orphans {
+		_, statErr := os.Stat(f)
+		require.True(t, os.IsNotExist(statErr), "orphaned tmp file %s should be swept", f)
+	}
+
+	// The valid session must still load, and no phantom sessions from the .tmp files.
+	got, err := sm2.GetSession(1)
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), got.Round)
+	require.Len(t, sm2.ListSessions(), 1, "only the valid session should be loaded")
+}
+
+// TestStateManager_DeleteSession_RemovesStrayTmpFile verifies that DeleteSession
+// also removes a stray temporary file for the deleted round.
+func TestStateManager_DeleteSession_RemovesStrayTmpFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	ctx := context.Background()
+
+	sm, err := NewStateManager(dir)
+	require.NoError(t, err)
+
+	require.NoError(t, sm.CreateSession(ctx, newTestSession(4)))
+
+	// A stray tmp file appears for the same round after creation.
+	tmpFile := filepath.Join(dir, "session_4.json.tmp")
+	require.NoError(t, os.WriteFile(tmpFile, []byte("{ partial"), 0600))
+
+	require.NoError(t, sm.DeleteSession(ctx, 4))
+
+	_, statErr := os.Stat(tmpFile)
+	require.True(t, os.IsNotExist(statErr), "stray tmp file should be removed on delete")
+
+	_, statErr = os.Stat(filepath.Join(dir, "session_4.json"))
+	require.True(t, os.IsNotExist(statErr), "session file should be removed on delete")
+}
+
 // TestStateManager_DeleteSession_FileRemovedFromDisk verifies that after
 // DeleteSession, the corresponding JSON file is removed from disk.
 func TestStateManager_DeleteSession_FileRemovedFromDisk(t *testing.T) {
