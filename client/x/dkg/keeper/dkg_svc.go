@@ -98,6 +98,10 @@ const dkgAsyncTimeout = 2 * time.Minute
 // contract-call timeout in contract_client.go.
 const decryptKernelCallTimeout = 60 * time.Second
 
+// maxActiveRecoveryAttempts caps keyless active-round recovery attempts; past it the session
+// is left failed and an escalation alert is logged instead of retrying forever. Node-local.
+const maxActiveRecoveryAttempts = 5
+
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
 // This replaces the consensus context that would otherwise be canceled after block processing.
 func dkgAsyncContext() (context.Context, context.CancelFunc) {
@@ -273,11 +277,40 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 			k.handleDKGFinalization(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageActive:
-		session.UpdatePhase(types.PhaseFinalized)
+		// Only complete a session that actually obtained key material; completing a keyless one
+		// would contribute zero partial decryptions.
+		if session.HasKeyMaterial() {
+			session.UpdatePhase(types.PhaseFinalized)
 
-		if err := k.stateManager.UpdateSession(ctx, session); err != nil {
-			log.Error(ctx, "Failed to update session phase to finalized", err)
+			if err := k.stateManager.UpdateSession(ctx, session); err != nil {
+				log.Error(ctx, "Failed to update session phase to finalized", err)
 
+				return
+			}
+
+			asyncCtx, cancel := dkgAsyncContext()
+
+			go func() {
+				defer cancel()
+
+				k.handleDKGComplete(asyncCtx, dkgNetwork)
+			}()
+
+			return
+		}
+
+		// Missing key material: dispatch recovery. The cap, attempt counter, and one-shot
+		// escalation all live inside recoverActiveSessionKeyMaterial under the round lock.
+
+		// Past the exhausted sentinel: escalation already fired (or divergent-key set it). Stop.
+		if session.GetRecoveryAttempts() > maxActiveRecoveryAttempts {
+			return
+		}
+
+		// An attempt is already in flight (holds the round lock): skip so we don't spawn a
+		// goroutine that would only lose the race. Optimization only — the inner tryAcquireDKGSvc
+		// still dedups, and dkgSvcRound (unlike a shared timestamp) can't be jammed by decrypt traffic.
+		if dkgSvcRound.Load() == uint64(dkgNetwork.Round) {
 			return
 		}
 
@@ -286,7 +319,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 		go func() {
 			defer cancel()
 
-			k.handleDKGComplete(asyncCtx, dkgNetwork)
+			k.recoverActiveSessionKeyMaterial(asyncCtx, dkgNetwork)
 		}()
 	case types.DKGStageUnspecified:
 	}

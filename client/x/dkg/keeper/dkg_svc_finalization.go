@@ -87,7 +87,7 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		"round", session.Round,
 	)
 
-	if len(session.GlobalPubKey) > 0 && len(session.SigFinalizeNetwork) > 0 {
+	if len(session.GetGlobalPubKey()) > 0 && len(session.GetSigFinalizeNetwork()) > 0 {
 		log.Info(ctx, "DKG network already finalized in kernel client, skipping call Finalize request")
 
 		return nil
@@ -123,12 +123,16 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		return errors.Wrap(retryErr, "kernel client Finalize request failed")
 	}
 
-	session.ParticipantsRoot = resp.GetParticipantsRoot()
-	session.GlobalPubKey = resp.GetGlobalPubKey()
-	session.SigFinalizeNetwork = resp.GetSignature()
-	session.PublicCoeffs = resp.GetPublicCoeffs()
+	// Store all key-material fields atomically under a single lock so a concurrent reader
+	// (e.g. HasKeyMaterial on the ABCI resume path) never observes a torn slice header.
+	session.SetKeyMaterial(
+		resp.GetParticipantsRoot(),
+		resp.GetGlobalPubKey(),
+		resp.GetSignature(),
+		resp.GetPubKeyShare(),
+		resp.GetPublicCoeffs(),
+	)
 
-	session.PubKeyShare = resp.GetPubKeyShare()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling Finalize on the kernel client")
 	}
