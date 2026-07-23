@@ -425,7 +425,7 @@ func (k *Keeper) ensureSessionIndex(ctx context.Context, round uint32) error {
 		return err
 	}
 
-	if session.Index != 0 {
+	if session.GetIndex() != 0 {
 		return nil
 	}
 
@@ -434,11 +434,13 @@ func (k *Keeper) ensureSessionIndex(ctx context.Context, round uint32) error {
 		return errors.Wrap(err, "registration lookup failed")
 	}
 
-	session.Index = reg.Index
+	// Set the index through the mutex-guarded setter: the decrypt worker reads it via GetIndex
+	// on its own goroutine, so a raw write here could race that read.
+	session.SetIndex(reg.Index)
 
 	log.Info(ctx, "Session index set from on-chain registration",
 		"round", round,
-		"index", session.Index,
+		"index", session.GetIndex(),
 	)
 
 	return k.stateManager.UpdateSession(ctx, session)

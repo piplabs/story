@@ -48,17 +48,17 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 	// participate in later stages (especially dealing, and finalization).
 	// Therefore, a session must exist regardless of key generation eligibility.
 	session := types.NewDKGSession(dkgNetwork.Round, dkgNetwork.ActiveValSet, dkgNetwork.IsResharing, k.enclaveType)
-	session.IsUpgrade = dkgNetwork.IsUpgrade
+	session.SetIsUpgrade(dkgNetwork.IsUpgrade)
 
 	// For upgrade rounds, store the old binary's code commitment so that dealers
 	// can route TEE calls to the correct (old) binary for deal generation.
 	if dkgNetwork.IsUpgrade && len(oldCC) > 0 {
-		session.OldCodeCommitment = oldCC
+		session.SetOldCodeCommitment(oldCC)
 
 		// For old-only members (not in current round set), set CodeCommitment
 		// to old CC so they have a valid routing target for processing deals/responses.
 		if !isInCurRoundSet {
-			session.CodeCommitment = oldCC
+			session.SetCodeCommitmentIfEmpty(oldCC)
 		}
 	}
 
@@ -69,9 +69,9 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if session.Phase != types.PhaseInitializing {
+	if session.GetPhase() != types.PhaseInitializing {
 		log.Warn(ctx, "Session not in initializing phase, skipping initialization", nil,
-			"current_phase", session.Phase.String())
+			"current_phase", session.GetPhase().String())
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
@@ -93,7 +93,7 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 
 	if alreadyRegistered {
 		log.Info(ctx, "Validator already registered on-chain; skipping contract call",
-			"round", session.Round,
+			"round", session.GetRound(),
 		)
 	} else if err := k.callContractRegister(ctx, session); err != nil {
 		log.Error(ctx, "Failed to call register method", err)
@@ -112,18 +112,18 @@ func (k *Keeper) handleDKGRegistration(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	log.Info(ctx, "DKG initialization complete",
-		"round", session.Round,
+		"round", session.GetRound(),
 	)
 }
 
 func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.DKGSession, isUpgrade bool, oldCC []byte) error {
 	log.Info(ctx, "GenerateAndSealKey call to kernel client",
-		"round", session.Round,
+		"round", session.GetRound(),
 		"validator", k.validatorEVMAddr,
 		"is_upgrade", isUpgrade,
 	)
 
-	if len(session.DKGPubKey) > 0 && len(session.CommPubKey) > 0 && len(session.EnclaveReport) > 0 {
+	if session.HasSetupData() {
 		log.Info(ctx, "Already generated and sealed the key, skipping call GenerateAndSealKey request")
 
 		return nil
@@ -134,7 +134,7 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	// - Upgrade rounds: use old binary's CC to find the NEW binary (by exclusion).
 	var targetCC []byte
 	if isUpgrade {
-		targetCC = session.OldCodeCommitment
+		targetCC = session.GetOldCodeCommitment()
 	} else {
 		targetCC = oldCC
 	}
@@ -145,10 +145,8 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	}
 
 	// Set the code commitment on the session from the resolved kernel client
-	// so the GenerateAndSealKey request includes it.
-	if len(session.CodeCommitment) == 0 {
-		session.CodeCommitment = clientCC
-	}
+	// so the GenerateAndSealKey request includes it. Atomic check-and-set.
+	session.SetCodeCommitmentIfEmpty(clientCC)
 
 	var (
 		resp *types.GenerateAndSealKeyResponse
@@ -158,8 +156,8 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 	retryErr := retry(ctx, func(ctx context.Context) error {
 		req := &types.GenerateAndSealKeyRequest{
 			Address:        k.validatorEVMAddr,
-			CodeCommitment: session.CodeCommitment,
-			Round:          session.Round,
+			CodeCommitment: session.GetCodeCommitment(),
+			Round:          session.GetRound(),
 		}
 
 		resp, err = client.GenerateAndSealKey(ctx, req)
@@ -175,15 +173,18 @@ func (k *Keeper) callTEEGenerateAndSealKey(ctx context.Context, session *types.D
 		return errors.Wrap(retryErr, "kernel client GenerateAndSealKey request failed")
 	}
 
-	// Persist the code commitment from the TEE response for future routing
-	// (used by dealing, finalization, and threshold decryption)
-	session.CodeCommitment = resp.GetCodeCommitment()
-	session.DKGPubKey = resp.GetDkgPubKey()
-	session.CommPubKey = resp.GetCommPubKey()
-	session.EnclaveReport = resp.GetEnclaveReport()
-	session.StartBlockHeight = resp.GetStartBlockHeight()
+	// Persist the setup fields from the TEE response for future routing
+	// (used by dealing, finalization, and threshold decryption). Stored atomically
+	// under a single lock so a concurrent reader never observes a torn slice header.
+	session.SetSetupResult(
+		resp.GetCodeCommitment(),
+		resp.GetDkgPubKey(),
+		resp.GetCommPubKey(),
+		resp.GetEnclaveReport(),
+		resp.GetStartBlockHash(),
+		resp.GetStartBlockHeight(),
+	)
 
-	session.StartBlockHash = resp.GetStartBlockHash()
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		return errors.Wrap(err, "failed to update session after calling GenerateAndSealKey on the kernel client")
 	}
@@ -286,24 +287,31 @@ func (k *Keeper) getOldCodeCommitment(ctx context.Context) ([]byte, error) {
 }
 
 func (k *Keeper) callContractRegister(ctx context.Context, session *types.DKGSession) error {
+	round := session.GetRound()
+	startBlockHeight := session.GetStartBlockHeight()
+	startBlockHash := session.GetStartBlockHash()
+	dkgPubKey := session.GetDKGPubKey()
+	commPubKey := session.GetCommPubKey()
+	enclaveReport := session.GetEnclaveReport()
+
 	log.Info(ctx, "Register contract call",
-		"round", session.Round,
-		"start_block_height", session.StartBlockHeight,
-		"start_block_hash", hex.EncodeToString(session.StartBlockHash),
-		"dkg_pub_key", hex.EncodeToString(session.DKGPubKey),
-		"comm_pub_key", hex.EncodeToString(session.CommPubKey),
-		"raw_quote_len", len(session.EnclaveReport),
+		"round", round,
+		"start_block_height", startBlockHeight,
+		"start_block_hash", hex.EncodeToString(startBlockHash),
+		"dkg_pub_key", hex.EncodeToString(dkgPubKey),
+		"comm_pub_key", hex.EncodeToString(commPubKey),
+		"raw_quote_len", len(enclaveReport),
 	)
 
 	if _, err := k.contractClient.Register(
 		ctx,
-		session.Round,
-		session.EnclaveType,
-		uint64(session.StartBlockHeight),
-		session.StartBlockHash,
-		session.DKGPubKey,
-		session.CommPubKey,
-		session.EnclaveReport,
+		round,
+		session.GetEnclaveType(),
+		uint64(startBlockHeight),
+		startBlockHash,
+		dkgPubKey,
+		commPubKey,
+		enclaveReport,
 	); err != nil {
 		return err
 	}

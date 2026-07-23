@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -254,4 +255,162 @@ func TestDKGSession_DecryptRequests(t *testing.T) {
 		require.Len(t, reqs, 1)
 		require.Equal(t, []byte("uuid51"), reqs[0].Ciphertext)
 	})
+}
+
+// TestDKGSession_ByteGettersReturnCopies verifies that the byte-slice getters hand out
+// deep copies, so a caller mutating the returned slice cannot corrupt session state (which
+// would otherwise be an aliasing data race against concurrent readers/writers).
+func TestDKGSession_ByteGettersReturnCopies(t *testing.T) {
+	t.Parallel()
+
+	session := types.NewDKGSession(1, nil, false, [32]byte{})
+	session.SetKeyMaterial(
+		[]byte("participants-root"),
+		[]byte("global-pub-key"),
+		[]byte("sig-finalize"),
+		[]byte("pub-key-share"),
+		[][]byte{[]byte("coeff-0"), []byte("coeff-1")},
+	)
+
+	t.Run("GetGlobalPubKey", func(t *testing.T) {
+		t.Parallel()
+		got := session.GetGlobalPubKey()
+		require.Equal(t, []byte("global-pub-key"), got)
+		got[0] = 'X'
+		require.Equal(t, []byte("global-pub-key"), session.GetGlobalPubKey(), "mutating the returned slice must not affect the session")
+	})
+
+	t.Run("GetSigFinalizeNetwork", func(t *testing.T) {
+		t.Parallel()
+		got := session.GetSigFinalizeNetwork()
+		require.Equal(t, []byte("sig-finalize"), got)
+		got[0] = 'X'
+		require.Equal(t, []byte("sig-finalize"), session.GetSigFinalizeNetwork())
+	})
+
+	t.Run("GetParticipantsRoot", func(t *testing.T) {
+		t.Parallel()
+		got := session.GetParticipantsRoot()
+		require.Equal(t, []byte("participants-root"), got)
+		got[0] = 'X'
+		require.Equal(t, []byte("participants-root"), session.GetParticipantsRoot())
+	})
+
+	t.Run("GetPubKeyShare", func(t *testing.T) {
+		t.Parallel()
+		got := session.GetPubKeyShare()
+		require.Equal(t, []byte("pub-key-share"), got)
+		got[0] = 'X'
+		require.Equal(t, []byte("pub-key-share"), session.GetPubKeyShare())
+	})
+
+	t.Run("GetPublicCoeffs", func(t *testing.T) {
+		t.Parallel()
+		got := session.GetPublicCoeffs()
+		require.Equal(t, [][]byte{[]byte("coeff-0"), []byte("coeff-1")}, got)
+		got[0][0] = 'X'
+		require.Equal(t, [][]byte{[]byte("coeff-0"), []byte("coeff-1")}, session.GetPublicCoeffs(), "mutating an inner coefficient slice must not affect the session")
+	})
+}
+
+// TestDKGSession_ScalarGettersSetters verifies the mutex-guarded scalar accessors round-trip.
+func TestDKGSession_ScalarGettersSetters(t *testing.T) {
+	t.Parallel()
+
+	session := types.NewDKGSession(1, nil, false, [32]byte{})
+
+	require.Equal(t, types.PhaseInitializing, session.GetPhase())
+	session.UpdatePhase(types.PhaseCompleted)
+	require.Equal(t, types.PhaseCompleted, session.GetPhase())
+
+	require.Equal(t, uint32(0), session.GetIndex())
+	session.SetIndex(5)
+	require.Equal(t, uint32(5), session.GetIndex())
+
+	require.False(t, session.GetIsFinalized())
+	session.SetFinalized()
+	require.True(t, session.GetIsFinalized())
+}
+
+// TestDKGSession_Snapshot verifies that Snapshot returns an independent deep copy: field
+// values match, and mutating the snapshot's byte slices does not touch the live session.
+func TestDKGSession_Snapshot(t *testing.T) {
+	t.Parallel()
+
+	session := types.NewDKGSession(7, []string{"0xval"}, true, [32]byte{0xAB})
+	session.UpdatePhase(types.PhaseDealing)
+	session.SetIndex(3)
+	session.SetKeyMaterial(
+		[]byte("proot"),
+		[]byte("gpk"),
+		[]byte("sig"),
+		[]byte("share"),
+		[][]byte{[]byte("c0")},
+	)
+
+	snap := session.Snapshot()
+
+	require.Equal(t, uint32(7), snap.Round)
+	require.Equal(t, types.PhaseDealing, snap.Phase)
+	require.Equal(t, uint32(3), snap.Index)
+	require.True(t, snap.IsResharing)
+	require.Equal(t, []byte("gpk"), snap.GlobalPubKey)
+	require.Equal(t, [][]byte{[]byte("c0")}, snap.PublicCoeffs)
+
+	// Mutating the snapshot's slices must not affect the live session.
+	snap.GlobalPubKey[0] = 'X'
+	snap.PublicCoeffs[0][0] = 'X'
+	require.Equal(t, []byte("gpk"), session.GetGlobalPubKey())
+	require.Equal(t, [][]byte{[]byte("c0")}, session.GetPublicCoeffs())
+}
+
+// TestDKGSession_ConcurrentSetupMutationAndRead runs the atomic setup accessors under
+// concurrent writers and readers so -race guards the atomicity their docs claim: a
+// reader must never observe a torn slice header while SetSetupResult writes the group.
+func TestDKGSession_ConcurrentSetupMutationAndRead(t *testing.T) {
+	t.Parallel()
+
+	session := types.NewDKGSession(1, nil, false, [32]byte{})
+
+	const (
+		goroutines = 8
+		iterations = 1000
+	)
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines * 2)
+
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				session.SetCodeCommitmentIfEmpty([]byte("cc"))
+				session.SetSetupResult(
+					[]byte("cc"),
+					[]byte("dkgpub"),
+					[]byte("commpub"),
+					[]byte("report"),
+					[]byte("blockhash"),
+					int64(42),
+				)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				_ = session.HasSetupData()
+				_ = session.GetCodeCommitment()
+				_ = session.GetDKGPubKey()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// After all writers, the setup result is fully populated and self-consistent.
+	require.True(t, session.HasSetupData())
+	require.Equal(t, []byte("cc"), session.GetCodeCommitment())
+	require.Equal(t, []byte("dkgpub"), session.GetDKGPubKey())
+	require.Equal(t, int64(42), session.GetStartBlockHeight())
 }

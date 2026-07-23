@@ -131,16 +131,20 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
+	// Read the phase through the getter: async DKG goroutines mutate it concurrently
+	// with this ABCI-thread read.
+	phase := session.GetPhase()
+
 	// If the session is completed and the DKG round is active, ensure the decrypt
 	// worker is running. This covers node restarts and the case where the worker
 	// was never started due to context cancellation.
-	if session.Phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
+	if phase == types.PhaseCompleted && dkgNetwork.Stage == types.DKGStageActive {
 		k.StartDecryptWorker()
 
 		return
 	}
 
-	if session.Phase == types.PhaseFailed {
+	if phase == types.PhaseFailed {
 		k.resumeFailedSession(ctx, session, dkgNetwork)
 
 		return
@@ -155,13 +159,13 @@ func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetw
 	//   Dealing      → PhaseDealing     (deals generated, processing responses via VE)
 	//   Finalization → PhaseFinalized   (finalization done, waiting for active)
 	//   Active       → PhaseCompleted
-	if isSessionStuckForStage(session.Phase, dkgNetwork.Stage) {
+	if isSessionStuckForStage(phase, dkgNetwork.Stage) {
 		if tryAcquireDKGSvc(dkgNetwork.Round) {
 			releaseDKGSvc(dkgNetwork.Round)
 
 			log.Info(ctx, "Recovering stuck DKG session: no active goroutine for intermediate phase",
 				"round", dkgNetwork.Round,
-				"phase", session.Phase.String(),
+				"phase", phase.String(),
 				"stage", dkgNetwork.Stage.String(),
 			)
 
@@ -190,6 +194,15 @@ func isSessionStuckForStage(phase types.DKGPhase, stage types.DKGStage) bool {
 		return phase != types.PhaseCompleted
 	default:
 		return false
+	}
+}
+
+// recoverAsyncDKG swallows a panic in an async DKG-service goroutine so it degrades
+// to a logged failure instead of crashing the validator. Use as a deferred call.
+func recoverAsyncDKG(ctx context.Context, name string) {
+	if r := recover(); r != nil {
+		log.Error(ctx, "Recovered from panic in async DKG service goroutine",
+			errors.New("async dkg goroutine panic", "goroutine", name, "value", r))
 	}
 }
 
@@ -226,6 +239,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 		go func() {
 			defer cancel()
+			defer recoverAsyncDKG(asyncCtx, "handleDKGRegistration")
 
 			k.handleDKGRegistration(asyncCtx, dkgNetwork, oldCC, alreadyRegistered)
 		}()
@@ -257,6 +271,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 		go func() {
 			defer cancel()
+			defer recoverAsyncDKG(asyncCtx, "handleDKGDealing")
 
 			k.handleDKGDealing(asyncCtx, dkgNetwork, deal)
 		}()
@@ -273,6 +288,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 		go func() {
 			defer cancel()
+			defer recoverAsyncDKG(asyncCtx, "handleDKGFinalization")
 
 			k.handleDKGFinalization(asyncCtx, dkgNetwork)
 		}()
@@ -292,6 +308,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 			go func() {
 				defer cancel()
+				defer recoverAsyncDKG(asyncCtx, "handleDKGComplete")
 
 				k.handleDKGComplete(asyncCtx, dkgNetwork)
 			}()
@@ -318,6 +335,7 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 
 		go func() {
 			defer cancel()
+			defer recoverAsyncDKG(asyncCtx, "recoverActiveSessionKeyMaterial")
 
 			k.recoverActiveSessionKeyMaterial(asyncCtx, dkgNetwork)
 		}()
@@ -384,8 +402,8 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 	// Anchor drain on the latest IsFinalized round (issue piplabs/story#826).
 	var latestActivated uint32
 	for _, s := range sessions {
-		if s.IsFinalized && s.Round > latestActivated {
-			latestActivated = s.Round
+		if r := s.GetRound(); s.GetIsFinalized() && r > latestActivated {
+			latestActivated = r
 		}
 	}
 
@@ -399,7 +417,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		// Drop queued requests from sessions that are at least 2 rounds behind the
 		// current round — their keys are no longer relevant and the requests would
 		// never be processed successfully.
-		if latestActivated >= 2 && session.Round <= latestActivated-2 {
+		if latestActivated >= 2 && session.GetRound() <= latestActivated-2 {
 			dropped := session.DrainDecryptRequests()
 			if len(dropped) > 0 {
 				log.Warn(ctx, "Dropping decrypt requests from stale session", nil,
@@ -419,8 +437,9 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		}
 
 		// Check session-level preconditions before draining so that requests are
-		// not removed from the queue only to be re-added immediately.
-		if session.Index == 0 {
+		// not removed from the queue only to be re-added immediately. Read through
+		// getters: the recovery path writes Index/GlobalPubKey concurrently.
+		if session.GetIndex() == 0 {
 			log.Warn(ctx, "Session index not set, deferring decrypt requests to next tick", nil,
 				"session", session.GetSessionKey(),
 			)
@@ -428,7 +447,7 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 			continue
 		}
 
-		if len(session.GlobalPubKey) == 0 {
+		if len(session.GetGlobalPubKey()) == 0 {
 			log.Warn(ctx, "Missing global public key for session, deferring decrypt requests to next tick", nil,
 				"session", session.GetSessionKey(),
 			)
@@ -446,10 +465,11 @@ func (k *Keeper) processDecryptQueue(ctx context.Context) {
 		// Skip sessions whose kernel binary is no longer connected.
 		// This happens when old events are replayed during chain catch-up
 		// after a kernel binary change — the sealed keys are unreachable.
-		if _, err := k.getClientWithReconnect(session.CodeCommitment); err != nil {
+		codeCommitment := session.GetCodeCommitment()
+		if _, err := k.getClientWithReconnect(codeCommitment); err != nil {
 			log.Warn(ctx, "Dropping decrypt requests for session with unavailable kernel", nil,
 				"session", session.GetSessionKey(),
-				"code_commitment", hex.EncodeToString(session.CodeCommitment),
+				"code_commitment", hex.EncodeToString(codeCommitment),
 				"dropped_requests", len(requests),
 			)
 
@@ -670,7 +690,8 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 		}
 	}()
 
-	client, err := k.getClientWithReconnect(session.CodeCommitment)
+	codeCommitment := session.GetCodeCommitment()
+	client, err := k.getClientWithReconnect(codeCommitment)
 	if err != nil {
 		result.err = errors.Wrap(err, "no kernel client for session")
 		return
@@ -683,11 +704,11 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 
 	kernelStart := time.Now()
 	resp, err := client.PartialDecryptTDH2(callCtx, &types.PartialDecryptTDH2Request{
-		CodeCommitment:  session.CodeCommitment,
-		Round:           session.Round,
+		CodeCommitment:  codeCommitment,
+		Round:           session.GetRound(),
 		Ciphertext:      req.Ciphertext,
 		Label:           req.Label,
-		GlobalPubKey:    session.GlobalPubKey,
+		GlobalPubKey:    session.GetGlobalPubKey(),
 		RequesterPubKey: req.RequesterPubKey,
 	})
 	kernelDuration := time.Since(kernelStart)
@@ -725,8 +746,8 @@ func (k *Keeper) submitPartialDecryption(ctx context.Context, session *types.DKG
 
 	if _, err := k.contractClient.SubmitEncryptedPartialDecryption(
 		ctx,
-		session.Round,
-		session.Index,
+		session.GetRound(),
+		session.GetIndex(),
 		resp.EncryptedPartialDecryption,
 		resp.EphemeralPubKey,
 		resp.PubShare,
@@ -746,6 +767,8 @@ func (k *Keeper) submitPartialDecryption(ctx context.Context, session *types.DKG
 func (k *Keeper) submitPartialDecryptionBatch(ctx context.Context, session *types.DKGSession, results []decryptComputeResult) error {
 	batchReqs := make([]bindings.ICDRPartialDecryptionRequest, 0, len(results))
 
+	round := session.GetRound()
+	pid := session.GetIndex()
 	for _, r := range results {
 		uuid, err := labelToUUID(r.req.Label)
 		if err != nil {
@@ -753,8 +776,8 @@ func (k *Keeper) submitPartialDecryptionBatch(ctx context.Context, session *type
 		}
 
 		batchReqs = append(batchReqs, bindings.ICDRPartialDecryptionRequest{
-			Round:            session.Round,
-			Pid:              session.Index,
+			Round:            round,
+			Pid:              pid,
 			EncryptedPartial: r.resp.EncryptedPartialDecryption,
 			EphemeralPubKey:  r.resp.EphemeralPubKey,
 			PubShare:         r.resp.PubShare,
