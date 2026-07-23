@@ -90,6 +90,14 @@ func releaseDKGSvc(round uint32) {
 // is cut short — so this value must stay above 60s to be meaningful.
 const dkgAsyncTimeout = 2 * time.Minute
 
+// decryptKernelCallTimeout bounds a single kernel RPC made by the decrypt worker.
+// The worker runs on a process-lifetime context.Background with no deadline of its
+// own, so without a per-call timeout a wedged kernel (accepts the connection but
+// never responds) blocks the worker loop forever and decryptWorkerRunning is never
+// reset. 60s matches the kernel-operation budget in dkgAsyncTimeout and the
+// contract-call timeout in contract_client.go.
+const decryptKernelCallTimeout = 60 * time.Second
+
 // dkgAsyncContext creates a new context for async DKG service goroutines with a timeout.
 // This replaces the consensus context that would otherwise be canceled after block processing.
 func dkgAsyncContext() (context.Context, context.CancelFunc) {
@@ -100,6 +108,18 @@ var decryptWorkerRunning atomic.Bool
 
 // ResumeDKGService reloads unfinished DKG sessions and resumes their execution safely without spawning duplicate goroutines.
 func (k *Keeper) ResumeDKGService(ctx context.Context, dkgNetwork *types.DKGNetwork) {
+	// The decrypt worker serves the latest ACTIVE round, which may differ from the
+	// latest round once the next round has opened. StartDecryptWorker is idempotent.
+	if active, err := k.getLatestActiveDKGNetwork(ctx); err != nil {
+		log.Warn(ctx, "Failed to get latest active DKG round while resuming decrypt worker", err)
+	} else if active != nil {
+		k.StartDecryptWorker()
+	} else {
+		// Debug (not Info): this runs every block; a missing active round is the
+		// normal steady state and Info would be too noisy.
+		log.Debug(ctx, "No active DKG round; decrypt worker not started")
+	}
+
 	session, err := k.stateManager.GetSession(dkgNetwork.Round)
 	if err != nil {
 		log.Error(ctx, "Failed to get DKG session while resuming the DKG service", err)
@@ -279,7 +299,10 @@ func (k *Keeper) resumeFailedSession(ctx context.Context, session *types.DKGSess
 // goroutine exits. The decrypt worker must run for the lifetime of the process.
 func (k *Keeper) StartDecryptWorker() {
 	if !decryptWorkerRunning.CompareAndSwap(false, true) {
-		// already running
+		// Debug (not Info): this runs every block; skipping because the worker is
+		// already running is the normal steady state and Info would be too noisy.
+		log.Debug(context.Background(), "Decrypt worker already running; skipping start")
+
 		return
 	}
 
@@ -620,8 +643,13 @@ func (k *Keeper) computePartialDecrypt(ctx context.Context, session *types.DKGSe
 		return
 	}
 
+	// Bound the kernel RPC so a wedged kernel cannot block the worker loop
+	// indefinitely. The worker's context has no deadline of its own.
+	callCtx, cancel := context.WithTimeout(ctx, decryptKernelCallTimeout)
+	defer cancel()
+
 	kernelStart := time.Now()
-	resp, err := client.PartialDecryptTDH2(ctx, &types.PartialDecryptTDH2Request{
+	resp, err := client.PartialDecryptTDH2(callCtx, &types.PartialDecryptTDH2Request{
 		CodeCommitment:  session.CodeCommitment,
 		Round:           session.Round,
 		Ciphertext:      req.Ciphertext,

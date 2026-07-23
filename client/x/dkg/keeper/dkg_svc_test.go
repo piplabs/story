@@ -1871,6 +1871,133 @@ func TestResumeDKGService_NoSession(t *testing.T) {
 	k.ResumeDKGService(ctx, dkgNetwork)
 }
 
+// TestResumeDKGService_ActiveRoundStartsWorker verifies that the decrypt worker is
+// restarted whenever an active DKG round exists, even if the latest round has already
+// advanced to a pre-active stage (e.g. the next round opened registration). This is
+// the restart-window hole from issue piplabs/story#854.
+func TestResumeDKGService_ActiveRoundStartsWorker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping worker test in short mode")
+	}
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Force a fresh worker spawn so the assertion exercises the new branch, and
+	// leave decryptWorkerRunning true afterwards. The worker is a process-lifetime
+	// singleton; resetting the flag to false here would let a later mock-backed test
+	// spawn a real worker that calls its gomock client after that test completes.
+	decryptWorkerRunning.Store(false)
+
+	// Detach the mock contract client so the process-lifetime worker goroutine
+	// returns early at its nil guard instead of issuing unexpected mock calls
+	// after the test completes.
+	k.contractClient = nil
+
+	// An earlier round is still the active (completed) round.
+	activeNetwork := &types.DKGNetwork{
+		Round: 5,
+		Stage: types.DKGStageActive,
+	}
+	require.NoError(t, k.setDKGNetwork(ctx, activeNetwork))
+	require.NoError(t, k.setLatestActiveRound(ctx, activeNetwork))
+
+	// The latest round has opened registration for the NEXT round; its session is in a
+	// valid (non-stuck) phase, so none of the legacy branches would start the worker.
+	session := &types.DKGSession{
+		Round: 6,
+		Phase: types.PhaseInitialized,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 6,
+		Stage: types.DKGStageRegistration,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.True(t, decryptWorkerRunning.Load(), "worker should run whenever an active round exists")
+}
+
+// TestResumeDKGService_NoActiveRoundNoWorker verifies that on a fresh chain with no
+// active round, ResumeDKGService does not start the decrypt worker via the new branch.
+func TestResumeDKGService_NoActiveRoundNoWorker(t *testing.T) {
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	decryptWorkerRunning.Store(false)
+	// Restore the singleton flag to true on exit so a later mock-backed test does
+	// not spawn a real worker that outlives it (see the note above).
+	defer decryptWorkerRunning.Store(true)
+
+	// Latest round session is in a valid (non-stuck) phase and no active round exists.
+	session := &types.DKGSession{
+		Round: 1,
+		Phase: types.PhaseInitialized,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 1,
+		Stage: types.DKGStageRegistration,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.False(t, decryptWorkerRunning.Load(), "worker must not start when no active round exists")
+}
+
+// TestResumeDKGService_CompletedActiveStartsWorker verifies the pre-existing behavior:
+// when the latest round is itself active with a completed session, the worker is started.
+func TestResumeDKGService_CompletedActiveStartsWorker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping worker test in short mode")
+	}
+
+	k, _, _, ctx := setupDKGKeeperWithMocks(t)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+	k.stateManager = sm
+
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+	// Force a fresh spawn for the assertion; leave the flag true on exit (see the
+	// note in TestResumeDKGService_ActiveRoundStartsWorker).
+	decryptWorkerRunning.Store(false)
+
+	// Detach the mock contract client so the process-lifetime worker goroutine
+	// returns early at its nil guard instead of issuing unexpected mock calls
+	// after the test completes.
+	k.contractClient = nil
+
+	session := &types.DKGSession{
+		Round: 7,
+		Phase: types.PhaseCompleted,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	dkgNetwork := &types.DKGNetwork{
+		Round: 7,
+		Stage: types.DKGStageActive,
+	}
+
+	k.ResumeDKGService(ctx, dkgNetwork)
+
+	require.True(t, decryptWorkerRunning.Load(), "worker should run when latest active round session is completed")
+}
+
 // --- resumeFailedSession ---
 
 func TestResumeFailedSession_DealingStage(t *testing.T) {
@@ -2088,4 +2215,103 @@ func TestResumeFailedSession_ActiveStage(t *testing.T) {
 	// handleDKGComplete advances phase from Finalized to Completed.
 	require.Equal(t, types.PhaseCompleted, got.Phase,
 		"active stage: handleDKGComplete should advance phase to PhaseCompleted")
+}
+
+// --- decrypt worker kernel-call deadline (issue piplabs/story#854 family) ---
+
+// TestComputePartialDecrypt_DerivesCallDeadline verifies that the kernel RPC is
+// invoked with a bounded context even when the worker passes context.Background
+// (which has no deadline). This proves decryptKernelCallTimeout is wired so a
+// wedged kernel cannot block the worker loop indefinitely.
+func TestComputePartialDecrypt_DerivesCallDeadline(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-deadline")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+	}
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	var (
+		gotDeadline bool
+		remaining   time.Duration
+	)
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(callCtx context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			deadline, ok := callCtx.Deadline()
+			gotDeadline = ok
+			if ok {
+				remaining = time.Until(deadline)
+			}
+			return &types.PartialDecryptTDH2Response{
+				EncryptedPartialDecryption: []byte("p"), EphemeralPubKey: []byte("e"),
+				PubShare: []byte("s"), Signature: []byte("sig"),
+			}, nil
+		}).Times(1)
+
+	// Parent context has NO deadline; the deadline must come from the fix.
+	result := k.computePartialDecrypt(ctx, session, req)
+	require.NoError(t, result.err)
+	require.True(t, gotDeadline, "kernel call must receive a bounded context even from a deadline-less parent")
+	require.Greater(t, remaining, time.Duration(0), "derived deadline must be in the future")
+	require.LessOrEqual(t, remaining, decryptKernelCallTimeout, "derived deadline must not exceed the configured timeout")
+}
+
+// TestComputePartialDecrypt_WedgedKernelReturns simulates a kernel that accepts the
+// call but never responds on its own. The worker call must still return (via context
+// timeout) rather than block forever, so the worker loop can complete and
+// decryptWorkerRunning can be reset. Uses a short-deadline parent context to keep the
+// test fast; the production timeout is decryptKernelCallTimeout.
+func TestComputePartialDecrypt_WedgedKernelReturns(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("cc-wedged")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	k := &Keeper{kernelRouter: router}
+
+	session := &types.DKGSession{
+		Round: 1, Index: 1, GlobalPubKey: []byte("pub"), CodeCommitment: cc,
+	}
+	req := types.DecryptRequest{Ciphertext: []byte("ct"), Label: make([]byte, 32)}
+
+	// Kernel never returns on its own: it blocks until the call context is done,
+	// then surfaces the context error (mirrors a real gRPC deadline cancellation).
+	mockKernel.EXPECT().PartialDecryptTDH2(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(callCtx context.Context, _ *types.PartialDecryptTDH2Request, _ ...interface{}) (*types.PartialDecryptTDH2Response, error) {
+			<-callCtx.Done()
+			return nil, callCtx.Err()
+		}).Times(1)
+
+	// Short-deadline parent stands in for decryptKernelCallTimeout to keep the test fast.
+	parentCtx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := make(chan decryptComputeResult, 1)
+	go func() {
+		done <- k.computePartialDecrypt(parentCtx, session, req)
+	}()
+
+	select {
+	case result := <-done:
+		require.Error(t, result.err, "wedged kernel call must return an error, not a response")
+		require.Contains(t, result.err.Error(), "generating partial decrypt failed")
+	case <-time.After(5 * time.Second):
+		t.Fatal("computePartialDecrypt blocked on a wedged kernel; worker would never reset decryptWorkerRunning")
+	}
 }
