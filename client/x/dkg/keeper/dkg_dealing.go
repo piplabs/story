@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"sort"
 	"strings"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/piplabs/story/lib/log"
 
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 )
 
 func (k *Keeper) BeginDealing(ctx context.Context, latestRound *types.DKGNetwork) error {
@@ -238,7 +241,11 @@ func (k *Keeper) ProcessDeals(ctx context.Context, latestRound *types.DKGNetwork
 
 // markDealersDealt records which dealers submitted a deal so missing dealers can be invalidated
 // at BeginFinalization. deal.Index is the dealer's 0-based position in the dealer committee,
-// resolved to an address via dealerCommitteeAddrs.
+// resolved to a registration (address + dkgPubKey) via dealerCommitteeRegs. Deals arrive via
+// vote extensions unauthenticated, so each deal's Schnorr signature is verified against the
+// dealer's registered dkgPubKey before recording — a forged deal under another dealer's index
+// must not shield a missing dealer from invalidation. Verification is deterministic, so all
+// nodes agree.
 func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNetwork, deals []types.Deal) error {
 	dealerRound, err := k.resolveDealerRound(ctx, latestRound)
 	if err != nil {
@@ -248,11 +255,13 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 		return nil
 	}
 
-	// committee[i] is the validator at kyber index i; deal.Index indexes directly into it.
-	committee, err := k.dealerCommitteeAddrs(ctx, *dealerRound)
+	// committee[i] is the dealer registration at kyber index i; deal.Index indexes directly into it.
+	committee, err := k.dealerCommitteeRegs(ctx, *dealerRound)
 	if err != nil {
 		return err
 	}
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	log.Debug(ctx, "MarkDealersDealt: dealer committee",
 		"round", latestRound.Round,
@@ -274,7 +283,20 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 			continue
 		}
 
-		addr := committee[deal.Index]
+		dealerReg := committee[deal.Index]
+
+		// Skip (do not mark) deals whose signature does not verify against the dealer's dkgPubKey.
+		if err := verifyDealSignature(suite, deal, dealerReg.DkgPubKey); err != nil {
+			log.Debug(ctx, "MarkDealersDealt: deal signature invalid; skipping",
+				"round", latestRound.Round,
+				"deal_index", deal.Index,
+				"error", err,
+			)
+
+			continue
+		}
+
+		addr := dealerReg.ValidatorAddr
 
 		log.Debug(ctx, "MarkDealersDealt: dealer submitted deal",
 			"round", latestRound.Round,
@@ -297,6 +319,35 @@ func (k *Keeper) markDealersDealt(ctx context.Context, latestRound *types.DKGNet
 	return nil
 }
 
+// verifyDealSignature verifies a deal's Schnorr signature against the dealer's dkgPubKey.
+// The signed message matches kyber dkg.Deal.MarshalBinary: little-endian uint32 Index followed
+// by the EncryptedDeal cipher. This is deterministic and safe for the consensus path.
+func verifyDealSignature(suite *edwards25519.SuiteEd25519, deal types.Deal, dkgPubKey []byte) error {
+	if len(dkgPubKey) == 0 {
+		return errors.New("dealer has no dkg pubkey")
+	}
+	if len(deal.GetSignature()) == 0 {
+		return errors.New("empty deal signature")
+	}
+
+	dealerPub := suite.Point()
+	if err := dealerPub.UnmarshalBinary(dkgPubKey); err != nil {
+		return errors.Wrap(err, "unmarshal dealer dkg pubkey")
+	}
+
+	var b bytes.Buffer
+	if err := binary.Write(&b, binary.LittleEndian, deal.Index); err != nil {
+		return errors.Wrap(err, "encode deal index")
+	}
+	b.Write(deal.Deal.Cipher)
+
+	if err := schnorr.Verify(suite, dealerPub, b.Bytes(), deal.GetSignature()); err != nil {
+		return errors.Wrap(err, "schnorr signature verification failed")
+	}
+
+	return nil
+}
+
 // dealerCommitteeRegs returns the dealer round's committee: ALL of the round's registrations
 // (any status) sorted by registration index, matching the kernel's kyber committee where the
 // 0-based position is the kyber deal/justification Index. Invalidated members keep their slot so
@@ -312,22 +363,6 @@ func (k *Keeper) dealerCommitteeRegs(ctx context.Context, round uint32) ([]types
 	})
 
 	return committee, nil
-}
-
-// dealerCommitteeAddrs returns dealerCommitteeRegs as validator addresses; committee[i] is the
-// validator at kyber index i.
-func (k *Keeper) dealerCommitteeAddrs(ctx context.Context, round uint32) ([]string, error) {
-	regs, err := k.dealerCommitteeRegs(ctx, round)
-	if err != nil {
-		return nil, err
-	}
-
-	addrs := make([]string, len(regs))
-	for i := range regs {
-		addrs[i] = regs[i].ValidatorAddr
-	}
-
-	return addrs, nil
 }
 
 // resolveDealerRound returns the round of the committee expected to deal in latestRound. For
