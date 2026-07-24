@@ -46,9 +46,9 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 		return
 	}
 
-	if session.Phase != types.PhaseDealing {
+	if session.GetPhase() != types.PhaseDealing {
 		log.Warn(ctx, "Session not in dealing phase, skipping finalize DKG", nil,
-			"current_phase", session.Phase.String())
+			"current_phase", session.GetPhase().String())
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
@@ -78,13 +78,13 @@ func (k *Keeper) handleDKGFinalization(ctx context.Context, dkgNetwork *types.DK
 	}
 
 	log.Info(ctx, "DKG finalization phase complete",
-		"round", session.Round,
+		"round", session.GetRound(),
 	)
 }
 
 func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
 	log.Info(ctx, "Finalize call to kernel client",
-		"round", session.Round,
+		"round", session.GetRound(),
 	)
 
 	if len(session.GetGlobalPubKey()) > 0 && len(session.GetSigFinalizeNetwork()) > 0 {
@@ -97,15 +97,16 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 		resp *types.FinalizeDKGResponse
 		err  error
 	)
+	codeCommitment := session.GetCodeCommitment()
 	start := time.Now()
 	retryErr := retry(ctx, func(ctx context.Context) error {
 		req := &types.FinalizeDKGRequest{
-			CodeCommitment: session.CodeCommitment,
-			Round:          session.Round,
-			IsResharing:    session.IsResharing,
+			CodeCommitment: codeCommitment,
+			Round:          session.GetRound(),
+			IsResharing:    session.GetIsResharing(),
 		}
 
-		client, cErr := k.getClientWithReconnect(session.CodeCommitment)
+		client, cErr := k.getClientWithReconnect(codeCommitment)
 		if cErr != nil {
 			return errors.Wrap(cErr, "no kernel client for session")
 		}
@@ -141,21 +142,26 @@ func (k *Keeper) callTEEFinalizeDKG(ctx context.Context, session *types.DKGSessi
 }
 
 func (k *Keeper) callContractFinalizeDKG(ctx context.Context, session *types.DKGSession) error {
+	// Read the key-material fields through mutex-guarded getters: SetKeyMaterial writes them
+	// under Lock (here or on the active-round recovery path), so a raw read could race that write.
+	globalPubKey := session.GetGlobalPubKey()
+	sigFinalizeNetwork := session.GetSigFinalizeNetwork()
+
 	log.Info(ctx, "Finalize contract call",
-		"round", session.Round,
-		"global_pub_key", hex.EncodeToString(session.GlobalPubKey),
-		"signature_len", len(session.SigFinalizeNetwork),
+		"round", session.GetRound(),
+		"global_pub_key", hex.EncodeToString(globalPubKey),
+		"signature_len", len(sigFinalizeNetwork),
 	)
 
 	if _, err := k.contractClient.Finalize(
 		ctx,
-		session.Round,
-		session.EnclaveType,
-		session.ParticipantsRoot,
-		session.GlobalPubKey,
-		session.PublicCoeffs,
-		session.PubKeyShare,
-		session.SigFinalizeNetwork,
+		session.GetRound(),
+		session.GetEnclaveType(),
+		session.GetParticipantsRoot(),
+		globalPubKey,
+		session.GetPublicCoeffs(),
+		session.GetPubKeyShare(),
+		sigFinalizeNetwork,
 	); err != nil {
 		return err
 	}

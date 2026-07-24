@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -455,4 +456,57 @@ func TestStateManager_DeleteSession_FileRemovedFromDisk(t *testing.T) {
 
 	_, err = os.Stat(pattern)
 	require.True(t, os.IsNotExist(err), "session file should be removed after delete")
+}
+
+// TestStateManager_UpdateSession_ConcurrentMarshalAndMutation drives concurrent
+// UpdateSession (which marshals the session to disk) against mutex-guarded mutations of the
+// same session. Before saveSession marshaled a locked Snapshot, the marshal reflected over
+// the live struct without holding session.mu and raced these mutations, so this test fails
+// under -race on the pre-fix code. Run with: go test ./client/x/dkg/... -race.
+func TestStateManager_UpdateSession_ConcurrentMarshalAndMutation(t *testing.T) {
+	t.Parallel()
+
+	sm := newTestStateManager(t)
+	ctx := context.Background()
+
+	session := newTestSession(42)
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	const iterations = 100
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Writer 1: repeatedly persist the session; saveSession marshals a locked Snapshot.
+	go func() {
+		defer wg.Done()
+		for range iterations {
+			_ = sm.UpdateSession(ctx, session)
+		}
+	}()
+
+	// Writer 2: mutate the same session through its mutex-guarded methods.
+	go func() {
+		defer wg.Done()
+		for i := range iterations {
+			session.UpdatePhase(types.PhaseDealing)
+			session.SetIndex(uint32(i + 1))
+			session.SetKeyMaterial(
+				[]byte("proot"),
+				[]byte("gpk"),
+				[]byte("sig"),
+				[]byte("share"),
+				[][]byte{[]byte("c0"), []byte("c1")},
+			)
+			session.IncrementRecoveryAttempts()
+			session.SetFinalized()
+		}
+	}()
+
+	wg.Wait()
+
+	// Sanity: the session is still persisted and readable after the concurrent churn.
+	got, err := sm.GetSession(42)
+	require.NoError(t, err)
+	require.Equal(t, uint32(42), got.Round)
 }

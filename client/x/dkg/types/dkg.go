@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -266,4 +267,264 @@ func (s *DKGSession) DrainDecryptRequests() []PendingDecryptRequest {
 	s.LastUpdate = time.Now()
 
 	return reqs
+}
+
+// GetPhase returns the current session phase under RLock.
+func (s *DKGSession) GetPhase() DKGPhase {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.Phase
+}
+
+// GetIndex returns this validator's 1-based on-chain registration index under RLock.
+func (s *DKGSession) GetIndex() uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.Index
+}
+
+// SetIndex stores this validator's 1-based on-chain registration index under Lock.
+func (s *DKGSession) SetIndex(index uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.Index = index
+	s.LastUpdate = time.Now()
+}
+
+// GetIsFinalized reports whether the session key material is ready for
+// threshold encryption/decryption. Read under RLock.
+func (s *DKGSession) GetIsFinalized() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.IsFinalized
+}
+
+// SetFinalized marks the session ready for threshold encryption/decryption under Lock.
+func (s *DKGSession) SetFinalized() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.IsFinalized = true
+	s.LastUpdate = time.Now()
+}
+
+// GetParticipantsRoot returns a copy of the participants root under RLock.
+func (s *DKGSession) GetParticipantsRoot() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.ParticipantsRoot)
+}
+
+// GetPubKeyShare returns a copy of this validator's key share under RLock.
+func (s *DKGSession) GetPubKeyShare() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.PubKeyShare)
+}
+
+// GetPublicCoeffs returns a deep copy of the public coefficients under RLock.
+func (s *DKGSession) GetPublicCoeffs() [][]byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return cloneByteSlices(s.PublicCoeffs)
+}
+
+// GetRound returns the session round. Immutable after construction, but read under RLock
+// for uniform mutex-based access.
+func (s *DKGSession) GetRound() uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.Round
+}
+
+// GetIsResharing reports whether this is a resharing round. Immutable after construction,
+// read under RLock for uniformity.
+func (s *DKGSession) GetIsResharing() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.IsResharing
+}
+
+// GetEnclaveType returns the enclave type. The array is returned by value (copy).
+func (s *DKGSession) GetEnclaveType() [32]byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.EnclaveType
+}
+
+// GetCodeCommitment returns a copy of the code commitment under RLock.
+func (s *DKGSession) GetCodeCommitment() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.CodeCommitment)
+}
+
+// GetOldCodeCommitment returns a copy of the previous round's code commitment under RLock.
+func (s *DKGSession) GetOldCodeCommitment() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.OldCodeCommitment)
+}
+
+// GetDKGPubKey returns a copy of the DKG public key under RLock.
+func (s *DKGSession) GetDKGPubKey() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.DKGPubKey)
+}
+
+// GetCommPubKey returns a copy of the communication public key under RLock.
+func (s *DKGSession) GetCommPubKey() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.CommPubKey)
+}
+
+// GetEnclaveReport returns a copy of the enclave report under RLock.
+func (s *DKGSession) GetEnclaveReport() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.EnclaveReport)
+}
+
+// GetStartBlockHeight returns the setup start block height under RLock.
+func (s *DKGSession) GetStartBlockHeight() int64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.StartBlockHeight
+}
+
+// GetStartBlockHash returns a copy of the setup start block hash under RLock.
+func (s *DKGSession) GetStartBlockHash() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return bytes.Clone(s.StartBlockHash)
+}
+
+// HasSetupData reports whether the key-generation setup fields have been populated.
+func (s *DKGSession) HasSetupData() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.DKGPubKey) > 0 && len(s.CommPubKey) > 0 && len(s.EnclaveReport) > 0
+}
+
+// SetIsUpgrade records whether this is an upgrade round.
+func (s *DKGSession) SetIsUpgrade(v bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.IsUpgrade = v
+	s.LastUpdate = time.Now()
+}
+
+// SetOldCodeCommitment stores the previous active round's code commitment (upgrade routing).
+func (s *DKGSession) SetOldCodeCommitment(oldCC []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.OldCodeCommitment = oldCC
+	s.LastUpdate = time.Now()
+}
+
+// SetCodeCommitmentIfEmpty sets the code commitment only when it is currently unset,
+// as a single atomic check-and-set so a concurrent reader cannot observe a TOCTOU gap.
+func (s *DKGSession) SetCodeCommitmentIfEmpty(cc []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.CodeCommitment) == 0 {
+		s.CodeCommitment = cc
+		s.LastUpdate = time.Now()
+	}
+}
+
+// SetSetupResult atomically stores the key-generation setup fields returned by the kernel
+// GenerateAndSealKey call under a single Lock, so a concurrent reader (e.g. HasSetupData on
+// the ABCI thread) never observes a partially-written set of slice headers.
+func (s *DKGSession) SetSetupResult(codeCommitment, dkgPubKey, commPubKey, enclaveReport, startBlockHash []byte, startBlockHeight int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.CodeCommitment = codeCommitment
+	s.DKGPubKey = dkgPubKey
+	s.CommPubKey = commPubKey
+	s.EnclaveReport = enclaveReport
+	s.StartBlockHash = startBlockHash
+	s.StartBlockHeight = startBlockHeight
+	s.LastUpdate = time.Now()
+}
+
+// Snapshot returns a deep copy of the session under RLock, so it can be marshaled
+// (e.g. by saveSession) without racing a concurrent mutation. Built field-by-field
+// to avoid copying the live mutex (copylocks); do not call other s.mu getters here,
+// as the lock is not reentrant.
+func (s *DKGSession) Snapshot() *DKGSession {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return &DKGSession{
+		CodeCommitment:     bytes.Clone(s.CodeCommitment),
+		Round:              s.Round,
+		GlobalPubKey:       bytes.Clone(s.GlobalPubKey),
+		DKGPubKey:          bytes.Clone(s.DKGPubKey),
+		CommPubKey:         bytes.Clone(s.CommPubKey),
+		EnclaveReport:      bytes.Clone(s.EnclaveReport),
+		StartBlockHeight:   s.StartBlockHeight,
+		StartBlockHash:     bytes.Clone(s.StartBlockHash),
+		Phase:              s.Phase,
+		StartTime:          s.StartTime,
+		LastUpdate:         s.LastUpdate,
+		Index:              s.Index,
+		SigSetupNetwork:    bytes.Clone(s.SigSetupNetwork),
+		SigFinalizeNetwork: bytes.Clone(s.SigFinalizeNetwork),
+		PublicCoeffs:       cloneByteSlices(s.PublicCoeffs),
+		PubKeyShare:        bytes.Clone(s.PubKeyShare),
+		ParticipantsRoot:   bytes.Clone(s.ParticipantsRoot),
+		EnclaveType:        s.EnclaveType,
+		ActiveValidators:   slices.Clone(s.ActiveValidators),
+		Total:              s.Total,
+		Threshold:          s.Threshold,
+		Registrations:      slices.Clone(s.Registrations),
+		Commitments:        bytes.Clone(s.Commitments),
+		Complaints:         slices.Clone(s.Complaints),
+		IsFinalized:        s.IsFinalized,
+		IsResharing:        s.IsResharing,
+		IsUpgrade:          s.IsUpgrade,
+		OldCodeCommitment:  bytes.Clone(s.OldCodeCommitment),
+		DecryptRequests:    slices.Clone(s.DecryptRequests),
+		RecoveryAttempts:   s.RecoveryAttempts,
+	}
+}
+
+// cloneByteSlices deep-copies a slice of byte slices. Returns nil for nil input
+// to preserve JSON round-trip equivalence.
+func cloneByteSlices(in [][]byte) [][]byte {
+	if in == nil {
+		return nil
+	}
+
+	out := make([][]byte, len(in))
+	for i, b := range in {
+		out[i] = bytes.Clone(b)
+	}
+
+	return out
 }

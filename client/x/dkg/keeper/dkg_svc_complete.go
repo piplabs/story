@@ -31,10 +31,10 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 	}
 
 	// A round just activated, so bound session growth by pruning rounds well below it.
-	// session.Round is the latest active round and is always retained.
-	k.stateManager.PruneOldSessions(ctx, session.Round)
+	// The session round is the latest active round and is always retained.
+	k.stateManager.PruneOldSessions(ctx, session.GetRound())
 
-	if session.Phase == types.PhaseCompleted && session.IsFinalized {
+	if session.GetPhase() == types.PhaseCompleted && session.GetIsFinalized() {
 		log.Info(ctx, "DKG network already completed")
 		// Ensure the decrypt worker is running even if completion was already processed
 		// (e.g., after node restart or if the worker exited due to a transient error).
@@ -43,7 +43,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 		return
 	}
 
-	if session.Phase != types.PhaseFinalized {
+	if session.GetPhase() != types.PhaseFinalized {
 		log.Error(ctx, "Session is not finalized yet", nil)
 		k.stateManager.MarkFailed(ctx, session)
 
@@ -61,7 +61,7 @@ func (k *Keeper) handleDKGComplete(ctx context.Context, dkgNetwork *types.DKGNet
 // recovery path can complete without releasing it. Marks the session failed on error.
 func (k *Keeper) completeSessionLocked(ctx context.Context, session *types.DKGSession) error {
 	session.UpdatePhase(types.PhaseCompleted)
-	session.IsFinalized = true // ready to start DKG threshold encryption/decryption
+	session.SetFinalized() // ready to start DKG threshold encryption/decryption
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update completed session", err)
@@ -71,7 +71,7 @@ func (k *Keeper) completeSessionLocked(ctx context.Context, session *types.DKGSe
 	}
 
 	log.Info(ctx, "DKG process completed successfully",
-		"round", session.Round,
+		"round", session.GetRound(),
 		"validator_evm_address", k.validatorEVMAddr,
 	)
 
