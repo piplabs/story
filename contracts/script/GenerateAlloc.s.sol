@@ -87,13 +87,18 @@ contract GenerateAlloc is Script {
     // MUST overwrite them with the per-devnet captured values before running on a real
     // network — RTMR3 reflects the exact kernel binary and the platform tuple reflects the
     // boot image vintage, so devnet-specific values cannot be hard-coded here.
+    // Real value captured 2026-07-24 from the launcher TD (dkg/tdx-sgx-unified d572685):
+    // keccak256(RTMR3), RTMR3 = self-extend(0, SHA-384(story-kernel ELF)). Reboot-stable.
     bytes32 private constant TDX_BINARY_COMMITMENT_PLACEHOLDER =
-        keccak256("TDX_BINARY_COMMITMENT_PLACEHOLDER_v3_RTMR3_self_extend");
+        hex"a8bffe0a11acb3a9dabd21f5389544a49fb1c1d0574e2bd62fd0acb61cd827d7";
     // keccak256(MRTD || RTMR0 || RTMR1 || RTMR2) per platform; capture per vintage.
+    // Real value captured 2026-07-24 from the launcher TD on GCP c3-standard-4:
+    // keccak256(MRTD || RTMR0 || RTMR1 || RTMR2). V1/V2 set to the same measured value
+    // (single observed GCP TDVF vintage); approvePlatform is idempotent on duplicates.
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER =
-        keccak256("TDX_PLATFORM_COMMITMENT_GCP_C3S4_V1_PLACEHOLDER_v3");
+        hex"c612358092f33d9f203583a9d3eb08a6520cbbd8e5bfff30ef59785297b928d3";
     bytes32 private constant TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER =
-        keccak256("TDX_PLATFORM_COMMITMENT_GCP_C3S4_V2_PLACEHOLDER_v3");
+        hex"c612358092f33d9f203583a9d3eb08a6520cbbd8e5bfff30ef59785297b928d3";
 
     // The script deploys TDXValidationHook and whitelists enclaveType=2 with the binary
     // commitment above, then calls approvePlatform for each configured platform commitment.
