@@ -87,10 +87,10 @@ contract GenerateAlloc is Script {
     // MUST overwrite them with the per-devnet captured values before running on a real
     // network — RTMR3 reflects the exact kernel binary and the platform tuple reflects the
     // boot image vintage, so devnet-specific values cannot be hard-coded here.
-    // Real value captured 2026-07-24 from the launcher TD (dkg/tdx-sgx-unified d572685):
+    // Real value captured 2026-07-24 from the launcher TD (dkg/tdx-sgx-unified-95, build 8b98140):
     // keccak256(RTMR3), RTMR3 = self-extend(0, SHA-384(story-kernel ELF)). Reboot-stable.
     bytes32 private constant TDX_BINARY_COMMITMENT_PLACEHOLDER =
-        hex"a8bffe0a11acb3a9dabd21f5389544a49fb1c1d0574e2bd62fd0acb61cd827d7";
+        hex"d1f0cb640e7280e030c7d273e93079b06305d1013424170ae2ef3b56282fdfdd";
     // keccak256(MRTD || RTMR0 || RTMR1 || RTMR2) per platform; capture per vintage.
     // Real value captured 2026-07-24 from the launcher TD on GCP c3-standard-4:
     // keccak256(MRTD || RTMR0 || RTMR1 || RTMR2). V1/V2 set to the same measured value
