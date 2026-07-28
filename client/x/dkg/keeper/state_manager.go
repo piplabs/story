@@ -54,7 +54,7 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 	sessionKey := session.GetSessionKey()
 
 	if _, exists := sm.sessions[sessionKey]; exists {
-		log.Info(ctx, "Session already exists with the code commitment and round, skip creating a new session", "code_commitment", session.GetCodeCommitmentString(), "round", session.Round)
+		log.Info(ctx, "Session already exists with the code commitment and round, skip creating a new session", "code_commitment", session.GetCodeCommitmentString(), "round", session.GetRound())
 
 		return nil
 	} else {
@@ -66,8 +66,8 @@ func (sm *StateManager) CreateSession(ctx context.Context, session *types.DKGSes
 
 		log.Info(ctx, "Created DKG session",
 			"code_commitment", session.GetCodeCommitmentString(),
-			"round", session.Round,
-			"phase", session.Phase.String(),
+			"round", session.GetRound(),
+			"phase", session.GetPhase().String(),
 		)
 
 		return nil
@@ -108,8 +108,8 @@ func (sm *StateManager) UpdateSession(ctx context.Context, session *types.DKGSes
 
 	log.Debug(ctx, "Updated DKG session",
 		"code_commitment", session.GetCodeCommitmentString(),
-		"round", session.Round,
-		"phase", session.Phase.String(),
+		"round", session.GetRound(),
+		"phase", session.GetPhase().String(),
 	)
 
 	return nil
@@ -164,7 +164,7 @@ func (sm *StateManager) DeleteSession(ctx context.Context, round uint32) error {
 
 	log.Info(ctx, "Deleted DKG session",
 		"code_commitment", session.GetCodeCommitmentString(),
-		"round", session.Round,
+		"round", session.GetRound(),
 	)
 
 	return nil
@@ -176,7 +176,7 @@ func (sm *StateManager) GetActiveSession(validatorAddr string) *types.DKGSession
 	defer sm.mu.RUnlock()
 
 	for _, session := range sm.sessions {
-		if session.Phase == types.PhaseCompleted {
+		if session.GetPhase() == types.PhaseCompleted {
 			return session
 		}
 	}
@@ -204,8 +204,8 @@ func (sm *StateManager) PruneOldSessions(ctx context.Context, activeRound uint32
 	sm.mu.RLock()
 	stale := make([]uint32, 0)
 	for _, session := range sm.sessions {
-		if session.Round < horizon {
-			stale = append(stale, session.Round)
+		if r := session.GetRound(); r < horizon {
+			stale = append(stale, r)
 		}
 	}
 	sm.mu.RUnlock()
@@ -287,7 +287,12 @@ func (*StateManager) loadSessionFromFile(filename string) (*types.DKGSession, er
 // saveSession saves a session to disk atomically by writing to a temporary file
 // and renaming it, preventing corruption from partial writes during crashes.
 func (sm *StateManager) saveSession(session *types.DKGSession) error {
-	data, err := json.MarshalIndent(session, "", "  ")
+	// Marshal a locked deep-copy snapshot rather than the live pointer. Marshaling the live
+	// pointer reflects over every field without holding session.mu, which races any concurrent
+	// mutex-guarded mutation (UpdatePhase/SetKeyMaterial/IncrementRecoveryAttempts) and can read
+	// a torn slice header. StateManager.mu only serializes UpdateSession calls; it does not
+	// synchronize with session.mu, so the snapshot is what closes the marshal-vs-mutation race.
+	data, err := json.MarshalIndent(session.Snapshot(), "", "  ")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal session data")
 	}

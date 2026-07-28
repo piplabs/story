@@ -49,19 +49,22 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	if session.Phase != types.PhaseInitialized {
+	if session.GetPhase() != types.PhaseInitialized {
 		log.Warn(ctx, "Session not in initialized phase, skipping generate deals", nil,
-			"current_phase", session.Phase.String())
+			"current_phase", session.GetPhase().String())
 		k.stateManager.MarkFailed(ctx, session)
 
 		return
 	}
 
+	round := session.GetRound()
+	isResharing := session.GetIsResharing()
+
 	// For upgrade resharing, the dealer uses the old binary's kernel client
 	// because the old key shares are sealed by the old binary.
-	dealerCC := session.CodeCommitment
-	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 {
-		dealerCC = session.OldCodeCommitment
+	dealerCC := session.GetCodeCommitment()
+	if oldCC := session.GetOldCodeCommitment(); dkgNetwork.IsUpgrade && len(oldCC) > 0 {
+		dealerCC = oldCC
 	}
 
 	var resp *types.GenerateDealsResponse
@@ -69,14 +72,14 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 	start := time.Now()
 	retryErr := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "GenerateDeals call to kernel client",
-			"round", session.Round,
+			"round", round,
 			"is_upgrade", dkgNetwork.IsUpgrade,
 		)
 
 		req := &types.GenerateDealsRequest{
 			CodeCommitment: dealerCC,
-			Round:          session.Round,
-			IsResharing:    session.IsResharing,
+			Round:          round,
+			IsResharing:    isResharing,
 		}
 		client, cErr := k.getClientWithReconnect(dealerCC)
 		if cErr != nil {
@@ -99,7 +102,7 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 		return
 	}
 
-	session.Phase = types.PhaseDealing
+	session.UpdatePhase(types.PhaseDealing)
 
 	if err := k.stateManager.UpdateSession(ctx, session); err != nil {
 		log.Error(ctx, "Failed to update session after generating deals", err)
@@ -110,13 +113,13 @@ func (k *Keeper) handleDKGDealing(ctx context.Context, dkgNetwork *types.DKGNetw
 
 	k.EnqueueDeals(resp.GetDeals())
 
-	// DEBUG: session.Index is this validator's 1-based on-chain registration index
+	// DEBUG: self_index is this validator's 1-based on-chain registration index
 	// (its dealer identity). Logging it next to the enqueued deal count makes clear
 	// which validator produced this batch of deals.
 	log.Info(ctx, "DKG deals are generated successfully",
-		"round", session.Round,
-		"self_index", session.Index,
-		"is_resharing", session.IsResharing,
+		"round", round,
+		"self_index", session.GetIndex(),
+		"is_resharing", isResharing,
 		"enqueued_deals", len(resp.GetDeals()),
 	)
 }
@@ -153,20 +156,25 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	// Initialized to Dealing after GenerateDeals completes (which can take ~30s).
 	// If we reject deals during Initialized phase, they are permanently lost because
 	// vote extensions deliver each deal exactly once.
-	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+	if phase := session.GetPhase(); phase != types.PhaseDealing && phase != types.PhaseInitialized {
 		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process deals", nil,
-			"current_phase", session.Phase.String(),
+			"current_phase", phase.String(),
 		)
 
 		return
 	}
 
+	round := session.GetRound()
+	isResharing := session.GetIsResharing()
+	codeCommitment := session.GetCodeCommitment()
+	selfIndex := session.GetIndex()
+
 	// Filter deals addressed to this validator before entering retry loop.
-	// RecipientIndex is 0-based (Kyber), session.Index is 1-based (on-chain).
+	// RecipientIndex is 0-based (Kyber), selfIndex is 1-based (on-chain).
 	// Guard against unset index (0) to avoid uint32 underflow.
 	filtered := make([]pendingDeal, 0, len(pending))
 	for _, pd := range pending {
-		if session.Index > 0 && pd.deal.RecipientIndex == session.Index-1 {
+		if selfIndex > 0 && pd.deal.RecipientIndex == selfIndex-1 {
 			filtered = append(filtered, pd)
 		}
 	}
@@ -191,19 +199,19 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	start := time.Now()
 	retryErr := retry(ctx, func(ctx context.Context) error {
 		log.Info(ctx, "ProcessDeals call to kernel client",
-			"round", session.Round,
+			"round", round,
 			"total_deals", len(pending),
 			"filtered_deals", len(filtered),
 		)
 
 		req := &types.ProcessDealsRequest{
-			CodeCommitment: session.CodeCommitment,
-			Round:          session.Round,
+			CodeCommitment: codeCommitment,
+			Round:          round,
 			Deals:          rawDeals,
-			IsResharing:    session.IsResharing,
+			IsResharing:    isResharing,
 		}
 
-		client, cErr := k.getClientWithReconnect(session.CodeCommitment)
+		client, cErr := k.getClientWithReconnect(codeCommitment)
 		if cErr != nil {
 			return errors.Wrap(cErr, "no kernel client for session")
 		}
@@ -264,7 +272,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 		}
 		log.Warn(ctx, "Kernel rejected deals", nil,
 			"round", dkgNetwork.Round,
-			"self_index", session.Index,
+			"self_index", selfIndex,
 			"rejected_sender_index", rejectedIdx,
 		)
 
@@ -297,7 +305,7 @@ func (k *Keeper) handleDKGProcessDeals(ctx context.Context, dkgNetwork *types.DK
 	k.EnqueueResponses(resp.GetResponses())
 
 	log.Info(ctx, "Process deals complete",
-		"round", session.Round,
+		"round", round,
 		"submitted_deals", len(rawDeals),
 		"responses_generated", len(resp.GetResponses()),
 		"rejected_deals", len(resp.GetRejectedDeals()),
@@ -397,27 +405,33 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	}
 
 	// Accept responses in both Initialized and Dealing phases (same reasoning as deals).
-	if session.Phase != types.PhaseDealing && session.Phase != types.PhaseInitialized {
+	if phase := session.GetPhase(); phase != types.PhaseDealing && phase != types.PhaseInitialized {
 		log.Warn(ctx, "Session not in dealing or initialized phase, skipping process responses", nil,
-			"current_phase", session.Phase.String(),
+			"current_phase", phase.String(),
 		)
 
 		return
 	}
 
+	round := session.GetRound()
+	isResharing := session.GetIsResharing()
+	codeCommitment := session.GetCodeCommitment()
+	oldCodeCommitment := session.GetOldCodeCommitment()
+	selfIndex := session.GetIndex()
+
 	// During upgrade resharing, validators in both old and new sets must send
 	// ProcessResponses to BOTH binaries: the old binary (dealer role) and the new binary
 	// (recipient role). Each binary maintains its own DKG state that needs updating.
-	ccsToProcess := [][]byte{session.CodeCommitment}
-	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
-		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
+	ccsToProcess := [][]byte{codeCommitment}
+	if dkgNetwork.IsUpgrade && len(oldCodeCommitment) > 0 && !bytes.Equal(codeCommitment, oldCodeCommitment) {
+		ccsToProcess = append(ccsToProcess, oldCodeCommitment)
 	}
 
-	// Filter self-responses: VssResponse.Index is 0-based (Kyber), session.Index is 1-based.
-	// If session.Index is 0 (unset), include all responses (no self-filtering).
+	// Filter self-responses: VssResponse.Index is 0-based (Kyber), selfIndex is 1-based.
+	// If selfIndex is 0 (unset), include all responses (no self-filtering).
 	filtered := make([]pendingResponse, 0, len(pending))
 	for _, pr := range pending {
-		if session.Index == 0 || pr.response.VssResponse.Index != session.Index-1 {
+		if selfIndex == 0 || pr.response.VssResponse.Index != selfIndex-1 {
 			filtered = append(filtered, pr)
 		}
 	}
@@ -446,16 +460,16 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 		start := time.Now()
 		retryErr := retry(ctx, func(ctx context.Context) error {
 			log.Info(ctx, "ProcessResponses call to kernel client",
-				"round", session.Round,
+				"round", round,
 				"num_responses", len(rawResponses),
 				"code_commitment", hex.EncodeToString(cc),
 			)
 
 			req := &types.ProcessResponsesRequest{
 				CodeCommitment: cc,
-				Round:          session.Round,
+				Round:          round,
 				Responses:      rawResponses,
-				IsResharing:    session.IsResharing,
+				IsResharing:    isResharing,
 			}
 
 			client, cErr := k.getClientWithReconnect(cc)
@@ -496,7 +510,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 
 			log.Info(ctx, "Enqueued justifications for broadcast",
 				"code_commitment", hex.EncodeToString(cc),
-				"round", session.Round,
+				"round", round,
 				"num_justifications", len(processResp.GetJustifications()),
 			)
 		}
@@ -535,7 +549,7 @@ func (k *Keeper) handleDKGProcessResponses(ctx context.Context, dkgNetwork *type
 	}
 
 	log.Info(ctx, "Process responses complete",
-		"round", session.Round,
+		"round", round,
 		"submitted_responses", len(rawResponses),
 		"justifications_received", totalJustifications,
 		"rejected_responses", len(rejected),
@@ -559,9 +573,14 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		return
 	}
 
-	ccsToProcess := [][]byte{session.CodeCommitment}
-	if dkgNetwork.IsUpgrade && len(session.OldCodeCommitment) > 0 && !bytes.Equal(session.CodeCommitment, session.OldCodeCommitment) {
-		ccsToProcess = append(ccsToProcess, session.OldCodeCommitment)
+	round := session.GetRound()
+	isResharing := session.GetIsResharing()
+	codeCommitment := session.GetCodeCommitment()
+	oldCodeCommitment := session.GetOldCodeCommitment()
+
+	ccsToProcess := [][]byte{codeCommitment}
+	if dkgNetwork.IsUpgrade && len(oldCodeCommitment) > 0 && !bytes.Equal(codeCommitment, oldCodeCommitment) {
+		ccsToProcess = append(ccsToProcess, oldCodeCommitment)
 	}
 
 	// Extract raw justifications from pending items for the kernel call.
@@ -581,9 +600,9 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 		retryErr := retry(ctx, func(ctx context.Context) error {
 			req := &types.ProcessJustificationRequest{
 				CodeCommitment: cc,
-				Round:          session.Round,
+				Round:          round,
 				Justifications: rawJustifications,
-				IsResharing:    session.IsResharing,
+				IsResharing:    isResharing,
 			}
 
 			client, cErr := k.getClientWithReconnect(cc)
@@ -649,7 +668,7 @@ func (k *Keeper) handleDKGProcessJustifications(ctx context.Context, dkgNetwork 
 	}
 
 	log.Info(ctx, "Process justifications complete",
-		"round", session.Round,
+		"round", round,
 		"submitted_justifications", len(rawJustifications),
 		"rejected_justifications", len(rejected),
 	)

@@ -332,6 +332,94 @@ func TestDkgAsyncContext(t *testing.T) {
 	require.WithinDuration(t, deadline, deadline, dkgAsyncTimeout)
 }
 
+// --- resumeFailedSession async panic recovery ---
+
+// TestResumeFailedSession_AsyncPanicRecovered forces a panic inside one of the async
+// goroutines spawned by resumeFailedSession (the finalization path) and verifies the
+// deferred recoverAsyncDKG guard swallows it so the validator process does NOT crash.
+//
+// The panic is injected via a mock kernel whose FinalizeDKG panics. It propagates
+// through callTEEFinalizeDKG -> handleDKGFinalization up to the goroutine's
+// `defer recoverAsyncDKG(...)`, which is the FIRST deferred function (LIFO), so it runs
+// before `defer cancel()`. We therefore synchronize on the async context being cancelled:
+// cancel() only runs after the goroutine unwinds through recoverAsyncDKG, and the process
+// only stays alive to observe it because recoverAsyncDKG recovered the panic.
+//
+// This is a genuine guard: removing `defer recoverAsyncDKG(...)` from the finalization
+// goroutine lets the panic escape the goroutine, which crashes the test binary and fails
+// the package.
+func TestResumeFailedSession_AsyncPanicRecovered(t *testing.T) {
+	// Not parallel: shares the package-level dkgSvcRound atomic.
+	resetDKGSvcRound()
+	defer resetDKGSvcRound()
+
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+
+	cc := []byte("panic-finalize-cc")
+	mockKernel := dkgtestutil.NewMockKernelServiceClient(ctrl)
+
+	router := NewKernelRouter(nil, nil)
+	router.RegisterClient(cc, mockKernel)
+
+	sm, err := NewStateManager(t.TempDir())
+	require.NoError(t, err)
+
+	k := &Keeper{
+		stateManager:     sm,
+		kernelRouter:     router,
+		validatorEVMAddr: testValidatorAddr,
+	}
+
+	const round = uint32(77)
+	session := &types.DKGSession{
+		Round:          round,
+		Phase:          types.PhaseFailed,
+		CodeCommitment: cc,
+	}
+	require.NoError(t, sm.CreateSession(ctx, session))
+
+	// capturedCtx receives the async context that the spawned goroutine passes down to the
+	// kernel call, letting the test observe its cancellation once the goroutine unwinds.
+	capturedCtx := make(chan context.Context, 1)
+
+	// The mock records that the panic point was reached (by handing back the async context)
+	// and then panics inside the goroutine.
+	mockKernel.EXPECT().FinalizeDKG(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(asyncCtx context.Context, _ *types.FinalizeDKGRequest, _ ...grpc.CallOption) (*types.FinalizeDKGResponse, error) {
+			capturedCtx <- asyncCtx
+			panic("injected finalize panic")
+		}).Times(1)
+
+	dkgNetwork := &types.DKGNetwork{
+		Round:        round,
+		Stage:        types.DKGStageFinalization,
+		ActiveValSet: []string{testValidatorAddr},
+	}
+
+	// Dispatches to the finalization branch, which spawns the recover-wrapped goroutine.
+	k.resumeFailedSession(ctx, session, dkgNetwork)
+
+	// (a) The wrapped goroutine reached the injected panic.
+	var asyncCtx context.Context
+	select {
+	case asyncCtx = <-capturedCtx:
+	case <-time.After(5 * time.Second):
+		t.Fatal("finalization goroutine never reached the panic point")
+	}
+
+	// (b) The goroutine unwound through its deferred chain and returned without crashing the
+	// process. `defer cancel()` runs only after `defer recoverAsyncDKG(...)` recovered the
+	// panic (LIFO order), so a cancelled async context proves the recover branch executed and
+	// the process survived. Without the recover guard, the panic would crash the test binary.
+	select {
+	case <-asyncCtx.Done():
+		require.ErrorIs(t, asyncCtx.Err(), context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("async context was not cancelled; recoverAsyncDKG did not complete")
+	}
+}
+
 // --- Tests merged from dkg_svc_decrypt_test.go ---
 
 // --- processDecryptRequests / computePartialDecrypt / submitPartialDecryption ---
