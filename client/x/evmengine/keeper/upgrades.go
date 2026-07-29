@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strconv"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -193,14 +194,18 @@ func (k *Keeper) CancelUpgrade(ctx sdk.Context, isTerence bool) (err error) {
 		if err = k.ResetPendingUpgrade(ctx); err != nil {
 			return errors.Wrap(err, "failed to reset upgrade")
 		}
-
-		return nil
+	} else {
+		if err = k.upgradeKeeper.ClearUpgradePlan(ctx); errors.Is(err, sdkerrors.ErrInvalidRequest) {
+			return errors.WrapErrWithCode(errors.InvalidRequest, err)
+		} else if err != nil {
+			return errors.Wrap(err, "failed to clear upgrade plan")
+		}
 	}
 
-	if err = k.upgradeKeeper.ClearUpgradePlan(ctx); errors.Is(err, sdkerrors.ErrInvalidRequest) {
-		return errors.WrapErrWithCode(errors.InvalidRequest, err)
-	} else if err != nil {
-		return errors.Wrap(err, "failed to clear upgrade plan")
+	if infoPath, pathErr := k.upgradeKeeper.GetUpgradeInfoPath(); pathErr == nil {
+		if removeErr := os.Remove(infoPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			clog.Warn(ctx, "Failed to delete upgrade-info.json after cancel", removeErr)
+		}
 	}
 
 	return nil
