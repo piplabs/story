@@ -16,6 +16,7 @@ const (
 
 	Horace = "horace"
 	V160   = "v1.6.0"
+	V181   = "v1.8.1"
 
 	Seneca = "seneca"
 )
@@ -47,6 +48,9 @@ var UpgradeHistories = map[string]UpgradeMap{
 		Terence: 0,
 		V142:    0,
 		Horace:  100,
+		// The e2e drives the fork from this height, so the harness and this
+		// value have to agree.
+		V181: 130,
 	},
 	AeneidChainID: {
 		Virgil:   345158,
@@ -57,6 +61,18 @@ var UpgradeHistories = map[string]UpgradeMap{
 		V142:     12088950,
 		Horace:   14017000,
 		Seneca:   18550000,
+		// TODO(release): set the real v1.8.1 activation height before cutting the
+		// release, and set the same value on both release lines. The placeholder
+		// is deliberately unreachable so a forgotten value activates nothing: a
+		// line left on the placeholder does not halt, and its nodes would run
+		// past the real height under the old rules and diverge.
+		//
+		// This height is what activates the upgrade -- scheduleForkUpgrade
+		// schedules the plan when the chain reaches it. Do not also submit an
+		// on-chain plan under this name: that would complete the name early, and
+		// when the chain later reached this height ScheduleUpgrade would reject
+		// the already-completed name and scheduleForkUpgrade would panic.
+		V181: 999999999,
 	},
 	StoryChainID: {
 		Virgil:   809988,
