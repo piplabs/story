@@ -13,6 +13,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
+          # golangci-lint v1 cannot typecheck the Go 1.26 stdlib; keep 1.24 until the v2 migration.
           go-version: '1.24'
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
