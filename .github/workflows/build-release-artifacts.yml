@@ -4,6 +4,12 @@ on:
   release:
     types:
       - created
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to build and attach binaries to'
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -13,12 +19,14 @@ permissions:
 
 jobs:
   Timestamp:
-    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+    uses: thedatafoundation/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
   build:
     needs: Timestamp
     name: Build Release Assets
     runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
     strategy:
       matrix:
         platform:
@@ -27,18 +35,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.5
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
 
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
 
       - name: Display Go version
         run: go version
 
       - name: Display the release tag
         run: |
-          echo "Release tag: ${{ github.event.release.tag_name }}"
+          echo "Release tag: ${RELEASE_TAG}"
+          git rev-parse HEAD
 
       - name: Set up environment for cross-compilation
         run: |
@@ -57,7 +68,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.event.release.tag_name }}
+          tag: ${{ env.RELEASE_TAG }}
           file: |
             ./client/story-${{ matrix.platform }}
           file_glob: false
@@ -66,7 +77,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.event.release.tag_name }}
+          tag: ${{ env.RELEASE_TAG }}
           file: |
             ./client/story-${{ matrix.platform }}.sha256
           file_glob: false
