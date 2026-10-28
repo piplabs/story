@@ -24,7 +24,7 @@ env:
 
 jobs:
   Timestamp:
-    uses: thedatafoundation/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
   build_and_push:
     needs: Timestamp
@@ -235,7 +235,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_INTERNAL_DEVNET_WF_DISPATCH }}
-          repository: thedatafoundation/l1-tests
+          repository: storyprotocol/l1-tests
           event-type: run-tests
           client-payload: |
             {

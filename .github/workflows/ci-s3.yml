@@ -24,7 +24,7 @@ env:
 jobs:
   # Add timestamp
   Timestamp:
-    uses: thedatafoundation/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
   # Build and upload the story binary
   build_and_push:
