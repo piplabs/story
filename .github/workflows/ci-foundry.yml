@@ -7,7 +7,7 @@ on:
 jobs:
   # Add a timestamp to the build
   Timestamp:
-    uses: storyprotocol/gha-workflows/.github/workflows/reusable-timestamp.yml@main
+    uses: thedatafoundation/gha-workflows/.github/workflows/reusable-timestamp.yml@main
 
   foundry-test:
     strategy:
