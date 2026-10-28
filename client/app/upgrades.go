@@ -14,6 +14,7 @@ import (
 	"github.com/piplabs/story/client/app/upgrades/polybius"
 	"github.com/piplabs/story/client/app/upgrades/terence"
 	"github.com/piplabs/story/client/app/upgrades/v_1_2_0"
+	"github.com/piplabs/story/client/app/upgrades/v_1_8_1"
 	"github.com/piplabs/story/client/app/upgrades/virgil"
 	"github.com/piplabs/story/lib/errors"
 	"github.com/piplabs/story/lib/netconf"
@@ -28,6 +29,7 @@ var (
 		polybius.Upgrade,
 		terence.Upgrade,
 		horace.Upgrade,
+		v_1_8_1.Upgrade,
 	}
 	// Forks are for hard forks that breaks backward compatibility.
 	Forks = []upgrades.Fork{
@@ -36,6 +38,7 @@ var (
 		polybius.Fork,
 		terence.Fork,
 		horace.Fork,
+		v_1_8_1.Fork,
 	}
 )
 
@@ -145,6 +148,9 @@ func GetUpgradeHeight(ctx sdk.Context, upgradeName string, fallbackHeight int64)
 
 	case netconf.Horace:
 		return horace.GetUpgradeHeight(ctx)
+
+	case netconf.V181:
+		return v_1_8_1.GetUpgradeHeight(ctx)
 
 	default:
 		// no dynamic resolver → use fallback (static height)
