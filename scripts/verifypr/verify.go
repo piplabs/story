@@ -14,12 +14,11 @@ import (
 )
 
 var (
-	optionalLink       = `(fix\w*\s|close\w*\s|resolve\w*\s)?`    // Optional issue linking prefix, see https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue.
-	descRegex          = regexp.MustCompile(`^[a-z0-9 .&/-]+$`)   // e.g. "add foo-bar"
-	scopeRegex         = regexp.MustCompile(`^[*\w]+(/[*\w]+)?$`) // e.g. "*" or "foo" or "foo/bar"
-	issueRegexFull     = regexp.MustCompile(`^` + optionalLink + `https://github\\.com/piplabs/story/issues/\\d+$`)
+	optionalLink       = `(fix\w*\s|close\w*\s|resolve\w*\s)?` // Optional issue linking prefix, see https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue.
+	issueRegexFull     = regexp.MustCompile(`^` + optionalLink + `https://github\.com/piplabs/story/issues/\d+$`)
 	issueRegexShort    = regexp.MustCompile(`^` + optionalLink + `#\d+$`)                       // e.g. "#1334"
 	issueRegexCrossRef = regexp.MustCompile(`^` + optionalLink + `piplabs\/[a-zA-Z0-9-]+#\d+$`) // e.g. "piplabs/story-geth#1559"
+	issueLineRegex     = regexp.MustCompile(`(?i)^\s*[-*]?\s*issue:\s*(.+)$`)                   // e.g. "issue: #1334" or "- issue: #1334"
 )
 
 // run runs the verification.
@@ -38,10 +37,7 @@ func run() error {
 	log.Printf("PR Title: %s\n", pr.Title)
 	log.Printf("## PR Body:\n%s\n####\n", pr.Body)
 
-	// Convert PR title and body to conventional commit message.
-	commitMsg := fmt.Sprintf("%s\n\n%s", pr.Title, pr.Body)
-
-	return verify(commitMsg)
+	return verify(pr.Title, pr.Body)
 }
 
 type PR struct {
@@ -72,86 +68,79 @@ func prFromEnv() (PR, error) {
 	return pr, nil
 }
 
-// verify returns an error if the commit message doesn't correspond to the story conventional commit template.
-func verify(commitMsg string) error {
-	// Fix line endings, since conventional commit parser doesn't support CRLF.
-	commitMsg = strings.ReplaceAll(commitMsg, "\r\n", "\n")
+// verify returns an error if the PR title isn't a valid conventional commit
+// or if the PR body doesn't reference a github issue.
+func verify(title, body string) error {
+	if err := verifyTitle(title); err != nil {
+		return err
+	}
 
-	// Parse conventional commit message.
+	return verifyIssue(body)
+}
+
+// verifyTitle ensures the PR title follows the conventional commit style
+// (e.g. "feat: ...", "fix(scope): ..."). Casing, punctuation and scope
+// are intentionally not restricted beyond what the conventional commit spec requires.
+func verifyTitle(title string) error {
+	// Fix line endings, since conventional commit parser doesn't support CRLF.
+	title = strings.ReplaceAll(title, "\r\n", "\n")
+
+	const maxLen = 100
+	if len(title) > maxLen {
+		return errors.New("title too long")
+	}
+
 	m := parser.NewMachine()
 	m.WithTypes(cc.TypesConventional)
 
-	msg, err := m.Parse([]byte(commitMsg))
+	msg, err := m.Parse([]byte(title))
 	if err != nil {
-		return fmt.Errorf("parse conventional commit message: %w", err)
+		return fmt.Errorf("title is not a conventional commit: %v", err)
 	}
 
 	commit, ok := msg.(*cc.ConventionalCommit)
 	if !ok {
-		return errors.New("message is not a conventional commit")
+		return errors.New("title is not a conventional commit")
 	}
 
-	// Verify conventional commit message is valid.
 	if !commit.Ok() {
-		return errors.New("conventional commit not ok")
-	}
-
-	// Verify title is valid.
-	if err := verifyDescription(commit.Description); err != nil {
-		return err
-	}
-
-	// Verify body is non-empty.
-	if commit.Body == nil || *commit.Body == "" {
-		return errors.New("body empty")
-	}
-
-	// Verify footer is valid.
-	if err := verifyFooter(commit); err != nil {
-		return err
-	}
-
-	// Verify scope is valid.
-	if err := verifyScope(commit); err != nil {
-		return err
+		return errors.New("title is not a valid conventional commit")
 	}
 
 	return nil
 }
 
-func verifyDescription(description string) error {
-	const maxLen = 80
-	if len(description) > maxLen {
-		return errors.New("description too long")
+// verifyIssue ensures the PR body footer contains a single `issue:` line referencing a
+// github issue. The footer is the last paragraph of the body (the block after the final
+// blank line), so the body above it may contain anything (e.g. bullet lists).
+func verifyIssue(body string) error {
+	body = strings.ReplaceAll(body, "\r\n", "\n")
+
+	// Footer = last paragraph, i.e. the block after the final blank line.
+	footer := strings.TrimSpace(body)
+	if idx := strings.LastIndex(footer, "\n\n"); idx >= 0 {
+		footer = strings.TrimSpace(footer[idx+len("\n\n"):])
 	}
 
-	if !descRegex.MatchString(description) {
-		return errors.New("description doesn't match regex")
+	var issues []string
+	for _, line := range strings.Split(footer, "\n") {
+		if matches := issueLineRegex.FindStringSubmatch(line); matches != nil {
+			issues = append(issues, strings.TrimSpace(matches[1]))
+		}
 	}
 
-	return nil
-}
-
-func verifyFooter(commit *cc.ConventionalCommit) error {
-	const issueFooter = "issue"
-
-	if len(commit.Footers) == 0 {
-		return errors.New("missing `issue` section. Please add a github issue for this PR")
+	if len(issues) == 0 {
+		return errors.New("missing `issue` section in footer. Please add an `issue:` line at the end of the PR body")
 	}
 
-	if len(commit.Footers[issueFooter]) == 0 {
-		return errors.New("missing `issue` section. Please add a github issue for this PR")
-	}
-
-	if len(commit.Footers[issueFooter]) != 1 {
+	if len(issues) != 1 {
 		return errors.New("invalid number of issue sections, only one allowed")
 	}
 
-	issue := strings.TrimSpace(commit.Footers[issueFooter][0])
+	// The issue value is never empty: issueLineRegex only captures non-empty content.
+	issue := issues[0]
 	//nolint:nestif // nested ifs readability
-	if issue == "" {
-		return errors.New("issue section empty")
-	} else if issue == "none" {
+	if issue == "none" {
 		// None is fine
 	} else if issueRegexFull.MatchString(issue) {
 		// Full issue URL
@@ -161,24 +150,6 @@ func verifyFooter(commit *cc.ConventionalCommit) error {
 		// Cross-repo (same org) issue URL
 	} else {
 		return errors.New("invalid issue section")
-	}
-
-	return nil
-}
-
-func verifyScope(commit *cc.ConventionalCommit) error {
-	if commit.Scope == nil {
-		return errors.New("scope not set")
-	}
-
-	scope := *commit.Scope
-
-	if scope == "" {
-		return errors.New("scope empty")
-	}
-
-	if !scopeRegex.MatchString(scope) {
-		return errors.New("scope doesn't match regex")
 	}
 
 	return nil
